@@ -20,10 +20,8 @@ package com.orangelabs.rcs.core.ims.service.richcall.video;
 
 import java.util.Vector;
 
-import com.gsma.services.rcs.JoynContactFormatException;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
-import com.gsma.services.rcs.vsh.IVideoPlayerListener;
 import com.gsma.services.rcs.vsh.VideoCodec;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
@@ -35,7 +33,6 @@ import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
-import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -120,8 +117,6 @@ public class OriginatingVideoStreamingSession extends VideoStreamingSession {
         // Parse the remote SDP part
         SdpParser parser = new SdpParser(getDialogPath().getRemoteContent().getBytes());
         MediaDescription mediaVideo = parser.getMediaDescription("video");
-        String remoteHost = SdpUtils.extractRemoteHost(parser.sessionDescription, mediaVideo);
-        int remotePort = mediaVideo.port;
 
         // Extract video codecs from SDP
         Vector<MediaDescription> medias = parser.getMediaDescriptions("video");
@@ -149,12 +144,6 @@ public class OriginatingVideoStreamingSession extends VideoStreamingSession {
         if (extensionHeader != null) {
         	// TODO getVideoPlayer().setOrientationHeaderId(extensionHeader.getExtensionId());
         }
-
-        // Set video player event listener
-        getVideoPlayer().addEventListener(new MyPlayerEventListener(this));
-
-        // Open the video player
-        getVideoPlayer().open(selectedVideoCodec, remoteHost, remotePort);
     }
 
     /**
@@ -163,121 +152,14 @@ public class OriginatingVideoStreamingSession extends VideoStreamingSession {
      * @throws Exception 
      */
     public void startMediaSession() throws Exception {
-        // Start the video player
-    	getVideoPlayer().start();
+		// Nothing to do in case of external codec
     }
-
 
     /**
      * Close media session
      */
     public void closeMediaSession() {
-        try {
-            // Close the video player
-            if (getVideoPlayer() != null) {
-            	getVideoPlayer().stop();
-            	getVideoPlayer().close();
-            }
-        } catch(Exception e) {
-            if (logger.isActivated()) {
-                logger.error("Exception when closing the media renderer", e);
-            }
-        }
-    }
-
-
-    /**
-     * My player event listener
-     */
-    private class MyPlayerEventListener extends IVideoPlayerListener.Stub {
-        /**
-         * Streaming session
-         */
-        private VideoStreamingSession session;
-
-        /**
-         * Constructor
-         *
-         * @param session Streaming session
-         */
-        public MyPlayerEventListener(VideoStreamingSession session) {
-            this.session = session;
-        }
-
-    	/**
-    	 * Callback called when the player is opened
-    	 */
-    	public void onPlayerOpened() {
-            if (logger.isActivated()) {
-                logger.debug("Media player is opened");
-            }
-    	}
-
-    	/**
-    	 * Callback called when the player is started
-    	 */
-    	public void onPlayerStarted() {
-            if (logger.isActivated()) {
-                logger.debug("Media player is started");
-            }
-    	}
-
-    	/**
-    	 * Callback called when the player is stopped
-    	 */
-    	public void onPlayerStopped() {
-            if (logger.isActivated()) {
-                logger.debug("Media player is stopped");
-            }
-    	}
-
-    	/**
-    	 * Callback called when the player is closed
-    	 */
-    	public void onPlayerClosed() {
-            if (logger.isActivated()) {
-                logger.debug("Media player is closed");
-            }
-    	}
-
-    	/**
-    	 * Callback called when the player has failed
-    	 * 
-    	 * @param error Error
-    	 */
-    	public void onPlayerError(int error) {
-            if (isSessionInterrupted()) {
-                return;
-            }
-
-            if (logger.isActivated()) {
-                logger.error("Media player has failed: " + error);
-            }
-
-            // Close the media session
-            closeMediaSession();
-
-            // Terminate session
-            terminateSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
-
-            // Remove the current session
-            getImsService().removeSession(session);
-
-            // Notify listeners
-            for(int i=0; i < getListeners().size(); i++) {
-                ((VideoStreamingSessionListener)getListeners().get(i)).handleSharingError(new ContentSharingError(ContentSharingError.MEDIA_STREAMING_FAILED));
-            }
-
-            try {
-				ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
-				// Request capabilities to the remote
-		        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
-			} catch (JoynContactFormatException e) {
-				if (logger.isActivated()) {
-					logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
-				}
-			}
-    	}
+		// Nothing to do in case of external codec
     }
 
 	@Override

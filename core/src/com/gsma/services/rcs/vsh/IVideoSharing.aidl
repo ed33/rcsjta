@@ -1,6 +1,6 @@
 package com.gsma.services.rcs.vsh;
 
-import com.gsma.services.rcs.vsh.IVideoRenderer;
+import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.VideoCodec;
 import com.gsma.services.rcs.contacts.ContactId;
 
@@ -19,7 +19,7 @@ interface IVideoSharing {
 
 	int getDirection();
 	
-	void acceptInvitation(IVideoRenderer renderer);
+	void acceptInvitation(IVideoPlayer player);
 
 	void rejectInvitation();
 

@@ -20,9 +20,7 @@ package com.orangelabs.rcs.core.ims.service.richcall.video;
 
 import java.util.Vector;
 
-import com.gsma.services.rcs.JoynContactFormatException;
 import com.gsma.services.rcs.contacts.ContactId;
-import com.gsma.services.rcs.vsh.IVideoRendererListener;
 import com.gsma.services.rcs.vsh.VideoCodec;
 import com.orangelabs.rcs.core.content.ContentManager;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
@@ -37,7 +35,6 @@ import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
 import com.orangelabs.rcs.core.ims.service.SessionTimerManager;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
-import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -80,8 +77,6 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
             // Parse the remote SDP part
             SdpParser parser = new SdpParser(getDialogPath().getRemoteContent().getBytes());
             MediaDescription mediaVideo = parser.getMediaDescription("video");
-            String remoteHost = SdpUtils.extractRemoteHost(parser.sessionDescription, mediaVideo);
-            int remotePort = mediaVideo.port;
 
             // Extract video codecs from SDP
             Vector<MediaDescription> medias = parser.getMediaDescriptions("video");
@@ -131,7 +126,7 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
             }
 
             // Check that a video renderer has been set
-            if (getVideoRenderer() == null) {
+            if (getVideoPlayer() == null) {
                 handleError(new ContentSharingError(
                         ContentSharingError.MEDIA_RENDERER_NOT_INITIALIZED));
                 return;
@@ -139,7 +134,7 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
 
             // Codec negotiation
             VideoCodec selectedVideoCodec = VideoCodecManager.negociateVideoCodec(
-            		getVideoRenderer().getSupportedCodecs(), proposedCodecs);
+            		getVideoPlayer().getSupportedCodecs(), proposedCodecs);
             if (selectedVideoCodec == null) {
                 if (logger.isActivated()){
                     logger.debug("Proposed codecs are not supported");
@@ -159,15 +154,9 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
             	// TODO getVideoRenderer().setOrientationHeaderId(extensionHeader.getExtensionId());
             }
 
-            // Set video renderer event listener
-            getVideoRenderer().addEventListener(new MyRendererEventListener(this));
-
-            // Open the video renderer
-            getVideoRenderer().open(selectedVideoCodec, remoteHost, remotePort);
-
             // Build SDP part
 	    	String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
-            String videoSdp = VideoSdpBuilder.buildSdpAnswer(selectedVideoCodec, getVideoRenderer().getLocalRtpPort(), mediaVideo); 
+            String videoSdp = VideoSdpBuilder.buildSdpAnswer(selectedVideoCodec, getVideoPlayer().getLocalRtpPort(), mediaVideo); 
             String sdp = SdpUtils.buildVideoSDP(ipAddress, videoSdp, SdpUtils.DIRECTION_RECVONLY);
 
             // Set the local SDP part in the dialog path
@@ -203,9 +192,6 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
 
                 // The session is established
                 getDialogPath().sessionEstablished();
-
-                // Start the video renderer
-                getVideoRenderer().start();
 
                 // Start session timer
                 if (getSessionTimerManager().isSessionTimerActivated(resp)) {
@@ -263,29 +249,12 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
     }
 
     /**
-     * Close media session
-     */
-    public void closeMediaSession() {
-        try {
-            // Close the video renderer
-            if (getVideoRenderer() != null) {
-            	getVideoRenderer().stop();
-            	getVideoRenderer().close();
-            }
-        } catch(Exception e) {
-            if (logger.isActivated()) {
-                logger.error("Exception when closing the media renderer", e);
-            }
-        }
-    }
-
-    /**
      * Prepare media session
      * 
      * @throws Exception 
      */
     public void prepareMediaSession() throws Exception {
-          // Nothing to do in terminating side
+    	// Nothing to do in case of external codec
     }
 
     /**
@@ -294,115 +263,16 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
      * @throws Exception 
      */
     public void startMediaSession() throws Exception {
-        // Nothing to do in terminating side
+		// Nothing to do in case of external codec
     }
 
-    /**
-     * My renderer event listener
-     */
-    private class MyRendererEventListener extends IVideoRendererListener.Stub {
-        /**
-         * Streaming session
-         */
-        private VideoStreamingSession session;
-
-        /**
-         * Constructor
-         *
-         * @param session Streaming session
-         */
-        public MyRendererEventListener(VideoStreamingSession session) {
-            this.session = session;
-        }
-
-    	/**
-    	 * Callback called when the renderer is opened
-    	 */
-    	public void onRendererOpened() {
-            if (logger.isActivated()) {
-                logger.debug("Media renderer is opened");
-            }
-    	}
-
-    	/**
-    	 * Callback called when the renderer is started
-    	 */
-    	public void onRendererStarted() {
-            if (logger.isActivated()) {
-                logger.debug("Media renderer is started");
-            }
-    	}
-
-    	/**
-    	 * Callback called when the renderer is stopped
-    	 */
-    	public void onRendererStopped() {
-            if (logger.isActivated()) {
-                logger.debug("Media renderer is stopped");
-            }
-    	}
-
-    	/**
-    	 * Callback called when the renderer is closed
-    	 */
-    	public void onRendererClosed() {
-            if (logger.isActivated()) {
-                logger.debug("Media renderer is closed");
-            }
-    	}
-
-    	/**
-    	 * Callback called when the renderer has failed
-    	 * 
-    	 * @param error Error
-    	 */
-    	public void onRendererError(int error) {
-            if (isSessionInterrupted()) {
-                return;
-            }
-
-            if (logger.isActivated()) {
-                logger.error("Media renderer has failed: " + error);
-            }
-
-            // Close the media session
-            closeMediaSession();
-
-            // Terminate session
-            terminateSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
-
-            // Remove the current session
-            getImsService().removeSession(session);
-
-            // Notify listeners
-            for(int i=0; i < getListeners().size(); i++) {
-                ((VideoStreamingSessionListener)getListeners().get(i)).handleSharingError(new ContentSharingError(ContentSharingError.MEDIA_STREAMING_FAILED));
-            }
-
-            try {
-				ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
-				// Request capabilities to the remote
-		        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
-			} catch (JoynContactFormatException e) {
-				if (logger.isActivated()) {
-					logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
-				}
-			}
-    	}
-    	
-    	/**
-    	 * Callback called when the renderer is resized
-    	 * 
-    	 * @param width Width
-    	 * @param height Height
-    	 */    	
-    	public void onRendererResized(int width, int height) {
-            if (logger.isActivated()) {
-                logger.debug("Media renderer is resized");
-            }
-    	}
-    }
-
+	/**
+	 * Close media session
+	 */
+	public void closeMediaSession() {    
+		// Nothing to do in case of external codec
+	}
+	
 	@Override
 	public boolean isInitiatedByRemote() {
 		return true;

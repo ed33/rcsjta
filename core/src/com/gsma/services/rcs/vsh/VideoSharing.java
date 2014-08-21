@@ -212,12 +212,12 @@ public class VideoSharing {
 	/**
 	 * Accepts video sharing invitation
 	 * 
-	 * @param renderer Video renderer
+	 * @param player Video player
 	 * @throws JoynServiceException
 	 */
-	public void acceptInvitation(VideoRenderer renderer) throws JoynServiceException {
+	public void acceptInvitation(VideoPlayer player) throws JoynServiceException {
 		try {
-			sharingInf.acceptInvitation(renderer);
+			sharingInf.acceptInvitation(player);
 		} catch(Exception e) {
 			throw new JoynServiceException(e.getMessage());
 		}

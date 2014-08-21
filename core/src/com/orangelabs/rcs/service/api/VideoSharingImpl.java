@@ -28,7 +28,7 @@ import static com.gsma.services.rcs.vsh.VideoSharing.State.STARTED;
 import static com.gsma.services.rcs.vsh.VideoSharing.State.TERMINATED;
 
 import com.gsma.services.rcs.contacts.ContactId;
-import com.gsma.services.rcs.vsh.IVideoRenderer;
+import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.IVideoSharing;
 import com.gsma.services.rcs.vsh.VideoCodec;
 import com.gsma.services.rcs.vsh.VideoSharing;
@@ -114,9 +114,6 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 		try {
 			if (session.getVideoPlayer() != null) {
 				codec = session.getVideoPlayer().getCodec();
-			} else
-			if (session.getVideoRenderer() != null) {
-				codec = session.getVideoRenderer().getCodec();
 			}
 		} catch(Exception e) {}
 		return codec;
@@ -172,15 +169,15 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	/**
 	 * Accepts video sharing invitation
 	 * 
-	 * @param renderer Video renderer
+	 * @param player Video player
 	 */
-	public void acceptInvitation(IVideoRenderer renderer) {
+	public void acceptInvitation(IVideoPlayer player) {
 		if (logger.isActivated()) {
 			logger.info("Accept session invitation");
 		}
 
-		// Set the video renderer
-		session.setVideoRenderer(renderer);
+		// Set the video player
+		session.setVideoPlayer(player);
 		
 		// Accept invitation
         Thread t = new Thread() {
