@@ -77,6 +77,8 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
             // Parse the remote SDP part
             SdpParser parser = new SdpParser(getDialogPath().getRemoteContent().getBytes());
             MediaDescription mediaVideo = parser.getMediaDescription("video");
+            String remoteHost = SdpUtils.extractRemoteHost(parser.sessionDescription, mediaVideo);
+            int remotePort = mediaVideo.port;
 
             // Extract video codecs from SDP
             Vector<MediaDescription> medias = parser.getMediaDescriptions("video");
@@ -197,6 +199,9 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
                 if (getSessionTimerManager().isSessionTimerActivated(resp)) {
                     getSessionTimerManager().start(SessionTimerManager.UAS_ROLE, getDialogPath().getSessionExpireTime());
                 }
+
+                // Set the video player remote info
+                getVideoPlayer().setRemoteInfo(selectedVideoCodec, remoteHost, remotePort);
 
                 // Notify listeners
                 for(int i=0; i < getListeners().size(); i++) {

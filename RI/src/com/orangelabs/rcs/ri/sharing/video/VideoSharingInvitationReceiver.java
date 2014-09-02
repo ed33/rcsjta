@@ -37,6 +37,5 @@ public class VideoSharingInvitationReceiver extends BroadcastReceiver {
 		receiverIntent.setAction(intent.getAction());
 		context.startService(receiverIntent);
     }
-
 }
 

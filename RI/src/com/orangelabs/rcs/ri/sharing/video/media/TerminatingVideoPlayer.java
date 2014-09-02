@@ -19,15 +19,12 @@
 package com.orangelabs.rcs.ri.sharing.video.media;
 
 import java.io.IOException;
-import java.util.Iterator;
 
 import android.graphics.Bitmap;
-import android.os.RemoteException;
 import android.os.SystemClock;
 
-import com.gsma.services.rcs.vsh.IVideoRendererListener;
 import com.gsma.services.rcs.vsh.VideoCodec;
-import com.gsma.services.rcs.vsh.VideoRenderer;
+import com.gsma.services.rcs.vsh.VideoPlayer;
 import com.orangelabs.rcs.core.ims.protocol.rtp.DummyPacketGenerator;
 import com.orangelabs.rcs.core.ims.protocol.rtp.VideoRtpReceiver;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
@@ -44,11 +41,11 @@ import com.orangelabs.rcs.core.ims.protocol.rtp.media.VideoSample;
 import com.orangelabs.rcs.core.ims.protocol.rtp.stream.RtpStreamListener;
 
 /**
- * Video RTP renderer based on H264 QCIF format
+ * Live video RTP renderer based on H264 QCIF format
  *
  * @author Jean-Marc AUFFRET
  */
-public class MyVideoRenderer extends VideoRenderer implements RtpStreamListener {
+public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamListener {
     /**
      * Default video codec
      */
@@ -105,15 +102,34 @@ public class MyVideoRenderer extends VideoRenderer implements RtpStreamListener 
     private int orientationHeaderId = -1;
 
     /**
+     * Video player event listener
+     */
+    private VideoPlayerListener eventListener;
+
+    /**
+     * Remote host
+     */
+    private String remoteHost;
+    
+    /**
+     * Remote port
+     */
+    private int remotePort;
+    
+    /**
      * Constructor
      * 
      * @param surface Surface view
+     * @param eventListener Player event listener
      */
-    public MyVideoRenderer(VideoSurfaceView surface) {
+    public TerminatingVideoPlayer(VideoSurfaceView surface, VideoPlayerListener eventListener) {
     	// Set surface view
     	this.surface = surface;
     	
-        // Set the local RTP port
+    	// Set event listener
+    	this.eventListener = eventListener;
+
+    	// Set the local RTP port
         localRtpPort = NetworkRessourceManager.generateLocalRtpPort();
         reservePort(localRtpPort);
         
@@ -127,6 +143,22 @@ public class MyVideoRenderer extends VideoRenderer implements RtpStreamListener 
                 H264Config.QCIF_HEIGHT,
     			H264Config.CODEC_PARAM_PROFILEID + "=" + H264Profile1b.BASELINE_PROFILE_ID + ";" + H264Config.CODEC_PARAM_PACKETIZATIONMODE + "=" + JavaPacketizer.H264_ENABLED_PACKETIZATION_MODE);
     }
+    
+    /**
+	 * Set the remote info
+	 * 
+	 * @param codec Video codec
+	 * @param remoteHost Remote RTP host
+	 * @param remotePort Remote RTP port
+	 */
+	public void setRemoteInfo(VideoCodec codec, String remoteHost, int remotePort) {
+        // Set the video codec
+        defaultVideoCodec = codec;		
+        
+        // Set remote host and port
+        this.remoteHost = remoteHost;
+        this.remotePort = remotePort;        
+	}
     
 	/**
 	 * Returns the list of codecs supported by the player
@@ -149,26 +181,20 @@ public class MyVideoRenderer extends VideoRenderer implements RtpStreamListener 
 	}
 
 	/**
-	 * Opens the renderer and prepares resources (e.g. decoder)
-	 * 
-	 * @param codec Video codec
-	 * @param remoteHost Remote RTP host
-	 * @param remotePort Remote RTP port
+	 * Opens the player and prepares resources
 	 */
-	public synchronized void open(VideoCodec codec, String remoteHost, int remotePort) {
+	public synchronized void open() {
 		if (opened) {
             // Already opened
             return;
         }
 
-        // Set the video codec
-        defaultVideoCodec = codec;		
-		
         try {
             // Init the video decoder
             int result = NativeH264Decoder.InitDecoder();
             if (result != 0) {
-                notifyRendererEventError(VideoRenderer.Error.INTERNAL_ERROR);
+            	// Decoder init failed
+        		eventListener.onPlayerError();
                 return;
             }
 
@@ -182,17 +208,18 @@ public class MyVideoRenderer extends VideoRenderer implements RtpStreamListener 
             rtpDummySender.prepareSession(remoteHost, remotePort, rtpReceiver.getInputStream());
             rtpDummySender.startSession();
         } catch (Exception e) {
-            notifyRendererEventError(VideoRenderer.Error.INTERNAL_ERROR);
+        	// RTP failed
+    		eventListener.onPlayerError();
             return;
         }
 
         // Player is opened
         opened = true;
-        notifyRendererEventOpened();
+		eventListener.onPlayerOpened();
     }
 
 	/**
-	 * Closes the renderer and deallocates resources
+	 * Closes the player and deallocates resources
 	 */
 	public synchronized void close() {
         if (!opened) {
@@ -214,11 +241,11 @@ public class MyVideoRenderer extends VideoRenderer implements RtpStreamListener 
 
         // Player is closed
         opened = false;
-        notifyRendererEventClosed();
+		eventListener.onPlayerClosed();
     }
 
 	/**
-	 * Starts the renderer
+	 * Starts the player
 	 */
 	public synchronized void start() {
 		if (!opened) {
@@ -234,14 +261,14 @@ public class MyVideoRenderer extends VideoRenderer implements RtpStreamListener 
         // Start RTP layer
         rtpReceiver.startSession();
 
-        // Renderer is started
+        // Player is started
         videoStartTime = SystemClock.uptimeMillis();
         started = true;
-        notifyRendererEventStarted();
+		eventListener.onPlayerStarted();
     }
 
 	/**
-	 * Stops the renderer
+	 * Stops the player
 	 */
 	public synchronized void stop() {
 		if (!started) {
@@ -262,10 +289,10 @@ public class MyVideoRenderer extends VideoRenderer implements RtpStreamListener 
         // Force black screen
     	surface.clearImage();
 
-        // Renderer is stopped
+        // Player is stopped
         started = false;
         videoStartTime = 0L;
-        notifyRendererEventStopped();
+		eventListener.onPlayerStopped();
     }
     
     /*---------------------------------------------------------------------*/
@@ -339,7 +366,7 @@ public class MyVideoRenderer extends VideoRenderer implements RtpStreamListener 
      * Notify RTP aborted
      */
     public void rtpStreamAborted() {
-        notifyRendererEventError(VideoRenderer.Error.NETWORK_FAILURE);
+		eventListener.onPlayerError();
     }
 
     /**
@@ -350,90 +377,6 @@ public class MyVideoRenderer extends VideoRenderer implements RtpStreamListener 
     public void setOrientationHeaderId(int headerId) {
         this.orientationHeaderId = headerId;
     }
-
-    /**
-     * Notify renderer event started
-     */
-    private void notifyRendererEventStarted() {
-    	try {
-	        Iterator<IVideoRendererListener> ite = getEventListeners().iterator();
-	        while (ite.hasNext()) {
-	            ite.next().onRendererStarted();
-	        }
-		} catch(RemoteException e) {
-			e.printStackTrace();
-		}
-    }
-
-    /**
-     * Notify renderer event stopped
-     */
-    private void notifyRendererEventStopped() {
-    	try {
-	        Iterator<IVideoRendererListener> ite = getEventListeners().iterator();
-	        while (ite.hasNext()) {
-	            ite.next().onRendererStopped();
-	        }
-		} catch(RemoteException e) {
-			e.printStackTrace();
-		}
-	}
-
-    /**
-     * Notify renderer event opened
-     */
-    private void notifyRendererEventOpened() {
-    	try {
-	        Iterator<IVideoRendererListener> ite = getEventListeners().iterator();
-	        while (ite.hasNext()) {
-	            ite.next().onRendererOpened();
-	        }
-		} catch(RemoteException e) {
-			e.printStackTrace();
-		}
-    }
-
-    /**
-     * Notify renderer event closed
-     */
-    private void notifyRendererEventClosed() {
-    	try {
-	        Iterator<IVideoRendererListener> ite = getEventListeners().iterator();
-	        while (ite.hasNext()) {
-	            ite.next().onRendererClosed();
-	        }
-		} catch(RemoteException e) {
-			e.printStackTrace();
-		}
-    }
-
-    /**
-     * Notify renderer event error
-     */
-    private void notifyRendererEventError(int error) {
-    	try {
-	        Iterator<IVideoRendererListener> ite = getEventListeners().iterator();
-	        while (ite.hasNext()) {
-	            ite.next().onRendererError(error);
-	        }
-		} catch(RemoteException e) {
-			e.printStackTrace();
-		}
-    }
-
-    /**
-     * Notify renderer event resized
-     */
-    private void notifyRendererEventResized(int width, int height) {
-    	try {
-	        Iterator<IVideoRendererListener> ite = getEventListeners().iterator();
-	        while (ite.hasNext()) {
-	            ite.next().onRendererResized(width, height);
-	        }
-		} catch(RemoteException e) {
-			e.printStackTrace();
-		}
-    }    
     
     /**
      * Media RTP output
@@ -496,7 +439,7 @@ public class MyVideoRenderer extends VideoRenderer implements RtpStreamListener 
                     // Init RGB frame with the decoder dimensions
                 	if ((rgbFrame.getWidth() != decodedFrameDimensions[0]) || (rgbFrame.getHeight() != decodedFrameDimensions[1])) {
                         rgbFrame = Bitmap.createBitmap(decodedFrameDimensions[0], decodedFrameDimensions[1], Bitmap.Config.RGB_565);
-                        notifyRendererEventResized(decodedFrameDimensions[0], decodedFrameDimensions[1]);
+                		eventListener.onPlayerResized(decodedFrameDimensions[0], decodedFrameDimensions[1]);
                     }
 
                 	// Set data in image

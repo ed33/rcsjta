@@ -43,7 +43,8 @@ import com.gsma.services.rcs.vsh.VideoSharingService;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.RiApplication;
-import com.orangelabs.rcs.ri.sharing.video.media.MyVideoRenderer;
+import com.orangelabs.rcs.ri.sharing.video.media.TerminatingVideoPlayer;
+import com.orangelabs.rcs.ri.sharing.video.media.VideoPlayerListener;
 import com.orangelabs.rcs.ri.sharing.video.media.VideoSurfaceView;
 import com.orangelabs.rcs.ri.utils.LockAccess;
 import com.orangelabs.rcs.ri.utils.LogUtils;
@@ -55,7 +56,7 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * @author Jean-Marc AUFFRET
  * @author YPLO6403
  */
-public class ReceiveVideoSharing extends Activity implements JoynServiceListener {
+public class ReceiveVideoSharing extends Activity implements JoynServiceListener, VideoPlayerListener {
 
 	/**
 	 * UI handler
@@ -75,12 +76,12 @@ public class ReceiveVideoSharing extends Activity implements JoynServiceListener
     /**
      * The Video Sharing Data Object 
      */
-    VideoSharingDAO vshDao;
+	private VideoSharingDAO vshDao;
 
     /**
      * Video renderer
      */
-    private MyVideoRenderer videoRenderer;
+    private TerminatingVideoPlayer videoRenderer;
 
     /**
      * Video width
@@ -124,59 +125,6 @@ public class ReceiveVideoSharing extends Activity implements JoynServiceListener
 	 */
 	private static final String[] VSH_REASON_CODES = RiApplication.getContext().getResources()
 			.getStringArray(R.array.vsh_reason_codes);
-	
-	   /**
-     * Video sharing listener
-     */
-    private VideoSharingListener vshListener = new VideoSharingListener() {
-
-		@Override
-		public void onVideoSharingStateChanged(ContactId contact, String sharingId, final int state) {
-			if (LogUtils.isActive) {
-				Log.d(LOGTAG, "onVideoSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state);
-			}
-			if (state > VSH_STATES.length) {
-				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled state=" + state);
-				}
-				return;
-			}
-			// TODO : handle reason code (CR025)
-			final String reason = VSH_REASON_CODES[0];
-			final String notif = getString(R.string.label_vsh_state_changed, VSH_STATES[state], reason);
-			handler.post(new Runnable() {
-				public void run() {
-					switch (state) {
-					case VideoSharing.State.STARTED:
-						// Session is established
-						break;
-
-					case VideoSharing.State.ABORTED:
-						// Display session status
-						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_aborted, reason),
-								exitOnce);
-						break;
-
-					case VideoSharing.State.FAILED:
-						// Session is failed: exit
-						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_failed, reason),
-								exitOnce);
-						break;
-
-					case VideoSharing.State.TERMINATED:
-						// Session is failed: exit
-						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_vsh_terminated), exitOnce);
-						break;
-
-					default:
-						if (LogUtils.isActive) {
-							Log.d(LOGTAG, "onVideoSharingStateChanged " + notif);
-						}
-					}
-				}
-			});
-		}
-	};
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -215,7 +163,7 @@ public class ReceiveVideoSharing extends Activity implements JoynServiceListener
         surface.setKeepScreenOn(true);
 
         // Instantiate the renderer
-        videoRenderer = new MyVideoRenderer(videoView);
+        videoRenderer = new TerminatingVideoPlayer(videoView, this);
 
 		// Instantiate API
         vshApi = new VideoSharingService(getApplicationContext(), this);
@@ -393,5 +341,132 @@ public class ReceiveVideoSharing extends Activity implements JoynServiceListener
 		}
 		return true;
 	}
+    
+    /*-------------------------- Session callbacks ------------------*/
+    
+    /**
+     * Video sharing listener
+     */
+    private VideoSharingListener vshListener = new VideoSharingListener() {
+
+		@Override
+		public void onVideoSharingStateChanged(ContactId contact, String sharingId, final int state) {
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "onVideoSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state);
+			}
+			if (state > VSH_STATES.length) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled state=" + state);
+				}
+				return;
+			}
+			// TODO : handle reason code (CR025)
+			final String reason = VSH_REASON_CODES[0];
+			final String notif = getString(R.string.label_vsh_state_changed, VSH_STATES[state], reason);
+			handler.post(new Runnable() {
+				public void run() {
+					switch (state) {
+					case VideoSharing.State.STARTED:
+						// Start the renderer
+						videoRenderer.open();
+						videoRenderer.start();
+						break;
+
+					case VideoSharing.State.ABORTED:
+						// Stop the renderer
+						videoRenderer.stop();
+						videoRenderer.close();
+						
+						// Display message info and exit
+						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_aborted, reason),
+								exitOnce);
+						break;
+
+					case VideoSharing.State.FAILED:
+						// Stop the renderer
+						videoRenderer.stop();
+						videoRenderer.close();						
+						
+						// Display error info and exit
+						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_failed, reason),
+								exitOnce);
+						break;
+
+					case VideoSharing.State.TERMINATED:
+						// Stop the renderer
+						videoRenderer.stop();
+						videoRenderer.close();									
+						
+						// Display message info and exit
+						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_vsh_terminated), exitOnce);
+						break;
+
+					default:
+						if (LogUtils.isActive) {
+							Log.d(LOGTAG, "onVideoSharingStateChanged " + notif);
+						}
+					}
+				}
+			});
+		}
+	};
+
+    /*-------------------------- Video player callbacks ------------------*/
+    
+	/**
+	 * Callback called when the player is opened
+	 */
+	public void onPlayerOpened() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerOpened");
+		}		
+	}
+
+	/**
+	 * Callback called when the player is started
+	 */
+	public void onPlayerStarted() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerStarted");
+		}		
+	}
+
+	/**
+	 * Callback called when the player is stopped
+	 */
+	public void onPlayerStopped() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerStopped");
+		}
+	}
+
+	/**
+	 * Callback called when the player is closed
+	 */
+	public void onPlayerClosed() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerClosed");
+		}
+	}
+
+	/**
+	 * Callback called when the player has failed
+	 */
+	public void onPlayerError() {
+		// TODO
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerError");
+		}
+	}
+	
+	/**
+	 * Callback called when the player has been resized
+	 */
+	public void onPlayerResized(int width, int height) {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerResized");
+		}
+	}	
+
 }
 
