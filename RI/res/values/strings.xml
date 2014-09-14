@@ -217,6 +217,7 @@
 <string name="label_sharing_declined">Sharing invitation has been declined</string>
 <string name="label_sharing_cancelled">Sharing has been cancelled</string>
 <string name="label_sharing_failed">Sharing failed (%1$s)</string>
+<string name="label_internal_codec">Internal codec</string>
 
 <!-- Image sharing menu -->
 <string name="menu_initiate_image_sharing">Initiate image sharing</string>

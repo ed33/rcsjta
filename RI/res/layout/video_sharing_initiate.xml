@@ -23,6 +23,11 @@
     	 android:layout_height="wrap_content"
     	 android:gravity="center"/>
         
+	    <CheckBox android:id="@+id/internal_codec"			 
+		android:text="@string/label_internal_codec"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"/>        
+        
    		<Button
             android:id="@+id/dial_btn"
             android:layout_width="fill_parent"

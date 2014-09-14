@@ -25,7 +25,6 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.database.MatrixCursor;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
@@ -45,6 +44,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -62,7 +62,8 @@ import com.orangelabs.rcs.core.ims.protocol.rtp.format.video.CameraOptions;
 import com.orangelabs.rcs.core.ims.protocol.rtp.format.video.Orientation;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.RiApplication;
-import com.orangelabs.rcs.ri.sharing.video.media.MyVideoPlayer;
+import com.orangelabs.rcs.ri.sharing.video.media.OriginatingVideoPlayer;
+import com.orangelabs.rcs.ri.sharing.video.media.VideoPlayerListener;
 import com.orangelabs.rcs.ri.sharing.video.media.VideoSurfaceView;
 import com.orangelabs.rcs.ri.utils.LockAccess;
 import com.orangelabs.rcs.ri.utils.LogUtils;
@@ -74,7 +75,7 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * @author Jean-Marc AUFFRET
  * @author YPLO6403
  */
-public class InitiateVideoSharing extends Activity implements JoynServiceListener, SurfaceHolder.Callback {
+public class InitiateVideoSharing extends Activity implements JoynServiceListener, SurfaceHolder.Callback, VideoPlayerListener {
 
 	/**
 	 * UI handler
@@ -94,7 +95,7 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
     /**
      * Video player
      */
-    private MyVideoPlayer videoPlayer;
+    private OriginatingVideoPlayer videoPlayer;
 
     /**
      * Camera of the device
@@ -164,66 +165,6 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 	private static final String[] VSH_REASON_CODES = RiApplication.getContext().getResources()
 			.getStringArray(R.array.vsh_reason_codes);
 	
-   	/**
-     * Video sharing listener
-     */
-	private VideoSharingListener vshListener = new VideoSharingListener() {
-
-		@Override
-		public void onVideoSharingStateChanged(ContactId contact, String sharingId, final int state) {
-			if (LogUtils.isActive) {
-				Log.d(LOGTAG, "onVideoSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state);
-			}
-			if (state > VSH_STATES.length) {
-				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled state=" + state);
-				}
-				return;
-			}
-			// TODO : handle reason code (CR025)
-			final String reason = VSH_REASON_CODES[0];
-			final String notif = getString(R.string.label_vsh_state_changed, VSH_STATES[state], reason);
-			handler.post(new Runnable() {
-				public void run() {
-					switch (state) {
-					case VideoSharing.State.STARTED:
-						// Session is established : hide progress dialog
-						hideProgressDialog();
-						break;
-
-					case VideoSharing.State.ABORTED:
-						// Release the camera
-						closeCamera();
-						// Hide progress dialog
-						hideProgressDialog();
-						// Display session status
-						Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_aborted, reason), exitOnce);
-						break;
-
-					// Add states
-					// case VideoSharing.State.REJECTED:
-					// Hide progress dialog
-					// hideProgressDialog();
-					// Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_declined), exitOnce);
-					// break;
-
-					case VideoSharing.State.FAILED:
-						// Session is failed: exit
-						// Hide progress dialog
-						hideProgressDialog();
-						Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_failed, reason), exitOnce);
-						break;
-
-					default:
-						if (LogUtils.isActive) {
-							Log.d(LOGTAG, "onVideoSharingStateChanged " + notif);
-						}
-					}
-				}
-			});
-		}
-	};
-    
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -378,17 +319,30 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
     	    	return;
     		}
     		
+    		// Get codec option
+	        CheckBox codecCheck = (CheckBox)findViewById(R.id.internal_codec);
+	        final boolean internalCodec = codecCheck.isChecked();
+	        
             Thread thread = new Thread() {
             	public void run() {
 		        	try {
-		                // Create the video player
-		        		videoPlayer = new MyVideoPlayer();
-		        		
-		                // Start the camera
-		        		openCamera();
-		
-		        		// Initiate sharing
-		        		videoSharing = vshApi.shareVideo(remote, videoPlayer);
+		        		if (internalCodec) {
+		        			// Use internal codec
+		        			
+			        		// Initiate sharing
+			        		videoSharing = vshApi.shareVideo(remote);
+		        		} else {
+		        			// Use external codec
+		        			
+			                // Create the video player
+			        		videoPlayer = new OriginatingVideoPlayer(InitiateVideoSharing.this);
+			        		
+			                // Start the camera
+			        		openCamera();
+			
+			        		// Initiate sharing
+			        		videoSharing = vshApi.shareVideo(remote, videoPlayer);
+		        		}
 		        	} catch(Exception e) {
 		        		e.printStackTrace();
 	            		handler.post(new Runnable() { 
@@ -486,7 +440,51 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 		return true;
 	}
     
-    /*-------------------------- Camera methods ------------------*/
+    /*-------------------------- Video player callbacks ------------------*/
+    
+	/**
+	 * Callback called when the player is opened
+	 */
+	public void onPlayerOpened() {
+		// TODO
+	}
+
+	/**
+	 * Callback called when the player is started
+	 */
+	public void onPlayerStarted() {
+		// TODO
+	}
+
+	/**
+	 * Callback called when the player is stopped
+	 */
+	public void onPlayerStopped() {
+		// TODO
+	}
+
+	/**
+	 * Callback called when the player is closed
+	 */
+	public void onPlayerClosed() {
+		// TODO
+	}
+
+	/**
+	 * Callback called when the player has failed
+	 */
+	public void onPlayerError() {
+		// TODO
+	}
+	
+	/**
+	 * Callback called when the player has been resized
+	 */
+	public void onPlayerResized(int width, int height) {
+		// TODO
+	}
+    
+    /*-------------------------- Surface methods ------------------*/
 
     @Override
     public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
@@ -597,7 +595,6 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
             
             // Use the existing size without resizing
             p.setPreviewSize(videoWidth, videoHeight);
-            videoPlayer.activateResizing(videoWidth, videoHeight);
 
             // Set camera parameters
             camera.setParameters(p);
@@ -695,6 +692,79 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
         } else {
             return 1;
         }
-    }    
+    }
+    
+   	/**
+     * Video sharing listener
+     */
+	private VideoSharingListener vshListener = new VideoSharingListener() {
+		@Override
+		public void onVideoSharingStateChanged(ContactId contact, String sharingId, final int state) {
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "onVideoSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state);
+			}
+			if (state > VSH_STATES.length) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled state=" + state);
+				}
+				return;
+			}
+			// TODO : handle reason code (CR025)
+			final String reason = VSH_REASON_CODES[0];
+			final String notif = getString(R.string.label_vsh_state_changed, VSH_STATES[state], reason);
+			handler.post(new Runnable() {
+				public void run() {
+					switch (state) {
+					case VideoSharing.State.STARTED:
+						// Start the player
+						InitiateVideoSharing.this.videoPlayer.open();
+						InitiateVideoSharing.this.videoPlayer.start();
+						
+						// Session is established : hide progress dialog
+						hideProgressDialog();
+						break;
+
+					case VideoSharing.State.ABORTED:
+						// Stop the player
+						InitiateVideoSharing.this.videoPlayer.stop();
+						InitiateVideoSharing.this.videoPlayer.close();
+
+						// Release the camera
+						closeCamera();
+						
+						// Hide progress dialog
+						hideProgressDialog();
+						
+						// Display session status
+						Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_aborted, reason), exitOnce);
+						break;
+
+					// Add states
+					// case VideoSharing.State.REJECTED:
+					// Hide progress dialog
+					// hideProgressDialog();
+					// Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_declined), exitOnce);
+					// break;
+
+					case VideoSharing.State.FAILED:
+						// Stop the player
+						InitiateVideoSharing.this.videoPlayer.stop();
+						InitiateVideoSharing.this.videoPlayer.close();
+
+						// Session is failed: exit
+						// Hide progress dialog
+						hideProgressDialog();
+						Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_failed, reason), exitOnce);
+						break;
+
+					default:
+						if (LogUtils.isActive) {
+							Log.d(LOGTAG, "onVideoSharingStateChanged " + notif);
+						}
+					}
+				}
+			});
+		}
+	};    
 }
 

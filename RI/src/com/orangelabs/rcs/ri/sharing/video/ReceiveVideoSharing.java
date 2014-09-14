@@ -43,7 +43,8 @@ import com.gsma.services.rcs.vsh.VideoSharingService;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.RiApplication;
-import com.orangelabs.rcs.ri.sharing.video.media.MyVideoRenderer;
+import com.orangelabs.rcs.ri.sharing.video.media.TerminatingVideoPlayer;
+import com.orangelabs.rcs.ri.sharing.video.media.VideoPlayerListener;
 import com.orangelabs.rcs.ri.sharing.video.media.VideoSurfaceView;
 import com.orangelabs.rcs.ri.utils.LockAccess;
 import com.orangelabs.rcs.ri.utils.LogUtils;
@@ -55,7 +56,7 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * @author Jean-Marc AUFFRET
  * @author YPLO6403
  */
-public class ReceiveVideoSharing extends Activity implements JoynServiceListener {
+public class ReceiveVideoSharing extends Activity implements JoynServiceListener, VideoPlayerListener {
 
 	/**
 	 * UI handler
@@ -80,7 +81,7 @@ public class ReceiveVideoSharing extends Activity implements JoynServiceListener
     /**
      * Video renderer
      */
-    private MyVideoRenderer videoRenderer;
+    private TerminatingVideoPlayer videoRenderer;
 
     /**
      * Video width
@@ -215,7 +216,7 @@ public class ReceiveVideoSharing extends Activity implements JoynServiceListener
         surface.setKeepScreenOn(true);
 
         // Instantiate the renderer
-        videoRenderer = new MyVideoRenderer(videoView);
+        videoRenderer = new TerminatingVideoPlayer(videoView, this);
 
 		// Instantiate API
         vshApi = new VideoSharingService(getApplicationContext(), this);
@@ -392,6 +393,50 @@ public class ReceiveVideoSharing extends Activity implements JoynServiceListener
 				break;
 		}
 		return true;
+	}
+
+    /*-------------------------- Video player callbacks ------------------*/
+    
+	/**
+	 * Callback called when the player is opened
+	 */
+	public void onPlayerOpened() {
+		// TODO
+	}
+
+	/**
+	 * Callback called when the player is started
+	 */
+	public void onPlayerStarted() {
+		// TODO
+	}
+
+	/**
+	 * Callback called when the player is stopped
+	 */
+	public void onPlayerStopped() {
+		// TODO
+	}
+
+	/**
+	 * Callback called when the player is closed
+	 */
+	public void onPlayerClosed() {
+		// TODO
+	}
+
+	/**
+	 * Callback called when the player has failed
+	 */
+	public void onPlayerError() {
+		// TODO
+	}
+	
+	/**
+	 * Callback called when the player has been resized
+	 */
+	public void onPlayerResized(int width, int height) {
+		// TODO
 	}
 }
 
