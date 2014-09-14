@@ -54,6 +54,7 @@ import com.gsma.services.rcs.JoynServiceException;
 import com.gsma.services.rcs.JoynServiceListener;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharingListener;
 import com.gsma.services.rcs.vsh.VideoSharingService;
@@ -329,8 +330,13 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 		        		if (internalCodec) {
 		        			// Use internal codec
 		        			
+		        			// Set video parameters
+		        			VideoDescriptor descriptor = new VideoDescriptor(VideoDescriptor.Orientation.ANGLE_0,
+		        					176, 144, VideoDescriptor.CameraSource.FRONT);
+		        			Surface surface = null; // TODO		        			
+		        			
 			        		// Initiate sharing
-			        		videoSharing = vshApi.shareVideo(remote);
+			        		videoSharing = vshApi.shareVideo(remote, descriptor, surface);
 		        		} else {
 		        			// Use external codec
 		        			
@@ -764,6 +770,11 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 					}
 				}
 			});
+		}
+		
+		@Override
+		public void onVideoDescriptorChanged(ContactId contact, String sharingId, VideoDescriptor descriptor) {
+			// TODO
 		}
 	};    
 }
