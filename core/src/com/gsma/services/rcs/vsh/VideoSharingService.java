@@ -31,6 +31,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.IInterface;
+import android.view.Surface;
 
 import com.gsma.services.rcs.JoynService;
 import com.gsma.services.rcs.JoynServiceException;
@@ -135,17 +136,14 @@ public class VideoSharingService extends JoynService {
 	}
 
 	/**
-	 * Shares a live video with a contact. The parameter renderer contains the
-	 * video player provided by the application. An exception if thrown if there
-	 * is no ongoing CS call. The parameter contact supports the following
-	 * formats: MSISDN in national or international format, SIP address, SIP-URI
-	 * or Tel-URI. If the format of the contact is not supported an exception is
-	 * thrown.
+	 * Shares a live video with a contact by using an external video player.
+	 * An exception if thrown if there is no ongoing CS call. The parameter
+	 * contact supports the following formats: MSISDN in national or international
+	 * format, SIP address, SIP-URI or Tel-URI. If the format of the contact is
+	 * not supported an exception is thrown.
 	 * 
-	 * @param contact
-	 *            Contact identifier
-	 * @param player
-	 *            Video player
+	 * @param contact Contact identifier
+	 * @param player Video player
 	 * @return Video sharing
 	 * @throws JoynServiceException
 	 */
@@ -166,6 +164,36 @@ public class VideoSharingService extends JoynService {
 		}
 	}
 
+	/**
+	 * Shares a live video with a contact by using the default video player.
+	 * An exception if thrown if there is no ongoing CS call. The parameter
+	 * contact supports the following formats: MSISDN in national or international
+	 * format, SIP address, SIP-URI or Tel-URI. If the format of the contact is
+	 * not supported an exception is thrown.
+	 * 
+	 * @param contact Contact identifier
+	 * @param descriptor Video descriptor
+	 * @param surface Video surface view
+	 * @return Video sharing
+	 * @throws JoynServiceException
+	 */
+	public VideoSharing shareVideo(ContactId contact, VideoDescriptor descriptor, Surface surface) throws JoynServiceException {
+		if (api != null) {
+			try {
+				IVideoSharing sharingIntf = api.shareVideo2(contact, descriptor, surface);
+				if (sharingIntf != null) {
+					return new VideoSharing(sharingIntf);
+				} else {
+					return null;
+				}
+			} catch (Exception e) {
+				throw new JoynServiceException(e.getMessage());
+			}
+		} else {
+			throw new JoynServiceNotAvailableException();
+		}
+	}
+	
 	/**
 	 * Returns the list of video sharings in progress
 	 * 

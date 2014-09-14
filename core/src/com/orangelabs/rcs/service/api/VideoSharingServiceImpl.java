@@ -29,6 +29,7 @@ import java.util.List;
 
 import android.content.Intent;
 import android.os.IBinder;
+import android.view.Surface;
 
 import com.gsma.services.rcs.IJoynServiceRegistrationListener;
 import com.gsma.services.rcs.JoynService;
@@ -37,6 +38,7 @@ import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.IVideoSharing;
 import com.gsma.services.rcs.vsh.IVideoSharingListener;
 import com.gsma.services.rcs.vsh.IVideoSharingService;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharingIntent;
 import com.gsma.services.rcs.vsh.VideoSharingServiceConfiguration;
@@ -243,27 +245,27 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
     			RcsSettings.getInstance().getMaxVideoShareDuration());    	
 	}
 
-    /**
-     * Shares a live video with a contact. The parameter renderer contains the video player
-     * provided by the application. An exception if thrown if there is no ongoing CS call. The
-     * parameter contact supports the following formats: MSISDN in national or international
-     * format, SIP address, SIP-URI or Tel-URI. If the format of the contact is not supported
-     * an exception is thrown.
-     * 
-     * @param contact Contact ID
-     * @param player Video player
-     * @return Video sharing
+	/**
+	 * Shares a live video with a contact by using an external video player.
+	 * An exception if thrown if there is no ongoing CS call. The parameter
+	 * contact supports the following formats: MSISDN in national or international
+	 * format, SIP address, SIP-URI or Tel-URI. If the format of the contact is
+	 * not supported an exception is thrown.
+	 * 
+	 * @param contact Contact identifier
+	 * @param player Video player
+	 * @return Video sharing
 	 * @throws ServerApiException
      */
     public IVideoSharing shareVideo(ContactId contact, IVideoPlayer player) throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Initiate a live video session with " + contact);
+			logger.info("Initiate a live video session with " + contact + " (external player)");
 		}
 
 		// Test IMS connection
 		ServerApiUtils.testIms();
 
-		// Test if at least the audio media is configured
+		// Test if a player is configured
 		if (player == null) {
 			throw new ServerApiException("Missing video player");
 		}
@@ -291,6 +293,68 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 			// Add session in the list
 			addVideoSharingSession(sessionApi);
 			return sessionApi;
+		} catch(Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Unexpected error", e);
+			}
+			throw new ServerApiException(e.getMessage());
+		}
+	}
+
+	/**
+	 * Shares a live video with a contact by using the default video player.
+	 * An exception if thrown if there is no ongoing CS call. The parameter
+	 * contact supports the following formats: MSISDN in national or international
+	 * format, SIP address, SIP-URI or Tel-URI. If the format of the contact is
+	 * not supported an exception is thrown.
+	 * 
+	 * @param contact Contact identifier
+	 * @param descriptor Video descriptor
+	 * @param surface Video surface view
+	 * @return Video sharing
+	 * @throws ServerApiException
+	 */
+	public IVideoSharing shareVideo2(ContactId contact, VideoDescriptor descriptor, Surface surface) throws ServerApiException {
+		if (logger.isActivated()) {
+			logger.info("Initiate a live video session with " + contact + " (default player)");
+		}
+
+		// Test IMS connection
+		ServerApiUtils.testIms();
+
+		// Test if a descriptor and surface are configured
+		if (descriptor == null) {
+			throw new ServerApiException("Missing video descriptor");
+		}
+		if (surface == null) {
+			throw new ServerApiException("Missing video surface");
+		}
+		
+		try {
+/*		     // Initiate a new session
+            final VideoStreamingSession session = Core.getInstance().getRichcallService().initiateLiveVideoSharingSession(contact, player);
+
+			// Update rich call history
+			RichCallHistory.getInstance().addVideoSharing(contact, session.getSessionID(),
+					VideoSharing.Direction.OUTGOING, (VideoContent)session.getContent(),
+					VideoSharing.State.INITIATED);
+
+			// Add session listener
+			VideoSharingImpl sessionApi = new VideoSharingImpl(session, mVideoSharingEventBroadcaster);
+			
+			// Start the session
+	        Thread t = new Thread() {
+	    		public void run() {
+	    			session.startSession();
+	    		}
+	    	};
+	    	t.start();	
+	    	
+			// Add session in the list
+			addVideoSharingSession(sessionApi);
+			return sessionApi;*/
+			// TODO
+			return null;
 		} catch(Exception e) {
 			if (logger.isActivated()) {
 				logger.error("Unexpected error", e);

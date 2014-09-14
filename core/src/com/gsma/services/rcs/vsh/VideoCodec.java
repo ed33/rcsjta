@@ -29,6 +29,16 @@ import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
  */
 public class VideoCodec implements Parcelable {
 	/**
+	 * Default video encodings
+	 */
+	public static class Encoding {
+		/**
+		 * H.264 encoding
+		 */
+		public final static String H264 = "H264";
+	}
+	
+	/**
 	 * Video encoding
 	 */
 	private String encoding;

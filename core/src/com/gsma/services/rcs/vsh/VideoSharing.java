@@ -21,6 +21,8 @@
  ******************************************************************************/
 package com.gsma.services.rcs.vsh;
 
+import android.view.Surface;
+
 import com.gsma.services.rcs.JoynServiceException;
 import com.gsma.services.rcs.contacts.ContactId;
 
@@ -210,7 +212,7 @@ public class VideoSharing {
 	}	
 	
 	/**
-	 * Accepts video sharing invitation
+	 * Accepts video sharing invitation by using an external video player
 	 * 
 	 * @param player Video player
 	 * @throws JoynServiceException
@@ -222,6 +224,20 @@ public class VideoSharing {
 			throw new JoynServiceException(e.getMessage());
 		}
 	}
+	
+	/**
+	 * Accepts video sharing invitation by using the default video player
+	 * 
+	 * @param surface Video surface view
+	 * @throws JoynServiceException
+	 */
+	public void acceptInvitation(Surface surface) throws JoynServiceException {
+		try {
+			sharingInf.acceptInvitation2(surface);
+		} catch(Exception e) {
+			throw new JoynServiceException(e.getMessage());
+		}
+	}	
 	
 	/**
 	 * Rejects video sharing invitation

@@ -27,6 +27,8 @@ import static com.gsma.services.rcs.vsh.VideoSharing.State.FAILED;
 import static com.gsma.services.rcs.vsh.VideoSharing.State.STARTED;
 import static com.gsma.services.rcs.vsh.VideoSharing.State.TERMINATED;
 
+import android.view.Surface;
+
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.IVideoSharing;
@@ -167,13 +169,13 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	}	
 	
 	/**
-	 * Accepts video sharing invitation
+	 * Accepts video sharing invitation by using an external video player
 	 * 
 	 * @param player Video player
 	 */
 	public void acceptInvitation(IVideoPlayer player) {
 		if (logger.isActivated()) {
-			logger.info("Accept session invitation");
+			logger.info("Accept session invitation (external player)");
 		}
 
 		// Set the video player
@@ -188,6 +190,28 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
     	t.start();
 	}
 	
+	/**
+	 * Accepts video sharing invitation by using the default video player
+	 * 
+	 * @param surface Video surface view
+	 */
+	public void acceptInvitation2(Surface surface) {
+		if (logger.isActivated()) {
+			logger.info("Accept session invitation (default player)");
+		}
+
+		// Set the video player
+		// TODO session.setVideoPlayer(player);
+		
+		// Accept invitation
+        Thread t = new Thread() {
+    		public void run() {
+    			session.acceptSession();
+    		}
+    	};
+    	t.start();
+	}
+
 	/**
 	 * Rejects video sharing invitation
 	 */

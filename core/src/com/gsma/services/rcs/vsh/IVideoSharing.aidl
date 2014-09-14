@@ -1,5 +1,6 @@
 package com.gsma.services.rcs.vsh;
 
+import android.view.Surface;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.VideoCodec;
 import com.gsma.services.rcs.contacts.ContactId;
@@ -19,7 +20,9 @@ interface IVideoSharing {
 
 	int getDirection();
 	
-	void acceptInvitation(IVideoPlayer player);
+	void acceptInvitation(in IVideoPlayer player);
+
+	void acceptInvitation2(in Surface surface);
 
 	void rejectInvitation();
 
