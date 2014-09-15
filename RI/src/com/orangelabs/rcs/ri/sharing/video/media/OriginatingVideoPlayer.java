@@ -126,7 +126,7 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
     private float scaleFactor = 1;
    
     /**
-     * Mirroring (horizontal and vertical) for encoding
+     * Mirroring (horizontal and vertival) for encoding
      */
     private boolean mirroring = false;
 

@@ -76,8 +76,7 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * @author Jean-Marc AUFFRET
  * @author YPLO6403
  */
-public class InitiateVideoSharing extends Activity implements JoynServiceListener, SurfaceHolder.Callback, VideoPlayerListener {
-
+public class InitiateVideoSharing extends Activity implements JoynServiceListener, VideoPlayerListener {
 	/**
 	 * UI handler
 	 */
@@ -207,7 +206,6 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
         surface = videoView.getHolder();
         surface.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         surface.setKeepScreenOn(true);
-        surface.addCallback(this);
         
         // Instantiate API
         vshApi = new VideoSharingService(getApplicationContext(), this);
@@ -445,70 +443,7 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 		}
 		return true;
 	}
-    
-    /*-------------------------- Video player callbacks ------------------*/
-    
-	/**
-	 * Callback called when the player is opened
-	 */
-	public void onPlayerOpened() {
-		// TODO
-	}
-
-	/**
-	 * Callback called when the player is started
-	 */
-	public void onPlayerStarted() {
-		// TODO
-	}
-
-	/**
-	 * Callback called when the player is stopped
-	 */
-	public void onPlayerStopped() {
-		// TODO
-	}
-
-	/**
-	 * Callback called when the player is closed
-	 */
-	public void onPlayerClosed() {
-		// TODO
-	}
-
-	/**
-	 * Callback called when the player has failed
-	 */
-	public void onPlayerError() {
-		// TODO
-	}
-	
-	/**
-	 * Callback called when the player has been resized
-	 */
-	public void onPlayerResized(int width, int height) {
-		// TODO
-	}
-    
-    /*-------------------------- Surface methods ------------------*/
-
-    @Override
-    public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
-    	// TODO
-	}
-
-    @Override
-	public void surfaceCreated(SurfaceHolder arg0) {
-    	// TODO
-	}
-
-	@Override
-	public void surfaceDestroyed(SurfaceHolder arg0) {
-    	// TODO
-	}    
-    
-    /*-------------------------- Camera methods ------------------*/
-    
+   
     /**
      * Open the camera
      */
@@ -700,7 +635,9 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
         }
     }
     
-   	/**
+    /*-------------------------- Session callbacks ------------------*/
+
+    /**
      * Video sharing listener
      */
 	private VideoSharingListener vshListener = new VideoSharingListener() {
@@ -708,12 +645,6 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 		public void onVideoSharingStateChanged(ContactId contact, String sharingId, final int state) {
 			if (LogUtils.isActive) {
 				Log.d(LOGTAG, "onVideoSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state);
-			}
-			if (state > VSH_STATES.length) {
-				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled state=" + state);
-				}
-				return;
 			}
 			// TODO : handle reason code (CR025)
 			final String reason = VSH_REASON_CODES[0];
@@ -723,8 +654,8 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 					switch (state) {
 					case VideoSharing.State.STARTED:
 						// Start the player
-						InitiateVideoSharing.this.videoPlayer.open();
-						InitiateVideoSharing.this.videoPlayer.start();
+						videoPlayer.open();
+						videoPlayer.start();
 						
 						// Session is established : hide progress dialog
 						hideProgressDialog();
@@ -732,8 +663,8 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 
 					case VideoSharing.State.ABORTED:
 						// Stop the player
-						InitiateVideoSharing.this.videoPlayer.stop();
-						InitiateVideoSharing.this.videoPlayer.close();
+						videoPlayer.stop();
+						videoPlayer.close();
 
 						// Release the camera
 						closeCamera();
@@ -741,27 +672,36 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 						// Hide progress dialog
 						hideProgressDialog();
 						
-						// Display session status
+						// Display message info and exit
 						Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_aborted, reason), exitOnce);
 						break;
 
-					// Add states
-					// case VideoSharing.State.REJECTED:
-					// Hide progress dialog
-					// hideProgressDialog();
-					// Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_declined), exitOnce);
-					// break;
-
 					case VideoSharing.State.FAILED:
 						// Stop the player
-						InitiateVideoSharing.this.videoPlayer.stop();
-						InitiateVideoSharing.this.videoPlayer.close();
+						videoPlayer.stop();
+						videoPlayer.close();
 
-						// Session is failed: exit
+						// Release the camera
+						closeCamera();
+
 						// Hide progress dialog
 						hideProgressDialog();
+						
+						// Display error info and exit
 						Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_failed, reason), exitOnce);
 						break;
+						
+					case VideoSharing.State.TERMINATED:
+						// Stop the renderer
+						videoPlayer.stop();
+						videoPlayer.close();									
+						
+						// Release the camera
+						closeCamera();
+						
+						// Display message info and exit
+						Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_vsh_terminated), exitOnce);
+						break;						
 
 					default:
 						if (LogUtils.isActive) {
@@ -776,6 +716,64 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 		public void onVideoDescriptorChanged(ContactId contact, String sharingId, VideoDescriptor descriptor) {
 			// TODO
 		}
-	};    
+	};
+	
+    /*-------------------------- Video player callbacks ------------------*/
+    
+	/**
+	 * Callback called when the player is opened
+	 */
+	public void onPlayerOpened() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerOpened");
+		}		
+	}
+
+	/**
+	 * Callback called when the player is started
+	 */
+	public void onPlayerStarted() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerStarted");
+		}		
+	}
+
+	/**
+	 * Callback called when the player is stopped
+	 */
+	public void onPlayerStopped() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerStopped");
+		}
+	}
+
+	/**
+	 * Callback called when the player is closed
+	 */
+	public void onPlayerClosed() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerClosed");
+		}
+	}
+
+	/**
+	 * Callback called when the player has failed
+	 */
+	public void onPlayerError() {
+		// TODO
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerError");
+		}
+	}
+	
+	/**
+	 * Callback called when the player has been resized
+	 */
+	public void onPlayerResized(int width, int height) {
+		// TODO
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerResized");
+		}
+	}	
 }
 
