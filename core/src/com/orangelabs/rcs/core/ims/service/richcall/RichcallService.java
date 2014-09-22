@@ -21,9 +21,12 @@ package com.orangelabs.rcs.core.ims.service.richcall;
 import java.util.Enumeration;
 import java.util.Vector;
 
+import android.view.Surface;
+
 import com.gsma.services.rcs.JoynContactFormatException;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.orangelabs.rcs.core.CoreException;
 import com.orangelabs.rcs.core.content.ContentManager;
 import com.orangelabs.rcs.core.content.MmContent;
@@ -41,6 +44,7 @@ import com.orangelabs.rcs.core.ims.service.richcall.image.ImageTransferSession;
 import com.orangelabs.rcs.core.ims.service.richcall.image.OriginatingImageTransferSession;
 import com.orangelabs.rcs.core.ims.service.richcall.image.TerminatingImageTransferSession;
 import com.orangelabs.rcs.core.ims.service.richcall.video.OriginatingVideoStreamingSession;
+import com.orangelabs.rcs.core.ims.service.richcall.video.OriginatingVideoStreamingSession2;
 import com.orangelabs.rcs.core.ims.service.richcall.video.TerminatingVideoStreamingSession;
 import com.orangelabs.rcs.core.ims.service.richcall.video.VideoStreamingSession;
 import com.orangelabs.rcs.utils.ContactUtils;
@@ -311,7 +315,6 @@ public class RichcallService extends ImsService {
      * Initiate a live video sharing session
      *
      * @param contact Remote contact Id
-     * @param content Video content to share
      * @param player Media player
      * @return CSh session
      * @throws CoreException
@@ -373,6 +376,73 @@ public class RichcallService extends ImsService {
 		return session;
 	}
 
+    /**
+     * Initiate a live video sharing session with the default player
+     *
+     * @param contact Remote contact Id
+     * @param descriptor Video descriptor
+     * @param surface Video surface
+     * @return CSh session
+     * @throws CoreException
+     */
+    public VideoStreamingSession initiateLiveVideoSharingSession(ContactId contact, VideoDescriptor descriptor, Surface surface) throws CoreException {
+		if (logger.isActivated()) {
+			logger.info("Initiate a live video sharing session");
+		}
+
+		// Test if call is established
+		if (!isCallConnectedWith(contact)) {
+			if (logger.isActivated()) {
+				logger.debug("Rich call not established: cancel the initiation");
+			}
+            throw new CoreException("Call not established");
+        }
+
+        // Reject if there are already 2 bidirectional sessions with a given contact
+		boolean rejectInvitation = false;
+        Vector<ContentSharingSession> currentSessions = getCShSessions();
+        if (currentSessions.size() >= 2) {
+        	// Already a bidirectional session
+            if (logger.isActivated()) {
+                logger.debug("Max sessions reached");
+            }
+        	rejectInvitation = true;
+        } else
+        if (currentSessions.size() == 1) {
+        	ContentSharingSession currentSession = currentSessions.elementAt(0);
+        	if (isSessionOriginating(currentSession)) {
+        		// Originating session already used
+				if (logger.isActivated()) {
+				    logger.debug("Max originating sessions reached");
+				}
+            	rejectInvitation = true;
+        	} else
+        	if (contact == null || !contact.equals(currentSession.getRemoteContact())) {
+        		// Not the same contact
+				if (logger.isActivated()) {
+				    logger.debug("Only bidirectional session with same contact authorized");
+				}
+            	rejectInvitation = true;
+        	}
+        }
+        if (rejectInvitation) {
+            if (logger.isActivated()) {
+                logger.debug("The max number of sharing sessions is achieved: cancel the initiation");
+            }
+            throw new CoreException("Max content sharing sessions achieved");
+        }
+
+		// Create a new session
+		OriginatingVideoStreamingSession2 session = new OriginatingVideoStreamingSession2(
+				this,
+				descriptor,
+				surface,
+                ContentManager.createGenericLiveVideoContent(),
+				contact);
+
+		return session;
+	}    
+    
     /**
      * Receive a video sharing invitation
      *

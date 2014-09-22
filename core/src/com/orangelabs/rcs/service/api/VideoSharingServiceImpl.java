@@ -300,7 +300,7 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 			throw new ServerApiException(e.getMessage());
 		}
 	}
-
+    
 	/**
 	 * Shares a live video with a contact by using the default video player.
 	 * An exception if thrown if there is no ongoing CS call. The parameter
@@ -331,8 +331,8 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 		}
 		
 		try {
-/*		     // Initiate a new session
-            final VideoStreamingSession session = Core.getInstance().getRichcallService().initiateLiveVideoSharingSession(contact, player);
+			// Initiate a new session
+            final VideoStreamingSession session = Core.getInstance().getRichcallService().initiateLiveVideoSharingSession(contact, descriptor, surface);
 
 			// Update rich call history
 			RichCallHistory.getInstance().addVideoSharing(contact, session.getSessionID(),
@@ -352,9 +352,7 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 	    	
 			// Add session in the list
 			addVideoSharingSession(sessionApi);
-			return sessionApi;*/
-			// TODO
-			return null;
+			return sessionApi;
 		} catch(Exception e) {
 			if (logger.isActivated()) {
 				logger.error("Unexpected error", e);

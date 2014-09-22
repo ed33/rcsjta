@@ -15,15 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package com.orangelabs.rcs.service.api.video;
+package com.orangelabs.rcs.core.ims.service.richcall.video;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 
+import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.os.SystemClock;
+import android.view.Surface;
+import android.view.SurfaceHolder;
 
 import com.gsma.services.rcs.JoynServiceException;
 import com.gsma.services.rcs.vsh.VideoCodec;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoPlayer;
 import com.orangelabs.rcs.core.ims.protocol.rtp.VideoRtpSender;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
@@ -41,13 +46,36 @@ import com.orangelabs.rcs.core.ims.protocol.rtp.media.VideoSample;
 import com.orangelabs.rcs.core.ims.protocol.rtp.stream.RtpStreamListener;
 import com.orangelabs.rcs.platform.network.DatagramConnection;
 import com.orangelabs.rcs.platform.network.NetworkFactory;
+import com.orangelabs.rcs.service.api.VideoSharingServiceImpl;
 import com.orangelabs.rcs.utils.FifoBuffer;
 import com.orangelabs.rcs.utils.NetworkRessourceManager;
+import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
  * Live RTP video player based on H264 QCIF format
  */
-public class OriginatingVideoPlayer extends VideoPlayer implements Camera.PreviewCallback, RtpStreamListener {
+public class DefaultVideoPlayer extends VideoPlayer implements Camera.PreviewCallback, RtpStreamListener {
+	
+    /**
+     * Camera of the device
+     */
+    private Camera camera;
+    
+    /**
+     * Opened camera id
+     */
+    private CameraOptions openedCameraId = CameraOptions.FRONT;
+
+    /**
+     * Camera preview started flag
+     */
+    private boolean cameraPreviewRunning = false;
+
+    /**
+     * Number of cameras
+     */
+    private int numberOfCameras = 1;    
+	
     /**
      * Default video codec
      */
@@ -159,11 +187,6 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
     private FrameBuffer frameBuffer = new FrameBuffer();
     
     /**
-     * Video player event listener
-     */
-    private VideoPlayerListener eventListener;
-    
-    /**
      * Remote host
      */
     private String remoteHost;
@@ -172,15 +195,36 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
      * Remote port
      */
     private int remotePort;
+    
+    /**
+     * Video descriptor
+     */
+    private VideoDescriptor descriptor;
+    
+    /**
+     * Video surface
+     */
+    private Surface surface;
+    
+	/**
+	 * The logger
+	 */
+	private static final  Logger logger = Logger.getLogger(VideoSharingServiceImpl.class.getSimpleName());
 
     /**
      * Constructor
      * 
-     * @param eventListener Player event listener
+     * @param descriptor Video descriptor
+     * @param surface Video surface
      */
-    public OriginatingVideoPlayer(VideoPlayerListener eventListener) {
-    	// Set event listener
-    	this.eventListener = eventListener;
+    public DefaultVideoPlayer(VideoDescriptor descriptor, Surface surface) {
+    	// Set the video inputs
+    	this.descriptor = descriptor;
+    	this.surface = surface;
+    	// TODO: use descriptor and surface
+    	
+        // Get camera info
+        numberOfCameras = getNumberOfCameras();    	
     	
     	// Set the local RTP port
         localRtpPort = NetworkRessourceManager.generateLocalRtpPort();
@@ -244,12 +288,18 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
 	
     /**
 	 * Opens the player and prepares resources
+	 * 
+	 * @return Boolean
 	 */
-	public synchronized void open() {
+	public synchronized boolean open() {
         if (opened) {
             // Already opened
-            return;
+            return true;
         }
+        
+		if (logger.isActivated()) {
+			logger.debug("Open the default player");
+		}
         
         // Init video encoder
         try {
@@ -273,13 +323,17 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
             int result = NativeH264Encoder.InitEncoder(nativeH264EncoderParams);
             if (result != 0) {
             	// Encoder init has failed
-        		eventListener.onPlayerError();
-               return;
+        		if (logger.isActivated()) {
+        			logger.error("Encoder init has failed");
+        		}
+               return false;
             }
         } catch (UnsatisfiedLinkError e) {
         	// Native encoder not found
-    		eventListener.onPlayerError();
-            return;
+    		if (logger.isActivated()) {
+    			logger.error("Native encoder not found");
+    		}
+            return false;
         }
 
         // Init the RTP layer
@@ -291,14 +345,21 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
             rtpSender.prepareSession(rtpInput, remoteHost, remotePort, this);
         } catch (Exception e) {
         	// RTP failure
-        	e.printStackTrace();
-    		eventListener.onPlayerError();
-            return;
+    		if (logger.isActivated()) {
+    			logger.error("RTP failure", e);
+    		}
+            return false;
         }
-
+        
+        // Close the camera
+        openCamera();        
+		
         // Player is opened
         opened = true;
-		eventListener.onPlayerOpened();
+		if (logger.isActivated()) {
+			logger.debug("Default player is open");
+		}
+		return opened;
     }
 
 	/**
@@ -311,6 +372,10 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
             // Already closed
             return;
         }
+        
+        // Close the camera
+        closeCamera();        
+        
         // Close the RTP layer
         rtpInput.close();
         rtpSender.stopSession();
@@ -324,7 +389,10 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
 
         // Player is closed
         opened = false;
-		eventListener.onPlayerClosed();
+        
+		if (logger.isActivated()) {
+			logger.debug("Default player is closed");
+		}
     }
 
 	/**
@@ -341,6 +409,10 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
             return;
         }
 
+		if (logger.isActivated()) {
+			logger.debug("Start the default player");
+		}
+        
         // Init NAL
         if (!initNAL()) {
             return;
@@ -359,7 +431,10 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
         started = true;
         frameProcess = new FrameProcess((int)defaultVideoCodec.getFrameRate());
         frameProcess.start();
-		eventListener.onPlayerStarted();
+        
+		if (logger.isActivated()) {
+			logger.debug("Default player is started");
+		}
     }
 
 	/**
@@ -384,7 +459,10 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
         } catch (Exception e) {
             // Nothing to do
         }
-		eventListener.onPlayerStopped();
+        
+		if (logger.isActivated()) {
+			logger.debug("Default player is stopped");
+		}
     }
 
     /*---------------------------------------------------------------------*/
@@ -527,7 +605,7 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
      */
     public void rtpStreamAborted() {
     	// RTP failure
-		eventListener.onPlayerError();
+		// TODO
     }
 
     /**
@@ -537,10 +615,18 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
      * @param camera Camera
      */
     public void onPreviewFrame(byte[] data, Camera camera) {
-    	if (!started) {
+		if (logger.isActivated()) {
+			logger.debug("onPreviewFrame callaback");
+		}
+
+		if (!started) {
 			return;
 		}
 		
+		if (logger.isActivated()) {
+			logger.debug("Add frame to buffer " + data.length);
+		}
+    	
 		frameBuffer.setData(data);
     };
 
@@ -754,4 +840,208 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
             }
         }
     }
+    
+    /*---------------------------------------------------------------------*/
+    
+    /**
+     * Get Camera "open" Method
+     *
+     * @return Method
+     */
+    private Method getCameraOpenMethod() {
+        ClassLoader classLoader = DefaultVideoRenderer.class.getClassLoader();
+        Class cameraClass = null;
+        try {
+            cameraClass = classLoader.loadClass("android.hardware.Camera");
+            try {
+                return cameraClass.getMethod("open", new Class[] {
+                    int.class
+                });
+            } catch (NoSuchMethodException e) {
+                return null;
+            }
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Open the camera
+     *
+     * @param cameraId Camera ID
+     */
+    private void openCamera(CameraOptions cameraId) {
+        Method method = getCameraOpenMethod();
+        if (numberOfCameras > 1 && method != null) {
+            try {
+                camera = (Camera)method.invoke(camera, new Object[] {
+                    cameraId.getValue()
+                });
+                openedCameraId = cameraId;
+            } catch (Exception e) {
+                camera = Camera.open();
+                openedCameraId = CameraOptions.BACK;
+            }
+        } else {
+            camera = Camera.open();
+        }
+    }
+    
+    /**
+     * Get Camera "numberOfCameras" Method
+     *
+     * @return Method
+     */
+    private Method getCameraNumberOfCamerasMethod() {
+        ClassLoader classLoader = DefaultVideoRenderer.class.getClassLoader();
+        Class cameraClass = null;
+        try {
+            cameraClass = classLoader.loadClass("android.hardware.Camera");
+            try {
+                return cameraClass.getMethod("getNumberOfCameras", (Class[])null);
+            } catch (NoSuchMethodException e) {
+                return null;
+            }
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get number of cameras
+     *
+     * @return number of cameras
+     */
+    private int getNumberOfCameras() {
+        Method method = getCameraNumberOfCamerasMethod();
+        if (method != null) {
+            try {
+                Integer ret = (Integer)method.invoke(null, (Object[])null);
+                return ret.intValue();
+            } catch (Exception e) {
+                return 1;
+            }
+        } else {
+            return 1;
+        }
+    }    
+
+    /**
+     * Start the camera preview
+     */
+    private void startCameraPreview() {
+    	if (camera != null) {
+            // Camera settings
+            Camera.Parameters p = camera.getParameters();
+            p.setPreviewFormat(PixelFormat.YCbCr_420_SP);
+
+            // Orientation
+            p.setRotation(90);
+            
+            /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
+                Display display = ((WindowManager)getSystemService(WINDOW_SERVICE)).getDefaultDisplay();
+                switch (display.getRotation()) {
+                    case Surface.ROTATION_0:
+                        if (openedCameraId == CameraOptions.FRONT) {
+                            videoPlayer.setOrientation(Orientation.ROTATE_90_CCW);
+                        } else {
+                        	videoPlayer.setOrientation(Orientation.ROTATE_90_CW);
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
+                            camera.setDisplayOrientation(90);
+                        } else {
+                            p.setRotation(90);
+                        }
+                        break;
+                    case Surface.ROTATION_90:
+                    	videoPlayer.setOrientation(Orientation.NONE);
+                        break;
+                    case Surface.ROTATION_180:
+                        if (openedCameraId == CameraOptions.FRONT) {
+                        	videoPlayer.setOrientation(Orientation.ROTATE_90_CW);
+                        } else {
+                        	videoPlayer.setOrientation(Orientation.ROTATE_90_CCW);
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
+                            camera.setDisplayOrientation(270);
+                        } else {
+                            p.setRotation(270);
+                        }
+                        break;
+                    case Surface.ROTATION_270:
+                        if (openedCameraId == CameraOptions.FRONT) {
+                        	videoPlayer.setOrientation(Orientation.ROTATE_180);
+                        } else {
+                        	videoPlayer.setOrientation(Orientation.ROTATE_180);
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
+                            camera.setDisplayOrientation(180);
+                        } else {
+                            p.setRotation(180);
+                        }
+                        break;
+                }
+            } else {
+                // getRotation not managed under Froyo
+            	videoPlayer.setOrientation(Orientation.NONE);
+            }*/
+            
+            // Use the existing size without resizing
+            p.setPreviewSize(descriptor.getVideoWidth(), descriptor.getVideoHeight());
+
+            // Set camera parameters
+            camera.setParameters(p);
+            try {
+            	SurfaceHolder holder = new SurfaceHolder();
+                camera.setPreviewDisplay(videoView.getHolder());
+                camera.startPreview();
+                cameraPreviewRunning = true;
+                if (logger.isActivated()) {
+                	logger.debug("Preview started");
+                }
+            } catch (Exception e) {
+                if (logger.isActivated()) {
+                	logger.error("Preview error", e);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Open the camera
+     */
+    private synchronized void openCamera() {
+        if (camera == null) {
+            if (logger.isActivated()) {
+            	logger.debug("Open the camera");
+            }
+
+            // Open camera
+            openCamera(openedCameraId);
+
+            // Start camera
+            camera.setPreviewCallback(this);
+            startCameraPreview();
+        }
+    }    
+    
+    /**
+     * Close the camera
+     */
+    private synchronized void closeCamera() {
+	    if (camera != null) {
+            if (logger.isActivated()) {
+            	logger.debug("Close the camera");
+            }
+
+            camera.setPreviewCallback(null);
+	        if (cameraPreviewRunning) {
+	            cameraPreviewRunning = false;
+	            camera.stopPreview();
+	        }
+	        camera.release();
+	        camera = null;
+	    }
+    }
+    
 }

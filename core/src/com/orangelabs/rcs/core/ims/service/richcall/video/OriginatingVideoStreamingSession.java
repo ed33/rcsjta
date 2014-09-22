@@ -46,7 +46,7 @@ public class OriginatingVideoStreamingSession extends VideoStreamingSession {
      */
     private static final Logger logger = Logger.getLogger(OriginatingVideoStreamingSession.class.getSimpleName());
 
-    /**
+	/**
      * Constructor
      *
      * @param parent IMS service

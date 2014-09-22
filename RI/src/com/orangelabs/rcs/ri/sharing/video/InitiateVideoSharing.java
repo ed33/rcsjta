@@ -142,6 +142,9 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
      */
     private Dialog progressDialog;
     
+    /**
+     * Service connection status
+     */
 	private boolean serviceConnected = false;
 	
 	/**
@@ -164,6 +167,12 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 	 */
 	private static final String[] VSH_REASON_CODES = RiApplication.getContext().getResources()
 			.getStringArray(R.array.vsh_reason_codes);
+
+	/**
+	 * Internal codec flag
+	 */
+    private boolean internalCodec = true;
+
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -195,6 +204,10 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
         	dialBtn.setEnabled(false);
         	inviteBtn.setEnabled(false);
         }
+        
+		// Set default codec option
+        CheckBox codecCheck = (CheckBox)findViewById(R.id.internal_codec);
+        codecCheck.setChecked(internalCodec);
         
         // Get camera info
         numberOfCameras = getNumberOfCameras();
@@ -319,19 +332,23 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
     		}
     		
     		// Get codec option
-	        CheckBox codecCheck = (CheckBox)findViewById(R.id.internal_codec);
-	        final boolean internalCodec = codecCheck.isChecked();
+            CheckBox codecCheck = (CheckBox)findViewById(R.id.internal_codec);
+	        internalCodec = codecCheck.isChecked();
 	        
             Thread thread = new Thread() {
             	public void run() {
 		        	try {
 		        		if (internalCodec) {
 		        			// Use internal codec
-		        			
-		        			// Set video parameters
-		        			VideoDescriptor descriptor = new VideoDescriptor(VideoDescriptor.Orientation.ANGLE_0,
-		        					176, 144, VideoDescriptor.CameraSource.FRONT);
-		        			Surface surface = null; // TODO		        			
+
+			        		// Set video parameters
+		        			VideoDescriptor.Orientation orientation = VideoDescriptor.Orientation.ANGLE_0;
+		        			VideoDescriptor.CameraSource source = VideoDescriptor.CameraSource.FRONT;
+		        			if (openedCameraId == CameraOptions.BACK) {
+		        				source = VideoDescriptor.CameraSource.BACK;
+		        			}
+		        			VideoDescriptor descriptor = new VideoDescriptor(orientation, videoWidth, videoHeight, source);
+		        			Surface surface = videoView.getHolder().getSurface();
 		        			
 			        		// Initiate sharing
 			        		videoSharing = vshApi.shareVideo(remote, descriptor, surface);
@@ -653,19 +670,23 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 				public void run() {
 					switch (state) {
 					case VideoSharing.State.STARTED:
-						// Start the player
-						videoPlayer.open();
-						videoPlayer.start();
+						if (!internalCodec) {
+							// Start the player
+							videoPlayer.open();
+							videoPlayer.start();
+						}
 						
 						// Session is established : hide progress dialog
 						hideProgressDialog();
 						break;
 
 					case VideoSharing.State.ABORTED:
-						// Stop the player
-						videoPlayer.stop();
-						videoPlayer.close();
-
+						if (!internalCodec) {
+							// Stop the player
+							videoPlayer.stop();
+							videoPlayer.close();
+						}
+						
 						// Release the camera
 						closeCamera();
 						
@@ -677,10 +698,12 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 						break;
 
 					case VideoSharing.State.FAILED:
-						// Stop the player
-						videoPlayer.stop();
-						videoPlayer.close();
-
+						if (!internalCodec) {
+							// Stop the player
+							videoPlayer.stop();
+							videoPlayer.close();
+						}
+						
 						// Release the camera
 						closeCamera();
 
@@ -692,9 +715,11 @@ public class InitiateVideoSharing extends Activity implements JoynServiceListene
 						break;
 						
 					case VideoSharing.State.TERMINATED:
-						// Stop the renderer
-						videoPlayer.stop();
-						videoPlayer.close();									
+						if (!internalCodec) {
+							// Stop the renderer
+							videoPlayer.stop();
+							videoPlayer.close();									
+						}
 						
 						// Release the camera
 						closeCamera();

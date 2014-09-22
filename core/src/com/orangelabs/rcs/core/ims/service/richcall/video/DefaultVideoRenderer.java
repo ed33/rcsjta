@@ -15,12 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package com.orangelabs.rcs.service.api.video;
+package com.orangelabs.rcs.core.ims.service.richcall.video;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 
 import android.graphics.Bitmap;
+import android.hardware.Camera;
 import android.os.SystemClock;
+import android.view.Surface;
 
 import com.gsma.services.rcs.vsh.VideoCodec;
 import com.gsma.services.rcs.vsh.VideoPlayer;
@@ -41,13 +44,49 @@ import com.orangelabs.rcs.core.ims.protocol.rtp.stream.RtpStreamListener;
 import com.orangelabs.rcs.platform.network.DatagramConnection;
 import com.orangelabs.rcs.platform.network.NetworkFactory;
 import com.orangelabs.rcs.utils.NetworkRessourceManager;
+import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
  * Live video RTP renderer based on H264 QCIF format
  *
  * @author Jean-Marc AUFFRET
  */
-public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamListener {
+public class DefaultVideoRenderer extends VideoPlayer implements RtpStreamListener {
+	/**
+	 * The logger
+	 */
+	private final Logger logger = Logger.getLogger(getClass().getName());
+	
+	/**
+     * Camera of the device
+     */
+    private Camera camera;
+
+    /**
+     * Number of cameras
+     */
+    private int numberOfCameras = 1;
+    
+    /**
+     * Opened camera id
+     */
+    private CameraOptions openedCameraId = CameraOptions.FRONT;
+
+    /**
+     * Camera preview started flag
+     */
+    private boolean cameraPreviewRunning = false;
+
+    /**
+     * Video width
+     */
+    private int videoWidth = H264Config.QCIF_WIDTH;
+    
+    /**
+     * Video height
+     */
+    private int videoHeight = H264Config.QCIF_HEIGHT;
+	
     /**
      * Default video codec
      */
@@ -91,7 +130,7 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
     /**
      * Video surface
      */
-    private VideoSurface surface = null;
+    private Surface surface = null;
 
     /**
      * Temporary connection to reserve the port
@@ -102,11 +141,6 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
      * Orientation header id.
      */
     private int orientationHeaderId = -1;
-
-    /**
-     * Video player event listener
-     */
-    private VideoPlayerListener eventListener;
 
     /**
      * Remote host
@@ -121,17 +155,19 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
     /**
      * Constructor
      * 
-     * @param surface Surface view
-     * @param eventListener Player event listener
+     * @param surface Surface
      */
-    public TerminatingVideoPlayer(VideoSurfaceView surface, VideoPlayerListener eventListener) {
+    public DefaultVideoRenderer(Surface surface) {
     	// Set surface view
     	this.surface = surface;
     	
-    	// Set event listener
-    	this.eventListener = eventListener;
+        // Get camera info
+        numberOfCameras = getNumberOfCameras();
+        if (logger.isActivated()) {
+        	logger.debug("Number of camera: " + numberOfCameras);
+        }
 
-    	// Set the local RTP port
+		// Set the local RTP port
         localRtpPort = NetworkRessourceManager.generateLocalRtpPort();
         reservePort(localRtpPort);
         
@@ -181,7 +217,7 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
 	public VideoCodec getCodec() {
 		return defaultVideoCodec;
 	}
-
+	
 	/**
 	 * Opens the player and prepares resources
 	 */
@@ -192,11 +228,14 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
         }
 
         try {
+            // Start the camera
+    		openCamera();
+        	
             // Init the video decoder
             int result = NativeH264Decoder.InitDecoder();
             if (result != 0) {
             	// Decoder init failed
-        		eventListener.onPlayerError();
+        		// TODO eventListener.onPlayerError();
                 return;
             }
 
@@ -211,13 +250,13 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
             rtpDummySender.startSession();
         } catch (Exception e) {
         	// RTP failed
-    		eventListener.onPlayerError();
+        	// TODO eventListener.onPlayerError();
             return;
         }
 
         // Player is opened
         opened = true;
-		eventListener.onPlayerOpened();
+        // TODO eventListener.onPlayerOpened();
     }
 
 	/**
@@ -243,7 +282,7 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
 
         // Player is closed
         opened = false;
-		eventListener.onPlayerClosed();
+        // TODO eventListener.onPlayerClosed();
     }
 
 	/**
@@ -266,7 +305,7 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
         // Player is started
         videoStartTime = SystemClock.uptimeMillis();
         started = true;
-		eventListener.onPlayerStarted();
+        // TODO eventListener.onPlayerStarted();
     }
 
 	/**
@@ -288,13 +327,10 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
             rtpOutput.close();
         }
 
-        // Force black screen
-    	surface.clearImage();
-
         // Player is stopped
         started = false;
         videoStartTime = 0L;
-		eventListener.onPlayerStopped();
+        // TODO eventListener.onPlayerStopped();
     }
     
     /*---------------------------------------------------------------------*/
@@ -368,7 +404,7 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
      * Notify RTP aborted
      */
     public void rtpStreamAborted() {
-		eventListener.onPlayerError();
+    	// TODO eventListener.onPlayerError();
     }
 
     /**
@@ -441,15 +477,138 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
                     // Init RGB frame with the decoder dimensions
                 	if ((rgbFrame.getWidth() != decodedFrameDimensions[0]) || (rgbFrame.getHeight() != decodedFrameDimensions[1])) {
                         rgbFrame = Bitmap.createBitmap(decodedFrameDimensions[0], decodedFrameDimensions[1], Bitmap.Config.RGB_565);
-                		eventListener.onPlayerResized(decodedFrameDimensions[0], decodedFrameDimensions[1]);
+                        // TODO eventListener.onPlayerResized(decodedFrameDimensions[0], decodedFrameDimensions[1]);
                     }
 
                 	// Set data in image
                     rgbFrame.setPixels(decodedFrame, 0, decodedFrameDimensions[0], 0, 0,
                             decodedFrameDimensions[0], decodedFrameDimensions[1]);
-                    surface.setImage(rgbFrame);
+                    // TODO surface.setImage(rgbFrame);
             	}
             }
         }
     }
+    
+    /*---------------------------------------------------------------------*/
+    
+    /**
+     * Get Camera "open" Method
+     *
+     * @return Method
+     */
+    private Method getCameraOpenMethod() {
+        ClassLoader classLoader = DefaultVideoRenderer.class.getClassLoader();
+        Class cameraClass = null;
+        try {
+            cameraClass = classLoader.loadClass("android.hardware.Camera");
+            try {
+                return cameraClass.getMethod("open", new Class[] {
+                    int.class
+                });
+            } catch (NoSuchMethodException e) {
+                return null;
+            }
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Open the camera
+     *
+     * @param cameraId Camera ID
+     */
+    private void openCamera(CameraOptions cameraId) {
+        Method method = getCameraOpenMethod();
+        if (numberOfCameras > 1 && method != null) {
+            try {
+                camera = (Camera)method.invoke(camera, new Object[] {
+                    cameraId.getValue()
+                });
+                openedCameraId = cameraId;
+            } catch (Exception e) {
+                camera = Camera.open();
+                openedCameraId = CameraOptions.BACK;
+            }
+        } else {
+            camera = Camera.open();
+        }
+    }
+    
+    /**
+     * Get Camera "numberOfCameras" Method
+     *
+     * @return Method
+     */
+    private Method getCameraNumberOfCamerasMethod() {
+        ClassLoader classLoader = DefaultVideoRenderer.class.getClassLoader();
+        Class cameraClass = null;
+        try {
+            cameraClass = classLoader.loadClass("android.hardware.Camera");
+            try {
+                return cameraClass.getMethod("getNumberOfCameras", (Class[])null);
+            } catch (NoSuchMethodException e) {
+                return null;
+            }
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get number of cameras
+     *
+     * @return number of cameras
+     */
+    private int getNumberOfCameras() {
+        Method method = getCameraNumberOfCamerasMethod();
+        if (method != null) {
+            try {
+                Integer ret = (Integer)method.invoke(null, (Object[])null);
+                return ret.intValue();
+            } catch (Exception e) {
+                return 1;
+            }
+        } else {
+            return 1;
+        }
+    }    
+
+    /**
+     * Open the camera
+     */
+    private synchronized void openCamera() {
+        if (camera == null) {
+            if (logger.isActivated()) {
+            	logger.debug("Open the camera");
+            }
+
+            // Open camera
+            openCamera(openedCameraId);
+
+            // Start camera
+            // TODO camera.setPreviewCallback(videoPlayer);
+            // TODO startCameraPreview();
+        }
+    }    
+    
+    /**
+     * Close the camera
+     */
+    private synchronized void closeCamera() {
+	    if (camera != null) {
+            if (logger.isActivated()) {
+            	logger.debug("Close the camera");
+            }
+
+            camera.setPreviewCallback(null);
+	        if (cameraPreviewRunning) {
+	            cameraPreviewRunning = false;
+	            camera.stopPreview();
+	        }
+	        camera.release();
+	        camera = null;
+	    }
+    }
+
 }
