@@ -903,7 +903,12 @@ public class RcsSettingsData {
      */
 	public static final String MAX_MSRP_SIZE_EXTENSIONS = "ExtensionsMaxMsrpSize";
     
-    /**
+	/**
+     * RCS extensions policy
+     */
+	public static final String EXTENSIONS_POLICY = "ExtensionsPolicy";
+
+	/**
      * Validity of the RCS configuration.
      */
     public static final String CONFIGURATION_VALID = JoynServiceConfiguration.Settings.CONFIGURATION_VALIDITY;

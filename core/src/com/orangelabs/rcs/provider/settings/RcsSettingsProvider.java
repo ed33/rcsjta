@@ -113,7 +113,7 @@ public class RcsSettingsProvider extends ContentProvider {
      * Helper class for opening, creating and managing database version control
      */
     private static class DatabaseHelper extends SQLiteOpenHelper {
-        private static final int DATABASE_VERSION = 102;
+        private static final int DATABASE_VERSION = 103;
 
 
         private Context ctx;
@@ -280,6 +280,7 @@ public class RcsSettingsProvider extends ContentProvider {
             addParameter(db, RcsSettingsData.VENDOR_NAME,                       "OrangeLabs");
             addParameter(db, RcsSettingsData.CONTROL_EXTENSIONS,				FALSE);   
             addParameter(db, RcsSettingsData.ALLOW_EXTENSIONS,					TRUE);   
+            addParameter(db, RcsSettingsData.EXTENSIONS_POLICY,					"0");   
             addParameter(db, RcsSettingsData.MAX_MSRP_SIZE_EXTENSIONS,			"0");   
             addParameter(db, RcsSettingsData.CONFIGURATION_VALID, 				FALSE);
             addParameter(db, RcsSettingsData.AUTO_ACCEPT_FT_IN_ROAMING,			FALSE);

@@ -27,6 +27,7 @@ import javax2.sip.ListeningPoint;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
+import com.orangelabs.rcs.provider.security.SecurityInfos;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData;
 import com.orangelabs.rcs.utils.logger.Logger;
@@ -1076,6 +1077,192 @@ public class ProvisioningParser {
     }
 
     /**
+     * Parse IARI X509 certificates
+     *
+     * @param iari IARI range
+     * @param node Node
+     * @param index Index
+     */
+    private boolean parseIariX509Certificates(String iari, Node node, int index) {
+    	boolean found = false;
+        String cert = null;        
+        if (node == null) {
+            return false;
+        }
+        
+        Node childnode = node.getFirstChild();
+        if (childnode != null) {
+            do {
+                if (cert == null) {
+                    if ((cert = getValueByParamName("X509Certificate"+index, childnode, TYPE_TXT)) != null) {
+                    	found = true;
+                		SecurityInfos.getInstance().addIARI(iari, cert);
+                        continue;
+                    }
+                }                
+            } while ((childnode = childnode.getNextSibling()) != null);
+        }
+        return found;
+    }    
+    
+	/**
+     * Parse IARI authorization
+     *
+     * @param node Node
+     */
+    private void parseIariAuthorization(Node node) {
+        if (node == null) {
+            return;
+        }
+        
+        String iariRange = null;        
+        Node childnode = node.getFirstChild();
+        if (childnode != null) {
+            do {
+                if (childnode.getNodeName().equals("characteristic")) {
+                    if (childnode.getAttributes().getLength() > 0) {
+                    	Node typenode = childnode.getAttributes().getNamedItem("type");
+                        if (typenode != null) {
+                            if (typenode.getNodeValue().startsWith("X509Certificates")) {
+                            	int i = 1;
+                            	boolean found = true;
+                            	while(found) {
+                            		found = parseIariX509Certificates(iariRange, childnode, i);
+                            		i++;
+                            	}
+                            }
+                        }
+                    }
+                }
+                
+                if (iariRange == null) {
+                    if ((iariRange = getValueByParamName("iariRange", childnode, TYPE_TXT)) != null) {
+                        continue;
+                    }
+                }                
+                
+            } while ((childnode = childnode.getNextSibling()) != null);
+        }
+    }
+    
+    /**
+     * Parse IARI authorizations
+     *
+     * @param node Node
+     */
+    private void parseIariRangeAuthorizations(Node node) {
+        if (node == null) {
+            return;
+        }
+        
+        Node childnode = node.getFirstChild();
+        if (childnode != null) {
+            do {
+                if (childnode.getNodeName().equals("characteristic")) {
+                    if (childnode.getAttributes().getLength() > 0) {
+                        Node typenode = childnode.getAttributes().getNamedItem("type");
+                        if (typenode != null) {
+                            if (typenode.getNodeValue().startsWith("iariRangeAuthorization")) {
+                            	parseIariAuthorization(childnode);
+                            }
+                        }
+                    }
+                }
+            } while ((childnode = childnode.getNextSibling()) != null);
+        }
+    }
+
+    /**
+     * Parse IARI authorizations
+     *
+     * @param node Node
+     */
+    private void parseIariRangeAuthorizationInfo(Node node) {
+        if (node == null) {
+            return;
+        }
+        
+        Node childnode = node.getFirstChild();
+        if (childnode != null) {
+            do {
+                if (childnode.getNodeName().equals("characteristic")) {
+                    if (childnode.getAttributes().getLength() > 0) {
+                        Node typenode = childnode.getAttributes().getNamedItem("type");
+                        if (typenode != null) {
+                            if (typenode.getNodeValue().equalsIgnoreCase("iariRangeAuthorizations")) {
+                            	parseIariRangeAuthorizations(childnode);
+                            }
+                        }
+                    }
+                }
+            } while ((childnode = childnode.getNextSibling()) != null);
+        }
+    }    
+    
+    /**
+     * Parse API ext
+     *
+     * @param node Node
+     */
+    private void parseAPIExt(Node node) {
+        if (node == null) {
+            return;
+        }
+        
+        String extensionsPolicy = null;
+        Node childnode = node.getFirstChild();
+        if (childnode != null) {
+            do {
+                if (childnode.getNodeName().equals("characteristic")) {
+                    if (childnode.getAttributes().getLength() > 0) {
+                        Node typenode = childnode.getAttributes().getNamedItem("type");
+                        if (typenode != null) {
+                            if (typenode.getNodeValue().equalsIgnoreCase("iariAuthorizationInfo")) {
+                            	parseIariRangeAuthorizationInfo(childnode);
+                            }
+                        }
+                    }
+                }
+                
+                if (extensionsPolicy == null) {
+                    if ((extensionsPolicy = getValueByParamName("extensionsPolicy", childnode, TYPE_TXT)) != null) {
+                        RcsSettings.getInstance().writeInteger(
+                        		RcsSettingsData.EXTENSIONS_POLICY,
+                        		Integer.parseInt(extensionsPolicy));
+                        continue;
+                    }
+                }                
+            } while ((childnode = childnode.getNextSibling()) != null);
+        }
+    }    
+    
+    /**
+     * Parse other ext
+     *
+     * @param node Node
+     */
+    private void parseOtherExt(Node node) {
+        if (node == null) {
+            return;
+        }
+        Node childnode = node.getFirstChild();
+        if (childnode != null) {
+            do {
+                if (childnode.getNodeName().equals("characteristic")) {
+                    if (childnode.getAttributes().getLength() > 0) {
+                        Node typenode = childnode.getAttributes().getNamedItem("type");
+                        if (typenode != null) {
+                            if (typenode.getNodeValue().equalsIgnoreCase("APIExt")) {
+                                parseAPIExt(childnode);
+                            }
+                        }
+                    }
+                }
+            } while ((childnode = childnode.getNextSibling()) != null);
+        }
+    }
+    
+    /**
      * Parse transport protocol
      *
      * @param node Node
@@ -1189,6 +1376,9 @@ public class ProvisioningParser {
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("transportProto")) {
                                 parseTransportProtocol(childnode);
+                            } else
+                            if (typenode.getNodeValue().equalsIgnoreCase("Ext")) {
+                                parseOtherExt(childnode);
                             }
                         }
                     }
@@ -1794,8 +1984,7 @@ public class ProvisioningParser {
             if (nameNode.getNodeValue().equalsIgnoreCase(paramName)) {
             	String value = valueNode.getNodeValue();
                 if (logger.isActivated()) {
-                    // logger.debug("Read parameter " + paramName + ": " + value);
-                    logger.debug("Read parameter " + paramName);
+                	logger.debug("Read parameter " + paramName);
                 }
             	
             	// Check type

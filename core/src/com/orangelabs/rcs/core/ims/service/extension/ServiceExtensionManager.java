@@ -122,6 +122,20 @@ public class ServiceExtensionManager {
 				logger.debug("Check extension " + ext + " for package " + pkgName);
 			}
 
+			if (!ExtensionUtils.isValidExt(ext)) {
+				if (logger.isActivated()) {
+					logger.debug("Not a valid extension");
+				}
+				return false;
+			}
+			
+			if (ExtensionUtils.isThirdPartyExt(ext) && (RcsSettings.getInstance().getExtensionspolicy() == 1)) {
+				if (logger.isActivated()) {
+					logger.debug("Third party etensions are not allowed");
+				}
+				return false;
+			}
+
 			// Checking procedure
 			boolean authorized = false;
 			PackageInfo pkg = context.getPackageManager().getPackageInfo(pkgName, PackageManager.GET_SIGNATURES);

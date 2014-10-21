@@ -2171,6 +2171,17 @@ public class RcsSettings {
     }
 	
     /**
+     * Returns the RCS extensions policy. 0: Only second party Extensions (MNO trusted
+     * applications) are authorized to access and use the RCS infrastructure. 1: Second-party
+     * Extensions and third-party Extensions are authorized to access the RCS infrastructure.
+     * 
+     * @return Integer
+     */
+    public int getExtensionspolicy() {
+        return readInteger(RcsSettingsData.EXTENSIONS_POLICY, 0);
+    }
+    
+    /**
      * Get max lenght for extensions using real time messaging (MSRP)
      * 
      * @return Max length

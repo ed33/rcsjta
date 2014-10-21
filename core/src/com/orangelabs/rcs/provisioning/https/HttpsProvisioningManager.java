@@ -702,6 +702,7 @@ public class HttpsProvisioningManager {
 				
 				// Before parsing the provisioning, the GSMA release is set to Albatros
 				RcsSettings.getInstance().setGsmaRelease(RcsSettingsData.VALUE_GSMA_REL_ALBATROS);
+				
 				// Before parsing the provisioning, the client Messaging mode is set to NONE 
 				RcsSettings.getInstance().setMessagingMode(RcsSettingsData.VALUE_MESSAGING_MODE_NONE);
 				
