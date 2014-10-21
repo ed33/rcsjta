@@ -160,6 +160,10 @@
 			android:exported="true"
 			android:name="com.orangelabs.rcs.provider.fthttp.FtHttpProvider"/>
 		
+		<provider android:authorities="com.orangelabs.rcs.security"
+			android:exported="false"
+			android:name="com.orangelabs.rcs.provider.security.SecurityInfoProvider"/>
+		
 		<!-- Device events receiver -->	
 
 		<receiver android:name="com.orangelabs.rcs.service.DeviceBoot">
