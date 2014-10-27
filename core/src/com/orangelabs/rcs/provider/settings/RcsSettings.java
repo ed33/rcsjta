@@ -22,6 +22,8 @@
 
 package com.orangelabs.rcs.provider.settings;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import android.content.ContentResolver;
@@ -84,6 +86,11 @@ public class RcsSettings {
 	 * Database URI
 	 */
 	private Uri databaseUri = RcsSettingsData.CONTENT_URI;
+	
+	/**
+	 * A cache for storing settings in order to increase performance
+	 */
+	private Map<String,String> mCache;
 
 	/**
 	 * Empty constructor : prevent caller from creating multiple instances
@@ -102,6 +109,7 @@ public class RcsSettings {
 			synchronized (RcsSettings.class) {
 				if (instance == null) {
 					instance = new RcsSettings(ctx);
+					instance.mCache = new HashMap<String, String>();
 				}
 			}
 		}
@@ -227,12 +235,19 @@ public class RcsSettings {
 		if (instance == null) {
 			throw new IllegalStateException("RcsInstance not created");
 		}
+		// If key is contained in cache do not query database
+		if (mCache.containsKey(key)) {
+			return mCache.get(key);
+		}
 		Cursor c = null;
 		try {
 			String[] whereArg = new String[] { key };
 			c = cr.query(databaseUri, null, WHERE_CLAUSE, whereArg, null);
 			if (c.moveToFirst()) {
-				return c.getString(c.getColumnIndexOrThrow(RcsSettingsData.KEY_VALUE));
+				String value = c.getString(c.getColumnIndexOrThrow(RcsSettingsData.KEY_VALUE));
+				// Update cache
+				mCache.put(key, value);
+				return value;
 			} else {
 				return null;
 			}
@@ -260,7 +275,12 @@ public class RcsSettings {
 		ContentValues values = new ContentValues();
 		values.put(RcsSettingsData.KEY_VALUE, value);
 		String[] whereArgs = new String[] { key };
-		return cr.update(databaseUri, values, WHERE_CLAUSE, whereArgs);
+		int count = cr.update(databaseUri, values, WHERE_CLAUSE, whereArgs);
+		if (count != 0) {
+			// Put in cache
+			mCache.put(key, value);
+		}
+		return count;
 	}
 
 	/**
