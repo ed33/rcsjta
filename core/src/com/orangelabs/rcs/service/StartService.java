@@ -50,7 +50,7 @@ import com.orangelabs.rcs.platform.registry.AndroidRegistryFactory;
 import com.orangelabs.rcs.provider.BackupRestoreDb;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
-import com.orangelabs.rcs.provider.settings.RcsSettingsData;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.ConfigurationMode;
 import com.orangelabs.rcs.provisioning.ProvisioningInfo;
 import com.orangelabs.rcs.provisioning.https.HttpsProvisioningService;
 import com.orangelabs.rcs.utils.IntentUtils;
@@ -111,12 +111,12 @@ public class StartService extends Service {
     public void onCreate() {
         // Instantiate RcsSettings
         RcsSettings.createInstance(getApplicationContext());
-        int autoConfigMode = RcsSettings.getInstance().getAutoConfigMode();
+        ConfigurationMode mode = RcsSettings.getInstance().getConfigurationMode();
     	if (logger.isActivated()) {
-            logger.debug("onCreate AutoConfigMode="+autoConfigMode);
+            logger.debug("onCreate ConfigurationMode="+mode);
         }
         // In manual configuration, use a network listener to start RCS core when the data will be ON 
-        if (autoConfigMode == RcsSettingsData.NO_AUTO_CONFIG) {
+        if (ConfigurationMode.MANUAL.equals(mode)) {
         	registerNetworkStateListener();
         }
     }
@@ -433,12 +433,12 @@ public class StartService extends Service {
      * @param user indicates if RCS is launched from the user interface
      */
 	private void launchRcsService(boolean boot, boolean user) {
-		int mode = RcsSettings.getInstance().getAutoConfigMode();
+		ConfigurationMode mode = RcsSettings.getInstance().getConfigurationMode();
 
 		if (logger.isActivated())
-			logger.debug("Launch RCS service: HTTPS=" + (mode == RcsSettingsData.HTTPS_AUTO_CONFIG) + ", boot=" + boot + ", user=" + user);
+			logger.debug("Launch RCS service: HTTPS=" + mode + ", boot=" + boot + ", user=" + user);
 
-		if (mode == RcsSettingsData.HTTPS_AUTO_CONFIG) {
+		if (ConfigurationMode.AUTO.equals(mode)) {
 			// HTTPS auto config
 			String version = RcsSettings.getInstance().getProvisioningVersion();
 			// Check the last provisioning version

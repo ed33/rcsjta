@@ -19,12 +19,13 @@
 package com.gsma.service.rcs;
 
 import junit.framework.Assert;
+import android.test.AndroidTestCase;
 
 import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.RcsServiceConfiguration;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
-
-import android.test.AndroidTestCase;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.MessagingMode;
 
 public class RcsServiceConfigurationTest extends AndroidTestCase {
 
@@ -75,7 +76,7 @@ public class RcsServiceConfigurationTest extends AndroidTestCase {
 	}
 
 	public void testDefaultMessagingMethod() {
-		int defaultMessaginMethod = rcsSettings.getDefaultMessagingMethod();
+		DefaultMessagingMethod defaultMessaginMethod = rcsSettings.getDefaultMessagingMethod();
 		RcsServiceConfiguration.setDefaultMessagingMethod(getContext(),
 				RcsServiceConfiguration.Settings.DefaultMessagingMethods.AUTOMATIC);
 		assertEquals(RcsServiceConfiguration.Settings.DefaultMessagingMethods.AUTOMATIC,
@@ -162,12 +163,12 @@ public class RcsServiceConfigurationTest extends AndroidTestCase {
 	}
 
 	public void testGetMessaginUX() {
-		int getMessagingUXSav = rcsSettings.getMessagingMode();
-		rcsSettings.setMessagingMode(RcsServiceConfiguration.Settings.MessagingModes.CONVERGED);
-		assertEquals(RcsServiceConfiguration.Settings.MessagingModes.CONVERGED,
+		MessagingMode getMessagingUXSav = rcsSettings.getMessagingMode();
+		rcsSettings.setMessagingMode(MessagingMode.CONVERGED);
+		assertEquals(MessagingMode.CONVERGED,
 				RcsServiceConfiguration.getMessagingUX(getContext()));
-		rcsSettings.setMessagingMode(RcsServiceConfiguration.Settings.MessagingModes.SEAMLESS);
-		assertEquals(RcsServiceConfiguration.Settings.MessagingModes.SEAMLESS,
+		rcsSettings.setMessagingMode(MessagingMode.SEAMLESS);
+		assertEquals(MessagingMode.SEAMLESS,
 				RcsServiceConfiguration.getMessagingUX(getContext()));
 		rcsSettings.setMessagingMode(getMessagingUXSav);
 	}

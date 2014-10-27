@@ -56,6 +56,7 @@ import com.orangelabs.rcs.platform.file.FileFactory;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.ImageResizeOption;
 import com.orangelabs.rcs.service.broadcaster.GroupFileTransferBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.OneToOneFileTransferBroadcaster;
@@ -254,7 +255,7 @@ public class FileTransferServiceImpl extends IFileTransferService.Stub {
     			rs.isFileTransferAutoAcceptedInRoaming(),
     			rs.isFileTransferThumbnailSupported(),
     			rs.getMaxFileTransferSessions()	,
-    			rs.getImageResizeOption());
+    			rs.getImageResizeOption().ordinal());
     }    
 
 	/**
@@ -738,7 +739,14 @@ public class FileTransferServiceImpl extends IFileTransferService.Stub {
 	 */
 	@Override
 	public void setImageResizeOption(int option) throws RemoteException {
-		RcsSettings.getInstance().setImageResizeOption(option);
+		try {
+			// TODO CR031
+			ImageResizeOption imageResizeOption = ImageResizeOption.valueOf(option);
+			RcsSettings.getInstance().setImageResizeOption(imageResizeOption);
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+
 	}
 
 	/**

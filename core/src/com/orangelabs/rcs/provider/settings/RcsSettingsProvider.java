@@ -24,7 +24,6 @@ package com.orangelabs.rcs.provider.settings;
 
 import java.util.ArrayList;
 
-import javax2.sip.ListeningPoint;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
@@ -34,15 +33,15 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
-import android.os.Environment;
 
 import com.orangelabs.rcs.R;
-import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
  * RCS settings provider
  *
  * @author jexa7410
+ * @author yplo6403
+ *
  */
 public class RcsSettingsProvider extends ContentProvider {
 	/**
@@ -56,16 +55,6 @@ public class RcsSettingsProvider extends ContentProvider {
     private static final int RCSAPI_SETTINGS = 3;
     private static final int RCSAPI_SETTINGS_ID = 4;
     
-	/**
-	 * Boolean value "true"
-	 */
-	private static final String TRUE = Boolean.toString(true);
-
-	/**
-	 * Boolean value "false"
-	 */
-    private static final String FALSE = Boolean.toString(false);
-
 	// Allocate the UriMatcher object, where a URI ending in 'settings'
 	// will correspond to a request for all settings, and 'settings'
 	// with a trailing '/[rowID]' will represent a single settings row.
@@ -115,7 +104,7 @@ public class RcsSettingsProvider extends ContentProvider {
      * Helper class for opening, creating and managing database version control
      */
     private static class DatabaseHelper extends SQLiteOpenHelper {
-        private static final int DATABASE_VERSION = 102;
+        private static final int DATABASE_VERSION = 103;
 
 
         private Context ctx;
@@ -135,159 +124,163 @@ public class RcsSettingsProvider extends ContentProvider {
 
             // Insert default values for parameters
 
-            addParameter(db, RcsSettingsData.SERVICE_ACTIVATED, 				FALSE);
-            addParameter(db, RcsSettingsData.PRESENCE_INVITATION_RINGTONE, 		"");
-            addParameter(db, RcsSettingsData.PRESENCE_INVITATION_VIBRATE, 		TRUE);
-            addParameter(db, RcsSettingsData.CSH_INVITATION_RINGTONE, 			"");
-            addParameter(db, RcsSettingsData.CSH_INVITATION_VIBRATE, 			TRUE);
-            addParameter(db, RcsSettingsData.CSH_AVAILABLE_BEEP, 				TRUE);
-            addParameter(db, RcsSettingsData.FILETRANSFER_INVITATION_RINGTONE, 	"");
-            addParameter(db, RcsSettingsData.FILETRANSFER_INVITATION_VIBRATE, 	TRUE);
-            addParameter(db, RcsSettingsData.CHAT_INVITATION_RINGTONE, 			"");
-            addParameter(db, RcsSettingsData.CHAT_INVITATION_VIBRATE, 			TRUE);
-            addParameter(db, RcsSettingsData.CHAT_RESPOND_TO_DISPLAY_REPORTS,   TRUE);
-            addParameter(db, RcsSettingsData.FREETEXT1, 						ctx.getString(R.string.rcs_settings_label_default_freetext_1));
-            addParameter(db, RcsSettingsData.FREETEXT2, 						ctx.getString(R.string.rcs_settings_label_default_freetext_2));
-            addParameter(db, RcsSettingsData.FREETEXT3,							ctx.getString(R.string.rcs_settings_label_default_freetext_3));
-            addParameter(db, RcsSettingsData.FREETEXT4,							ctx.getString(R.string.rcs_settings_label_default_freetext_4));
-            addParameter(db, RcsSettingsData.MIN_BATTERY_LEVEL,                 "0");
-            addParameter(db, RcsSettingsData.MAX_PHOTO_ICON_SIZE, 				"256");
-            addParameter(db, RcsSettingsData.MAX_FREETXT_LENGTH, 				"100");
-            addParameter(db, RcsSettingsData.MAX_GEOLOC_LABEL_LENGTH,			"100");
-            addParameter(db, RcsSettingsData.GEOLOC_EXPIRATION_TIME,			"3600");
-            addParameter(db, RcsSettingsData.MIN_STORAGE_CAPACITY,				"10240");
-            addParameter(db, RcsSettingsData.MAX_CHAT_PARTICIPANTS, 			"10");
-            addParameter(db, RcsSettingsData.MAX_CHAT_MSG_LENGTH, 				"100");
-            addParameter(db, RcsSettingsData.MAX_GROUPCHAT_MSG_LENGTH,			"100");
-            addParameter(db, RcsSettingsData.CHAT_IDLE_DURATION, 				"300");
-            addParameter(db, RcsSettingsData.MAX_FILE_TRANSFER_SIZE, 			"3072");
-            addParameter(db, RcsSettingsData.WARN_FILE_TRANSFER_SIZE, 			"2048");
-            addParameter(db, RcsSettingsData.MAX_IMAGE_SHARE_SIZE, 				"3072");
-            addParameter(db, RcsSettingsData.MAX_VIDEO_SHARE_DURATION, 			"54000");
-            addParameter(db, RcsSettingsData.MAX_CHAT_SESSIONS, 				"20");
-            addParameter(db, RcsSettingsData.MAX_FILE_TRANSFER_SESSIONS, 		"10");
-            addParameter(db, RcsSettingsData.MAX_IP_CALL_SESSIONS,				"5");
-            addParameter(db, RcsSettingsData.SMS_FALLBACK_SERVICE, 				TRUE);
-            addParameter(db, RcsSettingsData.WARN_SF_SERVICE,	 				FALSE);
-            addParameter(db, RcsSettingsData.AUTO_ACCEPT_CHAT,			 		FALSE);
-            addParameter(db, RcsSettingsData.AUTO_ACCEPT_GROUP_CHAT,            FALSE);
-            addParameter(db, RcsSettingsData.AUTO_ACCEPT_FILE_TRANSFER,			FALSE);
-            addParameter(db, RcsSettingsData.IM_SESSION_START,	 				"1");
-            addParameter(db, RcsSettingsData.USERPROFILE_IMS_USERNAME, 			"");
-            addParameter(db, RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME, 		"");
-            addParameter(db, RcsSettingsData.USERPROFILE_IMS_HOME_DOMAIN, 		"");
-            addParameter(db, RcsSettingsData.USERPROFILE_IMS_PRIVATE_ID, 		"");
-            addParameter(db, RcsSettingsData.USERPROFILE_IMS_PASSWORD, 			"");
-            addParameter(db, RcsSettingsData.USERPROFILE_IMS_REALM,		 		"");
-		    addParameter(db, RcsSettingsData.IMS_PROXY_ADDR_MOBILE,				"");
-		    addParameter(db, RcsSettingsData.IMS_PROXY_PORT_MOBILE,				"5060");
-		    addParameter(db, RcsSettingsData.IMS_PROXY_ADDR_WIFI,				"");
-		    addParameter(db, RcsSettingsData.IMS_PROXY_PORT_WIFI,				"5060");
-		    addParameter(db, RcsSettingsData.XDM_SERVER, 						"");
-		    addParameter(db, RcsSettingsData.XDM_LOGIN,							"");
-		    addParameter(db, RcsSettingsData.XDM_PASSWORD, 						"");
-		    addParameter(db, RcsSettingsData.FT_HTTP_SERVER, 					"");
-		    addParameter(db, RcsSettingsData.FT_HTTP_LOGIN,						"");
-		    addParameter(db, RcsSettingsData.FT_HTTP_PASSWORD, 					"");
-            addParameter(db, RcsSettingsData.FT_PROTOCOL,                   	RcsSettingsData.FT_PROTOCOL_MSRP);
-            addParameter(db, RcsSettingsData.IM_CONF_URI, 						RcsSettingsData.DEFAULT_GROUP_CHAT_URI);
-            addParameter(db, RcsSettingsData.ENDUSER_CONFIRMATION_URI,			"");
-            addParameter(db, RcsSettingsData.COUNTRY_CODE,						"+33");
-            addParameter(db, RcsSettingsData.COUNTRY_AREA_CODE,					"0");
-            addParameter(db, RcsSettingsData.MSISDN,							"");
-            addParameter(db, RcsSettingsData.CAPABILITY_CS_VIDEO, 				FALSE);
-            addParameter(db, RcsSettingsData.CAPABILITY_IMAGE_SHARING,			TRUE);
-            addParameter(db, RcsSettingsData.CAPABILITY_VIDEO_SHARING,			TRUE);
-            addParameter(db, RcsSettingsData.CAPABILITY_IP_VOICE_CALL,			TRUE);
-            addParameter(db, RcsSettingsData.CAPABILITY_IP_VIDEO_CALL,			TRUE);
-            addParameter(db, RcsSettingsData.CAPABILITY_IM_SESSION,				TRUE);
-            addParameter(db, RcsSettingsData.CAPABILITY_IM_GROUP_SESSION,		TRUE);
-            addParameter(db, RcsSettingsData.CAPABILITY_FILE_TRANSFER,			TRUE);
-            addParameter(db, RcsSettingsData.CAPABILITY_FILE_TRANSFER_HTTP,		TRUE);
-            addParameter(db, RcsSettingsData.CAPABILITY_PRESENCE_DISCOVERY,		FALSE);
-            addParameter(db, RcsSettingsData.CAPABILITY_SOCIAL_PRESENCE,		FALSE);
-            addParameter(db, RcsSettingsData.CAPABILITY_GEOLOCATION_PUSH,		TRUE);
-            addParameter(db, RcsSettingsData.CAPABILITY_FILE_TRANSFER_THUMBNAIL,FALSE);
-            addParameter(db, RcsSettingsData.CAPABILITY_GROUP_CHAT_SF,			FALSE);
-            addParameter(db, RcsSettingsData.CAPABILITY_FILE_TRANSFER_SF,		FALSE);
-            addParameter(db, RcsSettingsData.CAPABILITY_RCS_EXTENSIONS,			"");
-            addParameter(db, RcsSettingsData.IMS_SERVICE_POLLING_PERIOD, 		"300");
-            addParameter(db, RcsSettingsData.SIP_DEFAULT_PORT, 					"5062");
-            addParameter(db, RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,   ListeningPoint.UDP);
-            addParameter(db, RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI,     ListeningPoint.TCP);
-            addParameter(db, RcsSettingsData.TLS_CERTIFICATE_ROOT,              "");
-            addParameter(db, RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE,      "");
-            addParameter(db, RcsSettingsData.SIP_TRANSACTION_TIMEOUT, 			"120");
-            addParameter(db, RcsSettingsData.MSRP_DEFAULT_PORT, 				"20000");
-            addParameter(db, RcsSettingsData.RTP_DEFAULT_PORT, 					"10000");
-            addParameter(db, RcsSettingsData.MSRP_TRANSACTION_TIMEOUT, 			"5");
-            addParameter(db, RcsSettingsData.REGISTER_EXPIRE_PERIOD, 			"600000");
-            addParameter(db, RcsSettingsData.REGISTER_RETRY_BASE_TIME, 			"30");
-            addParameter(db, RcsSettingsData.REGISTER_RETRY_MAX_TIME, 			"1800");
-            addParameter(db, RcsSettingsData.PUBLISH_EXPIRE_PERIOD, 			"3600");
-            addParameter(db, RcsSettingsData.REVOKE_TIMEOUT, 					"300");
-            addParameter(db, RcsSettingsData.IMS_AUTHENT_PROCEDURE_MOBILE, 		RcsSettingsData.DIGEST_AUTHENT);
-            addParameter(db, RcsSettingsData.IMS_AUTHENT_PROCEDURE_WIFI, 		RcsSettingsData.DIGEST_AUTHENT);
-            addParameter(db, RcsSettingsData.TEL_URI_FORMAT, 					TRUE);
-            addParameter(db, RcsSettingsData.RINGING_SESSION_PERIOD, 			"60");
-            addParameter(db, RcsSettingsData.SUBSCRIBE_EXPIRE_PERIOD, 			"3600");
-            addParameter(db, RcsSettingsData.IS_COMPOSING_TIMEOUT, 				"5");
-            addParameter(db, RcsSettingsData.SESSION_REFRESH_EXPIRE_PERIOD, 	"0");
-            addParameter(db, RcsSettingsData.PERMANENT_STATE_MODE,	 			TRUE);
-            addParameter(db, RcsSettingsData.TRACE_ACTIVATED,			 		TRUE);
-            addParameter(db, RcsSettingsData.TRACE_LEVEL,	 					Integer.toString(Logger.DEBUG_LEVEL));
-            addParameter(db, RcsSettingsData.SIP_TRACE_ACTIVATED, 				FALSE);
-            addParameter(db, RcsSettingsData.SIP_TRACE_FILE,                    Environment.getExternalStorageDirectory() + "/sip.txt");
-            addParameter(db, RcsSettingsData.MEDIA_TRACE_ACTIVATED,				FALSE);
-            addParameter(db, RcsSettingsData.CAPABILITY_REFRESH_TIMEOUT, 		"1");
-            addParameter(db, RcsSettingsData.CAPABILITY_EXPIRY_TIMEOUT, 		"86400");
-            addParameter(db, RcsSettingsData.CAPABILITY_POLLING_PERIOD,			"3600");
-            addParameter(db, RcsSettingsData.IM_CAPABILITY_ALWAYS_ON,			TRUE);
-            addParameter(db, RcsSettingsData.FT_CAPABILITY_ALWAYS_ON,			FALSE);
-            addParameter(db, RcsSettingsData.IM_USE_REPORTS,					TRUE);
-            addParameter(db, RcsSettingsData.NETWORK_ACCESS,					Integer.toString(RcsSettingsData.ANY_ACCESS));
-            addParameter(db, RcsSettingsData.SIP_TIMER_T1,						"2000");
-            addParameter(db, RcsSettingsData.SIP_TIMER_T2,						"16000");
-            addParameter(db, RcsSettingsData.SIP_TIMER_T4,						"17000");
-            addParameter(db, RcsSettingsData.SIP_KEEP_ALIVE,					TRUE);
-            addParameter(db, RcsSettingsData.SIP_KEEP_ALIVE_PERIOD,				"60");
-            addParameter(db, RcsSettingsData.RCS_APN,							"");
-            addParameter(db, RcsSettingsData.RCS_OPERATOR,						"");
-            addParameter(db, RcsSettingsData.MAX_CHAT_LOG_ENTRIES,				"500");
-            addParameter(db, RcsSettingsData.MAX_RICHCALL_LOG_ENTRIES,			"200");
-            addParameter(db, RcsSettingsData.MAX_IPCALL_LOG_ENTRIES,			"200"); 
-            addParameter(db, RcsSettingsData.GRUU,								TRUE);
-            addParameter(db, RcsSettingsData.USE_IMEI_AS_DEVICE_ID,             TRUE);
-            addParameter(db, RcsSettingsData.CPU_ALWAYS_ON,                     FALSE);
-            addParameter(db, RcsSettingsData.AUTO_CONFIG_MODE,					Integer.toString(RcsSettingsData.HTTPS_AUTO_CONFIG));
-            addParameter(db, RcsSettingsData.PROVISIONING_TERMS_ACCEPTED,       FALSE);
-            addParameter(db, RcsSettingsData.PROVISIONING_VERSION,				"0");
-            addParameter(db, RcsSettingsData.PROVISIONING_TOKEN,				"");
-            addParameter(db, RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS,    "");
-            addParameter(db, RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS_ONLY,FALSE);
-            addParameter(db, RcsSettingsData.DIRECTORY_PATH_PHOTOS,				Environment.getExternalStorageDirectory() + "/rcs/photos/");
-            addParameter(db, RcsSettingsData.DIRECTORY_PATH_VIDEOS,				Environment.getExternalStorageDirectory() + "/rcs/videos/");
-            addParameter(db, RcsSettingsData.DIRECTORY_PATH_FILES,				Environment.getExternalStorageDirectory() + "/rcs/files/");
-            addParameter(db, RcsSettingsData.SECURE_MSRP_OVER_WIFI,	     		FALSE);
-            addParameter(db, RcsSettingsData.SECURE_RTP_OVER_WIFI,				FALSE);
-            addParameter(db, RcsSettingsData.KEY_MESSAGING_MODE,				Integer.toString(RcsSettingsData.VALUE_MESSAGING_MODE_NONE));
-            addParameter(db, RcsSettingsData.CAPABILITY_SIP_AUTOMATA, 			FALSE);
-            addParameter(db, RcsSettingsData.KEY_GSMA_RELEASE, 					Integer.toString(RcsSettingsData.VALUE_GSMA_REL_BLACKBIRD));
-            addParameter(db, RcsSettingsData.IPVOICECALL_BREAKOUT_AA,			FALSE);
-            addParameter(db, RcsSettingsData.IPVOICECALL_BREAKOUT_CS,			FALSE);
-            addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_FROM_CS,		FALSE);
-            addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_ON_CAPERROR,	FALSE);
-            addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_ATTEMPT_EARLY,	FALSE);
-            addParameter(db, RcsSettingsData.TCP_FALLBACK,						FALSE);   
-            addParameter(db, RcsSettingsData.VENDOR_NAME,                       "OrangeLabs");
-            addParameter(db, RcsSettingsData.CONTROL_EXTENSIONS,				FALSE);   
-            addParameter(db, RcsSettingsData.ALLOW_EXTENSIONS,					TRUE);   
-            addParameter(db, RcsSettingsData.MAX_MSRP_SIZE_EXTENSIONS,			"0");   
-            addParameter(db, RcsSettingsData.CONFIGURATION_VALID, 				FALSE);
-            addParameter(db, RcsSettingsData.AUTO_ACCEPT_FT_IN_ROAMING,			FALSE);
-            addParameter(db, RcsSettingsData.AUTO_ACCEPT_FT_CHANGEABLE,			Integer.toString(RcsSettingsData.VALUE_IMAGE_RESIZE_ASK));
-            addParameter(db, RcsSettingsData.KEY_DEFAULT_MESSAGING_METHOD,		Integer.toString(RcsSettingsData.VALUE_DEF_MSG_METHOD_AUTOMATIC));
-            addParameter(db, RcsSettingsData.KEY_IMAGE_RESIZE_OPTION,			Integer.toString(RcsSettingsData.VALUE_IMAGE_RESIZE_ONLY_ABOVE_MAX_SIZE));
+			addParameter(db, RcsSettingsData.SERVICE_ACTIVATED, RcsSettingsData.DEFAULT_SERVICE_ACTIVATED);
+			addParameter(db, RcsSettingsData.PRESENCE_INVITATION_RINGTONE, RcsSettingsData.DEFAULT_PRESENCE_INVITATION_RINGTONE);
+			addParameter(db, RcsSettingsData.PRESENCE_INVITATION_VIBRATE, RcsSettingsData.DEFAULT_PRESENCE_INVITATION_VIBRATE);
+			addParameter(db, RcsSettingsData.CSH_INVITATION_RINGTONE, RcsSettingsData.DEFAULT_CSH_INVITATION_RINGTONE);
+			addParameter(db, RcsSettingsData.CSH_INVITATION_VIBRATE, RcsSettingsData.DEFAULT_CSH_INVITATION_VIBRATE);
+			addParameter(db, RcsSettingsData.CSH_AVAILABLE_BEEP, RcsSettingsData.DEFAULT_CSH_AVAILABLE_BEEP);
+			addParameter(db, RcsSettingsData.FILETRANSFER_INVITATION_RINGTONE, RcsSettingsData.DEFAULT_FT_INVITATION_RINGTONE);
+			addParameter(db, RcsSettingsData.FILETRANSFER_INVITATION_VIBRATE, RcsSettingsData.DEFAULT_FT_INVITATION_VIBRATE);
+			addParameter(db, RcsSettingsData.CHAT_INVITATION_RINGTONE, RcsSettingsData.DEFAULT_CHAT_INVITATION_RINGTONE);
+			addParameter(db, RcsSettingsData.CHAT_INVITATION_VIBRATE, RcsSettingsData.DEFAULT_CHAT_INVITATION_VIBRATE);
+			addParameter(db, RcsSettingsData.CHAT_RESPOND_TO_DISPLAY_REPORTS,
+					RcsSettingsData.DEFAULT_CHAT_RESPOND_TO_DISPLAY_REPORTS);
+			addParameter(db, RcsSettingsData.FREETEXT1, ctx.getString(R.string.rcs_settings_label_default_freetext_1));
+			addParameter(db, RcsSettingsData.FREETEXT2, ctx.getString(R.string.rcs_settings_label_default_freetext_2));
+			addParameter(db, RcsSettingsData.FREETEXT3, ctx.getString(R.string.rcs_settings_label_default_freetext_3));
+			addParameter(db, RcsSettingsData.FREETEXT4, ctx.getString(R.string.rcs_settings_label_default_freetext_4));
+			addParameter(db, RcsSettingsData.MIN_BATTERY_LEVEL, RcsSettingsData.DEFAULT_MIN_BATTERY_LEVEL);
+			addParameter(db, RcsSettingsData.MAX_PHOTO_ICON_SIZE, RcsSettingsData.DEFAULT_MAX_PHOTO_ICON_SIZE);
+			addParameter(db, RcsSettingsData.MAX_FREETXT_LENGTH, RcsSettingsData.DEFAULT_MAX_PHOTO_ICON_SIZE);
+			addParameter(db, RcsSettingsData.MAX_GEOLOC_LABEL_LENGTH, RcsSettingsData.DEFAULT_MAX_GEOLOC_LABEL_LENGTH);
+			addParameter(db, RcsSettingsData.GEOLOC_EXPIRATION_TIME, RcsSettingsData.DEFAULT_GEOLOC_EXPIRATION_TIME);
+			addParameter(db, RcsSettingsData.MIN_STORAGE_CAPACITY, RcsSettingsData.DEFAULT_MIN_STORAGE_CAPACITY);
+			addParameter(db, RcsSettingsData.MAX_CHAT_PARTICIPANTS, RcsSettingsData.DEFAULT_MAX_CHAT_PARTICIPANTS);
+			addParameter(db, RcsSettingsData.MAX_CHAT_MSG_LENGTH, RcsSettingsData.DEFAULT_MAX_CHAT_MSG_LENGTH);
+			addParameter(db, RcsSettingsData.MAX_GROUPCHAT_MSG_LENGTH, RcsSettingsData.DEFAULT_MAX_GC_MSG_LENGTH);
+			addParameter(db, RcsSettingsData.CHAT_IDLE_DURATION, RcsSettingsData.DEFAULT_CHAT_IDLE_DURATION);
+			addParameter(db, RcsSettingsData.MAX_FILE_TRANSFER_SIZE, RcsSettingsData.DEFAULT_MAX_FT_SIZE);
+			addParameter(db, RcsSettingsData.WARN_FILE_TRANSFER_SIZE, RcsSettingsData.DEFAULT_WARN_FT_SIZE);
+			addParameter(db, RcsSettingsData.MAX_IMAGE_SHARE_SIZE, RcsSettingsData.DEFAULT_MAX_ISH_SIZE);
+			addParameter(db, RcsSettingsData.MAX_VIDEO_SHARE_DURATION, RcsSettingsData.DEFAULT_MAX_VSH_DURATION);
+			addParameter(db, RcsSettingsData.MAX_CHAT_SESSIONS, RcsSettingsData.DEFAULT_MAX_CHAT_SESSIONS);
+			addParameter(db, RcsSettingsData.MAX_FILE_TRANSFER_SESSIONS, RcsSettingsData.DEFAULT_MAX_FT_SESSIONS);
+			addParameter(db, RcsSettingsData.MAX_IP_CALL_SESSIONS, RcsSettingsData.DEFAULT_MAX_IP_CALL_SESSIONS);
+			addParameter(db, RcsSettingsData.SMS_FALLBACK_SERVICE, RcsSettingsData.DEFAULT_SMS_FALLBACK_SERVICE);
+			addParameter(db, RcsSettingsData.WARN_SF_SERVICE, RcsSettingsData.DEFAULT_WARN_SF_SERVICE);
+			addParameter(db, RcsSettingsData.AUTO_ACCEPT_CHAT, RcsSettingsData.DEFAULT_AUTO_ACCEPT_CHAT);
+			addParameter(db, RcsSettingsData.AUTO_ACCEPT_GROUP_CHAT, RcsSettingsData.DEFAULT_AUTO_ACCEPT_GC);
+			addParameter(db, RcsSettingsData.AUTO_ACCEPT_FILE_TRANSFER, RcsSettingsData.DEFAULT_AUTO_ACCEPT_FT);
+			addParameter(db, RcsSettingsData.IM_SESSION_START, RcsSettingsData.DEFAULT_IM_SESSION_START);
+			addParameter(db, RcsSettingsData.USERPROFILE_IMS_USERNAME, RcsSettingsData.DEFAULT_USERPROFILE_IMS_USERNAME);
+			addParameter(db, RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME, RcsSettingsData.DEFAULT_USERPROFILE_IMS_DISPLAY_NAME);
+			addParameter(db, RcsSettingsData.USERPROFILE_IMS_HOME_DOMAIN, RcsSettingsData.DEFAULT_USERPROFILE_IMS_HOME_DOMAIN);
+			addParameter(db, RcsSettingsData.USERPROFILE_IMS_PRIVATE_ID, RcsSettingsData.DEFAULT_USERPROFILE_IMS_PRIVATE_ID);
+			addParameter(db, RcsSettingsData.USERPROFILE_IMS_PASSWORD, RcsSettingsData.DEFAULT_USERPROFILE_IMS_PASSWORD);
+			addParameter(db, RcsSettingsData.USERPROFILE_IMS_REALM, RcsSettingsData.DEFAULT_USERPROFILE_IMS_REALM);
+			addParameter(db, RcsSettingsData.IMS_PROXY_ADDR_MOBILE, RcsSettingsData.DEFAULT_IMS_PROXY_ADDR_MOBILE);
+			addParameter(db, RcsSettingsData.IMS_PROXY_PORT_MOBILE, RcsSettingsData.DEFAULT_IMS_PROXY_PORT_MOBILE);
+			addParameter(db, RcsSettingsData.IMS_PROXY_ADDR_WIFI, RcsSettingsData.DEFAULT_IMS_PROXY_ADDR_WIFI);
+			addParameter(db, RcsSettingsData.IMS_PROXY_PORT_WIFI, RcsSettingsData.DEFAULT_IMS_PROXY_PORT_WIFI);
+			addParameter(db, RcsSettingsData.XDM_SERVER, RcsSettingsData.DEFAULT_XDM_SERVER);
+			addParameter(db, RcsSettingsData.XDM_LOGIN, RcsSettingsData.DEFAULT_XDM_LOGIN);
+			addParameter(db, RcsSettingsData.XDM_PASSWORD, RcsSettingsData.DEFAULT_XDM_PASSWORD);
+			addParameter(db, RcsSettingsData.FT_HTTP_SERVER, RcsSettingsData.DEFAULT_FT_HTTP_SERVER);
+			addParameter(db, RcsSettingsData.FT_HTTP_LOGIN, RcsSettingsData.DEFAULT_FT_HTTP_LOGIN);
+			addParameter(db, RcsSettingsData.FT_HTTP_PASSWORD, RcsSettingsData.DEFAULT_FT_HTTP_PASSWORD);
+			addParameter(db, RcsSettingsData.FT_PROTOCOL, RcsSettingsData.DEFAULT_FT_PROTOCOL);
+			addParameter(db, RcsSettingsData.IM_CONF_URI, RcsSettingsData.DEFAULT_IM_CONF_URI);
+			addParameter(db, RcsSettingsData.ENDUSER_CONFIRMATION_URI, RcsSettingsData.DEFAULT_ENDUSER_CONFIRMATION_URI);
+			addParameter(db, RcsSettingsData.COUNTRY_CODE, RcsSettingsData.DEFAULT_COUNTRY_CODE);
+			addParameter(db, RcsSettingsData.COUNTRY_AREA_CODE, RcsSettingsData.DEFAULT_COUNTRY_AREA_CODE);
+			addParameter(db, RcsSettingsData.MSISDN, RcsSettingsData.DEFAULT_MSISDN);
+			addParameter(db, RcsSettingsData.CAPABILITY_CS_VIDEO, RcsSettingsData.DEFAULT_CAPABILITY_CS_VIDEO);
+			addParameter(db, RcsSettingsData.CAPABILITY_IMAGE_SHARING, RcsSettingsData.DEFAULT_CAPABILITY_ISH);
+			addParameter(db, RcsSettingsData.CAPABILITY_VIDEO_SHARING, RcsSettingsData.DEFAULT_CAPABILITY_VSH);
+			addParameter(db, RcsSettingsData.CAPABILITY_IP_VOICE_CALL, RcsSettingsData.DEFAULT_CAPABILITY_IP_VOICE_CALL);
+			addParameter(db, RcsSettingsData.CAPABILITY_IP_VIDEO_CALL, RcsSettingsData.DEFAULT_CAPABILITY_IP_VIDEO_CALL);
+			addParameter(db, RcsSettingsData.CAPABILITY_IM_SESSION, RcsSettingsData.DEFAULT_CAPABILITY_IM_SESSION);
+			addParameter(db, RcsSettingsData.CAPABILITY_IM_GROUP_SESSION, RcsSettingsData.DEFAULT_CAPABILITY_IM_GROUP_SESSION);
+			addParameter(db, RcsSettingsData.CAPABILITY_FILE_TRANSFER, RcsSettingsData.DEFAULT_CAPABILITY_FT);
+			addParameter(db, RcsSettingsData.CAPABILITY_FILE_TRANSFER_HTTP, RcsSettingsData.DEFAULT_CAPABILITY_FT_HTTP);
+			addParameter(db, RcsSettingsData.CAPABILITY_PRESENCE_DISCOVERY, RcsSettingsData.DEFAULT_CAPABILITY_PRESENCE_DISCOVERY);
+			addParameter(db, RcsSettingsData.CAPABILITY_SOCIAL_PRESENCE, RcsSettingsData.DEFAULT_CAPABILITY_SOCIAL_PRESENCE);
+			addParameter(db, RcsSettingsData.CAPABILITY_GEOLOCATION_PUSH, RcsSettingsData.DEFAULT_CAPABILITY_GEOLOCATION_PUSH);
+			addParameter(db, RcsSettingsData.CAPABILITY_FILE_TRANSFER_THUMBNAIL, RcsSettingsData.DEFAULT_CAPABILITY_FT_THUMBNAIL);
+			addParameter(db, RcsSettingsData.CAPABILITY_GROUP_CHAT_SF, RcsSettingsData.DEFAULT_CAPABILITY_GC_SF);
+			addParameter(db, RcsSettingsData.CAPABILITY_FILE_TRANSFER_SF, RcsSettingsData.DEFAULT_CAPABILITY_FT_SF);
+			addParameter(db, RcsSettingsData.CAPABILITY_RCS_EXTENSIONS, RcsSettingsData.DEFAULT_CAPABILITY_RCS_EXTENSIONS);
+			addParameter(db, RcsSettingsData.IMS_SERVICE_POLLING_PERIOD, RcsSettingsData.DEFAULT_IMS_SERVICE_POLLING_PERIOD);
+			addParameter(db, RcsSettingsData.SIP_DEFAULT_PORT, RcsSettingsData.DEFAULT_SIP_DEFAULT_PORT);
+			addParameter(db, RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,
+					RcsSettingsData.DEFAULT_SIP_DEFAULT_PROTOCOL_FOR_MOBILE);
+			addParameter(db, RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI, RcsSettingsData.DEFAULT_SIP_DEFAULT_PROTOCOL_FOR_WIFI);
+			addParameter(db, RcsSettingsData.TLS_CERTIFICATE_ROOT, RcsSettingsData.DEFAULT_TLS_CERTIFICATE_ROOT);
+			addParameter(db, RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE, RcsSettingsData.DEFAULT_TLS_CERTIFICATE_INTERMEDIATE);
+			addParameter(db, RcsSettingsData.SIP_TRANSACTION_TIMEOUT, RcsSettingsData.DEFAULT_SIP_TRANSACTION_TIMEOUT);
+			addParameter(db, RcsSettingsData.MSRP_DEFAULT_PORT, RcsSettingsData.DEFAULT_MSRP_DEFAULT_PORT);
+			addParameter(db, RcsSettingsData.RTP_DEFAULT_PORT, RcsSettingsData.DEFAULT_RTP_DEFAULT_PORT);
+			addParameter(db, RcsSettingsData.MSRP_TRANSACTION_TIMEOUT, RcsSettingsData.DEFAULT_MSRP_TRANSACTION_TIMEOUT);
+			addParameter(db, RcsSettingsData.REGISTER_EXPIRE_PERIOD, RcsSettingsData.DEFAULT_REGISTER_EXPIRE_PERIOD);
+			addParameter(db, RcsSettingsData.REGISTER_RETRY_BASE_TIME, RcsSettingsData.DEFAULT_REGISTER_RETRY_BASE_TIME);
+			addParameter(db, RcsSettingsData.REGISTER_RETRY_MAX_TIME, RcsSettingsData.DEFAULT_REGISTER_RETRY_MAX_TIME);
+			addParameter(db, RcsSettingsData.PUBLISH_EXPIRE_PERIOD, RcsSettingsData.DEFAULT_PUBLISH_EXPIRE_PERIOD);
+			addParameter(db, RcsSettingsData.REVOKE_TIMEOUT, RcsSettingsData.DEFAULT_REVOKE_TIMEOUT);
+			addParameter(db, RcsSettingsData.IMS_AUTHENT_PROCEDURE_MOBILE, RcsSettingsData.DEFAULT_IMS_AUTHENT_PROCEDURE_MOBILE);
+			addParameter(db, RcsSettingsData.IMS_AUTHENT_PROCEDURE_WIFI, RcsSettingsData.DEFAULT_IMS_AUTHENT_PROCEDURE_WIFI);
+			addParameter(db, RcsSettingsData.TEL_URI_FORMAT, RcsSettingsData.DEFAULT_TEL_URI_FORMAT);
+			addParameter(db, RcsSettingsData.RINGING_SESSION_PERIOD, RcsSettingsData.DEFAULT_RINGING_SESSION_PERIOD);
+			addParameter(db, RcsSettingsData.SUBSCRIBE_EXPIRE_PERIOD, RcsSettingsData.DEFAULT_SUBSCRIBE_EXPIRE_PERIOD);
+			addParameter(db, RcsSettingsData.IS_COMPOSING_TIMEOUT, RcsSettingsData.DEFAULT_IS_COMPOSING_TIMEOUT);
+			addParameter(db, RcsSettingsData.SESSION_REFRESH_EXPIRE_PERIOD, RcsSettingsData.DEFAULT_SESSION_REFRESH_EXPIRE_PERIOD);
+			addParameter(db, RcsSettingsData.PERMANENT_STATE_MODE, RcsSettingsData.DEFAULT_PERMANENT_STATE_MODE);
+			addParameter(db, RcsSettingsData.TRACE_ACTIVATED, RcsSettingsData.DEFAULT_TRACE_ACTIVATED);
+			addParameter(db, RcsSettingsData.TRACE_LEVEL, RcsSettingsData.DEFAULT_TRACE_LEVEL);
+			addParameter(db, RcsSettingsData.SIP_TRACE_ACTIVATED, RcsSettingsData.DEFAULT_SIP_TRACE_ACTIVATED);
+			addParameter(db, RcsSettingsData.SIP_TRACE_FILE, RcsSettingsData.DEFAULT_SIP_TRACE_FILE);
+			addParameter(db, RcsSettingsData.MEDIA_TRACE_ACTIVATED, RcsSettingsData.DEFAULT_MEDIA_TRACE_ACTIVATED);
+			addParameter(db, RcsSettingsData.CAPABILITY_REFRESH_TIMEOUT, RcsSettingsData.DEFAULT_CAPABILITY_REFRESH_TIMEOUT);
+			addParameter(db, RcsSettingsData.CAPABILITY_EXPIRY_TIMEOUT, RcsSettingsData.DEFAULT_CAPABILITY_EXPIRY_TIMEOUT);
+			addParameter(db, RcsSettingsData.CAPABILITY_POLLING_PERIOD, RcsSettingsData.DEFAULT_CAPABILITY_POLLING_PERIOD);
+			addParameter(db, RcsSettingsData.IM_CAPABILITY_ALWAYS_ON, RcsSettingsData.DEFAULT_IM_CAPABILITY_ALWAYS_ON);
+			addParameter(db, RcsSettingsData.FT_CAPABILITY_ALWAYS_ON, RcsSettingsData.DEFAULT_FT_CAPABILITY_ALWAYS_ON);
+			addParameter(db, RcsSettingsData.IM_USE_REPORTS, RcsSettingsData.DEFAULT_IM_USE_REPORTS);
+			addParameter(db, RcsSettingsData.NETWORK_ACCESS, RcsSettingsData.DEFAULT_NETWORK_ACCESS);
+			addParameter(db, RcsSettingsData.SIP_TIMER_T1, RcsSettingsData.DEFAULT_SIP_TIMER_T1);
+			addParameter(db, RcsSettingsData.SIP_TIMER_T2, RcsSettingsData.DEFAULT_SIP_TIMER_T2);
+			addParameter(db, RcsSettingsData.SIP_TIMER_T4, RcsSettingsData.DEFAULT_SIP_TIMER_T4);
+			addParameter(db, RcsSettingsData.SIP_KEEP_ALIVE, RcsSettingsData.DEFAULT_SIP_KEEP_ALIVE);
+			addParameter(db, RcsSettingsData.SIP_KEEP_ALIVE_PERIOD, RcsSettingsData.DEFAULT_SIP_KEEP_ALIVE_PERIOD);
+			addParameter(db, RcsSettingsData.RCS_APN, RcsSettingsData.DEFAULT_RCS_APN);
+			addParameter(db, RcsSettingsData.RCS_OPERATOR, RcsSettingsData.DEFAULT_RCS_OPERATOR);
+			addParameter(db, RcsSettingsData.MAX_CHAT_LOG_ENTRIES, RcsSettingsData.DEFAULT_MAX_CHAT_LOG_ENTRIES);
+			addParameter(db, RcsSettingsData.MAX_RICHCALL_LOG_ENTRIES, RcsSettingsData.DEFAULT_MAX_RICHCALL_LOG_ENTRIES);
+			addParameter(db, RcsSettingsData.MAX_IPCALL_LOG_ENTRIES, RcsSettingsData.DEFAULT_MAX_IPCALL_LOG_ENTRIES);
+			addParameter(db, RcsSettingsData.GRUU, RcsSettingsData.DEFAULT_GRUU);
+			addParameter(db, RcsSettingsData.USE_IMEI_AS_DEVICE_ID, RcsSettingsData.DEFAULT_USE_IMEI_AS_DEVICE_ID);
+			addParameter(db, RcsSettingsData.CPU_ALWAYS_ON, RcsSettingsData.DEFAULT_CPU_ALWAYS_ON);
+			addParameter(db, RcsSettingsData.CONFIG_MODE, RcsSettingsData.DEFAULT_CONFIG_MODE);
+			addParameter(db, RcsSettingsData.PROVISIONING_TERMS_ACCEPTED, RcsSettingsData.DEFAULT_PROVISIONING_TERMS_ACCEPTED);
+			addParameter(db, RcsSettingsData.PROVISIONING_VERSION, RcsSettingsData.DEFAULT_PROVISIONING_VERSION);
+			addParameter(db, RcsSettingsData.PROVISIONING_TOKEN, RcsSettingsData.DEFAULT_PROVISIONING_TOKEN);
+			addParameter(db, RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS, RcsSettingsData.DEFAULT_SECONDARY_PROV_ADDR);
+			addParameter(db, RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS_ONLY, RcsSettingsData.DEFAULT_SECONDARY_PROV_ADDR_ONLY);
+			addParameter(db, RcsSettingsData.DIRECTORY_PATH_PHOTOS, RcsSettingsData.DEFAULT_DIRECTORY_PATH_PHOTOS);
+			addParameter(db, RcsSettingsData.DIRECTORY_PATH_VIDEOS, RcsSettingsData.DEFAULT_DIRECTORY_PATH_VIDEOS);
+			addParameter(db, RcsSettingsData.DIRECTORY_PATH_FILES, RcsSettingsData.DEFAULT_DIRECTORY_PATH_FILES);
+			addParameter(db, RcsSettingsData.SECURE_MSRP_OVER_WIFI, RcsSettingsData.DEFAULT_SECURE_MSRP_OVER_WIFI);
+			addParameter(db, RcsSettingsData.SECURE_RTP_OVER_WIFI, RcsSettingsData.DEFAULT_SECURE_RTP_OVER_WIFI);
+			addParameter(db, RcsSettingsData.KEY_MESSAGING_MODE, RcsSettingsData.DEFAULT_KEY_MESSAGING_MODE);
+			addParameter(db, RcsSettingsData.CAPABILITY_SIP_AUTOMATA, RcsSettingsData.DEFAULT_CAPABILITY_SIP_AUTOMATA);
+			addParameter(db, RcsSettingsData.KEY_GSMA_RELEASE, RcsSettingsData.DEFAULT_KEY_GSMA_RELEASE);
+			addParameter(db, RcsSettingsData.IPVOICECALL_BREAKOUT_AA, RcsSettingsData.DEFAULT_IPVOICECALL_BREAKOUT_AA);
+			addParameter(db, RcsSettingsData.IPVOICECALL_BREAKOUT_CS, RcsSettingsData.DEFAULT_IPVOICECALL_BREAKOUT_CS);
+			addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_FROM_CS, RcsSettingsData.DEFAULT_IPVIDEOCALL_UPGRADE_FROM_CS);
+			addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_ON_CAPERROR,
+					RcsSettingsData.DEFAULT_IPVIDEOCALL_UPGRADE_ON_CAPERROR);
+			addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_ATTEMPT_EARLY,
+					RcsSettingsData.DEFAULT_IPVIDEOCALL_UPGRADE_ATTEMPT_EARLY);
+			addParameter(db, RcsSettingsData.TCP_FALLBACK, RcsSettingsData.DEFAULT_TCP_FALLBACK);
+			addParameter(db, RcsSettingsData.VENDOR_NAME, RcsSettingsData.DEFAULT_VENDOR_NAME);
+			addParameter(db, RcsSettingsData.CONTROL_EXTENSIONS, RcsSettingsData.DEFAULT_CONTROL_EXTENSIONS);
+			addParameter(db, RcsSettingsData.ALLOW_EXTENSIONS, RcsSettingsData.DEFAULT_ALLOW_EXTENSIONS);
+			addParameter(db, RcsSettingsData.MAX_MSRP_SIZE_EXTENSIONS, RcsSettingsData.DEFAULT_MAX_MSRP_SIZE_EXTENSIONS);
+			addParameter(db, RcsSettingsData.CONFIGURATION_VALID, RcsSettingsData.DEFAULT_CONFIGURATION_VALID);
+			addParameter(db, RcsSettingsData.AUTO_ACCEPT_FT_IN_ROAMING, RcsSettingsData.DEFAULT_AUTO_ACCEPT_FT_IN_ROAMING);
+			addParameter(db, RcsSettingsData.AUTO_ACCEPT_FT_CHANGEABLE, RcsSettingsData.DEFAULT_AUTO_ACCEPT_FT_CHANGEABLE);
+			addParameter(db, RcsSettingsData.KEY_DEFAULT_MESSAGING_METHOD, RcsSettingsData.DEFAULT_KEY_DEFAULT_MESSAGING_METHOD);
+			addParameter(db, RcsSettingsData.KEY_IMAGE_RESIZE_OPTION, RcsSettingsData.DEFAULT_KEY_IMAGE_RESIZE_OPTION);
         }
 
         /**
