@@ -146,11 +146,11 @@ public class RcsSettings {
 	 *            the default value
 	 * @return the value field
 	 */
-	private boolean readBoolean(String key, String defaultValue) {
+	private boolean readBoolean(String key, boolean defaultValue) {
 		try {
 			return Boolean.parseBoolean(readParameter(key));
 		} catch (Exception e) {
-			return Boolean.parseBoolean(defaultValue);
+			return defaultValue;
 		}
 	}
 
@@ -162,8 +162,8 @@ public class RcsSettings {
 	 * @param value
 	 *            the boolean value
 	 */
-	public void writeBoolean(String key, boolean value) {
-		writeParameter(key, Boolean.toString(value));
+	public void writeBoolean(String key, Boolean value) {
+		writeParameter(key, value.toString());
 	}
 
 	/**
@@ -177,7 +177,7 @@ public class RcsSettings {
 	 *            the default value
 	 * @return the value field
 	 */
-	private int readInteger(String key, String defaultValue) {
+	private int readInteger(String key, int defaultValue) {
 		try {
 			String result = readParameter(key);
 			// Purposely put in comments. Remove comment strongly impact performance.
@@ -186,7 +186,7 @@ public class RcsSettings {
 			// }
 			return Integer.parseInt(result);
 		} catch (Exception e) {
-			return Integer.parseInt(defaultValue);
+			return defaultValue;
 		}
 	}
 
@@ -216,12 +216,12 @@ public class RcsSettings {
 	 * @param value
 	 *            the integer value
 	 */
-	public void writeInteger(String key, int value) {
+	public void writeInteger(String key, Integer value) {
 		// Purposely put in comments. Remove comment strongly impact performance.
 		// if (logger.isActivated()) {
 		// logger.debug("writeInteger "+key+"="+value);
 		// }
-		writeParameter(key, Integer.toString(value));
+		writeParameter(key, value.toString());
 	}
 
 	/**
@@ -235,16 +235,18 @@ public class RcsSettings {
 		if (instance == null) {
 			throw new IllegalStateException("RcsInstance not created");
 		}
-		// If key is contained in cache do not query database
-		if (mCache.containsKey(key)) {
-			return mCache.get(key);
+		// First read value from cache
+		String value = mCache.get(key);
+		if (value != null) {
+			return value;
 		}
+		// If value is null then query database
 		Cursor c = null;
 		try {
 			String[] whereArg = new String[] { key };
 			c = cr.query(databaseUri, null, WHERE_CLAUSE, whereArg, null);
 			if (c.moveToFirst()) {
-				String value = c.getString(c.getColumnIndexOrThrow(RcsSettingsData.KEY_VALUE));
+				value = c.getString(c.getColumnIndexOrThrow(RcsSettingsData.KEY_VALUE));
 				// Update cache
 				mCache.put(key, value);
 				return value;
@@ -1773,7 +1775,7 @@ public class RcsSettings {
 	 * @return Network type
 	 */
 	public NetworkAccessType getNetworkAccess() {
-		int type = readInteger(RcsSettingsData.NETWORK_ACCESS, null);
+		int type = readInteger(RcsSettingsData.NETWORK_ACCESS, RcsSettingsData.DEFAULT_NETWORK_ACCESS);
 		try {
 			return NetworkAccessType.valueOf(type);
 		} catch (Exception e) {
@@ -1786,7 +1788,7 @@ public class RcsSettings {
 	 * @param networkAccess
 	 */
 	public void setNetworkAccess(NetworkAccessType networkAccess) {
-		writeInteger(RcsSettingsData.NETWORK_ACCESS, networkAccess.getType());
+		writeInteger(RcsSettingsData.NETWORK_ACCESS, networkAccess.toInt());
 	}
 	
 	/**
@@ -1885,7 +1887,7 @@ public class RcsSettings {
 	 * @return Mode MANUAL | AUTO
 	 */
 	public ConfigurationMode getConfigurationMode() {
-		int mode = readInteger(RcsSettingsData.CONFIG_MODE, null);
+		int mode = readInteger(RcsSettingsData.CONFIG_MODE, RcsSettingsData.DEFAULT_CONFIG_MODE);
 		try {
 			return ConfigurationMode.valueOf(mode);
 		} catch (Exception e) {
@@ -1900,7 +1902,7 @@ public class RcsSettings {
 	 * 
 	 */
 	public void setConfigurationMode(ConfigurationMode mode) {
-		writeInteger(RcsSettingsData.CONFIG_MODE, mode.getMode());
+		writeInteger(RcsSettingsData.CONFIG_MODE, mode.toInt());
 	}
 
 	/**
@@ -2168,7 +2170,7 @@ public class RcsSettings {
 	 * @return the GSMA release
 	 */
 	public GsmaRelease getGsmaRelease() {
-		int release = readInteger(RcsSettingsData.KEY_GSMA_RELEASE, null);
+		int release = readInteger(RcsSettingsData.KEY_GSMA_RELEASE, RcsSettingsData.DEFAULT_KEY_GSMA_RELEASE);
 		try {
 			return GsmaRelease.valueOf(release);
 		} catch (Exception e) {
@@ -2183,7 +2185,7 @@ public class RcsSettings {
 	 *            Release
 	 */
 	public void setGsmaRelease(GsmaRelease release) {
-		writeInteger(RcsSettingsData.KEY_GSMA_RELEASE, release.getRelease());
+		writeInteger(RcsSettingsData.KEY_GSMA_RELEASE, release.toInt());
 	}
 
 	/**
@@ -2302,7 +2304,7 @@ public class RcsSettings {
 	 *            the client messaging mode (0: CONVERGED, 1: INTEGRATED, 2: SEAMLESS, 3: NONE)
 	 */
 	public void setMessagingMode(MessagingMode mode) {
-		writeInteger(RcsSettingsData.KEY_MESSAGING_MODE, mode.getMode());
+		writeInteger(RcsSettingsData.KEY_MESSAGING_MODE, mode.toInt());
 	}
 
 	/**
@@ -2311,7 +2313,7 @@ public class RcsSettings {
 	 * @return the client messaging mode (0: CONVERGED, 1: INTEGRATED, 2: SEAMLESS, 3: NONE)
 	 */
 	public MessagingMode getMessagingMode() {
-		int mode = readInteger(RcsSettingsData.KEY_MESSAGING_MODE, null);
+		int mode = readInteger(RcsSettingsData.KEY_MESSAGING_MODE, RcsSettingsData.DEFAULT_KEY_MESSAGING_MODE);
 		try {
 			return MessagingMode.valueOf(mode);
 		} catch (Exception e) {
@@ -2373,7 +2375,7 @@ public class RcsSettings {
 	 * @return image resize option (0: ALWAYS_PERFORM, 1: ONLY_ABOVE_MAX_SIZE, 2: ASK)
 	 */
 	public ImageResizeOption getImageResizeOption() {
-		int option = readInteger(RcsSettingsData.KEY_IMAGE_RESIZE_OPTION, null);
+		int option = readInteger(RcsSettingsData.KEY_IMAGE_RESIZE_OPTION, RcsSettingsData.DEFAULT_KEY_IMAGE_RESIZE_OPTION);
 		Log.w("RCS","getImageResizeOption "+option);
 		try {
 			return ImageResizeOption.valueOf(option);
@@ -2390,7 +2392,7 @@ public class RcsSettings {
 	 *            the image resize option (0: ALWAYS_PERFORM, 1: ONLY_ABOVE_MAX_SIZE, 2: ASK)
 	 */
 	public void setImageResizeOption(ImageResizeOption option) {
-		writeInteger(RcsSettingsData.KEY_IMAGE_RESIZE_OPTION, option.ordinal());
+		writeInteger(RcsSettingsData.KEY_IMAGE_RESIZE_OPTION, option.toInt());
 	}
 
 	/**
@@ -2399,7 +2401,7 @@ public class RcsSettings {
 	 * @return the default messaging method (0: AUTOMATIC, 1: RCS, 2: NON_RCS)
 	 */
 	public DefaultMessagingMethod getDefaultMessagingMethod() {
-		int method = readInteger(RcsSettingsData.KEY_DEFAULT_MESSAGING_METHOD, null);
+		int method = readInteger(RcsSettingsData.KEY_DEFAULT_MESSAGING_METHOD, RcsSettingsData.DEFAULT_KEY_DEFAULT_MESSAGING_METHOD);
 		try {
 			return DefaultMessagingMethod.valueOf(method);
 		} catch (Exception e) {
@@ -2414,7 +2416,7 @@ public class RcsSettings {
 	 *            the default messaging method (0: AUTOMATIC, 1: RCS, 2: NON_RCS)
 	 */
 	public void setDefaultMessagingMethod(DefaultMessagingMethod method) {
-		writeInteger(RcsSettingsData.KEY_DEFAULT_MESSAGING_METHOD, method.ordinal());
+		writeInteger(RcsSettingsData.KEY_DEFAULT_MESSAGING_METHOD, method.toInt());
 	}
 
 	/**

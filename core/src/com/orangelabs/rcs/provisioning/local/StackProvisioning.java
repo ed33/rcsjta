@@ -128,14 +128,14 @@ public class StackProvisioning extends Activity {
 		switch (spinner.getSelectedItemPosition()) {
 		case 0:
 			if (bundle != null) {
-				bundle.putInt(RcsSettingsData.CONFIG_MODE, ConfigurationMode.MANUAL.getMode());
+				bundle.putInt(RcsSettingsData.CONFIG_MODE, ConfigurationMode.MANUAL.toInt());
 			} else {
 				RcsSettings.getInstance().setConfigurationMode(ConfigurationMode.MANUAL);
 			}
 			break;
 		case 1:
 			if (bundle != null) {
-				bundle.putInt(RcsSettingsData.CONFIG_MODE, ConfigurationMode.AUTO.getMode());
+				bundle.putInt(RcsSettingsData.CONFIG_MODE, ConfigurationMode.AUTO.toInt());
 			} else {
 				RcsSettings.getInstance().setConfigurationMode(ConfigurationMode.AUTO);
 			}
@@ -196,21 +196,21 @@ public class StackProvisioning extends Activity {
 		switch (spinner.getSelectedItemPosition()) {
 		case 1:
 			if (bundle != null) {
-				bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.MOBILE.getType());
+				bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.MOBILE.toInt());
 			} else {
 				RcsSettings.getInstance().setNetworkAccess(NetworkAccessType.MOBILE);
 			}
 			break;
 		case 2:
 			if (bundle != null) {
-				bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.WIFI.getType());
+				bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.WIFI.toInt());
 			} else {
 				RcsSettings.getInstance().setNetworkAccess(NetworkAccessType.WIFI);
 			}
 			break;
 		default:
 			if (bundle != null) {
-				bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.ANY.getType());
+				bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.ANY.toInt());
 			} else {
 				RcsSettings.getInstance().setNetworkAccess(NetworkAccessType.ANY);
 			}

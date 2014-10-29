@@ -72,7 +72,7 @@ public class MessagingSettingsDisplay extends PreferenceActivity implements Pref
         imageResizeOption = (ListPreference) findPreference("image_resize_option");
         imageResizeOption.setPersistent(false);
         imageResizeOption.setOnPreferenceChangeListener(this);
-        imageResizeOption.setValue("" + RcsSettings.getInstance().getImageResizeOption().getOption());
+        imageResizeOption.setValue("" + RcsSettings.getInstance().getImageResizeOption().toInt());
                
         ftAutoAccept = (CheckBoxPreference)findPreference("ft_auto_accept");
         ftAutoAccept.setPersistent(false);

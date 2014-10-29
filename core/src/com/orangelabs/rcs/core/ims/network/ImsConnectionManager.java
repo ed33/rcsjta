@@ -415,7 +415,7 @@ public class ImsConnectionManager implements Runnable {
 			}
 
 			// Test network access type
-			if (!NetworkAccessType.ANY.equals(network) && (network.getType() != networkInfo.getType())) {
+			if (!NetworkAccessType.ANY.equals(network) && (network.toInt() != networkInfo.getType())) {
 				if (logger.isActivated()) {
 					logger.warn("Network access " + networkInfo.getTypeName() + " is not authorized");
 				}
