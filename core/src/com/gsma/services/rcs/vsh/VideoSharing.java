@@ -140,25 +140,32 @@ public class VideoSharing {
          */
         public static final int FAILED_SHARING = 10;
     }
-    
-    /**
-     * Video sharing error
-     */
-    public static class Error {
-    	/**
-    	 * Sharing has failed
-    	 */
-    	public final static int SHARING_FAILED = 0;
-    	
-    	/**
-    	 * Sharing invitation has been declined by remote
-    	 */
-    	public final static int INVITATION_DECLINED = 1;
-    	
-        private Error() {
-        }    	
-    }
 
+    /**
+	 * Video orientation
+	 */
+    public static class Orientation {
+    	/**
+    	 * Angle 0
+    	 */
+    	public final static int ANGLE_0 = 0;
+
+    	/**
+    	 * Angle 90
+    	 */
+    	public final static int ANGLE_90 = 1;
+
+    	/**
+    	 * Angle 180
+    	 */
+    	public final static int ANGLE_180 = 2;
+
+    	/**
+    	 * Angle 270
+    	 */
+    	public final static int ANGLE_270 = 3;
+	}
+    
     /**
      * Video encoding
      */
@@ -212,15 +219,15 @@ public class VideoSharing {
 	}
 
 	/**
-	 * Returns the video codec
+	 * Returns the video descriptor
 	 * 
-	 * @return Video codec
-	 * @see VideoCodec
+	 * @return Video descriptor
+	 * @see VideoDescriptor
 	 * @throws RcsServiceException
 	 */
-	public VideoCodec getVideoCodec() throws RcsServiceException {
+	public VideoDescriptor getVideoDescriptor() throws RcsServiceException {
 		try {
-			return sharingInf.getVideoCodec();
+			return sharingInf.getVideoDescriptor();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -260,7 +267,7 @@ public class VideoSharing {
 	 * Returns the direction of the sharing (incoming or outgoing)
 	 * 
 	 * @return Direction
-	 * @see VideoSharing.Direction
+	 * @see com.gsma.services.rcs.RcsCommon.Direction
 	 * @throws RcsServiceException
 	 */
 	public int getDirection() throws RcsServiceException {
@@ -274,12 +281,12 @@ public class VideoSharing {
 	/**
 	 * Accepts video sharing invitation
 	 * 
-	 * @param renderer Video renderer
+	 * @param player Video player
 	 * @throws RcsServiceException
 	 */
-	public void acceptInvitation(VideoRenderer renderer) throws RcsServiceException {
+	public void acceptInvitation(VideoPlayer player) throws RcsServiceException {
 		try {
-			sharingInf.acceptInvitation(renderer);
+			sharingInf.acceptInvitation(player);
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -309,5 +316,64 @@ public class VideoSharing {
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
+	}
+	
+	/**
+	 * Set the video orientation
+	 * 
+	 * @param orientation New orientation
+	 * @throws RcsServiceException
+	 * @see Orientation
+	 */
+	public void setOrientation(int orientation) throws RcsServiceException {
+		try {
+			sharingInf.setOrientation(orientation);
+		} catch(Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}		
+	}
+	
+	/**
+	 * Return the video encoding (eg. H.264)
+	 * 
+	 * @return Encoding
+	 * @throws RcsServiceException
+	 */
+	public String getVideoEncoding() throws RcsServiceException {
+		try {
+			return sharingInf.getVideoEncoding();
+		} catch(Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}
+	}
+
+	/**
+	 * Returns the local timestamp of when the video sharing was initiated for outgoing
+	 * video sharing or the local timestamp of when the video sharing invitation was received
+	 * for incoming video sharings.
+	 *  
+	 * @return Timestamp in milliseconds
+	 * @throws RcsServiceException
+	 */
+	public long getTimeStamp() throws RcsServiceException {
+		try {
+			return sharingInf.getTimeStamp();
+		} catch(Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}		
+	}
+
+	/**
+	 * Returns the duration of the video sharing
+	 * 
+	 * @return Duration in seconds
+	 * @throws RcsServiceException
+	 */
+	public long getDuration() throws RcsServiceException {
+		try {
+			return sharingInf.getDuration();
+		} catch(Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}		
 	}
 }

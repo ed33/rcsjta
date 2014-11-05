@@ -19,16 +19,14 @@
 package com.orangelabs.rcs.ri.sharing.video.media;
 
 import java.io.IOException;
-import java.util.Iterator;
 
 import android.hardware.Camera;
-import android.os.RemoteException;
 import android.os.SystemClock;
 
-import com.gsma.services.rcs.RcsServiceException;
-import com.gsma.services.rcs.vsh.IVideoPlayerListener;
 import com.gsma.services.rcs.vsh.VideoCodec;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoPlayer;
+import com.gsma.services.rcs.vsh.VideoSharing;
 import com.orangelabs.rcs.core.ims.protocol.rtp.VideoRtpSender;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.JavaPacketizer;
@@ -47,7 +45,7 @@ import com.orangelabs.rcs.core.ims.protocol.rtp.stream.RtpStreamListener;
 /**
  * Live RTP video player based on H264 QCIF format
  */
-public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback, RtpStreamListener {
+public class OriginatingVideoPlayer extends VideoPlayer implements Camera.PreviewCallback, RtpStreamListener {
     /**
      * Default video codec
      */
@@ -127,17 +125,7 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
      * Scaling factor for encoding
      */
     private float scaleFactor = 1;
-
-    /**
-     * Source width used for resizing
-     */
-    private int srcWidth = 0;
-
-    /**
-     * Source height used for resizing
-     */
-    private int srcHeight = 0;
-    
+   
     /**
      * Mirroring (horizontal and vertival) for encoding
      */
@@ -167,11 +155,31 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
      * Frame buffer
      */
     private FrameBuffer frameBuffer = new FrameBuffer();
+    
+    /**
+     * Video player event listener
+     */
+    private VideoPlayerListener eventListener;
+    
+    /**
+     * Remote host
+     */
+    private String remoteHost;
+    
+    /**
+     * Remote port
+     */
+    private int remotePort;
 
     /**
      * Constructor
+     * 
+     * @param eventListener Player event listener
      */
-    public MyVideoPlayer() {
+    public OriginatingVideoPlayer(VideoPlayerListener eventListener) {
+    	// Set event listener
+    	this.eventListener = eventListener;
+    	
     	// Set the local RTP port
         localRtpPort = NetworkRessourceManager.generateLocalRtpPort();
         reservePort(localRtpPort);
@@ -182,11 +190,26 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
                 H264Config.CLOCK_RATE,
                 15,
                 96000,
-                H264Config.QCIF_WIDTH, 
-                H264Config.QCIF_HEIGHT,
+                new VideoDescriptor(VideoSharing.Orientation.ANGLE_0, H264Config.QCIF_WIDTH, H264Config.QCIF_HEIGHT),
     			H264Config.CODEC_PARAM_PROFILEID + "=" + H264Profile1b.BASELINE_PROFILE_ID + ";" + H264Config.CODEC_PARAM_PACKETIZATIONMODE + "=" + JavaPacketizer.H264_ENABLED_PACKETIZATION_MODE);
     }
 
+    /**
+	 * Set the remote info
+	 * 
+	 * @param codec Video codec
+	 * @param remoteHost Remote RTP host
+	 * @param remotePort Remote RTP port
+	 */
+	public void setRemoteInfo(VideoCodec codec, String remoteHost, int remotePort) {
+        // Set the video codec
+        defaultVideoCodec = codec;
+        
+        // Set remote host and port
+        this.remoteHost = remoteHost;
+        this.remotePort = remotePort;        
+	}
+    
     /**
      * Returns the local RTP port
      *
@@ -217,29 +240,22 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
 	}
 	
     /**
-	 * Opens the player and prepares resources (e.g. encoder, camera)
-	 * 
-	 * @param codec Video codec
-	 * @param remoteHost Remote RTP host
-	 * @param remotePort Remote RTP port
+	 * Opens the player and prepares resources
 	 */
-	public synchronized void open(VideoCodec codec, String remoteHost, int remotePort) {
+	public synchronized void open() {
         if (opened) {
             // Already opened
             return;
         }
         
-        // Set the video codec
-        defaultVideoCodec = codec;
-
         // Init video encoder
         try {
             timestampInc = (int)(90000 / defaultVideoCodec.getFrameRate());
             NativeH264EncoderParams nativeH264EncoderParams = new NativeH264EncoderParams();
 
             // Codec dimensions
-            nativeH264EncoderParams.setFrameWidth(defaultVideoCodec.getVideoWidth());
-            nativeH264EncoderParams.setFrameHeight(defaultVideoCodec.getVideoHeight());
+            nativeH264EncoderParams.setFrameWidth(defaultVideoCodec.getVideoDescriptor().getWidth());
+            nativeH264EncoderParams.setFrameHeight(defaultVideoCodec.getVideoDescriptor().getHeight());
             nativeH264EncoderParams.setFrameRate(defaultVideoCodec.getFrameRate());
             nativeH264EncoderParams.setBitRate(defaultVideoCodec.getBitRate());
 
@@ -253,11 +269,13 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
 
             int result = NativeH264Encoder.InitEncoder(nativeH264EncoderParams);
             if (result != 0) {
-               notifyPlayerEventError(VideoPlayer.Error.INTERNAL_ERROR);
+            	// Encoder init has failed
+        		eventListener.onPlayerError();
                return;
             }
         } catch (UnsatisfiedLinkError e) {
-            notifyPlayerEventError(VideoPlayer.Error.INTERNAL_ERROR);
+        	// Native encoder not found
+    		eventListener.onPlayerError();
             return;
         }
 
@@ -269,20 +287,21 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
             rtpInput.open();
             rtpSender.prepareSession(rtpInput, remoteHost, remotePort, this);
         } catch (Exception e) {
+        	// RTP failure
         	e.printStackTrace();
-            notifyPlayerEventError(VideoPlayer.Error.INTERNAL_ERROR);
+    		eventListener.onPlayerError();
             return;
         }
 
         // Player is opened
         opened = true;
-        notifyPlayerEventOpened();
+		eventListener.onPlayerOpened();
     }
 
 	/**
 	 * Closes the player and deallocates resources
 	 * 
-	 * @throws RcsServiceException
+	 * @throws JoynServiceException
 	 */
 	public synchronized void close() {
         if (!opened) {
@@ -302,10 +321,7 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
 
         // Player is closed
         opened = false;
-        notifyPlayerEventClosed();
-        
-        // Remove all listeners
-        removeAllEventListeners();
+		eventListener.onPlayerClosed();
     }
 
 	/**
@@ -340,7 +356,7 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
         started = true;
         frameProcess = new FrameProcess((int)defaultVideoCodec.getFrameRate());
         frameProcess.start();
-        notifyPlayerEventStarted();
+		eventListener.onPlayerStarted();
     }
 
 	/**
@@ -365,7 +381,7 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
         } catch (Exception e) {
             // Nothing to do
         }
-        notifyPlayerEventStopped();
+		eventListener.onPlayerStopped();
     }
 
     /*---------------------------------------------------------------------*/
@@ -450,7 +466,7 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
         if (defaultVideoCodec == null) {
             return H264Config.VIDEO_WIDTH;
         } else {
-            return defaultVideoCodec.getVideoWidth();
+            return defaultVideoCodec.getVideoDescriptor().getWidth();
         }
     }
 
@@ -463,7 +479,7 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
         if (defaultVideoCodec == null) {
             return H264Config.VIDEO_HEIGHT;
         } else {
-            return defaultVideoCodec.getVideoHeight();
+            return defaultVideoCodec.getVideoDescriptor().getHeight();
         }
     }
 
@@ -495,29 +511,6 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
     }
 
     /**
-     * Set the scaling factor
-     *
-     * @param scaleFactor New scaling factor
-     */
-    public void setScalingFactor(float scaleFactor) {
-        this.scaleFactor = scaleFactor;
-        this.srcWidth = 0;
-        this.srcHeight = 0;
-    }
-
-    /**
-     * Set the source dimension for resizing
-     *
-     * @param srcWidth
-     * @param srcHeight
-     */
-    public void activateResizing(int srcWidth, int srcHeight) {
-        this.srcWidth = srcWidth;
-        this.srcHeight = srcHeight;
-        this.scaleFactor = 1;
-    }
-
-    /**
      * Set the mirroring value
      *
      * @param mirroring New mirroring value
@@ -530,77 +523,8 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
      * Notify RTP aborted
      */
     public void rtpStreamAborted() {
-        notifyPlayerEventError(VideoPlayer.Error.NETWORK_FAILURE);
-    }
-
-    /**
-     * Notify player event started
-     */
-    private void notifyPlayerEventStarted() {
-    	try {
-	        Iterator<IVideoPlayerListener> ite = getEventListeners().iterator();
-	        while (ite.hasNext()) {
-	        	ite.next().onPlayerStarted();
-	        }
-		} catch(RemoteException e) {
-			e.printStackTrace();
-		}
-    }
-
-    /**
-     * Notify player event stopped
-     */
-    private void notifyPlayerEventStopped() {
-    	try {
-	        Iterator<IVideoPlayerListener> ite = getEventListeners().iterator();
-	        while (ite.hasNext()) {
-	        	ite.next().onPlayerStopped();
-	        }
-    	} catch(RemoteException e) {
-			e.printStackTrace();
-    	}
-    }
-
-    /**
-     * Notify player event opened
-     */
-    private void notifyPlayerEventOpened() {
-    	try {
-	        Iterator<IVideoPlayerListener> ite = getEventListeners().iterator();
-	        while (ite.hasNext()) {
-	        	ite.next().onPlayerOpened();
-	        }
-		} catch(RemoteException e) {
-			e.printStackTrace();
-		}
-    }
-
-    /**
-     * Notify player event closed
-     */
-    private void notifyPlayerEventClosed() {
-    	try {
-	        Iterator<IVideoPlayerListener> ite = getEventListeners().iterator();
-	        while (ite.hasNext()) {
-	        	ite.next().onPlayerClosed();
-	        }
-		} catch(RemoteException e) {
-			e.printStackTrace();
-		}
-    }
-
-    /**
-     * Notify player event error
-     */
-    private void notifyPlayerEventError(int error) {
-    	try {
-	        Iterator<IVideoPlayerListener> ite = getEventListeners().iterator();
-	        while (ite.hasNext()) {
-	        	ite.next().onPlayerError(error);
-	        }
-		} catch(RemoteException e) {
-			e.printStackTrace();
-		}
+    	// RTP failure
+		eventListener.onPlayerError();
     }
 
     /**
@@ -747,8 +671,8 @@ public class MyVideoPlayer extends VideoPlayer implements Camera.PreviewCallback
 
             // Update resizing / scaling values
             this.dataScaleFactor = scaleFactor;
-            this.dataSrcWidth = defaultVideoCodec.getVideoWidth();
-            this.dataSrcHeight = defaultVideoCodec.getVideoHeight();
+            this.dataSrcWidth = defaultVideoCodec.getVideoDescriptor().getWidth();
+            this.dataSrcHeight = defaultVideoCodec.getVideoDescriptor().getHeight();
         }
     }
 

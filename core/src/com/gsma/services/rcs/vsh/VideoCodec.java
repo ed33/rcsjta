@@ -20,8 +20,6 @@ package com.gsma.services.rcs.vsh;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
-
 /**
  * Video codec
  * 
@@ -54,14 +52,9 @@ public class VideoCodec implements Parcelable {
 	private int bitRate;
 
 	/**
-	 * Screen width
+	 * Video descriptor
 	 */
-	private int width;
-	
-	/**
-	 * Screen height
-	 */
-	private int height;
+	private VideoDescriptor descriptor;
 
 	/**
 	 * Video parameters
@@ -76,19 +69,17 @@ public class VideoCodec implements Parcelable {
      * @param clockRate Clock rate
      * @param frameRate Frame rate
      * @param bitRate Bit rate
-     * @param width Video width
-     * @param height Video height
+     * @param descriptor Video descriptor
      * @param parameters Codec parameters
      * @hide
      */
-    public VideoCodec(String encoding, int payload, int clockRate, int frameRate, int bitRate, int width, int height, String parameters) {
+    public VideoCodec(String encoding, int payload, int clockRate, int frameRate, int bitRate, VideoDescriptor descriptor, String parameters) {
     	this.encoding = encoding;
     	this.payload = payload;
     	this.clockRate = clockRate;
     	this.frameRate = frameRate;
     	this.bitRate = bitRate;
-    	this.width = width;
-    	this.height = height;
+    	this.descriptor = descriptor;
     	this.parameters = parameters;
     }
     
@@ -104,8 +95,7 @@ public class VideoCodec implements Parcelable {
     	this.clockRate = source.readInt();
     	this.frameRate = source.readInt();
     	this.bitRate = source.readInt();
-    	this.width = source.readInt();
-    	this.height = source.readInt();
+    	this.descriptor = source.readParcelable(VideoDescriptor.class.getClassLoader());
 		this.parameters = source.readString();
 	}
 
@@ -133,8 +123,7 @@ public class VideoCodec implements Parcelable {
     	dest.writeInt(clockRate);
     	dest.writeInt(frameRate);
     	dest.writeInt(bitRate);
-    	dest.writeInt(width);
-    	dest.writeInt(height);
+    	dest.writeParcelable(descriptor, flags);
     	dest.writeString(parameters);
     }
     
@@ -200,21 +189,12 @@ public class VideoCodec implements Parcelable {
     }
     
     /**
-     * Returns the video width (e.g. 176)
+     * Returns the video descriptor
      * 
-     * @return Video width
+     * @return Video descriptor
      */
-    public int getVideoWidth() {
-    	return width;
-    }
-    
-    /**
-     * Returns the video height (e.g. 144)
-     * 
-     * @return Video height
-     */
-    public int getVideoHeight() {
-    	return height;
+    public VideoDescriptor getVideoDescriptor() {
+    	return descriptor;
     }
     
     /**
@@ -225,29 +205,5 @@ public class VideoCodec implements Parcelable {
      */
     public String getParameters() {
     	return parameters;    	
-    }
-
-    /**
-     * Compare codec
-     *
-     * @param codec Codec to compare
-     * @return Returns True if codecs are equals, else returns False
-     */
-    public boolean compare(VideoCodec codec) {
-        boolean ret = false;
-        if (getEncoding().equalsIgnoreCase(codec.getEncoding()) 
-                && (getVideoWidth() == codec.getVideoWidth() || getVideoWidth() == 0 || codec.getVideoWidth() == 0)
-                && (getVideoHeight() == codec.getVideoHeight() || getVideoHeight() == 0 || codec.getVideoHeight() == 0)) {
-            if (getEncoding().equalsIgnoreCase(H264Config.CODEC_NAME)) {
-                if (H264Config.getCodecProfileLevelId(getParameters()).compareToIgnoreCase(H264Config.getCodecProfileLevelId(codec.getParameters())) == 0) {
-                    ret =  true;
-                }
-            } else {
-                if (getParameters().equalsIgnoreCase(codec.getParameters())) {
-                    ret = true;
-                }
-            }
-        }
-        return ret;
     }
 }

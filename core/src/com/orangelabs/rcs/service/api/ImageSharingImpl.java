@@ -99,9 +99,6 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 			case ContentSharingError.MEDIA_SIZE_TOO_BIG:
 				return new ImageSharingStateAndReasonCode(ImageSharing.State.REJECTED,
 						ReasonCode.REJECTED_MAX_SIZE);
-			case ContentSharingError.MEDIA_RENDERER_NOT_INITIALIZED:
-				return new ImageSharingStateAndReasonCode(ImageSharing.State.ABORTED,
-						ReasonCode.ABORTED_BY_SYSTEM);
 			default:
 				throw new IllegalArgumentException(
 						"Unknown reason in ImageSharingImpl.toStateAndReasonCode; error=" + error

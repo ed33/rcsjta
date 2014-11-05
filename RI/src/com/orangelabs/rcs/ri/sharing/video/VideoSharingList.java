@@ -84,7 +84,7 @@ public class VideoSharingList extends Activity {
 	private VideoSharingListAdapter createListAdapter() {
 		Uri uri = VideoSharingLog.CONTENT_URI;
         String[] projection = new String[] {
-        	VideoSharingLog.ID,
+        	VideoSharingLog.SHARING_ID,
         	VideoSharingLog.CONTACT,
         	VideoSharingLog.DURATION,
     		VideoSharingLog.STATE,

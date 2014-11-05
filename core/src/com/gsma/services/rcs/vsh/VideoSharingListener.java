@@ -23,7 +23,6 @@ package com.gsma.services.rcs.vsh;
 
 import com.gsma.services.rcs.contacts.ContactId;
 
-
 /**
  * Video sharing event listener
  * 
@@ -37,7 +36,18 @@ public abstract class VideoSharingListener extends IVideoSharingListener.Stub {
 	 * @param sharingId ID of video sharing
 	 * @param state State of video sharing
 	 * @param reasonCode Reason code of the video sharing state
+	 * @see VideoSharing.State
+	 * @see VideoSharing.ReasonCode
 	 */
-	public abstract void onVideoSharingStateChanged(ContactId contact, String sharingId, int state,
-			int reasonCode);
+	public abstract void onVideoSharingStateChanged(ContactId contact, String sharingId, int state, int reasonCode);
+	
+	/**
+	 * Callback called when the video descriptor has changed
+	 *
+	 * @param contact Contact ID
+	 * @param sharingId ID of video sharing
+	 * @param descriptor Video descriptor
+	 * @see VideoDescriptor
+	 */
+	public abstract void onVideoDescriptorChanged(ContactId contact, String sharingId, VideoDescriptor descriptor);	
 }

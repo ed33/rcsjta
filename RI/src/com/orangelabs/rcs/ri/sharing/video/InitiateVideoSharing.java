@@ -51,6 +51,7 @@ import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharingListener;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
@@ -60,7 +61,8 @@ import com.orangelabs.rcs.ri.ApiConnectionManager;
 import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.RiApplication;
-import com.orangelabs.rcs.ri.sharing.video.media.MyVideoPlayer;
+import com.orangelabs.rcs.ri.sharing.video.media.OriginatingVideoPlayer;
+import com.orangelabs.rcs.ri.sharing.video.media.VideoPlayerListener;
 import com.orangelabs.rcs.ri.sharing.video.media.VideoSurfaceView;
 import com.orangelabs.rcs.ri.utils.LockAccess;
 import com.orangelabs.rcs.ri.utils.LogUtils;
@@ -72,7 +74,7 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * @author Jean-Marc AUFFRET
  * @author YPLO6403
  */
-public class InitiateVideoSharing extends Activity implements SurfaceHolder.Callback {
+public class InitiateVideoSharing extends Activity implements VideoPlayerListener {
 
 	/**
 	 * UI handler
@@ -92,7 +94,7 @@ public class InitiateVideoSharing extends Activity implements SurfaceHolder.Call
     /**
      * Video player
      */
-    private MyVideoPlayer videoPlayer;
+    private OriginatingVideoPlayer videoPlayer;
 
     /**
      * Camera of the device
@@ -153,79 +155,6 @@ public class InitiateVideoSharing extends Activity implements SurfaceHolder.Call
    	 * The log tag for this class
    	 */
    	private static final String LOGTAG = LogUtils.getTag(InitiateVideoSharing.class.getSimpleName());
-   	
-   	/**
-     * Video sharing listener
-     */
-	private VideoSharingListener vshListener = new VideoSharingListener() {
-
-		@Override
-		public void onVideoSharingStateChanged(ContactId contact, String sharingId, final int state, final int reasonCode) {
-			// Discard event if not for current sharingId
-			if (InitiateVideoSharing.this.sharingId == null || !InitiateVideoSharing.this.sharingId.equals(sharingId)) {
-				return;
-			}
-			if (LogUtils.isActive) {
-				Log.d(LOGTAG, "onVideoSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state
-						+ " reason=" + reasonCode);
-			}
-			if (state > RiApplication.VSH_STATES.length) {
-				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled state=" + state);
-				}
-				return;
-			}
-			if (reasonCode > RiApplication.VSH_REASON_CODES.length) {
-				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled reason=" + reasonCode);
-				}
-				return;
-			}
-			final String _reasonCode = RiApplication.VSH_REASON_CODES[reasonCode];
-			handler.post(new Runnable() {
-				public void run() {
-					switch (state) {
-					case VideoSharing.State.STARTED:
-						// Session is established : hide progress dialog
-						hideProgressDialog();
-						break;
-
-					case VideoSharing.State.ABORTED:
-						// Release the camera
-						closeCamera();
-						// Hide progress dialog
-						hideProgressDialog();
-						Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_aborted, _reasonCode),
-								exitOnce);
-						break;
-
-					case VideoSharing.State.REJECTED:
-						// Release the camera
-						closeCamera();
-						// Hide progress dialog
-						hideProgressDialog();
-						Utils.showMessageAndExit(InitiateVideoSharing.this,
-								getString(R.string.label_sharing_rejected, _reasonCode), exitOnce);
-						break;
-
-					case VideoSharing.State.FAILED:
-						// Release the camera
-						closeCamera();
-						// Hide progress dialog
-						hideProgressDialog();
-						Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_failed, _reasonCode),
-								exitOnce);
-						break;
-
-					default:
-						if (LogUtils.isActive) {
-							Log.d(LOGTAG, "onVideoSharingStateChanged " + getString(R.string.label_vsh_state_changed, RiApplication.VSH_STATES[state], reasonCode));
-						}
-					}
-				}
-			});
-		}
-	};
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -268,7 +197,6 @@ public class InitiateVideoSharing extends Activity implements SurfaceHolder.Call
         surface = videoView.getHolder();
         surface.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         surface.setKeepScreenOn(true);
-        surface.addCallback(this);
         
 		// Register to API connection manager
 		connectionManager = ApiConnectionManager.getInstance(this);
@@ -362,7 +290,7 @@ public class InitiateVideoSharing extends Activity implements SurfaceHolder.Call
             	public void run() {
 		        	try {
 		                // Create the video player
-		        		videoPlayer = new MyVideoPlayer();
+		        		videoPlayer = new OriginatingVideoPlayer(InitiateVideoSharing.this);
 		        		
 		                // Start the camera
 		        		openCamera();
@@ -467,23 +395,6 @@ public class InitiateVideoSharing extends Activity implements SurfaceHolder.Call
 	}
     
     /*-------------------------- Camera methods ------------------*/
-
-    @Override
-    public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
-    	// TODO
-	}
-
-    @Override
-	public void surfaceCreated(SurfaceHolder arg0) {
-    	// TODO
-	}
-
-	@Override
-	public void surfaceDestroyed(SurfaceHolder arg0) {
-    	// TODO
-	}    
-    
-    /*-------------------------- Camera methods ------------------*/
     
     /**
      * Open the camera
@@ -577,7 +488,6 @@ public class InitiateVideoSharing extends Activity implements SurfaceHolder.Call
             
             // Use the existing size without resizing
             p.setPreviewSize(videoWidth, videoHeight);
-            videoPlayer.activateResizing(videoWidth, videoHeight);
 
             // Set camera parameters
             camera.setParameters(p);
@@ -676,5 +586,159 @@ public class InitiateVideoSharing extends Activity implements SurfaceHolder.Call
             return 1;
         }
     }    
+
+    /*-------------------------- Session callbacks ------------------*/
+
+   	/**
+     * Video sharing listener
+     */
+	private VideoSharingListener vshListener = new VideoSharingListener() {
+		@Override
+		public void onVideoSharingStateChanged(ContactId contact, String sharingId, final int state, final int reasonCode) {
+			// Discard event if not for current sharingId
+			if (InitiateVideoSharing.this.sharingId == null || !InitiateVideoSharing.this.sharingId.equals(sharingId)) {
+				return;
+			}
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "onVideoSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state
+						+ " reason=" + reasonCode);
+			}
+			if (state > RiApplication.VSH_STATES.length) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled state=" + state);
+				}
+				return;
+			}
+			if (reasonCode > RiApplication.VSH_REASON_CODES.length) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled reason=" + reasonCode);
+				}
+				return;
+			}
+			final String _reasonCode = RiApplication.VSH_REASON_CODES[reasonCode];
+			handler.post(new Runnable() {
+				public void run() {
+					switch (state) {
+					case VideoSharing.State.STARTED:
+						// Start the player
+						videoPlayer.open();
+						videoPlayer.start();
+						
+						// Session is established : hide progress dialog
+						hideProgressDialog();
+						break;
+
+					case VideoSharing.State.ABORTED:
+						// Stop the player
+						videoPlayer.stop();
+						videoPlayer.close();
+						
+						// Release the camera
+						closeCamera();
+						
+						// Hide progress dialog
+						hideProgressDialog();
+						
+						// Display message info and exit
+						Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_aborted, _reasonCode), exitOnce);
+						break;
+
+					case VideoSharing.State.REJECTED:
+						// Release the camera
+						closeCamera();
+						// Hide progress dialog
+						hideProgressDialog();
+						Utils.showMessageAndExit(InitiateVideoSharing.this,
+								getString(R.string.label_sharing_rejected, _reasonCode), exitOnce);
+						break;
+
+					case VideoSharing.State.FAILED:
+						// Stop the player
+						videoPlayer.stop();
+						videoPlayer.close();
+						
+						// Release the camera
+						closeCamera();
+
+						// Hide progress dialog
+						hideProgressDialog();
+						
+						// Display error info and exit
+						Utils.showMessageAndExit(InitiateVideoSharing.this, getString(R.string.label_sharing_failed, _reasonCode), exitOnce);
+						break;
+
+					default:
+						if (LogUtils.isActive) {
+							Log.d(LOGTAG, "onVideoSharingStateChanged " + getString(R.string.label_vsh_state_changed, RiApplication.VSH_STATES[state], reasonCode));
+						}
+					}
+				}
+			});
+		}
+		
+		@Override
+		public void onVideoDescriptorChanged(ContactId contact, String sharingId, VideoDescriptor descriptor) {
+			// TDOO
+    	}		
+	};
+	
+    /*-------------------------- Video player callbacks ------------------*/
+    
+	/**
+	 * Callback called when the player is opened
+	 */
+	public void onPlayerOpened() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerOpened");
+		}		
+	}
+
+	/**
+	 * Callback called when the player is started
+	 */
+	public void onPlayerStarted() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerStarted");
+		}		
+	}
+
+	/**
+	 * Callback called when the player is stopped
+	 */
+	public void onPlayerStopped() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerStopped");
+		}
+	}
+
+	/**
+	 * Callback called when the player is closed
+	 */
+	public void onPlayerClosed() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerClosed");
+		}
+	}
+
+	/**
+	 * Callback called when the player has failed
+	 */
+	public void onPlayerError() {
+		// TODO
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerError");
+		}
+	}
+	
+	/**
+	 * Callback called when the player has been resized
+	 */
+	public void onPlayerResized(int width, int height) {
+		// TODO
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerResized");
+		}
+	}	
 }
+
 

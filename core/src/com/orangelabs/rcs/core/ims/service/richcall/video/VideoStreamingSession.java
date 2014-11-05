@@ -25,7 +25,7 @@ package com.orangelabs.rcs.core.ims.service.richcall.video;
 import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
-import com.gsma.services.rcs.vsh.IVideoRenderer;
+import com.gsma.services.rcs.vsh.VideoSharing;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipException;
@@ -45,6 +45,11 @@ import com.orangelabs.rcs.utils.logger.Logger;
  */
 public abstract class VideoStreamingSession extends ContentSharingSession {
 	/**
+	 * Video orientation
+	 */
+	private int videoOrientation = VideoSharing.Orientation.ANGLE_0;
+
+	/**
 	 * Video width
 	 */
 	private int videoWidth = -1;
@@ -54,13 +59,8 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
 	 */
 	private int videoHeight = -1;
 
-	/**
-	 * Video renderer
-	 */
-	private IVideoRenderer renderer;
-
     /**
-     * Video renderer
+     * Video player
      */
     private IVideoPlayer player;
 
@@ -81,6 +81,15 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
 	}
 
 	/**
+	 * Get the video orientation
+	 * 
+	 * @return Orientation
+	 */
+	public int getVideoOrientation() {
+		return videoOrientation;
+	}
+
+	/**
 	 * Get the video width
 	 * 
 	 * @return Width
@@ -96,24 +105,6 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
 	 */
 	public int getVideoHeight() {
 		return videoHeight;
-	}
-
-	/**
-	 * Get the video renderer
-	 * 
-	 * @return Renderer
-	 */
-	public IVideoRenderer getVideoRenderer() {
-		return renderer;
-	}
-	
-	/**
-	 * Set the video renderer
-	 * 
-	 * @param renderer Renderer
-	 */
-	public void setVideoRenderer(IVideoRenderer renderer) {
-		this.renderer = renderer;
 	}
 
     /**

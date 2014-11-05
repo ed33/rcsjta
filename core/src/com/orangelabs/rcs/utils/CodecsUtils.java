@@ -27,6 +27,8 @@ import android.hardware.Camera.Parameters;
 import android.os.Build;
 
 import com.gsma.services.rcs.vsh.VideoCodec;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
+import com.gsma.services.rcs.vsh.VideoSharing;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.JavaPacketizer;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.profiles.H264Profile1_2;
@@ -40,16 +42,6 @@ import com.orangelabs.rcs.core.ims.protocol.rtp.format.video.H264VideoFormat;
  * @author hlxn7157
  */
 public class CodecsUtils {
-
-    /**
-     * Get list of supported video codecs according to current network
-     *
-     * @return Codecs list
-     */
-    public static VideoCodec[] getRendererCodecList() {
-        return getSupportedCodecList(true, true);
-    }
-
     /**
      * Get list of supported video codecs according to current network
      *
@@ -134,7 +126,6 @@ public class CodecsUtils {
          * WIFI   -> level 1.2: profile-level-id=42800c, frame_rate=15, frame_size=CIF, bit_rate=384k
          * WIFI   -> level 1.3: profile-level-id=42800d, frame_rate=15, frame_size=CIF, bit_rate=384k
          */
-
     	if (networkLevel == NetworkUtils.NETWORK_ACCESS_WIFI || networkLevel == NetworkUtils.NETWORK_ACCESS_4G) {
             if (cif) {
                 list.add(new VideoCodec(H264Config.CODEC_NAME,
@@ -142,8 +133,7 @@ public class CodecsUtils {
                         H264Config.CLOCK_RATE,
                         15,
                         256000,
-                        H264Config.CIF_WIDTH, 
-                        H264Config.CIF_HEIGHT,
+                        new VideoDescriptor(VideoSharing.Orientation.ANGLE_0, H264Config.CIF_WIDTH, H264Config.CIF_HEIGHT),
                         param_1_3));
                 
                 list.add(new VideoCodec(H264Config.CODEC_NAME,
@@ -151,8 +141,7 @@ public class CodecsUtils {
                         H264Config.CLOCK_RATE,
                         15,
                         176000,
-                        H264Config.CIF_WIDTH, 
-                        H264Config.CIF_HEIGHT,
+                        new VideoDescriptor(VideoSharing.Orientation.ANGLE_0, H264Config.CIF_WIDTH, H264Config.CIF_HEIGHT),
                         param_1_2));
             }
             if (qvga) {
@@ -161,8 +150,7 @@ public class CodecsUtils {
                         H264Config.CLOCK_RATE,
                         15,
                         176000,
-                        H264Config.QVGA_WIDTH, 
-                        H264Config.QVGA_HEIGHT,
+                        new VideoDescriptor(VideoSharing.Orientation.ANGLE_0, H264Config.QVGA_WIDTH, H264Config.QVGA_HEIGHT),                        
                         param_1_2));
             }
         }
@@ -171,8 +159,7 @@ public class CodecsUtils {
                 H264Config.CLOCK_RATE,
                 15,
                 96000,
-                H264Config.QCIF_WIDTH, 
-                H264Config.QCIF_HEIGHT,
+                new VideoDescriptor(VideoSharing.Orientation.ANGLE_0, H264Config.QCIF_WIDTH, H264Config.QCIF_HEIGHT),                        
                 param_1_b));
 
         return (VideoCodec[]) list.toArray(new VideoCodec[list.size()]);

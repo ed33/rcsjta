@@ -32,6 +32,7 @@ import android.net.Uri;
 
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ish.ImageSharing;
+import com.gsma.services.rcs.vsh.VideoSharing;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.content.VideoContent;
 import com.orangelabs.rcs.utils.logger.Logger;
@@ -137,6 +138,7 @@ public class RichCallHistory {
 		values.put(VideoSharingData.KEY_VIDEO_ENCODING, content.getEncoding());
 		values.put(VideoSharingData.KEY_WIDTH, content.getWidth());
 		values.put(VideoSharingData.KEY_HEIGHT, content.getHeight());
+		values.put(VideoSharingData.KEY_ORIENTATION, VideoSharing.Orientation.ANGLE_0);
 		return cr.insert(vshDatabaseUri, values);
 	}
 

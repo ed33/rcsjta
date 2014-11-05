@@ -24,9 +24,9 @@ package com.orangelabs.rcs.service.api;
 
 import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.contacts.ContactId;
-import com.gsma.services.rcs.vsh.IVideoRenderer;
+import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.IVideoSharing;
-import com.gsma.services.rcs.vsh.VideoCodec;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharing.ReasonCode;
 import com.orangelabs.rcs.core.content.VideoContent;
@@ -35,8 +35,8 @@ import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
 import com.orangelabs.rcs.core.ims.service.richcall.video.VideoStreamingSession;
 import com.orangelabs.rcs.core.ims.service.richcall.video.VideoStreamingSessionListener;
-import com.orangelabs.rcs.provider.sharing.VideoSharingStateAndReasonCode;
 import com.orangelabs.rcs.provider.sharing.RichCallHistory;
+import com.orangelabs.rcs.provider.sharing.VideoSharingStateAndReasonCode;
 import com.orangelabs.rcs.service.broadcaster.IVideoSharingEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -62,7 +62,12 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	/**
 	 * Started at
 	 */
-	private long startedAt;
+	private long startedAt = 0L;
+	
+	/**
+	 * Duration
+	 */
+	private long duration = 0L;
 	
 	/**
 	 * The logger
@@ -95,7 +100,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 			case ContentSharingError.MEDIA_TRANSFER_FAILED:
 			case ContentSharingError.MEDIA_STREAMING_FAILED:
 			case ContentSharingError.UNSUPPORTED_MEDIA_TYPE:
-			case ContentSharingError.MEDIA_RENDERER_NOT_INITIALIZED:
+			case ContentSharingError.MEDIA_PLAYER_NOT_INITIALIZED:
 				return new VideoSharingStateAndReasonCode(VideoSharing.State.FAILED,
 						ReasonCode.FAILED_SHARING);
 			default:
@@ -154,22 +159,21 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	}
 	
 	/**
-	 * Returns the video codec
+	 * Returns the video descriptor
 	 * 
-	 * @return Video codec
-	 * @see VideoCodec
+	 * @return Video descriptor
+	 * @see VideoDescriptor
 	 */
-	public VideoCodec getVideoCodec() {
-		VideoCodec codec = null;
+	public VideoDescriptor getVideoDescriptor() {
+		VideoDescriptor descriptor = null;
 		try {
-			if (session.getVideoPlayer() != null) {
-				codec = session.getVideoPlayer().getCodec();
-			} else
-			if (session.getVideoRenderer() != null) {
-				codec = session.getVideoRenderer().getCodec();
+			if (session != null) {
+				descriptor = new VideoDescriptor(session.getVideoOrientation(), session.getVideoWidth(), session.getVideoHeight());
 			}
-		} catch(Exception e) {}
-		return codec;
+		} catch(Exception e) {
+			descriptor = null;
+		}
+		return descriptor;
 	}
 	
 	/**
@@ -198,6 +202,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	 * Returns the reason code of the state of the video sharing
 	 *
 	 * @return ReasonCode
+	 * @see VideoSharing.ReasonCode
 	 */
 	public int getReasonCode() {
 		return ReasonCode.UNSPECIFIED;
@@ -207,7 +212,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	 * Returns the direction of the sharing (incoming or outgoing)
 	 * 
 	 * @return Direction
-	 * @see Direction
+	 * @see com.gsma.services.rcs.RcsCommon.Direction
 	 */
 	public int getDirection() {
 		if (session.isInitiatedByRemote()) {
@@ -220,15 +225,15 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	/**
 	 * Accepts video sharing invitation
 	 * 
-	 * @param renderer Video renderer
+	 * @param player Video player
 	 */
-	public void acceptInvitation(IVideoRenderer renderer) {
+	public void acceptInvitation(IVideoPlayer player) {
 		if (logger.isActivated()) {
 			logger.info("Accept session invitation");
 		}
 
-		// Set the video renderer
-		session.setVideoRenderer(renderer);
+		// Set the video player
+		session.setVideoPlayer(player);
 		
 		// Accept invitation
         Thread t = new Thread() {
@@ -272,6 +277,52 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
     	};
     	t.start();	
 	}
+	
+	/**
+	 * Set the video orientation
+	 * 
+	 * @param orientation New orientation
+	 */
+	public void setOrientation(int orientation) {
+		// TODO
+	}
+	
+	/**
+	 * Return the video encoding (eg. H.264)
+	 * 
+	 * @return Encoding
+	 */
+	public String getVideoEncoding() {
+		String encoding = null;
+		try {
+			if ((session != null) && (session.getVideoPlayer() != null) && (session.getVideoPlayer().getCodec() != null)) {
+				encoding = session.getVideoPlayer().getCodec().getEncoding();
+			}
+		} catch(Exception e) {
+			encoding = null;
+		}
+		return encoding;
+	}
+
+	/**
+	 * Returns the local timestamp of when the video sharing was initiated for outgoing
+	 * video sharing or the local timestamp of when the video sharing invitation was received
+	 * for incoming video sharings.
+	 *  
+	 * @return Timestamp in milliseconds
+	 */
+	public long getTimeStamp() {
+		return startedAt;
+	}
+
+	/**
+	 * Returns the duration of the video sharing
+	 * 
+	 * @return Duration in seconds
+	 */
+	public long getDuration() {
+		return duration;
+	}	
 
     /*------------------------------- SESSION EVENTS ----------------------------------*/
 
@@ -319,8 +370,9 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 
 				mVideoSharingEventBroadcaster.broadcastVideoSharingStateChanged(getRemoteContact(),
 						sharingId, VideoSharing.State.ABORTED, reasonCode);
-				RichCallHistory.getInstance().setVideoSharingDuration(sharingId,
-						(System.currentTimeMillis() - startedAt) / 100);
+				
+				duration = (System.currentTimeMillis() - startedAt) / 100; 
+				RichCallHistory.getInstance().setVideoSharingDuration(sharingId, duration);
 			}
 		}
 	}
@@ -338,8 +390,9 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 
 			RichCallHistory.getInstance().setVideoSharingState(sharingId,
 					VideoSharing.State.ABORTED, ReasonCode.ABORTED_BY_REMOTE);
-			RichCallHistory.getInstance().setVideoSharingDuration(sharingId,
-					(System.currentTimeMillis() - startedAt) / 100);
+			
+			duration = (System.currentTimeMillis() - startedAt) / 100; 
+			RichCallHistory.getInstance().setVideoSharingDuration(sharingId, duration);
 
 			mVideoSharingEventBroadcaster.broadcastVideoSharingStateChanged(getRemoteContact(),
 					getSharingId(), VideoSharing.State.ABORTED, ReasonCode.ABORTED_BY_REMOTE);

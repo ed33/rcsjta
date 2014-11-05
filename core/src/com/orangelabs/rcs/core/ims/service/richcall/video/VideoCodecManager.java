@@ -21,6 +21,8 @@ package com.orangelabs.rcs.core.ims.service.richcall.video;
 import java.util.Vector;
 
 import com.gsma.services.rcs.vsh.VideoCodec;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
+import com.gsma.services.rcs.vsh.VideoSharing;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
 import com.orangelabs.rcs.core.ims.protocol.sdp.MediaAttribute;
 import com.orangelabs.rcs.core.ims.protocol.sdp.MediaDescription;
@@ -48,16 +50,17 @@ public class VideoCodecManager {
                 VideoCodec videoCodec = supportedCodecs[j];
                 int videoCodecPref = supportedCodecs.length - 1 - j;
                 // Compare codec
-                if (proposedCodec.compare(videoCodec)) {
+                if (compareVideoCodec(proposedCodec, videoCodec)) {
                     if (videoCodecPref > pref) {
                         pref = videoCodecPref;
+                        int width = (proposedCodec.getVideoDescriptor().getWidth() == 0) ? videoCodec.getVideoDescriptor().getWidth() : proposedCodec.getVideoDescriptor().getWidth();
+                        int height = (proposedCodec.getVideoDescriptor().getHeight() == 0) ? videoCodec.getVideoDescriptor().getHeight() : proposedCodec.getVideoDescriptor().getHeight();
                         selectedCodec = new VideoCodec(proposedCodec.getEncoding(),
                             (proposedCodec.getPayloadType() == 0) ? videoCodec.getPayloadType() : proposedCodec.getPayloadType(),
                             (proposedCodec.getClockRate() == 0) ? videoCodec.getClockRate() : proposedCodec.getClockRate(),
                             (proposedCodec.getFrameRate() == 0) ? videoCodec.getFrameRate() : proposedCodec.getFrameRate(),
                             (proposedCodec.getBitRate() == 0) ? videoCodec.getBitRate() : proposedCodec.getBitRate(),
-                            (proposedCodec.getVideoWidth() == 0) ? videoCodec.getVideoWidth() : proposedCodec.getVideoWidth(),
-                            (proposedCodec.getVideoHeight() == 0) ? videoCodec.getVideoHeight() : proposedCodec.getVideoHeight(),
+                            new VideoDescriptor(VideoSharing.Orientation.ANGLE_0, width, height),
                             (proposedCodec.getParameters().length() == 0) ? videoCodec.getParameters() : proposedCodec.getParameters());
                     }
                 }
@@ -66,7 +69,30 @@ public class VideoCodecManager {
         return selectedCodec;
     }
 
-    
+    /**
+     * Compare two video codecs
+     *
+     * @param codec1 Video codec 1
+     * @param codec2 Video codec 2
+     * @return boolean
+     */
+    public static boolean compareVideoCodec(VideoCodec codec1, VideoCodec codec2) {
+        boolean ret = false;
+        if (codec1.getEncoding().equalsIgnoreCase(codec2.getEncoding()) 
+                && (codec1.getVideoDescriptor().getWidth() == codec2.getVideoDescriptor().getWidth() || codec1.getVideoDescriptor().getWidth() == 0 || codec2.getVideoDescriptor().getWidth() == 0)
+                && (codec1.getVideoDescriptor().getHeight() == codec2.getVideoDescriptor().getHeight() || codec1.getVideoDescriptor().getHeight() == 0 || codec2.getVideoDescriptor().getHeight() == 0)) {
+            if (codec1.getEncoding().equalsIgnoreCase(H264Config.CODEC_NAME)) {
+                if (H264Config.getCodecProfileLevelId(codec1.getParameters()).compareToIgnoreCase(H264Config.getCodecProfileLevelId(codec2.getParameters())) == 0) {
+                    ret =  true;
+                }
+            } else {
+                if (codec1.getParameters().equalsIgnoreCase(codec2.getParameters())) {
+                    ret = true;
+                }
+            }
+        }
+        return ret;
+    }    
 
     /**
      * Create a video codec from its SDP description
@@ -143,7 +169,8 @@ public class VideoCodecManager {
 	        VideoCodec videoCodec = new VideoCodec(codecName,
 	        		Integer.parseInt(media.payload), clockRate,
 	        		frameRate, 0,
-	                videoWidth, videoHeight, codecParameters);
+	        		new VideoDescriptor(VideoSharing.Orientation.ANGLE_0, videoWidth, videoHeight),
+	        		codecParameters);
 
             return videoCodec;
     	} catch(NullPointerException e) {

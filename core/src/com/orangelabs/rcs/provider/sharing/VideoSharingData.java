@@ -39,11 +39,6 @@ public class VideoSharingData {
 	/**
 	 * Column name
 	 */
-	static final String KEY_ID = VideoSharingLog.ID;
-
-	/**
-	 * Column name
-	 */
 	static final String KEY_SESSION_ID = VideoSharingLog.SHARING_ID;
 
 	/**
@@ -76,9 +71,23 @@ public class VideoSharingData {
 	 */
 	static final String KEY_DURATION = VideoSharingLog.DURATION;	
 
+	/**
+	 * Column name
+	 */
 	static final String KEY_VIDEO_ENCODING = VideoSharingLog.VIDEO_ENCODING;
 
+	/**
+	 * Column name
+	 */
 	static final String KEY_WIDTH = VideoSharingLog.WIDTH;
 
+	/**
+	 * Column name
+	 */
 	static final String KEY_HEIGHT = VideoSharingLog.HEIGHT;
+	
+	/**
+	 * Column name
+	 */
+	static final String KEY_ORIENTATION = VideoSharingLog.ORIENTATION;
 }

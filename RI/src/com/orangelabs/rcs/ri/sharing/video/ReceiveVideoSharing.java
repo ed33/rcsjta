@@ -32,10 +32,11 @@ import android.view.SurfaceHolder;
 import android.view.WindowManager;
 import android.widget.TextView;
 
+import com.gsma.services.rcs.RcsCommon;
 import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.RcsServiceNotAvailableException;
-import com.gsma.services.rcs.RcsCommon;
 import com.gsma.services.rcs.contacts.ContactId;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharingListener;
 import com.gsma.services.rcs.vsh.VideoSharingService;
@@ -44,7 +45,8 @@ import com.orangelabs.rcs.ri.ApiConnectionManager;
 import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.RiApplication;
-import com.orangelabs.rcs.ri.sharing.video.media.MyVideoRenderer;
+import com.orangelabs.rcs.ri.sharing.video.media.TerminatingVideoPlayer;
+import com.orangelabs.rcs.ri.sharing.video.media.VideoPlayerListener;
 import com.orangelabs.rcs.ri.sharing.video.media.VideoSurfaceView;
 import com.orangelabs.rcs.ri.utils.LockAccess;
 import com.orangelabs.rcs.ri.utils.LogUtils;
@@ -57,7 +59,7 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * @author Jean-Marc AUFFRET
  * @author YPLO6403
  */
-public class ReceiveVideoSharing extends Activity {
+public class ReceiveVideoSharing extends Activity implements VideoPlayerListener {
 
 	/**
 	 * UI handler
@@ -72,12 +74,12 @@ public class ReceiveVideoSharing extends Activity {
     /**
      * The Video Sharing Data Object 
      */
-    VideoSharingDAO vshDao;
+    private VideoSharingDAO vshDao;
 
     /**
      * Video renderer
      */
-    private MyVideoRenderer videoRenderer;
+    private TerminatingVideoPlayer videoRenderer;
 
     /**
      * Video width
@@ -113,72 +115,6 @@ public class ReceiveVideoSharing extends Activity {
 	 * The log tag for this class
 	 */
 	private static final String LOGTAG = LogUtils.getTag(ReceiveVideoSharing.class.getSimpleName());
-	
-   /**
-     * Video sharing listener
-     */
-    private VideoSharingListener vshListener = new VideoSharingListener() {
-
-		@Override
-		public void onVideoSharingStateChanged(ContactId contact, String sharingId, final int state, int reasonCode) {
-			if (LogUtils.isActive) {
-				Log.d(LOGTAG, "onVideoSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state
-						+ " reason=" + reasonCode);
-			}
-			if (state > RiApplication.VSH_STATES.length) {
-				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled state=" + state);
-				}
-				return;
-			}
-			if (reasonCode > RiApplication.VSH_REASON_CODES.length) {
-				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled reason=" + reasonCode);
-				}
-				return;
-			}
-			// Discard event if not for current sharingId
-			if (ReceiveVideoSharing.this.vshDao == null || !ReceiveVideoSharing.this.vshDao.getSharingId().equals(sharingId)) {
-				return;
-			}
-			final String _reasonCode = RiApplication.VSH_REASON_CODES[reasonCode];
-			handler.post(new Runnable() {
-				public void run() {
-					switch (state) {
-					case VideoSharing.State.STARTED:
-						// Session is established
-						break;
-
-					case VideoSharing.State.ABORTED:
-						// Display session status
-						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_aborted, _reasonCode),
-								exitOnce);
-						break;
-
-					case VideoSharing.State.FAILED:
-						// Session is failed: exit
-						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_failed, _reasonCode),
-								exitOnce);
-						break;
-
-					case VideoSharing.State.REJECTED:
-						// Session is rejected: exit
-						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_rejected, _reasonCode),
-								exitOnce);
-						break;
-					
-					default:
-						if (LogUtils.isActive) {
-							Log.d(LOGTAG,
-									"onVideoSharingStateChanged "
-											+ getString(R.string.label_vsh_state_changed, RiApplication.VSH_STATES[state],
-													_reasonCode));
-						}
-					}
-				}
-			});
-		}
-	};
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -217,7 +153,7 @@ public class ReceiveVideoSharing extends Activity {
         surface.setKeepScreenOn(true);
 
         // Instantiate the renderer
-        videoRenderer = new MyVideoRenderer(videoView);
+        videoRenderer = new TerminatingVideoPlayer(videoView, this);
 
 		// Register to API connection manager
 		connectionManager = ApiConnectionManager.getInstance(this);
@@ -387,5 +323,150 @@ public class ReceiveVideoSharing extends Activity {
 		}
 		return true;
 	}
+    
+    /*-------------------------- Session callbacks ------------------*/
+    
+    /**
+     * Video sharing listener
+     */
+    private VideoSharingListener vshListener = new VideoSharingListener() {
+
+		@Override
+		public void onVideoSharingStateChanged(ContactId contact, String sharingId, final int state, int reasonCode) {
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "onVideoSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state
+						+ " reason=" + reasonCode);
+			}
+			if (state > RiApplication.VSH_STATES.length) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled state=" + state);
+				}
+				return;
+			}
+			if (reasonCode > RiApplication.VSH_REASON_CODES.length) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled reason=" + reasonCode);
+				}
+				return;
+			}
+			// Discard event if not for current sharingId
+			if (ReceiveVideoSharing.this.vshDao == null || !ReceiveVideoSharing.this.vshDao.getSharingId().equals(sharingId)) {
+				return;
+			}
+			final String _reasonCode = RiApplication.VSH_REASON_CODES[reasonCode];
+			handler.post(new Runnable() {
+				public void run() {
+					switch (state) {
+					case VideoSharing.State.STARTED:
+						// Start the renderer
+						videoRenderer.open();
+						videoRenderer.start();
+						break;
+
+					case VideoSharing.State.ABORTED:
+						// Stop the renderer
+						videoRenderer.stop();
+						videoRenderer.close();
+						
+						// Display session status
+						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_aborted, _reasonCode),
+								exitOnce);
+						break;
+
+					case VideoSharing.State.FAILED:
+						// Stop the renderer
+						videoRenderer.stop();
+						videoRenderer.close();						
+
+						// Session is failed: exit
+						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_failed, _reasonCode),
+								exitOnce);
+						break;
+
+					case VideoSharing.State.REJECTED:
+						// Stop the renderer
+						videoRenderer.stop();
+						videoRenderer.close();									
+
+						// Session is rejected: exit
+						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_rejected, _reasonCode),
+								exitOnce);
+						break;
+					
+					default:
+						if (LogUtils.isActive) {
+							Log.d(LOGTAG,
+									"onVideoSharingStateChanged "
+											+ getString(R.string.label_vsh_state_changed, RiApplication.VSH_STATES[state],
+													_reasonCode));
+						}
+					}
+				}
+			});
+		}
+		
+		@Override
+		public void onVideoDescriptorChanged(ContactId contact, String sharingId, VideoDescriptor descriptor) {
+			// TDOO
+    	}
+	};
+    
+    /*-------------------------- Video player callbacks ------------------*/
+    
+	/**
+	 * Callback called when the player is opened
+	 */
+	public void onPlayerOpened() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerOpened");
+		}		
+	}
+
+	/**
+	 * Callback called when the player is started
+	 */
+	public void onPlayerStarted() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerStarted");
+		}		
+	}
+
+	/**
+	 * Callback called when the player is stopped
+	 */
+	public void onPlayerStopped() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerStopped");
+		}
+	}
+
+	/**
+	 * Callback called when the player is closed
+	 */
+	public void onPlayerClosed() {
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerClosed");
+		}
+	}
+
+	/**
+	 * Callback called when the player has failed
+	 */
+	public void onPlayerError() {
+		// TODO
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerError");
+		}
+	}
+	
+	/**
+	 * Callback called when the player has been resized
+	 */
+	public void onPlayerResized(int width, int height) {
+		// TODO
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "onPlayerResized");
+		}
+	}	
 }
 
