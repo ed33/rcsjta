@@ -39,6 +39,11 @@ public class VideoSharingData {
 	/**
 	 * Column name
 	 */
+	static final String KEY_ID = VideoSharingLog.ID;
+
+	/**
+	 * Column name
+	 */
 	static final String KEY_SESSION_ID = VideoSharingLog.SHARING_ID;
 
 	/**

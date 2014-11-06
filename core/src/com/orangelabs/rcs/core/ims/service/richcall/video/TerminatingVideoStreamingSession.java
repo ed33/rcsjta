@@ -286,7 +286,7 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
      * @throws Exception 
      */
     public void prepareMediaSession() throws Exception {
-          // Nothing to do in terminating side
+		// Nothing to do in case of external codec
     }
 
     /**
@@ -295,7 +295,7 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
      * @throws Exception 
      */
     public void startMediaSession() throws Exception {
-        // Nothing to do in terminating side
+		// Nothing to do in case of external codec
     }
     
 	/**

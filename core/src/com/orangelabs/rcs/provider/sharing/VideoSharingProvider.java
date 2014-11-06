@@ -74,7 +74,7 @@ public class VideoSharingProvider extends ContentProvider {
      * Helper class for opening, creating and managing database version control
      */
     private static class DatabaseHelper extends SQLiteOpenHelper {
-        private static final int DATABASE_VERSION = 5;
+        private static final int DATABASE_VERSION = 4;
 
         public DatabaseHelper(Context ctx) {
             super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
@@ -83,7 +83,8 @@ public class VideoSharingProvider extends ContentProvider {
         @Override
         public void onCreate(SQLiteDatabase db) {
         	db.execSQL("CREATE TABLE " + TABLE + " ("
-        			+ VideoSharingData.KEY_SESSION_ID + " TEXT primary key,"
+        			+ VideoSharingData.KEY_ID + " integer primary key autoincrement,"
+        			+ VideoSharingData.KEY_SESSION_ID + " TEXT,"
         			+ VideoSharingData.KEY_CONTACT + " TEXT,"
         			+ VideoSharingData.KEY_STATE + " integer,"
         			+ VideoSharingData.KEY_REASON_CODE + " integer,"
@@ -136,7 +137,7 @@ public class VideoSharingProvider extends ContentProvider {
                 break;
             case VIDEOSHARE_ID:
         	case RCSAPI_ID:
-                qb.appendWhere(VideoSharingData.KEY_SESSION_ID + "=" + uri.getPathSegments().get(1));
+                qb.appendWhere(VideoSharingData.KEY_ID + "=" + uri.getPathSegments().get(1));
                 break;
             default:
                 throw new IllegalArgumentException("Unknown URI " + uri);
@@ -165,7 +166,7 @@ public class VideoSharingProvider extends ContentProvider {
             case VIDEOSHARE_ID:
                 String segment = uri.getPathSegments().get(1);
                 int id = Integer.parseInt(segment);
-                count = db.update(TABLE, values, VideoSharingData.KEY_SESSION_ID + "=" + id, null);
+                count = db.update(TABLE, values, VideoSharingData.KEY_ID + "=" + id, null);
                 break;
             default:
                 throw new UnsupportedOperationException("Cannot update URI " + uri);
@@ -202,7 +203,7 @@ public class VideoSharingProvider extends ContentProvider {
 	        case VIDEOSHARE_ID:
 	        case RCSAPI_ID:
 	        	String segment = uri.getPathSegments().get(1);
-				count = db.delete(TABLE, VideoSharingData.KEY_SESSION_ID + "="
+				count = db.delete(TABLE, VideoSharingData.KEY_ID + "="
 						+ segment
 						+ (!TextUtils.isEmpty(where) ? " AND ("	+ where + ')' : ""),
 						whereArgs);

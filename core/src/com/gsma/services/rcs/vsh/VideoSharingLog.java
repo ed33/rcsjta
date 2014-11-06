@@ -35,6 +35,12 @@ public class VideoSharingLog {
     public static final Uri CONTENT_URI = Uri.parse("content://com.gsma.services.rcs.provider.videoshare/videoshare");
     
     /**
+     * The name of the column containing the unique ID for a row.
+     * <P>Type: primary key</P>
+     */
+    public static final String ID = "_id";
+    
+    /**
      * The name of the column containing the unique ID of the video sharing.
      * <P>Type: TEXT</P>
      */

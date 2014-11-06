@@ -4,7 +4,7 @@
  android:versionName="3.1.1"
  package="com.orangelabs.rcs">
       
-	<uses-sdk android:minSdkVersion="12" android:targetSdkVersion="19"/>
+	<uses-sdk android:minSdkVersion="12" android:targetSdkVersion="20"/>
 
 	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.READ_CONTACTS"/>
@@ -141,7 +141,7 @@
 		    android:exported="true"
 			android:name="com.orangelabs.rcs.provider.sharing.ImageSharingProvider"/>
 	
-		<provider android:authorities="com.orangelabs.rcs.vsh;com.gsma.services.rcs.provider.vsh"
+		<provider android:authorities="com.orangelabs.rcs.vsh;com.gsma.services.rcs.provider.videoshare"
 		    android:exported="true"
 			android:name="com.orangelabs.rcs.provider.sharing.VideoSharingProvider"/>
 		
