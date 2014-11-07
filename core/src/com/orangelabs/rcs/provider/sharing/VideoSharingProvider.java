@@ -165,7 +165,7 @@ public class VideoSharingProvider extends ContentProvider {
 	            break;
             case VIDEOSHARE_ID:
                 String segment = uri.getPathSegments().get(1);
-                count = db.update(TABLE, values, VideoSharingData.KEY_SESSION_ID + "=" + segment + "'", null);
+                count = db.update(TABLE, values, VideoSharingData.KEY_SESSION_ID + "='" + segment + "'", null);
                 break;
             default:
                 throw new UnsupportedOperationException("Cannot update URI " + uri);
