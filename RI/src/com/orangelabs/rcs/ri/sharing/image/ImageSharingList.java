@@ -84,7 +84,7 @@ public class ImageSharingList extends Activity {
 	private ImageSharingListAdapter createListAdapter() {
 		Uri uri = ImageSharingLog.CONTENT_URI;
         String[] projection = new String[] {
-    		ImageSharingLog.ID,
+    		ImageSharingLog.SHARING_ID + " _id",
     		ImageSharingLog.CONTACT,
     		ImageSharingLog.FILENAME,
     		ImageSharingLog.FILESIZE,

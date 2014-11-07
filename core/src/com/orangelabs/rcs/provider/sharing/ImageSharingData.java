@@ -40,11 +40,6 @@ public class ImageSharingData {
 	/**
 	 * Column name
 	 */
-	static final String KEY_ID = ImageSharingLog.ID;
-	
-	/**
-	 * Column name
-	 */
 	static final String KEY_SESSION_ID = ImageSharingLog.SHARING_ID;
 
 	/**

@@ -22,8 +22,6 @@
 
 package com.orangelabs.rcs.provider.sharing;
 
-import com.gsma.services.rcs.ish.ImageSharingLog;
-
 import android.content.ContentProvider;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -36,6 +34,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.text.TextUtils;
+
+import com.gsma.services.rcs.ish.ImageSharingLog;
 
 /**
  * Image sharing provider
@@ -59,8 +59,8 @@ public class ImageSharingProvider extends ContentProvider {
 		uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 		uriMatcher.addURI("com.orangelabs.rcs.ish", "ish", IMAGESHARES);
 		uriMatcher.addURI("com.orangelabs.rcs.ish", "ish/#", IMAGESHARE_ID);
-		uriMatcher.addURI("com.gsma.services.rcs.provider.ish", "ish", RCSAPI);
-		uriMatcher.addURI("com.gsma.services.rcs.provider.ish", "ish/#", RCSAPI_ID);
+		uriMatcher.addURI("com.gsma.services.rcs.provider.imageshare", "imageshare", RCSAPI);
+		uriMatcher.addURI("com.gsma.services.rcs.provider.imageshare", "imageshare/#", RCSAPI_ID);
 	}
 
     /**
@@ -77,7 +77,7 @@ public class ImageSharingProvider extends ContentProvider {
      * Helper class for opening, creating and managing database version control
      */
     private static class DatabaseHelper extends SQLiteOpenHelper {
-        private static final int DATABASE_VERSION = 4;
+        private static final int DATABASE_VERSION = 5;
 
         public DatabaseHelper(Context ctx) {
             super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
@@ -86,18 +86,17 @@ public class ImageSharingProvider extends ContentProvider {
         @Override
         public void onCreate(SQLiteDatabase db) {
         	db.execSQL("CREATE TABLE " + TABLE + " ("
-        			+ ImageSharingLog.ID + " integer primary key autoincrement,"
-        			+ ImageSharingLog.SHARING_ID + " TEXT,"
-        			+ ImageSharingLog.CONTACT + " TEXT,"
-        			+ ImageSharingLog.FILE + " TEXT,"
-        			+ ImageSharingLog.FILENAME + " TEXT,"
-        			+ ImageSharingLog.MIME_TYPE + " TEXT,"
-        			+ ImageSharingLog.STATE + " integer,"
-        			+ ImageSharingLog.REASON_CODE + " integer,"
-        			+ ImageSharingLog.DIRECTION + " integer,"
-        			+ ImageSharingLog.TIMESTAMP + " long,"
-        			+ ImageSharingLog.TRANSFERRED + " long,"
-        			+ ImageSharingLog.FILESIZE + " long);");
+        			+ ImageSharingData.KEY_SESSION_ID + " TEXT primary key,"
+        			+ ImageSharingData.KEY_CONTACT + " TEXT,"
+        			+ ImageSharingData.KEY_FILE + " TEXT,"
+        			+ ImageSharingData.KEY_NAME + " TEXT,"
+        			+ ImageSharingData.KEY_MIME_TYPE + " TEXT,"
+        			+ ImageSharingData.KEY_STATE + " integer,"
+        			+ ImageSharingData.KEY_REASON_CODE + " integer,"
+        			+ ImageSharingData.KEY_DIRECTION + " integer,"
+        			+ ImageSharingData.KEY_TIMESTAMP + " long,"
+        			+ ImageSharingData.KEY_SIZE + " long,"
+        			+ ImageSharingData.KEY_TOTAL_SIZE + " long);");
         }
 
         @Override
@@ -140,7 +139,8 @@ public class ImageSharingProvider extends ContentProvider {
                 break;
             case IMAGESHARE_ID:
             case RCSAPI_ID:
-                qb.appendWhere(ImageSharingLog.ID + "=" + uri.getPathSegments().get(1));
+            	String segment = uri.getPathSegments().get(1);
+                qb.appendWhere(ImageSharingData.KEY_SESSION_ID + "='" + segment + "'");
                 break;
             default:
                 throw new IllegalArgumentException("Unknown URI " + uri);
@@ -168,8 +168,7 @@ public class ImageSharingProvider extends ContentProvider {
 	            break;
             case IMAGESHARE_ID:
                 String segment = uri.getPathSegments().get(1);
-                int id = Integer.parseInt(segment);
-                count = db.update(TABLE, values, ImageSharingLog.ID + "=" + id, whereArgs);
+                count = db.update(TABLE, values, ImageSharingData.KEY_SESSION_ID + "='" + segment + "'", whereArgs);
                 break;
             default:
                 throw new UnsupportedOperationException("Cannot update URI " + uri);
@@ -206,9 +205,8 @@ public class ImageSharingProvider extends ContentProvider {
 	        case IMAGESHARE_ID:
 	        case RCSAPI_ID:
 	        	String segment = uri.getPathSegments().get(1);
-				count = db.delete(TABLE, ImageSharingLog.ID + "="
-						+ segment
-						+ (!TextUtils.isEmpty(where) ? " AND ("	+ where + ')' : ""),
+				count = db.delete(TABLE, ImageSharingData.KEY_SESSION_ID + "='" + segment + "'" +
+						(!TextUtils.isEmpty(where) ? " AND ("	+ where + ')' : ""),
 						whereArgs);
 				
 				break;

@@ -137,7 +137,7 @@
 		    android:exported="true"
 			android:name="com.orangelabs.rcs.provider.messaging.FileTransferProvider"/>
 		
-		<provider android:authorities="com.orangelabs.rcs.ish;com.gsma.services.rcs.provider.ish"
+		<provider android:authorities="com.orangelabs.rcs.ish;com.gsma.services.rcs.provider.imageshare"
 		    android:exported="true"
 			android:name="com.orangelabs.rcs.provider.sharing.ImageSharingProvider"/>
 	
