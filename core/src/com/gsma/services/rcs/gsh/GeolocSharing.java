@@ -85,6 +85,9 @@ public class GeolocSharing {
         }    	
     }
 
+    /**
+     * Reason code associated with the geoloc share state.
+     */
     public static class ReasonCode {
     	/**
     	 * No specific reason code specified.

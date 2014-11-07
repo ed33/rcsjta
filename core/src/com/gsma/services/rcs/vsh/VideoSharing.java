@@ -80,7 +80,7 @@ public class VideoSharing {
     }
 
     /**
-     * Reason code associated with the VIDEO share state.
+     * Reason code associated with the video share state.
      */
     public static class ReasonCode {
 
