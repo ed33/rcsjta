@@ -133,7 +133,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 			VideoSharingServiceImpl.removeVideoSharingSession(sharingId);
 
 			RichCallHistory.getInstance().setVideoSharingState(sharingId,
-					VideoSharing.State.ABORTED, reasonCode);
+					VideoSharing.State.REJECTED, reasonCode);
 
 			mVideoSharingEventBroadcaster.broadcastVideoSharingStateChanged(getRemoteContact(),
 					sharingId, VideoSharing.State.ABORTED, reasonCode);
