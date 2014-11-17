@@ -78,7 +78,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 		}
 		String sessionId = getSessionId();
 		synchronized (lock) {
-			mMultimediaMessagingSessionEventBroadcaster.broadcastMultimediaMessagingStateChanged(
+			mMultimediaMessagingSessionEventBroadcaster.broadcastStateChanged(
 					getRemoteContact(), sessionId, MultimediaSession.State.REJECTED,
 					reasonCode);
 
@@ -93,15 +93,6 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 	 */
 	public String getSessionId() {
 		return session.getSessionID();
-	}
-
-	/**
-	 * Returns the feature tag of the multimedia session
-	 * 
-	 * @return Feature tag
-	 */
-	public String getFeatureTag() {
-		return session.getFeatureTag();
 	}
 
 	/**
@@ -243,6 +234,11 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
 
 		/* TODO: This exception handling is not correct. Will be fixed CR037. */
+		// Do not consider max message size if null
+		if (session.getMaxMessageSize() != 0 && content.length > session.getMaxMessageSize()) {
+			throw new ServerApiException("Max message length exceeded!");
+		}
+		/* TODO: This exception handling is not correct. Will be fixed CR037. */
 		if (!session.sendMessage(content)) {
 			throw new ServerApiException("Unable to send message!");
 		}
@@ -258,7 +254,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 			logger.info("Session started");
 		}
     	synchronized(lock) {
-			mMultimediaMessagingSessionEventBroadcaster.broadcastMultimediaMessagingStateChanged(
+			mMultimediaMessagingSessionEventBroadcaster.broadcastStateChanged(
 					getRemoteContact(), getSessionId(), MultimediaSession.State.STARTED,
 					ReasonCode.UNSPECIFIED);
 	    }
@@ -277,7 +273,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 		synchronized (lock) {
 			MultimediaSessionServiceImpl.removeMessagingSipSession(sessionId);
 
-			mMultimediaMessagingSessionEventBroadcaster.broadcastMultimediaMessagingStateChanged(
+			mMultimediaMessagingSessionEventBroadcaster.broadcastStateChanged(
 					getRemoteContact(), sessionId, MultimediaSession.State.ABORTED,
 					ReasonCode.UNSPECIFIED);
 		}
@@ -294,7 +290,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 		synchronized (lock) {
 			MultimediaSessionServiceImpl.removeMessagingSipSession(sessionId);
 
-			mMultimediaMessagingSessionEventBroadcaster.broadcastMultimediaMessagingStateChanged(
+			mMultimediaMessagingSessionEventBroadcaster.broadcastStateChanged(
 					getRemoteContact(), sessionId, MultimediaSession.State.ABORTED,
 					ReasonCode.UNSPECIFIED);
 		}
@@ -316,19 +312,19 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 			switch (error.getErrorCode()) {
 				case SipSessionError.SESSION_INITIATION_DECLINED:
 					mMultimediaMessagingSessionEventBroadcaster
-							.broadcastMultimediaMessagingStateChanged(getRemoteContact(),
+							.broadcastStateChanged(getRemoteContact(),
 									sessionId, MultimediaSession.State.REJECTED,
 									ReasonCode.REJECTED_BY_REMOTE);
 					break;
 				case SipSessionError.MEDIA_FAILED:
 					mMultimediaMessagingSessionEventBroadcaster
-							.broadcastMultimediaMessagingStateChanged(getRemoteContact(),
+							.broadcastStateChanged(getRemoteContact(),
 									sessionId, MultimediaSession.State.FAILED,
 									ReasonCode.FAILED_MEDIA);
 					break;
 				default:
 					mMultimediaMessagingSessionEventBroadcaster
-							.broadcastMultimediaMessagingStateChanged(getRemoteContact(),
+							.broadcastStateChanged(getRemoteContact(),
 									sessionId, MultimediaSession.State.FAILED,
 									ReasonCode.FAILED_SESSION);
 			}
@@ -343,7 +339,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
     public void handleReceiveData(byte[] data) {
     	synchronized(lock) {
 			// Notify event listeners
-			mMultimediaMessagingSessionEventBroadcaster.broadcastNewMessage(getRemoteContact(),
+			mMultimediaMessagingSessionEventBroadcaster.broadcastMessageReceived(getRemoteContact(),
 					getSessionId(), data);
 	    }  	
     }
@@ -354,7 +350,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 			logger.info("Accepting session");
 		}
 		synchronized (lock) {
-			mMultimediaMessagingSessionEventBroadcaster.broadcastMultimediaMessagingStateChanged(
+			mMultimediaMessagingSessionEventBroadcaster.broadcastStateChanged(
 					getRemoteContact(), getSessionId(), MultimediaSession.State.ACCEPTING,
 					ReasonCode.UNSPECIFIED);
 		}
@@ -380,7 +376,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 		if (logger.isActivated()) {
 			logger.info("Invited to multimedia messaging session");
 		}
-		mMultimediaMessagingSessionEventBroadcaster.broadcastMultimediaMessagingInvitation(
+		mMultimediaMessagingSessionEventBroadcaster.broadcastInvitation(
 				getSessionId(), ((TerminatingSipMsrpSession)session).getSessionInvite());
 	}
 }

@@ -134,7 +134,7 @@ public class SendGroupFile extends Activity {
 	private GroupFileTransferListener ftListener = new GroupFileTransferListener() {
 
 		@Override
-		public void onGroupDeliveryInfoChanged(String chatId, ContactId contact, String transferId, int state, int reasonCode) {
+		public void onDeliveryInfoChanged(String chatId, ContactId contact, String transferId, int state, int reasonCode) {
 			if (LogUtils.isActive) {
 				Log.d(LOGTAG, "onSingleRecipientDeliveryStateChanged chatId=" + chatId + " contact=" + contact + " trasnferId="
 						+ transferId + " state=" + state+ " reason="+reasonCode);
@@ -142,7 +142,7 @@ public class SendGroupFile extends Activity {
 		}
 
 		@Override
-		public void onTransferProgress(String chatId, String transferId, final long currentSize, final long totalSize) {
+		public void onProgressUpdate(String chatId, String transferId, final long currentSize, final long totalSize) {
 			// Discard event if not for current transferId
 			if (SendGroupFile.this.transferId == null || !SendGroupFile.this.transferId.equals(transferId)) {
 				return;
@@ -156,7 +156,7 @@ public class SendGroupFile extends Activity {
 		}
 
 		@Override
-		public void onTransferStateChanged(String chatId, String transferId, final int state, final int reasonCode) {
+		public void onStateChanged(String chatId, String transferId, final int state, final int reasonCode) {
 			if (LogUtils.isActive) {
 				Log.d(LOGTAG, "onTransferStateChanged chatId=" + chatId + " transferId=" + transferId + " state=" + state
 						+ " reason=" + reasonCode);
@@ -250,14 +250,14 @@ public class SendGroupFile extends Activity {
 					.startMonitorServices(this, exitOnce, RcsServiceName.CHAT, RcsServiceName.FILE_TRANSFER, RcsServiceName.CONTACTS);
 			FileTransferService ftApi = connectionManager.getFileTransferApi();
 			try {
-				// Enable thumbnail option if supported
-				CheckBox ftThumb = (CheckBox) findViewById(R.id.ft_thumb);
-				if (ftApi.getConfiguration().isFileIconSupported()) {
-					ftThumb.setEnabled(true);
-				}
+//				// Enable thumbnail option if supported
+//				CheckBox ftThumb = (CheckBox) findViewById(R.id.ft_thumb);
+//				if (ftApi.getConfiguration().isFileIconSupported()) {
+//					ftThumb.setEnabled(true);
+//				}
 
 				// Add group file listener
-				ftApi.addGroupFileTransferListener(ftListener);
+				ftApi.addEventListener(ftListener);
 			} catch (Exception e) {
 				if (LogUtils.isActive) {
 					Log.e(LOGTAG, "API failure", e);
@@ -277,7 +277,7 @@ public class SendGroupFile extends Activity {
 		if (connectionManager.isServiceConnected(RcsServiceName.FILE_TRANSFER)) {
 			// Remove Group file listener
 			try {
-				connectionManager.getFileTransferApi().removeGroupFileTransferListener(ftListener);
+				connectionManager.getFileTransferApi().removeEventListener(ftListener);
 			} catch (RcsServiceException e) {
 				if (LogUtils.isActive) {
 					Log.e(LOGTAG, "Failed to remove listener", e);

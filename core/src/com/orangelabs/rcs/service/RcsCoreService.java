@@ -423,7 +423,7 @@ public class RcsCoreService extends Service implements CoreListener {
      */
     public static void addRcsServiceNotification(boolean state, String label) {
     	// Create notification
-    	Intent intent = new Intent(Intents.Client.ACTION_VIEW_SETTINGS);
+    	Intent intent = new Intent(Intents.Service.ACTION_VIEW_SETTINGS);
     	intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		PendingIntent contentIntent = PendingIntent.getActivity(AndroidFactory.getApplicationContext(), 0, intent, 0);
 		int iconId; 
@@ -628,25 +628,25 @@ public class RcsCoreService extends Service implements CoreListener {
     }
 	
     @Override
-	public void handleFileTransferInvitation(FileSharingSession fileSharingSession, boolean isGroup, ContactId contact) {
+	public void handleFileTransferInvitation(FileSharingSession fileSharingSession, boolean isGroup, ContactId contact,
+			String displayName) {
 		if (logger.isActivated()) {
 			logger.debug("Handle event file transfer invitation");
 		}
 
     	// Broadcast the invitation
-		ftApi.receiveFileTransferInvitation(fileSharingSession, isGroup, contact);
+		ftApi.receiveFileTransferInvitation(fileSharingSession, isGroup, contact, displayName);
 	}
     
-	/* (non-Javadoc)
-	 * @see com.orangelabs.rcs.core.CoreListener#handle1to1FileTransferInvitation(com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession, com.orangelabs.rcs.core.ims.service.im.chat.OneOneChatSession)
-	 */
+    @Override
 	public void handleOneToOneFileTransferInvitation(FileSharingSession fileSharingSession, OneOneChatSession oneToOneChatSession) {
 		if (logger.isActivated()) {
 			logger.debug("Handle event file transfer invitation");
 		}
 		
     	// Broadcast the invitation
-    	ftApi.receiveFileTransferInvitation(fileSharingSession, false, oneToOneChatSession.getRemoteContact());
+		ftApi.receiveFileTransferInvitation(fileSharingSession, false, oneToOneChatSession.getRemoteContact(),
+				oneToOneChatSession.getRemoteDisplayName());
 	}
 
     /* (non-Javadoc)

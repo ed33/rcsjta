@@ -32,8 +32,8 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.gsma.services.rcs.RcsCommon;
-import com.gsma.services.rcs.chat.ChatIntent;
-import com.gsma.services.rcs.chat.GeolocMessage;
+import com.gsma.services.rcs.chat.OneToOneChatIntent;
+import com.gsma.services.rcs.chat.ChatLog;
 import com.gsma.services.rcs.chat.GroupChat;
 import com.gsma.services.rcs.chat.GroupChatIntent;
 import com.gsma.services.rcs.contacts.ContactId;
@@ -105,7 +105,7 @@ public class ChatIntentService extends IntentService {
 	 */
 	private void handleNewOneToOneChatMessage(Intent messageIntent) {
 		// Gets data from the incoming Intent
-		String msgId = messageIntent.getStringExtra(ChatIntent.EXTRA_MESSAGE_ID);
+		String msgId = messageIntent.getStringExtra(OneToOneChatIntent.EXTRA_MESSAGE_ID);
 		if (msgId != null) {
 			try {
 				// Read message from provider
@@ -231,10 +231,22 @@ public class ChatIntentService extends IntentService {
 			String title = context.getString(R.string.title_recv_chat, displayName);
 			
 			String msg;
-			if (message.getMimeType().equals(GeolocMessage.MIME_TYPE)) {
+			if (message.getMimeType().equals(ChatLog.Message.MimeType.GEOLOC_MESSAGE)) {
 				msg = context.getString(R.string.label_geoloc_msg);
 			} else {
-				msg = message.getBody();
+				if (message.getMimeType().equals(ChatLog.Message.MimeType.TEXT_MESSAGE)) {
+					msg = message.getBody();
+				} else  {
+					if (message.getMimeType().equals(ChatLog.Message.MimeType.GROUPCHAT_EVENT)) {
+						// TODO handle GC event
+						return;
+					} else {
+						if (LogUtils.isActive) {
+							Log.w(LOGTAG, "Unknown message type '" + message.getMimeType());
+						}
+						return;
+					}
+				}
 			}
 
 			// Create notification
@@ -282,10 +294,17 @@ public class ChatIntentService extends IntentService {
 			displayName = RcsDisplayName.convert(context, RcsCommon.Direction.INCOMING, contact, displayName);
 			String title = context.getString(R.string.title_recv_chat, displayName);
 			String msg;
-			if (message.getMimeType().equals(GeolocMessage.MIME_TYPE)) {
+			if (message.getMimeType().equals(ChatLog.Message.MimeType.GEOLOC_MESSAGE)) {
 				msg = context.getString(R.string.label_geoloc_msg);
 			} else {
-				msg = message.getBody();
+				if (message.getMimeType().equals(ChatLog.Message.MimeType.TEXT_MESSAGE)) {
+					msg = message.getBody();
+				} else {
+					if (LogUtils.isActive) {
+						Log.w(LOGTAG, "Unknown message type '" + message.getMimeType());
+					}
+					return;
+				}
 			}
 			// Create notification
 			Notification notif = buildNotification(context, contentIntent, title, msg);

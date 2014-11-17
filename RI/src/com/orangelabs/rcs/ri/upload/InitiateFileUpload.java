@@ -222,7 +222,7 @@ public class InitiateFileUpload extends Activity {
         	// Show upload info
         	try {
         		Intent intent = new Intent(Intent.ACTION_VIEW);
-        		String filename = upload.getUploadInfo().getFile().toString() + "/" + upload.getUploadInfo().getFilename();
+        		String filename = upload.getUploadInfo().getFile().toString() + "/" + upload.getUploadInfo().getFileName();
         		intent.setData(Uri.parse(filename));
         		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         		startActivity(intent);
@@ -275,7 +275,8 @@ public class InitiateFileUpload extends Activity {
     	 * @param uploadId ID of upload
     	 * @param state State of upload 
     	 */
-    	public void onUploadStateChanged(String uploadId, final int state) {
+    	@Override
+    	public void onStateChanged(String uploadId, final int state) {
 			// Discard event if not for current uploadId
 			if (InitiateFileUpload.this.uploadId == null || !InitiateFileUpload.this.uploadId.equals(uploadId)) {
 				return;
@@ -318,7 +319,8 @@ public class InitiateFileUpload extends Activity {
     	 * @param currentSize Current transferred size in bytes
     	 * @param totalSize Total size to transfer in bytes
     	 */
-    	public void onUploadProgress(String uploadId, final long currentSize, final long totalSize) {
+    	@Override
+    	public void onProgressUpdate(String uploadId, final long currentSize, final long totalSize) {
 			handler.post(new Runnable() { 
     			public void run() {
 					// Display sharing progress

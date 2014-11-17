@@ -22,8 +22,6 @@
 package com.gsma.services.rcs.chat;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import android.content.ComponentName;
@@ -138,15 +136,15 @@ public class ChatService extends RcsService {
      * or international format, SIP address, SIP-URI or Tel-URI.
      * 
      * @param contact the ContactId
-     * @return Chat or null 
+     * @return OneToOneChat or null 
      * @throws RcsServiceException
      */
-    public Chat openSingleChat(ContactId contact) throws RcsServiceException {
+    public OneToOneChat openSingleChat(ContactId contact) throws RcsServiceException {
 		if (api != null) {
 			try {
-				IChat chatIntf = api.openSingleChat(contact);
+				IOneToOneChat chatIntf = api.openSingleChat(contact);
 				if (chatIntf != null) {
-					return new Chat(chatIntf);
+					return new OneToOneChat(chatIntf);
 				} else {
 					return null;
 				}
@@ -232,69 +230,21 @@ public class ChatService extends RcsService {
     }
     
     /**
-     * Returns the list of single chats in progress
-     * 
-     * @return List of chats
-     * @throws RcsServiceException
-     */
-    public Set<Chat> getChats() throws RcsServiceException {
-		if (api != null) {
-			try {
-	    		Set<Chat> result = new HashSet<Chat>();
-				List<IBinder> chatList = api.getChats();
-				for (IBinder binder : chatList) {
-					Chat chat = new Chat(IChat.Stub.asInterface(binder));
-					result.add(chat);
-				}
-				return result;
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }
-    
-    /**
      * Returns a chat in progress with a given contact
      * 
      * @param contact ContactId
-     * @return Chat or null if not found
+     * @return OneToOneChat or null if not found
      * @throws RcsServiceException
      */
-    public Chat getChat(ContactId contact) throws RcsServiceException {
+    public OneToOneChat getOneToOneChat(ContactId contact) throws RcsServiceException {
 		if (api != null) {
 			try {
-				IChat chatIntf = api.getChat(contact);
+				IOneToOneChat chatIntf = api.getChat(contact);
 				if (chatIntf != null) {
-					return new Chat(chatIntf);
+					return new OneToOneChat(chatIntf);
 				} else {
 					return null;
 				}
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }
-    
-    /**
-     * Returns the list of group chats in progress
-     * 
-     * @return List of group chat
-     * @throws RcsServiceException
-     */
-    public Set<GroupChat> getGroupChats() throws RcsServiceException {
-		if (api != null) {
-			try {
-	    		Set<GroupChat> result = new HashSet<GroupChat>();
-				List<IBinder> chatList = api.getGroupChats();
-				for (IBinder binder : chatList) {
-					GroupChat chat = new GroupChat(IGroupChat.Stub.asInterface(binder));
-					result.add(chat);
-				}
-				return result;
 			} catch(Exception e) {
 				throw new RcsServiceException(e.getMessage());
 			}
@@ -367,15 +317,15 @@ public class ChatService extends RcsService {
 	}
 
 	/**
-	 * Adds an event listener for group chat events
+	 * Adds a listener on group chat events
 	 *
-	 * @param listener Group chat event listener
+	 * @param listener Group chat listener
 	 * @throws RcsServiceException
 	 */
-	public void addGroupChatEventListener(GroupChatListener listener) throws RcsServiceException {
+	public void addEventListener(GroupChatListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
-				api.addGroupChatEventListener(listener);
+				api.addEventListener3(listener);
 			} catch (Exception e) {
 				throw new RcsServiceException(e.getMessage());
 			}
@@ -385,16 +335,16 @@ public class ChatService extends RcsService {
 	}
 
 	/**
-	 * Removes an event listener for group chat events
+	 * Removes a listener on group chat events
 	 *
 	 * @param listener Group chat event listener
 	 * @throws RcsServiceException
 	 */
-	public void removeGroupChatEventListener(GroupChatListener listener)
+	public void removeEventListener(GroupChatListener listener)
 			throws RcsServiceException {
 		if (api != null) {
 			try {
-				api.removeGroupChatEventListener(listener);
+				api.removeEventListener3(listener);
 			} catch (Exception e) {
 				throw new RcsServiceException(e.getMessage());
 			}
@@ -404,15 +354,15 @@ public class ChatService extends RcsService {
 	}
 
 	/**
-	 * Adds a listener for OneToOne chat events
+	 * Adds a listener for one-to-one chat events
 	 *
-	 * @param listener OneToOne Chat event listener
+	 * @param listener One-to-one chat listener
 	 * @throws RcsServiceException
 	 */
-	public void addOneToOneChatEventListener(ChatListener listener) throws RcsServiceException {
+	public void addEventListener(OneToOneChatListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
-				api.addOneToOneChatEventListener(listener);
+				api.addEventListener2(listener);
 			} catch (Exception e) {
 				throw new RcsServiceException(e.getMessage());
 			}
@@ -422,15 +372,15 @@ public class ChatService extends RcsService {
 	}
 
 	/**
-	 * Removes a listener for OneToOne chat events
+	 * Removes a listener for one-to-one chat events
 	 *
-	 * @param listener OneToOne Chat event listener
+	 * @param listener One-to-one chat listener
 	 * @throws RcsServiceException
 	 */
-	public void removeOneToOneChatEventListener(ChatListener listener) throws RcsServiceException {
+	public void removeEventListener(OneToOneChatListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
-				api.removeOneToOneChatEventListener(listener);
+				api.removeEventListener2(listener);
 			} catch (Exception e) {
 				throw new RcsServiceException(e.getMessage());
 			}
