@@ -278,7 +278,7 @@ public class RcsSettingsProvider extends ContentProvider {
             addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_ATTEMPT_EARLY,	FALSE);
             addParameter(db, RcsSettingsData.TCP_FALLBACK,						FALSE);   
             addParameter(db, RcsSettingsData.VENDOR_NAME,                       "OrangeLabs");
-            addParameter(db, RcsSettingsData.CONTROL_EXTENSIONS,				FALSE);   
+            addParameter(db, RcsSettingsData.CONTROL_EXTENSIONS,				TRUE);   
             addParameter(db, RcsSettingsData.ALLOW_EXTENSIONS,					TRUE);   
             addParameter(db, RcsSettingsData.EXTENSIONS_POLICY,					"0");   
             addParameter(db, RcsSettingsData.MAX_MSRP_SIZE_EXTENSIONS,			"0");   
