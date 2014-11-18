@@ -91,7 +91,7 @@ public class SecurityInfos {
 	 * @param iari IARI
 	 * @param cert Certificate
 	 */
-	public Uri addIARI(String iari, String cert) {
+	public void addIARI(String iari, String cert) {
 		if (logger.isActivated()) {
 			logger.debug("Add IARI " + iari);
 		}
@@ -99,8 +99,7 @@ public class SecurityInfos {
 		ContentValues values = new ContentValues();
 		values.put(SecurityInfoData.KEY_IARI, iari);
 		values.put(SecurityInfoData.KEY_CERT, cert);
-		
-		return cr.insert(databaseUri, values);
+		cr.insert(databaseUri, values);
 	}
 	
 	/**
@@ -139,9 +138,7 @@ public class SecurityInfos {
 		}
 
 		List<String> result = new ArrayList<String>();
-		
-		String[] whereArg = new String[] { iari };
-		Cursor c = cr.query(databaseUri, null, SecurityInfoData.KEY_IARI + "=?", whereArg, null);
+		Cursor c = cr.query(databaseUri, null, SecurityInfoData.KEY_IARI + "='" + iari + "'", null, null);
 		while(c.moveToNext()) {
 			String cert = c.getString(c.getColumnIndexOrThrow(SecurityInfoData.KEY_CERT));
 			result.add(cert);

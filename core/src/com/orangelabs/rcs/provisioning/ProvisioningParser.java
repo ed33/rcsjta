@@ -1190,6 +1190,10 @@ public class ProvisioningParser {
                         Node typenode = childnode.getAttributes().getNamedItem("type");
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("iariRangeAuthorizations")) {
+                            	// Reset IARI authorizations
+                            	SecurityInfos.getInstance().removeAllIARI();
+                            	
+                            	// Parse new IARI authorizations
                             	parseIariRangeAuthorizations(childnode);
                             }
                         }

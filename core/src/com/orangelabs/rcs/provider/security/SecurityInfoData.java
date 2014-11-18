@@ -43,5 +43,5 @@ public class SecurityInfoData {
 	/**
 	 * Column name
 	 */
-	static final String KEY_CERT = "cert";	
+	static final String KEY_CERT = "cert";
 }
