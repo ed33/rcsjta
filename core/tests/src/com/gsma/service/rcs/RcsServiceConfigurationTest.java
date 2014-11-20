@@ -165,10 +165,10 @@ public class RcsServiceConfigurationTest extends AndroidTestCase {
 	public void testGetMessaginUX() {
 		MessagingMode getMessagingUXSav = rcsSettings.getMessagingMode();
 		rcsSettings.setMessagingMode(MessagingMode.CONVERGED);
-		assertEquals(MessagingMode.CONVERGED,
+		assertEquals(MessagingMode.CONVERGED.ordinal(),
 				RcsServiceConfiguration.getMessagingUX(getContext()));
 		rcsSettings.setMessagingMode(MessagingMode.SEAMLESS);
-		assertEquals(MessagingMode.SEAMLESS,
+		assertEquals(MessagingMode.SEAMLESS.ordinal(),
 				RcsServiceConfiguration.getMessagingUX(getContext()));
 		rcsSettings.setMessagingMode(getMessagingUXSav);
 	}
