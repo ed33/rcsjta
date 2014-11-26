@@ -25,6 +25,7 @@ import java.net.UnknownHostException;
 
 import javax2.sip.ListeningPoint;
 
+import org.xbill.DNS.Cache;
 import org.xbill.DNS.ExtendedResolver;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.NAPTRRecord;
@@ -57,6 +58,11 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author Jean-Marc AUFFRET
  */
 public abstract class ImsNetworkInterface {
+	
+	/**
+	 * The maximum time in seconds that a negative response will be stored in this DNS Cache.
+	 */
+	private static int DNS_NEGATIVE_CACHING_TIME = 5;
 	
 	// Changed by Deutsche Telekom
 	private static final String REGEX_IPV4 = "\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b";
@@ -359,34 +365,39 @@ public abstract class ImsNetworkInterface {
      * @param domain Domain
      * @param resolver Resolver
      * @param type (Type.SRV or Type.NAPTR)
-     * @return SRV records or null if no record
+     * @return records or null if no record
      */
     private Record[] getDnsRequest(String domain, ExtendedResolver resolver, int type) {
+    	boolean isLogActivated = logger.isActivated();
         try {
-            if (logger.isActivated()) {
-                if (type == Type.SRV) {
+            if (isLogActivated) {
+                if (Type.SRV == type) {
                     logger.debug("DNS SRV lookup for " + domain);
-                } else if (type == Type.NAPTR) {
+                } else if (Type.NAPTR == type) {
                     logger.debug("DNS NAPTR lookup for " + domain);
                 }
             }
             Lookup lookup = new Lookup(domain, type);
             lookup.setResolver(resolver);
+			// Default negative cache TTL value is "cache forever". We do not want that.
+			Cache cache = Lookup.getDefaultCache(type);
+			cache.setMaxNCache(DNS_NEGATIVE_CACHING_TIME);
+			lookup.setCache(cache);
             Record[] result = lookup.run();
             int code = lookup.getResult();
-            if (code != Lookup.SUCCESSFUL) {
-                if (logger.isActivated()) {
+            if (Lookup.SUCCESSFUL != code) {
+                if (isLogActivated) {
                     logger.warn("Lookup error: " + code + "/" + lookup.getErrorString());
                 }
             }
             return result;
         } catch(TextParseException e) {
-            if (logger.isActivated()) {
+            if (isLogActivated) {
                 logger.debug("Not a valid DNS name");
             }
             return null;
         } catch(IllegalArgumentException e) {
-            if (logger.isActivated()) {
+            if (isLogActivated) {
                 logger.debug("Not a valid DNS type");
             }
             return null;
