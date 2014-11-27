@@ -29,11 +29,13 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.UriMatcher;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
+import android.text.TextUtils;
 
+import com.gsma.services.rcs.RcsServiceConfiguration;
 import com.orangelabs.rcs.R;
 
 /**
@@ -44,86 +46,104 @@ import com.orangelabs.rcs.R;
  *
  */
 public class RcsSettingsProvider extends ContentProvider {
-	/**
-	 * Database table
-	 */
-    private static final String TABLE = "settings";
 
-	// Create the constants used to differentiate between the different URI requests
-	private static final int SETTINGS = 1;
-    private static final int SETTINGS_ID = 2;
-    private static final int RCSAPI_SETTINGS = 3;
-    private static final int RCSAPI_SETTINGS_ID = 4;
-    
-	// Allocate the UriMatcher object, where a URI ending in 'settings'
-	// will correspond to a request for all settings, and 'settings'
-	// with a trailing '/[rowID]' will represent a single settings row.
-    private static final UriMatcher uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
+    private static final String TABLE = "setting";
+
+    private static final String SELECTION_WITH_KEY_ONLY = RcsSettingsData.KEY_KEY.concat("=?");
+
+    private static final String DATABASE_NAME = "rcs_settings.db";
+
+    private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
     static {
-        uriMatcher.addURI("com.orangelabs.rcs.settings", "settings", SETTINGS);
-		uriMatcher.addURI("com.gsma.services.rcs.provider.settings", "settings", RCSAPI_SETTINGS);
-        uriMatcher.addURI("com.orangelabs.rcs.settings", "settings/#", SETTINGS_ID);
-        uriMatcher.addURI("com.gsma.services.rcs.provider.settings", "settings/*", RCSAPI_SETTINGS_ID);
+        sUriMatcher.addURI(RcsSettingsData.CONTENT_URI.getAuthority(),
+                RcsSettingsData.CONTENT_URI.getPath().substring(1), UriType.InternalSettings.INTERNAL_SETTINGS);
+        sUriMatcher.addURI(RcsSettingsData.CONTENT_URI.getAuthority(), RcsSettingsData.CONTENT_URI
+                .getPath().substring(1).concat("/*"), UriType.InternalSettings.INTERNAL_SETTINGS_WITH_KEY);
+        sUriMatcher.addURI(RcsServiceConfiguration.Settings.CONTENT_URI.getAuthority(),
+                RcsServiceConfiguration.Settings.CONTENT_URI.getPath().substring(1), UriType.Settings.SETTINGS);
+        sUriMatcher.addURI(RcsServiceConfiguration.Settings.CONTENT_URI.getAuthority(),
+                RcsServiceConfiguration.Settings.CONTENT_URI.getPath().substring(1).concat("/*"),
+                UriType.Settings.SETTINGS_WITH_KEY);
     }
 
     /**
-     * Database helper class
+     * String to restrict query for exposed Uri to a set of columns
      */
-    private SQLiteOpenHelper openHelper;
-    
-    /**
-     * Database name
-     */
-    public static final String DATABASE_NAME = "rcs_settings.db";
-    
-	/**
-	 * String to restrict query from client API to a set of columns
-	 */
-	// @formatter:off
-	private static final String RCSAPI_QUERY_WHERE_COLUMNS = new StringBuilder(RcsSettingsData.KEY_KEY).append(" IN ('")
-			.append(RcsSettingsData.KEY_MESSAGING_MODE).append("','")
-			.append(RcsSettingsData.USERPROFILE_IMS_USERNAME).append("','")
-			.append(RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME).append("','")
-			.append(RcsSettingsData.CONFIGURATION_VALID).append("','")
-			.append(RcsSettingsData.COUNTRY_CODE).append("','")
-			.append(RcsSettingsData.COUNTRY_AREA_CODE).append("','")
-			.append(RcsSettingsData.SERVICE_ACTIVATED).append("','")
-			.append(RcsSettingsData.KEY_DEFAULT_MESSAGING_METHOD).append("')").toString();
-	//@formatter:on
+    private static final String RESTRICTED_SELECTION_QUERY_FOR_EXTERNALLY_DEFINED_COLUMNS = new StringBuilder(
+            RcsSettingsData.KEY_KEY).append(" IN ('").append(RcsSettingsData.KEY_MESSAGING_MODE)
+            .append("','").append(RcsSettingsData.USERPROFILE_IMS_USERNAME).append("','")
+            .append(RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME).append("','")
+            .append(RcsSettingsData.CONFIGURATION_VALID).append("','")
+            .append(RcsSettingsData.COUNTRY_CODE).append("','")
+            .append(RcsSettingsData.COUNTRY_AREA_CODE).append("','")
+            .append(RcsSettingsData.KEY_DEFAULT_MESSAGING_METHOD).append("')").toString();
 
-	/**
-	 * String to restrict update from client API to a set of columns
-	 */
-	// @formatter:off
-	private static final String RCSAPI_UPDATE_WHERE_COLUMNS = new StringBuilder(RcsSettingsData.KEY_KEY).append(" IN ('")
-			.append(RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME).append("','")
-			.append(RcsSettingsData.KEY_DEFAULT_MESSAGING_METHOD).append("')").toString();
-	//@formatter:on
-	
     /**
-     * Helper class for opening, creating and managing database version control
+     * String to restrict update from exposed Uri to a set of columns
      */
+
+    private static final String RESTRICTED_SELECTION_UPDATE_FOR_EXTERNALLY_DEFINED_COLUMNS = new StringBuilder(
+            RcsSettingsData.KEY_KEY).append(" IN ('")
+            .append(RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME).append("','")
+            .append(RcsSettingsData.KEY_DEFAULT_MESSAGING_METHOD).append("')").toString();
+
+    private static final class UriType {
+
+        private static final class Settings {
+
+            private static final int SETTINGS = 1;
+
+            private static final int SETTINGS_WITH_KEY = 2;
+        }
+
+        private static final class InternalSettings {
+
+            private static final int INTERNAL_SETTINGS = 3;
+
+            private static final int INTERNAL_SETTINGS_WITH_KEY = 4;
+
+        }
+    }
+
+    private static final class CursorType {
+
+        private static final String TYPE_DIRECTORY = "vnd.android.cursor.dir/com.orangelabs.rcs.setting";
+
+        private static final String TYPE_ITEM = "vnd.android.cursor.item/com.orangelabs.rcs.setting";
+    }
+
     private static class DatabaseHelper extends SQLiteOpenHelper {
         private static final int DATABASE_VERSION = 103;
 
+        private Context mContext;
 
-        private Context ctx;
+        /**
+         * Add a parameter in the db
+         *
+         * @param db Database
+         * @param key Key
+         * @param value Value
+         */
+        private void addParameter(SQLiteDatabase db, String key, String value) {
+            db.execSQL(new StringBuilder("INSERT INTO ").append(TABLE).append("(")
+                    .append(RcsSettingsData.KEY_KEY).append(",").append(RcsSettingsData.KEY_VALUE)
+                    .append(") VALUES ('").append(key).append("','").append(value).append("');")
+                    .toString());
+        }
 
         public DatabaseHelper(Context ctx) {
             super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
 
-            this.ctx = ctx;
+            mContext = ctx;
         }
 
         @Override
         public void onCreate(SQLiteDatabase db) {
-        	db.execSQL("CREATE TABLE " + TABLE + " ("
-        			+ RcsSettingsData.KEY_ID + " integer primary key autoincrement,"
-                    + RcsSettingsData.KEY_KEY + " TEXT,"
-                    + RcsSettingsData.KEY_VALUE + " TEXT);");
+            db.execSQL(new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(TABLE).append("(")
+                    .append(RcsSettingsData.KEY_KEY).append(" TEXT PRIMARY KEY,")
+                    .append(RcsSettingsData.KEY_VALUE).append(" TEXT);").toString());
 
-            // Insert default values for parameters
-
+            /* Insert default values for parameters */
 			addParameter(db, RcsSettingsData.SERVICE_ACTIVATED, RcsSettingsData.DEFAULT_SERVICE_ACTIVATED.toString());
 			addParameter(db, RcsSettingsData.PRESENCE_INVITATION_RINGTONE, RcsSettingsData.DEFAULT_PRESENCE_INVITATION_RINGTONE);
 			addParameter(db, RcsSettingsData.PRESENCE_INVITATION_VIBRATE, RcsSettingsData.DEFAULT_PRESENCE_INVITATION_VIBRATE.toString());
@@ -134,12 +154,11 @@ public class RcsSettingsProvider extends ContentProvider {
 			addParameter(db, RcsSettingsData.FILETRANSFER_INVITATION_VIBRATE, RcsSettingsData.DEFAULT_FT_INVITATION_VIBRATE.toString());
 			addParameter(db, RcsSettingsData.CHAT_INVITATION_RINGTONE, RcsSettingsData.DEFAULT_CHAT_INVITATION_RINGTONE);
 			addParameter(db, RcsSettingsData.CHAT_INVITATION_VIBRATE, RcsSettingsData.DEFAULT_CHAT_INVITATION_VIBRATE.toString());
-			addParameter(db, RcsSettingsData.CHAT_RESPOND_TO_DISPLAY_REPORTS,
-					RcsSettingsData.DEFAULT_CHAT_RESPOND_TO_DISPLAY_REPORTS.toString());
-			addParameter(db, RcsSettingsData.FREETEXT1, ctx.getString(R.string.rcs_settings_label_default_freetext_1));
-			addParameter(db, RcsSettingsData.FREETEXT2, ctx.getString(R.string.rcs_settings_label_default_freetext_2));
-			addParameter(db, RcsSettingsData.FREETEXT3, ctx.getString(R.string.rcs_settings_label_default_freetext_3));
-			addParameter(db, RcsSettingsData.FREETEXT4, ctx.getString(R.string.rcs_settings_label_default_freetext_4));
+			addParameter(db, RcsSettingsData.CHAT_RESPOND_TO_DISPLAY_REPORTS, RcsSettingsData.DEFAULT_CHAT_RESPOND_TO_DISPLAY_REPORTS.toString());
+			addParameter(db, RcsSettingsData.FREETEXT1, mContext.getString(R.string.rcs_settings_label_default_freetext_1));
+			addParameter(db, RcsSettingsData.FREETEXT2, mContext.getString(R.string.rcs_settings_label_default_freetext_2));
+			addParameter(db, RcsSettingsData.FREETEXT3, mContext.getString(R.string.rcs_settings_label_default_freetext_3));
+			addParameter(db, RcsSettingsData.FREETEXT4, mContext.getString(R.string.rcs_settings_label_default_freetext_4));
 			addParameter(db, RcsSettingsData.MIN_BATTERY_LEVEL, RcsSettingsData.DEFAULT_MIN_BATTERY_LEVEL.toString());
 			addParameter(db, RcsSettingsData.MAX_PHOTO_ICON_SIZE, RcsSettingsData.DEFAULT_MAX_PHOTO_ICON_SIZE.toString());
 			addParameter(db, RcsSettingsData.MAX_FREETXT_LENGTH, RcsSettingsData.DEFAULT_MAX_PHOTO_ICON_SIZE.toString());
@@ -203,8 +222,7 @@ public class RcsSettingsProvider extends ContentProvider {
 			addParameter(db, RcsSettingsData.CAPABILITY_RCS_EXTENSIONS, RcsSettingsData.DEFAULT_CAPABILITY_RCS_EXTENSIONS);
 			addParameter(db, RcsSettingsData.IMS_SERVICE_POLLING_PERIOD, RcsSettingsData.DEFAULT_IMS_SERVICE_POLLING_PERIOD.toString());
 			addParameter(db, RcsSettingsData.SIP_DEFAULT_PORT, RcsSettingsData.DEFAULT_SIP_DEFAULT_PORT.toString());
-			addParameter(db, RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,
-					RcsSettingsData.DEFAULT_SIP_DEFAULT_PROTOCOL_FOR_MOBILE);
+			addParameter(db, RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE, RcsSettingsData.DEFAULT_SIP_DEFAULT_PROTOCOL_FOR_MOBILE);
 			addParameter(db, RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI, RcsSettingsData.DEFAULT_SIP_DEFAULT_PROTOCOL_FOR_WIFI);
 			addParameter(db, RcsSettingsData.TLS_CERTIFICATE_ROOT, RcsSettingsData.DEFAULT_TLS_CERTIFICATE_ROOT);
 			addParameter(db, RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE, RcsSettingsData.DEFAULT_TLS_CERTIFICATE_INTERMEDIATE);
@@ -267,10 +285,8 @@ public class RcsSettingsProvider extends ContentProvider {
 			addParameter(db, RcsSettingsData.IPVOICECALL_BREAKOUT_AA, RcsSettingsData.DEFAULT_IPVOICECALL_BREAKOUT_AA.toString());
 			addParameter(db, RcsSettingsData.IPVOICECALL_BREAKOUT_CS, RcsSettingsData.DEFAULT_IPVOICECALL_BREAKOUT_CS.toString());
 			addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_FROM_CS, RcsSettingsData.DEFAULT_IPVIDEOCALL_UPGRADE_FROM_CS.toString());
-			addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_ON_CAPERROR,
-					RcsSettingsData.DEFAULT_IPVIDEOCALL_UPGRADE_ON_CAPERROR.toString());
-			addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_ATTEMPT_EARLY,
-					RcsSettingsData.DEFAULT_IPVIDEOCALL_UPGRADE_ATTEMPT_EARLY.toString());
+			addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_ON_CAPERROR, RcsSettingsData.DEFAULT_IPVIDEOCALL_UPGRADE_ON_CAPERROR.toString());
+			addParameter(db, RcsSettingsData.IPVIDEOCALL_UPGRADE_ATTEMPT_EARLY, RcsSettingsData.DEFAULT_IPVIDEOCALL_UPGRADE_ATTEMPT_EARLY.toString());
 			addParameter(db, RcsSettingsData.TCP_FALLBACK, RcsSettingsData.DEFAULT_TCP_FALLBACK.toString());
 			addParameter(db, RcsSettingsData.VENDOR_NAME, RcsSettingsData.DEFAULT_VENDOR_NAME);
 			addParameter(db, RcsSettingsData.CONTROL_EXTENSIONS, RcsSettingsData.DEFAULT_CONTROL_EXTENSIONS.toString());
@@ -283,186 +299,197 @@ public class RcsSettingsProvider extends ContentProvider {
 			addParameter(db, RcsSettingsData.KEY_IMAGE_RESIZE_OPTION, RcsSettingsData.DEFAULT_KEY_IMAGE_RESIZE_OPTION.toString());
         }
 
-        /**
-         * Add a parameter in the database
-         *
-         * @param db Database
-         * @param key Key
-         * @param value Value
-         */
-        private void addParameter(SQLiteDatabase db, String key, String value) {
-            String sql = "INSERT INTO " + TABLE + " (" +
-            	RcsSettingsData.KEY_KEY + "," +
-            	RcsSettingsData.KEY_VALUE + ") VALUES ('" +
-            	key + "','" + value + "');";
-            db.execSQL(sql);
-        }
-
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int currentVersion) {
-        	// Get old data before deleting the table
-        	Cursor oldDataCursor = db.query(TABLE, null, null, null, null, null, null);
+            /* Get old data before deleting the table */
+            Cursor oldDataCursor = db.query(TABLE, null, null, null, null, null, null);
 
-            // Get all the pairs key/value of the old table to insert them back
-            // after update
-        	ArrayList<ContentValues> valuesList = new ArrayList<ContentValues>();
-        	while(oldDataCursor.moveToNext()){
-        		String key = null;
-        		String value = null;
-        		int index = oldDataCursor.getColumnIndex(RcsSettingsData.KEY_KEY);
-        		if (index!=-1) {
-        			key = oldDataCursor.getString(index);
-        		}
-        		index = oldDataCursor.getColumnIndex(RcsSettingsData.KEY_VALUE);
-        		if (index!=-1) {
-        			value = oldDataCursor.getString(index);
-        		}
-        		if (key!=null && value!=null) {
-	        		ContentValues values = new ContentValues();
-	        		values.put(RcsSettingsData.KEY_KEY, key);
-	        		values.put(RcsSettingsData.KEY_VALUE, value);
-	        		valuesList.add(values);
-        		}
-        	}
+            /*
+             * Get all the pairs key/value of the old table to insert them back
+             * after update
+             */
+            ArrayList<ContentValues> valuesList = new ArrayList<ContentValues>();
+            while (oldDataCursor.moveToNext()) {
+                String key = null;
+                String value = null;
+                int index = oldDataCursor.getColumnIndex(RcsSettingsData.KEY_KEY);
+                if (index != -1) {
+                    key = oldDataCursor.getString(index);
+                }
+                index = oldDataCursor.getColumnIndex(RcsSettingsData.KEY_VALUE);
+                if (index != -1) {
+                    value = oldDataCursor.getString(index);
+                }
+                if (key != null && value != null) {
+                    ContentValues values = new ContentValues();
+                    values.put(RcsSettingsData.KEY_KEY, key);
+                    values.put(RcsSettingsData.KEY_VALUE, value);
+                    valuesList.add(values);
+                }
+            }
             oldDataCursor.close();
 
-        	// Delete old table
-        	db.execSQL("DROP TABLE IF EXISTS " + TABLE);
+            db.execSQL("DROP TABLE IF EXISTS ".concat(TABLE));
 
-            // Recreate table
-        	onCreate(db);
+            onCreate(db);
 
-        	// Put the old values back when possible
-        	for (int i=0; i<valuesList.size();i++) {
-        		ContentValues values = valuesList.get(i);
-        		String whereClause = RcsSettingsData.KEY_KEY + "=" + "\""+ values.getAsString(RcsSettingsData.KEY_KEY) + "\"";
-        		// Update the value with this key in the newly created database
-	    		// If key is not present in the new version, this won't do anything
-	   			db.update(TABLE, values, whereClause, null);
-        	}
+            /* Put the old values back when possible */
+            for (ContentValues values : valuesList) {
+                String[] selectionArgs = new String[] {
+                    values.getAsString(RcsSettingsData.KEY_KEY)
+                };
+                db.update(TABLE, values, SELECTION_WITH_KEY_ONLY, selectionArgs);
+            }
         }
+    }
+
+    private SQLiteOpenHelper mOpenHelper;
+
+    private String getSelectionWithKey(String selection) {
+        if (TextUtils.isEmpty(selection)) {
+            return SELECTION_WITH_KEY_ONLY;
+        }
+        return new StringBuilder("(").append(SELECTION_WITH_KEY_ONLY).append(") AND (")
+                .append(selection).append(")").toString();
+    }
+
+    private String[] getSelectionArgsWithKey(String[] selectionArgs, String key) {
+        String[] keySelectionArg = new String[] {
+            key
+        };
+        if (selectionArgs == null) {
+            return keySelectionArg;
+        }
+        return DatabaseUtils.appendSelectionArgs(keySelectionArg, selectionArgs);
+    }
+
+    private StringBuilder restrictSelectionToColumns(String selection, String restrictedSetOfColumns) {
+        if (TextUtils.isEmpty(selection)) {
+            return new StringBuilder(restrictedSetOfColumns);
+        }
+        return new StringBuilder("(").append(selection).append(") AND (")
+                .append(restrictedSetOfColumns).append(")");
     }
 
     @Override
     public boolean onCreate() {
-        openHelper = new DatabaseHelper(getContext());
+        mOpenHelper = new DatabaseHelper(getContext());
         return true;
     }
 
     @Override
     public String getType(Uri uri) {
-        int match = uriMatcher.match(uri);
-        switch(match) {
-            case SETTINGS:
-            case RCSAPI_SETTINGS:
-                return "vnd.android.cursor.dir/com.orangelabs.rcs.settings";
-            case SETTINGS_ID:
-            case RCSAPI_SETTINGS_ID:
-                return "vnd.android.cursor.item/com.orangelabs.rcs.settings";
+        switch (sUriMatcher.match(uri)) {
+            case UriType.InternalSettings.INTERNAL_SETTINGS:
+                /* Intentional fall through */
+            case UriType.Settings.SETTINGS:
+                return CursorType.TYPE_DIRECTORY;
+
+            case UriType.InternalSettings.INTERNAL_SETTINGS_WITH_KEY:
+                /* Intentional fall through */
+            case UriType.Settings.SETTINGS_WITH_KEY:
+                return CursorType.TYPE_ITEM;
+
             default:
-                throw new IllegalArgumentException("Unknown URI " + uri);
+                throw new IllegalArgumentException(new StringBuilder("Unsupported URI ")
+                        .append(uri).append("!").toString());
         }
     }
 
-	private StringBuilder buildKeyedSelection(String selectionKey, String selectionValue, String selection) {
-		StringBuilder selectionKeyBuilder = new StringBuilder("(").append(selectionKey).append("=").append(selectionValue)
-				.append(")");
-		if (selection == null) {
-			return selectionKeyBuilder;
-		} else {
-			return selectionKeyBuilder.append(" AND (").append(selection).append(")");
-		}
-	}
-    
-	private StringBuilder restrictSelectionToColumns(String selection) {
-		if (selection == null) {
-			return new StringBuilder(RCSAPI_UPDATE_WHERE_COLUMNS);
-		} else {
-			return new StringBuilder("(").append(selection).append(") AND (").append(RCSAPI_QUERY_WHERE_COLUMNS).append(")");
-		}
-	}
-	
     @Override
-    public Cursor query(Uri uri, String[] projectionIn, String selection, String[] selectionArgs, String sort) {
-        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-        qb.setTables(TABLE);
+    public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
+            String sort) {
+        Cursor cursor = null;
+        Uri notificationUri = RcsServiceConfiguration.Settings.CONTENT_URI;
+        try {
+            switch (sUriMatcher.match(uri)) {
+                case UriType.InternalSettings.INTERNAL_SETTINGS_WITH_KEY:
+                    String key = uri.getLastPathSegment();
+                    selection = getSelectionWithKey(selection);
+                    selectionArgs = getSelectionArgsWithKey(selectionArgs, key);
+                    notificationUri = Uri.withAppendedPath(notificationUri, key);
+                    /* Intentional fall through */
+                case UriType.InternalSettings.INTERNAL_SETTINGS:
+                    SQLiteDatabase database = mOpenHelper.getReadableDatabase();
+                    cursor = database.query(TABLE, projection, selection, selectionArgs, null,
+                            null, sort);
+                    cursor.setNotificationUri(getContext().getContentResolver(), notificationUri);
+                    return cursor;
 
-        // Generate the body of the query
-        int match = uriMatcher.match(uri);
-		switch (match) {
-		case SETTINGS:
-			break;
-		case RCSAPI_SETTINGS:
-			// Restrict access to authorized columns
-			qb.appendWhere(RCSAPI_QUERY_WHERE_COLUMNS);
-			break;
-		case SETTINGS_ID:
-			// Restrict access to id
-			qb.appendWhere(buildKeyedSelection(RcsSettingsData.KEY_ID,uri.getLastPathSegment(),null));
-			break;
-		case RCSAPI_SETTINGS_ID:
-			String stringKey = new StringBuilder("'").append(uri.getLastPathSegment()).append("'").toString();
-			// Restrict access to string key
-			qb.appendWhere(restrictSelectionToColumns(buildKeyedSelection(RcsSettingsData.KEY_KEY, stringKey, null).toString()));
-			break;
-		default:
-			throw new IllegalArgumentException("Unknown URI " + uri);
-		}
-		Cursor cursor = null;
-		try {
-			SQLiteDatabase db = openHelper.getReadableDatabase();
-			cursor = qb.query(db, projectionIn, selection, selectionArgs, null, null, sort);
-			// Register the contexts ContentResolver to be notified if
-			// the cursor result set changes.
-			cursor.setNotificationUri(getContext().getContentResolver(), uri);
-			return cursor;
-		} catch (RuntimeException e) {
-			if (cursor != null) {
-				cursor.close();
-			}
-			throw e;
-		}
+                case UriType.Settings.SETTINGS_WITH_KEY:
+                    key = uri.getLastPathSegment();
+                    selection = getSelectionWithKey(selection);
+                    selectionArgs = getSelectionArgsWithKey(selectionArgs, key);
+                    /* Intentional fall through */
+                case UriType.Settings.SETTINGS:
+                    database = mOpenHelper.getReadableDatabase();
+                    selection = restrictSelectionToColumns(selection,
+                            RESTRICTED_SELECTION_QUERY_FOR_EXTERNALLY_DEFINED_COLUMNS).toString();
+                    cursor = database.query(TABLE, projection, selection, selectionArgs, null,
+                            null, sort);
+                    cursor.setNotificationUri(getContext().getContentResolver(), uri);
+                    return cursor;
+
+                default:
+                    throw new IllegalArgumentException(new StringBuilder("Unsupported URI ")
+                            .append(uri).append("!").toString());
+            }
+        } catch (RuntimeException e) {
+            if (cursor != null) {
+                cursor.close();
+            }
+            throw e;
+        }
     }
-    
-	@Override
-	public int update(Uri uri, ContentValues values, String where, String[] whereArgs) {
-		int count = 0;
-		SQLiteDatabase db = openHelper.getWritableDatabase();
 
-		switch (uriMatcher.match(uri)) {
-		case SETTINGS:
-			count = db.update(TABLE, values, where, whereArgs);
-			break;
-		case RCSAPI_SETTINGS:
-			// Restrict access to authorized columns
-			where = restrictSelectionToColumns(where).toString();
-			count = db.update(TABLE, values, where, whereArgs);
-			break;
-		case SETTINGS_ID:
-			where = buildKeyedSelection(RcsSettingsData.KEY_ID,uri.getLastPathSegment(),where).toString();
-			count = db.update(TABLE, values, where, whereArgs);
-			break;
-		case RCSAPI_SETTINGS_ID:
-			where = buildKeyedSelection(RcsSettingsData.KEY_ID,uri.getLastPathSegment(),where).toString();
-			where = restrictSelectionToColumns(where).toString();
-			count = db.update(TABLE, values, where, whereArgs);
-			break;
-		default:
-			throw new UnsupportedOperationException("Cannot update URI " + uri);
-		}
-		if (count != 0) {
-			getContext().getContentResolver().notifyChange(uri, null);
-		}
-		return count;
-	}
+    @Override
+    public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
+        Uri notificationUri = RcsServiceConfiguration.Settings.CONTENT_URI;
+        switch (sUriMatcher.match(uri)) {
+            case UriType.InternalSettings.INTERNAL_SETTINGS_WITH_KEY:
+                String key = uri.getLastPathSegment();
+                selection = getSelectionWithKey(selection);
+                selectionArgs = getSelectionArgsWithKey(selectionArgs, key);
+                notificationUri = Uri.withAppendedPath(notificationUri, key);
+                /* Intentional fall through */
+            case UriType.InternalSettings.INTERNAL_SETTINGS:
+                SQLiteDatabase database = mOpenHelper.getWritableDatabase();
+                int count = database.update(TABLE, values, selection, selectionArgs);
+                if (count > 0) {
+                    getContext().getContentResolver().notifyChange(notificationUri, null);
+                }
+                return count;
+
+            case UriType.Settings.SETTINGS_WITH_KEY:
+                key = uri.getLastPathSegment();
+                selection = getSelectionWithKey(selection);
+                selectionArgs = getSelectionArgsWithKey(selectionArgs, key);
+                /* Intentional fall through */
+            case UriType.Settings.SETTINGS:
+                database = mOpenHelper.getReadableDatabase();
+                selection = restrictSelectionToColumns(selection,
+                        RESTRICTED_SELECTION_UPDATE_FOR_EXTERNALLY_DEFINED_COLUMNS).toString();
+                count = database.update(TABLE, values, selection, selectionArgs);
+                if (count > 0) {
+                    getContext().getContentResolver().notifyChange(uri, null);
+                }
+                return count;
+
+            default:
+                throw new IllegalArgumentException(new StringBuilder("Unsupported URI ")
+                        .append(uri).append("!").toString());
+        }
+    }
 
     @Override
     public Uri insert(Uri uri, ContentValues initialValues) {
-        throw new UnsupportedOperationException("Cannot insert URI " + uri);
+        throw new UnsupportedOperationException(new StringBuilder("Cannot insert URI ").append(uri)
+                .append("!").toString());
     }
 
     @Override
     public int delete(Uri uri, String where, String[] whereArgs) {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException(new StringBuilder("Cannot delete URI ").append(uri)
+                .append("!").toString());
     }
 }

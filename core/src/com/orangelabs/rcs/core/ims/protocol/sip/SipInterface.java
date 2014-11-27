@@ -20,6 +20,7 @@ package com.orangelabs.rcs.core.ims.protocol.sip;
 
 import gov2.nist.javax2.sip.address.AddressImpl;
 import gov2.nist.javax2.sip.message.SIPMessage;
+
 import java.io.File;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -48,18 +49,20 @@ import javax2.sip.header.ExtensionHeader;
 import javax2.sip.header.Header;
 import javax2.sip.header.RouteHeader;
 import javax2.sip.header.ViaHeader;
-
+import javax2.sip.message.Request;
+import javax2.sip.message.Response;
 import android.net.ConnectivityManager;
 
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
+import com.orangelabs.rcs.core.ims.protocol.sip.SipTransactionContext.INotifySipProvisionalResponse;
 import com.orangelabs.rcs.core.ims.security.cert.KeyStoreManager;
+import com.orangelabs.rcs.core.ims.service.SessionAuthenticationAgent;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.utils.IdGenerator;
 import com.orangelabs.rcs.utils.IpAddressUtils;
 import com.orangelabs.rcs.utils.NetworkRessourceManager;
 import com.orangelabs.rcs.utils.logger.Logger;
-
 /**
  * SIP interface which manage the SIP stack. The NIST stack is used
  * statefully (i.e. messages are sent via a SIP transaction).
@@ -162,17 +165,17 @@ public class SipInterface implements SipListener {
     /**
      * Public GRUU
      */
-    private String publicGruu = null;
+    private String publicGruu;
 
     /**
      * Temporary GRUU
      */
-    private String tempGruu = null;
+    private String tempGruu;
 
     /**
      * Instance ID
      */
-    private String instanceId = null;
+    private String instanceId;
 
     /**
      * Base timer T1 (in ms)
@@ -732,7 +735,7 @@ public class SipInterface implements SipListener {
      * @param id Transaction ID
      * @param msg SIP message
      */
-    public void notifyTransactionContext(String transactionId, SipMessage msg) {
+    private void notifyTransactionContext(String transactionId, SipMessage msg) {
         SipTransactionContext ctx = (SipTransactionContext)transactions.get(transactionId);
         if (ctx != null) {
             if (logger.isActivated()) {
@@ -743,14 +746,18 @@ public class SipInterface implements SipListener {
         }
    }
 
-    /**
-     * Send a SIP message and create a context to wait a response
-     *
-     * @param message SIP message
-     * @return Transaction context
-     * @throws SipException
-     */
-    public SipTransactionContext sendSipMessageAndWait(SipMessage message) throws SipException {
+	/**
+	 * Send a SIP message and create a context to wait a response
+	 *
+	 * @param message
+	 *            SIP message
+	 * @param callbackSipProvisionalResponse
+	 *            a callback to handle SIP provisional response
+	 * @return Transaction context
+	 * @throws SipException
+	 */
+	public SipTransactionContext sendSipMessageAndWait(SipMessage message,
+			INotifySipProvisionalResponse callbackSipProvisionalResponse) throws SipException {
         try {
             if (message instanceof SipRequest) {
                 // Send a request
@@ -766,7 +773,7 @@ public class SipInterface implements SipListener {
                 }
 
                 // Create a transaction context
-                SipTransactionContext ctx = new SipTransactionContext(transaction);
+				SipTransactionContext ctx = new SipTransactionContext(transaction, callbackSipProvisionalResponse);
                 String id = SipTransactionContext.getTransactionContextId(req);
                 transactions.put(id, ctx);
                 if (logger.isActivated()) {
@@ -826,6 +833,17 @@ public class SipInterface implements SipListener {
             }
             throw new SipException("Can't send SIP message");
         }
+    }
+    
+    /**
+     * Send a SIP message and create a context to wait a response
+     *
+     * @param message SIP message
+     * @return Transaction context
+     * @throws SipException
+     */
+    public SipTransactionContext sendSipMessageAndWait(SipMessage message) throws SipException {
+        return sendSipMessageAndWait(message, null);
     }
 
     /**
@@ -910,8 +928,9 @@ public class SipInterface implements SipListener {
             SipRequest cancel = SipMessageFactory.createCancel(dialog);
 
             // Set the Proxy-Authorization header
-            if (dialog.getAuthenticationAgent() != null) {
-                dialog.getAuthenticationAgent().setProxyAuthorizationHeader(cancel);
+            SessionAuthenticationAgent agent = dialog.getAuthenticationAgent();
+            if (agent != null) {
+            	agent.setProxyAuthorizationHeader(cancel);
             }
 
             // Create a new transaction
@@ -942,13 +961,15 @@ public class SipInterface implements SipListener {
      * @throws SipException
      */
     public void sendSipBye(SipDialogPath dialog) throws SipException {
+    	boolean loggerActivated = logger.isActivated();
         try {
             // Create the SIP request
             SipRequest bye = SipMessageFactory.createBye(dialog);
             
             // Set the Proxy-Authorization header
-            if (dialog.getAuthenticationAgent() != null) {
-                dialog.getAuthenticationAgent().setProxyAuthorizationHeader(bye);
+            SessionAuthenticationAgent agent = dialog.getAuthenticationAgent();
+            if (agent != null) {
+            	agent.setProxyAuthorizationHeader(bye);
             }
 
             // Create a new transaction
@@ -956,7 +977,7 @@ public class SipInterface implements SipListener {
             ClientTransaction transaction = createNewTransaction(bye);
 
             // Send the SIP message to the network
-            if (logger.isActivated()) {
+            if (loggerActivated) {
                 logger.debug(">>> Send SIP BYE");
             }
             if (sipTraceEnabled) {
@@ -965,7 +986,7 @@ public class SipInterface implements SipListener {
             }
         	dialog.getStackDialog().sendRequest(transaction);        	
         } catch(Exception e) {
-            if (logger.isActivated()) {
+            if (loggerActivated) {
                 logger.error("Can't send SIP message", e);
             }
             throw new SipException("Can't send SIP message");
@@ -980,13 +1001,15 @@ public class SipInterface implements SipListener {
      * @throws SipException
      */
     public SipTransactionContext sendSipUpdate(SipDialogPath dialog) throws SipException {
+    	boolean loggerActivated = logger.isActivated();
         try {
             // Create the SIP request
             SipRequest update = SipMessageFactory.createUpdate(dialog);
 
             // Set the Proxy-Authorization header
-            if (dialog.getAuthenticationAgent() != null) {
-                dialog.getAuthenticationAgent().setProxyAuthorizationHeader(update);
+            SessionAuthenticationAgent agent = dialog.getAuthenticationAgent();
+            if (agent != null) {
+            	agent.setProxyAuthorizationHeader(update);
             }
 
             // Get stack transaction
@@ -997,12 +1020,13 @@ public class SipInterface implements SipListener {
             SipTransactionContext ctx = new SipTransactionContext(transaction);
             String id = SipTransactionContext.getTransactionContextId(update);
             transactions.put(id, ctx);
-            if (logger.isActivated()) {
+           
+            if (loggerActivated) {
                 logger.debug("Create a transaction context " + id);
             }
 
             // Send the SIP message to the network
-            if (logger.isActivated()) {
+            if (loggerActivated) {
                 logger.debug(">>> Send SIP UPDATE");
             }
             if (sipTraceEnabled) {
@@ -1014,7 +1038,7 @@ public class SipInterface implements SipListener {
             // Returns the created transaction to wait synchronously the response
             return ctx;
         } catch(Exception e) {
-            if (logger.isActivated()) {
+            if (loggerActivated) {
                 logger.error("Can't send SIP message", e);
             }
             throw new SipException("Can't send SIP message");
@@ -1029,10 +1053,12 @@ public class SipInterface implements SipListener {
      * @throws SipException
      */
     public SipTransactionContext sendSubsequentRequest(SipDialogPath dialog, SipRequest request) throws SipException {
+    	boolean loggerActivated = logger.isActivated();
         try {
+        	SessionAuthenticationAgent agent = dialog.getAuthenticationAgent();
             // Set the Proxy-Authorization header
-            if (dialog.getAuthenticationAgent() != null) {
-                dialog.getAuthenticationAgent().setProxyAuthorizationHeader(request);
+            if (agent != null) {
+            	agent.setProxyAuthorizationHeader(request);
             }
 
             // Get stack transaction
@@ -1040,7 +1066,7 @@ public class SipInterface implements SipListener {
             ClientTransaction transaction = createNewTransaction(request);
 
             // Send the SIP message to the network
-            if (logger.isActivated()) {
+            if (loggerActivated) {
                 logger.debug(">>> Send SIP " + request.getMethod().toUpperCase());
             }
             if (sipTraceEnabled) {
@@ -1057,7 +1083,7 @@ public class SipInterface implements SipListener {
             // Returns the created transaction to wait synchronously the response
             return ctx;
         } catch(Exception e) {
-            if (logger.isActivated()) {
+            if (loggerActivated) {
                 logger.error("Can't send SIP message", e);
             }
             throw new SipException("Can't send SIP message");
@@ -1092,50 +1118,51 @@ public class SipInterface implements SipListener {
      *
      * @param requestEvent Event
      */
-    public void processRequest(RequestEvent requestEvent) {
-        if (logger.isActivated()) {
-            logger.debug("<<< Receive SIP " + requestEvent.getRequest().getMethod());
-        }
-        if (sipTraceEnabled) {
-            System.out.println("<<< " + requestEvent.getRequest().toString());
-            System.out.println(TRACE_SEPARATOR);
-        }
+	public void processRequest(RequestEvent requestEvent) {
+		Request request = requestEvent.getRequest();
+		boolean loggerActivated = logger.isActivated();
+		if (loggerActivated) {
+			logger.debug("<<< Receive SIP " + request.getMethod());
+		}
+		if (sipTraceEnabled) {
+			System.out.println("<<< " + request.toString());
+			System.out.println(TRACE_SEPARATOR);
+		}
 
-        // Get transaction
-        ServerTransaction transaction = requestEvent.getServerTransaction();
-        if (transaction == null) {
-            try {
-                // Create a transaction for this new incoming request
-                SipProvider srcSipProvider = (SipProvider)requestEvent.getSource();
-                transaction = srcSipProvider.getNewServerTransaction(requestEvent.getRequest());
-            } catch(Exception e) {
-                if (logger.isActivated()) {
-                    logger.error("Unable to create a new server transaction for an incoming request");
-                }
-                return;
-            }
-        }
+		// Get transaction
+		ServerTransaction transaction = requestEvent.getServerTransaction();
+		if (transaction == null) {
+			try {
+				// Create a transaction for this new incoming request
+				SipProvider srcSipProvider = (SipProvider) requestEvent.getSource();
+				transaction = srcSipProvider.getNewServerTransaction(request);
+			} catch (Exception e) {
+				if (loggerActivated) {
+					logger.error("Unable to create a new server transaction for an incoming request");
+				}
+				return;
+			}
+		}
 
-        // Create received request with its associated transaction
-        SipRequest req = new SipRequest(requestEvent.getRequest());
-        req.setStackTransaction(transaction);
+		// Create received request with its associated transaction
+		SipRequest req = new SipRequest(request);
+		req.setStackTransaction(transaction);
 
-        if (req.getMethod().equals("ACK")) {
-            // Search the context associated to the received ACK and notify it
-            String transactionId = SipTransactionContext.getTransactionContextId(req);
-            notifyTransactionContext(transactionId, req);
-            return;
-        }
+		if ("ACK".equals(req.getMethod())) {
+			// Search the context associated to the received ACK and notify it
+			String transactionId = SipTransactionContext.getTransactionContextId(req);
+			notifyTransactionContext(transactionId, req);
+			return;
+		}
 
-        // Notify event listeners
-        for(int i=0; i < listeners.size(); i++) {
-            if (logger.isActivated()) {
-                logger.debug("Notify a SIP listener");
-            }
-            SipEventListener listener = (SipEventListener)listeners.elementAt(i);
-            listener.receiveSipRequest(req);
-        }
-    }
+		// Notify event listeners
+		for (SipEventListener listener : listeners) {
+			if (loggerActivated) {
+				logger.debug("Notify a SIP listener");
+			}
+			listener.receiveSipRequest(req);
+		}
+	}
 
     /**
      * Processes a Response received on a SipProvider upon which this SipListener
@@ -1144,35 +1171,40 @@ public class SipInterface implements SipListener {
      * @param responseEvent Event
      */
     public void processResponse(ResponseEvent responseEvent) {
-        if (logger.isActivated()) {
-            logger.debug("<<< Receive SIP " + responseEvent.getResponse().getStatusCode() + " response");
+    	Response response = responseEvent.getResponse();
+    	int responseStatusCode = response.getStatusCode();
+    	boolean loggerActivated = logger.isActivated();
+        if (loggerActivated) {
+            logger.debug("<<< Receive SIP " + responseStatusCode + " response");
         }
         if (sipTraceEnabled) {
-            System.out.println("<<< " + responseEvent.getResponse().toString());
+            System.out.println("<<< " + response.toString());
             System.out.println(TRACE_SEPARATOR);
         }
 
         // Search transaction
         ClientTransaction transaction = responseEvent.getClientTransaction();
         if (transaction == null) {
-            if (logger.isActivated()) {
+            if (loggerActivated) {
                 logger.debug("No transaction exist for this response: by-pass it");
             }
             return;
         }
 
-        if (responseEvent.getResponse().getStatusCode() >= 200) {
-            // Create received response with its associated transaction
-            SipResponse resp = new SipResponse(responseEvent.getResponse());
-            resp.setStackTransaction(transaction);
+        // Create received response with its associated transaction
+        SipResponse resp = new SipResponse(response);
+        resp.setStackTransaction(transaction);
 
-            // Search the context associated to the received response and notify it
-            String transactionId = SipTransactionContext.getTransactionContextId(resp);
+        // Search the context associated to the received response and notify it
+        String transactionId = SipTransactionContext.getTransactionContextId(resp);
+        
+        if (Response.OK <= responseStatusCode) {
             notifyTransactionContext(transactionId, resp);
         } else {
-            if (logger.isActivated()) {
-                logger.debug("By pass provisional response");
-            }
+        	// Is the response provisional ?
+        	if (Response.TRYING <= responseStatusCode) {
+        	    notifyProvisionalResponse(transactionId, resp);
+        	}
         }
     }
 
@@ -1183,12 +1215,13 @@ public class SipInterface implements SipListener {
      * @param timeoutEvent Event
      */
     public void processTimeout(TimeoutEvent timeoutEvent) {
-        if (logger.isActivated()) {
+    	boolean loggerActivated = logger.isActivated();
+        if (loggerActivated) {
             logger.debug("Transaction timeout " + timeoutEvent.getTimeout().toString());
         }
 
         if (timeoutEvent.isServerTransaction()) {
-            if (logger.isActivated()) {
+            if (loggerActivated) {
                 logger.warn("Unexpected timeout for a server transaction: should never arrives");
             }
             return;
@@ -1196,7 +1229,7 @@ public class SipInterface implements SipListener {
 
         ClientTransaction transaction = (ClientTransaction)timeoutEvent.getClientTransaction();
         if (transaction == null) {
-            if (logger.isActivated()) {
+            if (loggerActivated) {
                 logger.debug("No transaction exist for this transaction: by-pass it");
             }
             return;
@@ -1217,4 +1250,31 @@ public class SipInterface implements SipListener {
             logger.debug("Transaction terminated");
         }
     }
+
+	/**
+	 * Notify provisional SIP response
+	 * 
+	 * @param transactionId
+	 * @param response
+	 */
+	private void notifyProvisionalResponse(String transactionId, SipResponse response) {
+		SipTransactionContext ctx = (SipTransactionContext) transactions.get(transactionId);
+		if (ctx == null) {
+			return;
+		}
+		boolean loggerActivated = logger.isActivated();
+		if (loggerActivated) {
+			logger.debug("Callback object found for transaction " + transactionId);
+		}
+		INotifySipProvisionalResponse callback = ctx.getCallbackSipProvisionalResponse();
+		// Only consider ringing event
+		if (callback != null && Response.RINGING == response.getStatusCode()) {
+			callback.handle180Ringing(response);
+		} else {
+			if (loggerActivated) {
+				logger.debug("By pass provisional response");
+			}
+		}
+	}
+
 }

@@ -41,26 +41,17 @@ import com.orangelabs.rcs.utils.logger.Logger;
  *
  */
 public class RcsSettingsData {
-	// ---------------------------------------------------------------------------
-	// Constants
-	// ---------------------------------------------------------------------------
-	/**
-	 * Database URI
-	 */
-    static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.settings/settings");
+
+	public static final Uri CONTENT_URI = Uri
+			.parse("content://com.orangelabs.rcs.setting/setting");
 
 	/**
-	 * Column name
-	 */
-	static final String KEY_ID = "_id";
-
-	/**
-	 * Column name
+	 * Key of the Rcs configuration parameter
 	 */
 	static final String KEY_KEY = RcsServiceConfiguration.Settings.KEY;
 
 	/**
-	 * Column name
+	 * Value of the Rcs configuration parameter
 	 */
 	static final String KEY_VALUE = RcsServiceConfiguration.Settings.VALUE;
 
