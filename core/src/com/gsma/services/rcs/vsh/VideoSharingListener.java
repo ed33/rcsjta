@@ -40,14 +40,4 @@ public abstract class VideoSharingListener extends IVideoSharingListener.Stub {
 	 * @see VideoSharing.ReasonCode
 	 */
 	public abstract void onVideoSharingStateChanged(ContactId contact, String sharingId, int state, int reasonCode);
-	
-	/**
-	 * Callback called when the video descriptor has changed
-	 *
-	 * @param contact Contact ID
-	 * @param sharingId ID of video sharing
-	 * @param descriptor Video descriptor
-	 * @see VideoDescriptor
-	 */
-	public abstract void onVideoDescriptorChanged(ContactId contact, String sharingId, VideoDescriptor descriptor);	
 }

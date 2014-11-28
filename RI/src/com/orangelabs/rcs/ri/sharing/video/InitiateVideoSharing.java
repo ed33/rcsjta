@@ -19,15 +19,18 @@
 package com.orangelabs.rcs.ri.sharing.video;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.database.MatrixCursor;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
+import android.hardware.Camera.Parameters;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -51,12 +54,11 @@ import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
-import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharingListener;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
-import com.orangelabs.rcs.core.ims.protocol.rtp.format.video.CameraOptions;
 import com.orangelabs.rcs.core.ims.protocol.rtp.format.video.Orientation;
+import com.orangelabs.rcs.core.ims.protocol.rtp.format.video.CameraOptions;
 import com.orangelabs.rcs.ri.ApiConnectionManager;
 import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;
@@ -180,6 +182,8 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
         inviteBtn.setOnClickListener(btnInviteListener);
         Button dialBtn = (Button)findViewById(R.id.dial_btn);
         dialBtn.setOnClickListener(btnDialListener);
+        Button switchCamBtn = (Button)findViewById(R.id.switch_cam_btn);
+        switchCamBtn.setEnabled(false);
 
         // Disable button if no contact available
         if (spinner.getAdapter().getCount() == 0) {
@@ -190,10 +194,41 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
         // Get camera info
         numberOfCameras = getNumberOfCameras();
         
+        if (numberOfCameras > 1) {
+            boolean backAvailable = checkCameraSize(CameraOptions.BACK);
+            boolean frontAvailable = checkCameraSize(CameraOptions.FRONT);
+            if (frontAvailable && backAvailable) {
+                switchCamBtn.setOnClickListener(btnSwitchCamListener);
+            } else if (frontAvailable) {
+                openedCameraId = CameraOptions.FRONT;
+                switchCamBtn.setVisibility(View.INVISIBLE);
+            } else if (backAvailable) {
+                openedCameraId = CameraOptions.BACK;
+                switchCamBtn.setVisibility(View.INVISIBLE);
+            } else {
+    			if (LogUtils.isActive) {
+    				Log.d(LOGTAG, "No camera available for encoding");
+    			}
+            }
+        } else {
+            if (checkCameraSize(CameraOptions.FRONT)) {
+                switchCamBtn.setVisibility(View.INVISIBLE);
+            } else {
+    			if (LogUtils.isActive) {
+    				Log.d(LOGTAG, "No camera available for encoding");
+    			}
+            }
+        }
+
         // Create the live video view
         videoView = (VideoSurfaceView)findViewById(R.id.video_preview);
         videoView.setAspectRatio(videoWidth, videoHeight);
         videoView.setVisibility(View.GONE);
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+        	videoView.setAspectRatio(videoWidth, videoHeight);
+        } else {
+        	videoView.setAspectRatio(videoHeight, videoWidth);
+        }
         surface = videoView.getHolder();
         surface.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         surface.setKeepScreenOn(true);
@@ -333,6 +368,19 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
         }
     };
 
+    /**
+     * Switch camera button listener
+     */
+    private View.OnClickListener btnSwitchCamListener = new View.OnClickListener() {
+        public void onClick(View v) {
+		    // Release camera
+		    closeCamera();
+
+		    // Switch camera
+            switchCamera();
+        }
+    };    
+    
 	/**
 	 * Hide progress dialog
 	 */
@@ -425,6 +473,55 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 	        camera = null;
 	    }
     }
+    
+    /**
+     * Switch the camera
+     */
+    private synchronized void switchCamera() {
+        if (camera == null) {		
+		    // Open the other camera
+		    if (openedCameraId.getValue() == CameraOptions.BACK.getValue()) {
+		    	openCamera(CameraOptions.FRONT);
+		    } else {
+		    	openCamera(CameraOptions.BACK);
+		    }
+		
+		    // Restart the preview
+		    camera.setPreviewCallback(videoPlayer);
+		    startCameraPreview();    
+        }
+    }
+    
+    /**
+     * Check if good camera sizes are available for encoder.
+     * Must be used only before open camera.
+     * 
+     * @param cameraId
+     * @return false if the camera don't have the good preview size for the encoder
+     */
+    private boolean checkCameraSize(CameraOptions cameraId) {
+        boolean sizeAvailable = false;
+
+        // Open the camera
+        openCamera(cameraId);
+
+        // Check common sizes
+        Parameters param = camera.getParameters();
+        List<Camera.Size> sizes = param.getSupportedPreviewSizes();
+        for (Camera.Size size:sizes) {
+            if (    (size.width == H264Config.QVGA_WIDTH && size.height == H264Config.QVGA_HEIGHT) ||
+                    (size.width == H264Config.CIF_WIDTH && size.height == H264Config.CIF_HEIGHT) ||
+                    (size.width == H264Config.VGA_WIDTH && size.height == H264Config.VGA_HEIGHT)) {
+                sizeAvailable = true;
+                break;
+            }
+        }
+
+        // Release camera
+        closeCamera();
+
+        return sizeAvailable;
+    }
 
     /**
      * Start the camera preview
@@ -436,14 +533,12 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
             p.setPreviewFormat(PixelFormat.YCbCr_420_SP);
 
             // Orientation
-            p.setRotation(90);
-            
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
                 Display display = ((WindowManager)getSystemService(WINDOW_SERVICE)).getDefaultDisplay();
                 switch (display.getRotation()) {
                     case Surface.ROTATION_0:
                         if (openedCameraId == CameraOptions.FRONT) {
-                            videoPlayer.setOrientation(Orientation.ROTATE_90_CCW);
+                        	videoPlayer.setOrientation(Orientation.ROTATE_90_CCW);
                         } else {
                         	videoPlayer.setOrientation(Orientation.ROTATE_90_CW);
                         }
@@ -588,7 +683,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
     }    
 
     /*-------------------------- Session callbacks ------------------*/
-
+    
    	/**
      * Video sharing listener
      */
@@ -623,6 +718,10 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 						// Start the player
 						videoPlayer.open();
 						videoPlayer.start();
+
+						// Update camera button
+				        Button switchCamBtn = (Button)findViewById(R.id.switch_cam_btn);
+				        switchCamBtn.setEnabled(true);
 						
 						// Session is established : hide progress dialog
 						hideProgressDialog();
@@ -646,6 +745,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 					case VideoSharing.State.REJECTED:
 						// Release the camera
 						closeCamera();
+						
 						// Hide progress dialog
 						hideProgressDialog();
 						Utils.showMessageAndExit(InitiateVideoSharing.this,
@@ -675,11 +775,6 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 				}
 			});
 		}
-		
-		@Override
-		public void onVideoDescriptorChanged(ContactId contact, String sharingId, VideoDescriptor descriptor) {
-			// TDOO
-    	}		
 	};
 	
     /*-------------------------- Video player callbacks ------------------*/

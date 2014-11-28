@@ -70,9 +70,8 @@ public class VideoSdpBuilder {
         }
         for (VideoCodec codec : codecs) {
             result.append("a=rtpmap:" + codec.getPayloadType() + " " + codec.getEncoding() + "/" + codec.getClockRate() + SipUtils.CRLF);
-            if (codec.getVideoDescriptor().getWidth() != 0 && codec.getVideoDescriptor().getHeight() != 0) {
-                result.append("a=framesize:" + codec.getPayloadType() + " " + codec.getVideoDescriptor().getWidth() + "-" +
-                		codec.getVideoDescriptor().getHeight() + SipUtils.CRLF);
+            if (codec.getWidth() != 0 && codec.getHeight() != 0) {
+                result.append("a=framesize:" + codec.getPayloadType() + " " + codec.getWidth() + "-" + codec.getHeight() + SipUtils.CRLF);
             }
             result.append("a=fmtp:" + codec.getPayloadType() + " " + codec.getParameters() + SipUtils.CRLF);
         }
@@ -109,9 +108,9 @@ public class VideoSdpBuilder {
                 .append("a=rtpmap:").append(videoCodec.getPayloadType()).append(" ")
                 .append(videoCodec.getEncoding()).append("/")
                 .append(videoCodec.getClockRate()).append(SipUtils.CRLF);
-        if (videoCodec.getVideoDescriptor().getWidth() != 0 && videoCodec.getVideoDescriptor().getHeight() != 0) {
+        if (videoCodec.getWidth() != 0 && videoCodec.getHeight() != 0) {
             sdp.append("a=framesize:").append(videoCodec.getPayloadType()).append(" ")
-                    .append(videoCodec.getVideoDescriptor().getWidth()).append("-").append(videoCodec.getVideoDescriptor().getHeight())
+                    .append(videoCodec.getWidth()).append("-").append(videoCodec.getHeight())
                     .append(SipUtils.CRLF);
         }
         if (videoCodec.getFrameRate() != 0) {

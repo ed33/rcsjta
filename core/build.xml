@@ -99,26 +99,6 @@
 		<copy file="${terminal.api}" todir="${terminal.root}/../samples/upload/libs"/>
 	</target>
 
-	<!-- Merge stack from SVN -->
-	<target name="merge">
-		<echo>Merge stack from SVN repositiry</echo>
-		<copy file="${terminal.api}" todir="${terminal.root}/../ri/libs"/>
-	</target>
-	<target name="docs" description="Generate RCS API javadoc">
-		<echo>Generate Javadoc</echo>
-		<delete dir="${terminal.root}/../docs/javadoc"/>
-		<mkdir dir="${terminal.root}/../docs/javadoc"/>
-		<javadoc doctitle="GSMA RCS Terminal API"
-				verbose="on"
-				destdir="../docs/javadoc"
-				use="true"
-				access="public" 
-				classpath="${android_jar}:${project.all.jars.path}" 
-				sourcepath="${src.path}"
-				packagenames="com.gsma.services.rcs.*">
-		</javadoc>
-	</target>
-
 	<!-- ******************************************************* -->
 	<!-- ************************* Help ************************ -->
 	<!-- ******************************************************* -->

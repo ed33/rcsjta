@@ -24,9 +24,7 @@ import android.graphics.Bitmap;
 import android.os.SystemClock;
 
 import com.gsma.services.rcs.vsh.VideoCodec;
-import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoPlayer;
-import com.gsma.services.rcs.vsh.VideoSharing;
 import com.orangelabs.rcs.core.ims.protocol.rtp.DummyPacketGenerator;
 import com.orangelabs.rcs.core.ims.protocol.rtp.VideoRtpReceiver;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
@@ -41,6 +39,8 @@ import com.orangelabs.rcs.core.ims.protocol.rtp.media.MediaOutput;
 import com.orangelabs.rcs.core.ims.protocol.rtp.media.MediaSample;
 import com.orangelabs.rcs.core.ims.protocol.rtp.media.VideoSample;
 import com.orangelabs.rcs.core.ims.protocol.rtp.stream.RtpStreamListener;
+import com.orangelabs.rcs.ri.utils.DatagramConnection;
+import com.orangelabs.rcs.ri.utils.NetworkRessourceManager;
 
 /**
  * Live video RTP renderer based on H264 QCIF format
@@ -141,7 +141,7 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
                 H264Config.CLOCK_RATE,
                 15,
                 96000,
-                new VideoDescriptor(VideoSharing.Orientation.ANGLE_0, H264Config.QCIF_WIDTH, H264Config.QCIF_HEIGHT),
+                H264Config.QCIF_WIDTH, H264Config.QCIF_HEIGHT,
     			H264Config.CODEC_PARAM_PROFILEID + "=" + H264Profile1b.BASELINE_PROFILE_ID + ";" + H264Config.CODEC_PARAM_PACKETIZATIONMODE + "=" + JavaPacketizer.H264_ENABLED_PACKETIZATION_MODE);
     }
     
@@ -180,7 +180,7 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
 	public VideoCodec getCodec() {
 		return defaultVideoCodec;
 	}
-
+	
 	/**
 	 * Opens the player and prepares resources
 	 */
@@ -370,14 +370,14 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
 		eventListener.onPlayerError();
     }
 
-    /**
-     * Set extension header orientation id
-     *
-     * @param headerId extension header orientation id
-     */
-    public void setOrientationHeaderId(int headerId) {
-        this.orientationHeaderId = headerId;
-    }
+	/**
+	 * Set the video orientation
+	 * 
+	 * @param orientation Video orientation value (see urn:3gpp:video-orientation)
+	 */
+	public void setOrientation(int orientation) {
+	    this.orientationHeaderId = orientation;
+	}    
     
     /**
      * Media RTP output

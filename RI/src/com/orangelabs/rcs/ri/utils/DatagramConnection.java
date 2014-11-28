@@ -16,7 +16,7 @@
  * limitations under the License.
  ******************************************************************************/
 
-package com.orangelabs.rcs.ri.sharing.video.media;
+package com.orangelabs.rcs.ri.utils;
 
 import java.io.IOException;
 

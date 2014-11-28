@@ -140,31 +140,6 @@ public class VideoSharing {
          */
         public static final int FAILED_SHARING = 10;
     }
-
-    /**
-	 * Video orientation
-	 */
-    public static class Orientation {
-    	/**
-    	 * Angle 0
-    	 */
-    	public final static int ANGLE_0 = 0;
-
-    	/**
-    	 * Angle 90
-    	 */
-    	public final static int ANGLE_90 = 1;
-
-    	/**
-    	 * Angle 180
-    	 */
-    	public final static int ANGLE_180 = 2;
-
-    	/**
-    	 * Angle 270
-    	 */
-    	public final static int ANGLE_270 = 3;
-	}
     
     /**
      * Video encoding
@@ -218,21 +193,6 @@ public class VideoSharing {
 		}
 	}
 
-	/**
-	 * Returns the video descriptor
-	 * 
-	 * @return Video descriptor
-	 * @see VideoDescriptor
-	 * @throws RcsServiceException
-	 */
-	public VideoDescriptor getVideoDescriptor() throws RcsServiceException {
-		try {
-			return sharingInf.getVideoDescriptor();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
-	
 	/**
 	 * Returns the state of the sharing
 	 *
@@ -316,21 +276,6 @@ public class VideoSharing {
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
-	}
-	
-	/**
-	 * Set the video orientation
-	 * 
-	 * @param orientation New orientation
-	 * @throws RcsServiceException
-	 * @see Orientation
-	 */
-	public void setOrientation(int orientation) throws RcsServiceException {
-		try {
-			sharingInf.setOrientation(orientation);
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}		
 	}
 	
 	/**

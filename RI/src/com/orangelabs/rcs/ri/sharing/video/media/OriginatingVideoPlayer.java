@@ -24,9 +24,7 @@ import android.hardware.Camera;
 import android.os.SystemClock;
 
 import com.gsma.services.rcs.vsh.VideoCodec;
-import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoPlayer;
-import com.gsma.services.rcs.vsh.VideoSharing;
 import com.orangelabs.rcs.core.ims.protocol.rtp.VideoRtpSender;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.JavaPacketizer;
@@ -41,6 +39,8 @@ import com.orangelabs.rcs.core.ims.protocol.rtp.media.MediaException;
 import com.orangelabs.rcs.core.ims.protocol.rtp.media.MediaInput;
 import com.orangelabs.rcs.core.ims.protocol.rtp.media.VideoSample;
 import com.orangelabs.rcs.core.ims.protocol.rtp.stream.RtpStreamListener;
+import com.orangelabs.rcs.ri.utils.DatagramConnection;
+import com.orangelabs.rcs.ri.utils.NetworkRessourceManager;
 
 /**
  * Live RTP video player based on H264 QCIF format
@@ -130,14 +130,14 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
      * Mirroring (horizontal and vertival) for encoding
      */
     private boolean mirroring = false;
-
+    
     /**
      * Video Orientation
      */
-    private Orientation mOrientation = Orientation.NONE;    
+    private Orientation mOrientation = Orientation.NONE;
     
     /**
-     * Orientation header id.
+     * Orientation header id
      */
     private int orientationHeaderId = -1;
 
@@ -190,7 +190,7 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
                 H264Config.CLOCK_RATE,
                 15,
                 96000,
-                new VideoDescriptor(VideoSharing.Orientation.ANGLE_0, H264Config.QCIF_WIDTH, H264Config.QCIF_HEIGHT),
+                H264Config.QCIF_WIDTH, H264Config.QCIF_HEIGHT,
     			H264Config.CODEC_PARAM_PROFILEID + "=" + H264Profile1b.BASELINE_PROFILE_ID + ";" + H264Config.CODEC_PARAM_PACKETIZATIONMODE + "=" + JavaPacketizer.H264_ENABLED_PACKETIZATION_MODE);
     }
 
@@ -254,8 +254,8 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
             NativeH264EncoderParams nativeH264EncoderParams = new NativeH264EncoderParams();
 
             // Codec dimensions
-            nativeH264EncoderParams.setFrameWidth(defaultVideoCodec.getVideoDescriptor().getWidth());
-            nativeH264EncoderParams.setFrameHeight(defaultVideoCodec.getVideoDescriptor().getHeight());
+            nativeH264EncoderParams.setFrameWidth(defaultVideoCodec.getWidth());
+            nativeH264EncoderParams.setFrameHeight(defaultVideoCodec.getHeight());
             nativeH264EncoderParams.setFrameRate(defaultVideoCodec.getFrameRate());
             nativeH264EncoderParams.setBitRate(defaultVideoCodec.getBitRate());
 
@@ -466,7 +466,7 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
         if (defaultVideoCodec == null) {
             return H264Config.VIDEO_WIDTH;
         } else {
-            return defaultVideoCodec.getVideoDescriptor().getWidth();
+            return defaultVideoCodec.getWidth();
         }
     }
 
@@ -479,7 +479,7 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
         if (defaultVideoCodec == null) {
             return H264Config.VIDEO_HEIGHT;
         } else {
-            return defaultVideoCodec.getVideoDescriptor().getHeight();
+            return defaultVideoCodec.getHeight();
         }
     }
 
@@ -489,8 +489,17 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
      * @param headerId extension header orientation id
      */
     public void setOrientationHeaderId(int headerId) {
-        this.orientationHeaderId = headerId;
+    	this.orientationHeaderId = headerId;
     }
+    
+    /**
+     * Set video orientation
+     *
+     * @param orientation
+     */
+    public void setOrientation(Orientation orientation) {
+        mOrientation = orientation;
+    }    
 
     /**
      * Set camera ID
@@ -499,15 +508,6 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
      */
     public void setCameraId(int cameraId) {
         this.cameraId = cameraId;
-    }
-
-    /**
-     * Set video orientation
-     *
-     * @param orientation
-     */
-    public void setOrientation(Orientation orientation) {
-        mOrientation = orientation;
     }
 
     /**
@@ -671,8 +671,8 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
 
             // Update resizing / scaling values
             this.dataScaleFactor = scaleFactor;
-            this.dataSrcWidth = defaultVideoCodec.getVideoDescriptor().getWidth();
-            this.dataSrcHeight = defaultVideoCodec.getVideoDescriptor().getHeight();
+            this.dataSrcWidth = defaultVideoCodec.getWidth();
+            this.dataSrcHeight = defaultVideoCodec.getHeight();
         }
     }
 

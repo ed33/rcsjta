@@ -76,7 +76,8 @@ public class OriginatingVideoStreamingSession extends VideoStreamingSession {
 
             // Build SDP part
 	    	String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
-            String videoSdp = VideoSdpBuilder.buildSdpOfferWithOrientation(getVideoPlayer().getSupportedCodecs(), getVideoPlayer().getLocalRtpPort());
+            String videoSdp = VideoSdpBuilder.buildSdpOfferWithOrientation(getVideoPlayer().getSupportedCodecs(),
+            		getVideoPlayer().getLocalRtpPort());
             String sdp = SdpUtils.buildVideoSDP(ipAddress, videoSdp, SdpUtils.DIRECTION_SENDONLY);
 
             // Set the local SDP part in the dialog path
@@ -141,10 +142,11 @@ public class OriginatingVideoStreamingSession extends VideoStreamingSession {
         }
         getContent().setEncoding("video/" + selectedVideoCodec.getEncoding());
 
-        // Set the OrientationHeaderID
+        // Set the video player orientation
         SdpOrientationExtension extensionHeader = SdpOrientationExtension.create(mediaVideo);
         if (extensionHeader != null) {
-        	// TODO getVideoPlayer().setOrientationHeaderId(extensionHeader.getExtensionId());
+        	// Update the orientation ID
+        	setVideoOrientationId(extensionHeader.getExtensionId());
         }
         
         // Set the video player remote info

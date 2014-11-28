@@ -26,7 +26,6 @@ import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.IVideoSharing;
-import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharing.ReasonCode;
 import com.orangelabs.rcs.core.content.VideoContent;
@@ -159,24 +158,6 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	}
 	
 	/**
-	 * Returns the video descriptor
-	 * 
-	 * @return Video descriptor
-	 * @see VideoDescriptor
-	 */
-	public VideoDescriptor getVideoDescriptor() {
-		VideoDescriptor descriptor = null;
-		try {
-			if (session != null) {
-				descriptor = new VideoDescriptor(session.getVideoOrientation(), session.getVideoWidth(), session.getVideoHeight());
-			}
-		} catch(Exception e) {
-			descriptor = null;
-		}
-		return descriptor;
-	}
-	
-	/**
 	 * Returns the state of the sharing
 	 * 
 	 * @return State
@@ -276,15 +257,6 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
     		}
     	};
     	t.start();	
-	}
-	
-	/**
-	 * Set the video orientation
-	 * 
-	 * @param orientation New orientation
-	 */
-	public void setOrientation(int orientation) {
-		// TODO
 	}
 	
 	/**
@@ -461,7 +433,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
      * @param height Video height
      */
 	public void handleVideoResized(int width, int height) {
-		// TODO : Check if new callback needed
+		// Not used
 	}
 
 	@Override

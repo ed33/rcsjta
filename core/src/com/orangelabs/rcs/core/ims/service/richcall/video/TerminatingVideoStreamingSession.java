@@ -177,10 +177,11 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
                 return;
             }
 
-            // Set the OrientationHeaderID
+            // Set the video player orientation
             SdpOrientationExtension extensionHeader = SdpOrientationExtension.create(mediaVideo);
             if (extensionHeader != null) {
-            	// TODO getVideoRenderer().setOrientationHeaderId(extensionHeader.getExtensionId());
+            	// Update the orientation ID
+            	setVideoOrientationId(extensionHeader.getExtensionId());
             }
 
             // Build SDP part

@@ -16,12 +16,13 @@
  * limitations under the License.
  ******************************************************************************/
 
-package com.orangelabs.rcs.ri.sharing.video.media;
+package com.orangelabs.rcs.core.ims.protocol.rtp.util;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+
 
 /**
  * Android datagram server connection

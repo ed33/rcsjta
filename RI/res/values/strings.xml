@@ -208,6 +208,7 @@
 <string name="label_video_duration">Duration: %s s</string>
 <string name="label_note_sharing_codec">Note: the video codec is an H264 codec from the Google Android open source and is a contribution from PacketVideo (Apache 2 license).</string>
 <string name="label_vsh_state_changed">VSH state %1$s (%2$s)</string>
+<string name="label_switch_camera">Switch camera</string>
 
 <!-- Geoloc sharing menu -->
 <string name="title_recv_geoloc_sharing">New geoloc sharing invitation</string>

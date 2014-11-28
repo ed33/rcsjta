@@ -36,7 +36,6 @@ import com.gsma.services.rcs.RcsCommon;
 import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.RcsServiceNotAvailableException;
 import com.gsma.services.rcs.contacts.ContactId;
-import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharingListener;
 import com.gsma.services.rcs.vsh.VideoSharingService;
@@ -404,11 +403,6 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 				}
 			});
 		}
-		
-		@Override
-		public void onVideoDescriptorChanged(ContactId contact, String sharingId, VideoDescriptor descriptor) {
-			// TDOO
-    	}
 	};
     
     /*-------------------------- Video player callbacks ------------------*/

@@ -25,7 +25,6 @@ package com.orangelabs.rcs.core.ims.service.richcall.video;
 import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
-import com.gsma.services.rcs.vsh.VideoSharing;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipException;
@@ -45,10 +44,10 @@ import com.orangelabs.rcs.utils.logger.Logger;
  */
 public abstract class VideoStreamingSession extends ContentSharingSession {
 	/**
-	 * Video orientation
+	 * Video orientation ID
 	 */
-	private int videoOrientation = VideoSharing.Orientation.ANGLE_0;
-
+	private int videoOrientationId;
+	
 	/**
 	 * Video width
 	 */
@@ -81,14 +80,23 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
 	}
 
 	/**
-	 * Get the video orientation
+	 * Get the video orientation ID
 	 * 
 	 * @return Orientation
 	 */
-	public int getVideoOrientation() {
-		return videoOrientation;
+	public int getVideoOrientationId() {
+		return videoOrientationId;
 	}
 
+	/**
+	 * Set the video orientation ID
+	 * 
+	 * @param orientationId Orientation
+	 */
+	public void setVideoOrientationId(int orientationId) {
+		this.videoOrientationId = orientationId;
+	}
+	
 	/**
 	 * Get the video width
 	 * 

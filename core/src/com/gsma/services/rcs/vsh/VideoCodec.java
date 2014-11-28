@@ -52,10 +52,15 @@ public class VideoCodec implements Parcelable {
 	private int bitRate;
 
 	/**
-	 * Video descriptor
+	 * Video frame width
 	 */
-	private VideoDescriptor descriptor;
+	private int width;
 
+	/**
+	 * Video frame height
+	 */
+	private int height;
+	
 	/**
 	 * Video parameters
 	 */
@@ -69,17 +74,19 @@ public class VideoCodec implements Parcelable {
      * @param clockRate Clock rate
      * @param frameRate Frame rate
      * @param bitRate Bit rate
-     * @param descriptor Video descriptor
+     * @param width Video width
+     * @param height Video height
      * @param parameters Codec parameters
      * @hide
      */
-    public VideoCodec(String encoding, int payload, int clockRate, int frameRate, int bitRate, VideoDescriptor descriptor, String parameters) {
+    public VideoCodec(String encoding, int payload, int clockRate, int frameRate, int bitRate, int width, int height, String parameters) {
     	this.encoding = encoding;
     	this.payload = payload;
     	this.clockRate = clockRate;
     	this.frameRate = frameRate;
     	this.bitRate = bitRate;
-    	this.descriptor = descriptor;
+    	this.width = width;
+    	this.height = height;  	
     	this.parameters = parameters;
     }
     
@@ -95,7 +102,8 @@ public class VideoCodec implements Parcelable {
     	this.clockRate = source.readInt();
     	this.frameRate = source.readInt();
     	this.bitRate = source.readInt();
-    	this.descriptor = source.readParcelable(VideoDescriptor.class.getClassLoader());
+    	this.width = source.readInt();
+    	this.height = source.readInt();
 		this.parameters = source.readString();
 	}
 
@@ -123,7 +131,8 @@ public class VideoCodec implements Parcelable {
     	dest.writeInt(clockRate);
     	dest.writeInt(frameRate);
     	dest.writeInt(bitRate);
-    	dest.writeParcelable(descriptor, flags);
+    	dest.writeInt(width);
+    	dest.writeInt(height);
     	dest.writeString(parameters);
     }
     
@@ -188,15 +197,24 @@ public class VideoCodec implements Parcelable {
     	return bitRate;
     }
     
-    /**
-     * Returns the video descriptor
-     * 
-     * @return Video descriptor
-     */
-    public VideoDescriptor getVideoDescriptor() {
-    	return descriptor;
+	/**
+	 * Returns the width of video frame (e.g. 176)
+	 * 
+	 * @return Video width in pixels
+	 */
+    public int getWidth() {
+    	return width;
     }
-    
+
+	/**
+	 * Returns the height of video frame (e.g. 144)
+	 * 
+	 * @return Video height in pixels
+	 */
+	public int getHeight() {
+		return height;
+	}
+    	
     /**
      * Returns the list of codec parameters (e.g. profile-level-id, packetization-mode).
      * Parameters are are semicolon separated.
