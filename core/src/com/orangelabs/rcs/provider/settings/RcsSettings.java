@@ -105,13 +105,14 @@ public class RcsSettings {
 	 *            Context
 	 */
 	public static void createInstance(Context ctx) {
-		if (instance == null) {
-			synchronized (RcsSettings.class) {
-				if (instance == null) {
-					instance = new RcsSettings(ctx);
-					instance.mCache = new HashMap<String, String>();
-				}
+		if (instance != null) {
+			return;
+		}
+		synchronized (RcsSettings.class) {
+			if (instance != null) {
+				return;
 			}
+			instance = new RcsSettings(ctx);
 		}
 	}
 
@@ -132,7 +133,8 @@ public class RcsSettings {
 	 */
 	private RcsSettings(Context ctx) {
 		super();
-		this.cr = ctx.getContentResolver();
+		cr = ctx.getContentResolver();
+		mCache = new HashMap<String, String>();
 	}
 
 	/**

@@ -22,13 +22,12 @@
 
 package com.orangelabs.rcs.provider.settings;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import javax2.sip.ListeningPoint;
+
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Environment;
+import android.util.SparseArray;
 
 import com.gsma.services.rcs.RcsServiceConfiguration;
 import com.orangelabs.rcs.utils.logger.Logger;
@@ -82,7 +81,7 @@ public class RcsSettingsData {
 
 		private int mValue;
 
-		private static Map<Integer, MessagingMode> mValueToEnum = new HashMap<Integer, MessagingMode>();
+		private static SparseArray<MessagingMode> mValueToEnum = new SparseArray<MessagingMode>();
 		static {
 			for (MessagingMode entry : MessagingMode.values()) {
 				mValueToEnum.put(entry.toInt(), entry);
@@ -115,7 +114,7 @@ public class RcsSettingsData {
 		
 		private int mValue;
 
-		private static Map<Integer, DefaultMessagingMethod> mValueToEnum = new HashMap<Integer, DefaultMessagingMethod>();
+		private static SparseArray<DefaultMessagingMethod> mValueToEnum = new SparseArray<DefaultMessagingMethod>();
 		static {
 			for (DefaultMessagingMethod entry : DefaultMessagingMethod.values()) {
 				mValueToEnum.put(entry.toInt(), entry);
@@ -151,7 +150,7 @@ public class RcsSettingsData {
 		
 		private int mValue;
 
-		private static Map<Integer, ImageResizeOption> mValueToEnum = new HashMap<Integer, ImageResizeOption>();
+		private static SparseArray<ImageResizeOption> mValueToEnum = new SparseArray<ImageResizeOption>();
 		static {
 			for (ImageResizeOption entry : ImageResizeOption.values()) {
 				mValueToEnum.put(entry.toInt(), entry);
@@ -183,7 +182,7 @@ public class RcsSettingsData {
 		
     	private int mValue;
 
-		private static Map<Integer, NetworkAccessType> mValueToEnum = new HashMap<Integer, NetworkAccessType>();
+		private static SparseArray<NetworkAccessType> mValueToEnum = new SparseArray<NetworkAccessType>();
 		static {
 			for (NetworkAccessType entry : NetworkAccessType.values()) {
 				mValueToEnum.put(entry.toInt(), entry);
@@ -218,7 +217,7 @@ public class RcsSettingsData {
 		
 		private int mValue;
 
-		private static Map<Integer, ConfigurationMode> mValueToEnum = new HashMap<Integer, ConfigurationMode>();
+		private static SparseArray<ConfigurationMode> mValueToEnum = new SparseArray<ConfigurationMode>();
 		static {
 			for (ConfigurationMode entry : ConfigurationMode.values()) {
 				mValueToEnum.put(entry.toInt(), entry);
@@ -259,7 +258,7 @@ public class RcsSettingsData {
 		
 		private int mValue;
 
-		private static Map<Integer, GsmaRelease> mValueToEnum = new HashMap<Integer, GsmaRelease>();
+		private static SparseArray<GsmaRelease> mValueToEnum = new SparseArray<GsmaRelease>();
 		static {
 			for (GsmaRelease entry : GsmaRelease.values()) {
 				mValueToEnum.put(entry.toInt(), entry);
