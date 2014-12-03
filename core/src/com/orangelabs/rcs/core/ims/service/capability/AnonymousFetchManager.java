@@ -29,6 +29,7 @@ import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
 import com.orangelabs.rcs.core.ims.service.ContactInfo.RcsStatus;
 import com.orangelabs.rcs.core.ims.service.ContactInfo.RegistrationState;
+import com.orangelabs.rcs.core.ims.service.presence.PresenceInfo;
 import com.orangelabs.rcs.core.ims.service.presence.PresenceUtils;
 import com.orangelabs.rcs.core.ims.service.presence.pidf.PidfDocument;
 import com.orangelabs.rcs.core.ims.service.presence.pidf.PidfParser;
@@ -110,7 +111,7 @@ public class AnonymousFetchManager implements DiscoveryManager {
 				ContactId contact = ContactUtils.createContactId(presence.getEntity());
 				for (Tuple tuple : presence.getTuplesList()) {
 					boolean state = false;
-					if ("open".equals(tuple.getStatus().getBasic().getValue())) {
+					if (PresenceInfo.ONLINE.equals(tuple.getStatus().getBasic().getValue())) {
 						state = true;
 					}
 					String id = tuple.getService().getId();

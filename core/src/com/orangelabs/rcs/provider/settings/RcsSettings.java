@@ -80,7 +80,7 @@ public class RcsSettings {
 	/**
 	 * Content resolver
 	 */
-	private ContentResolver cr;
+	private ContentResolver mContentResolver;
 
 	/**
 	 * Database URI
@@ -133,7 +133,7 @@ public class RcsSettings {
 	 */
 	private RcsSettings(Context ctx) {
 		super();
-		cr = ctx.getContentResolver();
+		mContentResolver = ctx.getContentResolver();
 		mCache = new HashMap<String, String>();
 	}
 
@@ -309,7 +309,7 @@ public class RcsSettings {
 		Cursor c = null;
 		try {
 			String[] whereArg = new String[] { key };
-			c = cr.query(databaseUri, null, WHERE_CLAUSE, whereArg, null);
+			c = mContentResolver.query(databaseUri, null, WHERE_CLAUSE, whereArg, null);
 			if (c.moveToFirst()) {
 				value = c.getString(c.getColumnIndexOrThrow(RcsSettingsData.KEY_VALUE));
 				// Update cache
@@ -347,7 +347,7 @@ public class RcsSettings {
 		ContentValues values = new ContentValues();
 		values.put(RcsSettingsData.KEY_VALUE, value);
 		String[] whereArgs = new String[] { key };
-		int count = cr.update(databaseUri, values, WHERE_CLAUSE, whereArgs);
+		int count = mContentResolver.update(databaseUri, values, WHERE_CLAUSE, whereArgs);
 		if (count != 0 && updateCache) {
 			// Put in cache
 			mCache.put(key, value);
