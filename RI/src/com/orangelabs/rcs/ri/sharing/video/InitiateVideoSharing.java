@@ -259,6 +259,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
     @Override
 	public void onDestroy() {
 		super.onDestroy();
+		
 		if (connectionManager == null) {
 			return;
 		}
@@ -336,6 +337,10 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 		        		sharingId = videoSharing.getSharingId();
 		        	} catch(Exception e) {
 		        		e.printStackTrace();
+		        		
+		        		// Free the camera
+		            	closeCamera();
+		        		
 	            		handler.post(new Runnable() { 
 	    					public void run() {
 								hideProgressDialog();
