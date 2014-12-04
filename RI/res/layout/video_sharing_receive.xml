@@ -10,7 +10,15 @@
 		android:layout_marginLeft="5dip"
 		android:layout_marginRight="5dip"/>    
 		
-   <com.orangelabs.rcs.ri.sharing.video.media.VideoSurfaceView
+	<TextView android:id="@+id/video_format"
+			android:gravity="left"
+			android:layout_width="fill_parent"
+	    	android:layout_height="wrap_content"
+			android:layout_marginLeft="5dip"
+			android:layout_marginRight="5dip"
+			android:visibility="gone"/>
+	
+	<com.orangelabs.rcs.ri.sharing.video.media.VideoSurfaceView
     	android:id="@+id/video_view"
         android:layout_width="176dp"
         android:layout_height="144dp"

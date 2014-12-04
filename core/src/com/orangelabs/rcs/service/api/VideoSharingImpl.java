@@ -26,6 +26,8 @@ import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.IVideoSharing;
+import com.gsma.services.rcs.vsh.VideoCodec;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharing.ReasonCode;
 import com.orangelabs.rcs.core.content.VideoContent;
@@ -306,6 +308,30 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 		return duration;
 	}	
 
+	/** 		
+	 * Returns the video descriptor 		
+	 * 		
+	 * @return Video descriptor 		
+	 * @see VideoDescriptor 		
+	 */ 		
+	public VideoDescriptor getVideoDescriptor() { 		
+		VideoDescriptor descriptor = null; 		
+		try { 		
+			if (session != null) {
+				if (session.getVideoPlayer() != null) {
+					VideoCodec codec = session.getVideoPlayer().getCodec();
+					descriptor = new VideoDescriptor(codec.getWidth(), codec.getHeight()); 		
+				} else {
+					VideoContent content = (VideoContent)session.getContent();
+					descriptor = new VideoDescriptor(content.getWidth(), content.getHeight());
+				}
+			}
+		} catch(Exception e) { 		
+			descriptor = null; 		
+		}
+		return descriptor;
+	}	
+	
     /*------------------------------- SESSION EVENTS ----------------------------------*/
 
 	/**

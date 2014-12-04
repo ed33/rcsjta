@@ -48,6 +48,7 @@ import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gsma.services.rcs.RcsContactFormatException;
@@ -715,6 +716,15 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 				public void run() {
 					switch (state) {
 					case VideoSharing.State.STARTED:
+						// Display video format
+						try {
+							String format = videoSharing.getVideoEncoding() + " " +
+									videoSharing.getVideoDescriptor().getVideoWidth() + "x" + videoSharing.getVideoDescriptor().getVideoHeight();
+							TextView fmtView = (TextView)findViewById(R.id.video_format);
+							fmtView.setVisibility(View.VISIBLE);
+							fmtView.setText(getString(R.string.label_video_format, format));
+						} catch(Exception e) {}
+
 						// Start the player
 						videoPlayer.open();
 						videoPlayer.start();

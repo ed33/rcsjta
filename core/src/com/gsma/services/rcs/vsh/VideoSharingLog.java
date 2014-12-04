@@ -104,10 +104,4 @@ public class VideoSharingLog {
      * <P>Type: INTEGER</P>
      */
     public static final String HEIGHT = "height";
-
-    /**
-     * The name of the column containing the orientation of video
-     * <P>Type: INTEGER</P>
-     */
-    public static final String ORIENTATION = "orientation";
 }

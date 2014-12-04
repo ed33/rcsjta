@@ -267,7 +267,6 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 
 			// Add session listener
 			VideoSharingImpl sessionApi = new VideoSharingImpl(session, mVideoSharingEventBroadcaster);
-
 			addVideoSharingSession(sessionApi);
 
 			// Start the session

@@ -321,4 +321,19 @@ public class VideoSharing {
 			throw new RcsServiceException(e.getMessage());
 		}		
 	}
+
+	/** 		
+	 * Returns the video descriptor
+	 * 		
+	 * @return Video descriptor 		
+	 * @see VideoDescriptor 		
+	 * @throws RcsServiceException 		
+	 */ 		
+	public VideoDescriptor getVideoDescriptor() throws RcsServiceException { 		
+		try { 		
+			return sharingInf.getVideoDescriptor(); 		
+		} catch(Exception e) { 		
+			throw new RcsServiceException(e.getMessage()); 		
+		} 		
+	}
 }

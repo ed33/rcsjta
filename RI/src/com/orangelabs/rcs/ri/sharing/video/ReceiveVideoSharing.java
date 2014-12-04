@@ -29,6 +29,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.SurfaceHolder;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 
@@ -160,7 +161,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 			Utils.showMessageAndExit(this, getString(R.string.label_service_not_available), exitOnce);
 		} else {
 			connectionManager.startMonitorServices(this, exitOnce, RcsServiceName.VIDEO_SHARING, RcsServiceName.CONTACTS);
-			initiateVideoSharing();
+			videoSharingInvitation();
 		}
     }
 
@@ -184,7 +185,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 		}
 	}
 
-    public void initiateVideoSharing() {
+    public void videoSharingInvitation() {
     	VideoSharingService vshApi = connectionManager.getVideoSharingApi();
 		try {
 			// Add service listener
@@ -357,6 +358,17 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 				public void run() {
 					switch (state) {
 					case VideoSharing.State.STARTED:
+						// Display video format
+						try {
+							String format = videoSharing.getVideoEncoding() + " " +
+									videoSharing.getVideoDescriptor().getVideoWidth() + "x" + videoSharing.getVideoDescriptor().getVideoHeight();
+							TextView fmtView = (TextView)findViewById(R.id.video_format);
+							fmtView.setVisibility(View.VISIBLE);
+							fmtView.setText(getString(R.string.label_video_format, format));
+						} catch(Exception e) {
+							e.printStackTrace();
+						}
+
 						// Start the renderer
 						videoRenderer.open();
 						videoRenderer.start();
@@ -422,7 +434,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 	public void onPlayerStarted() {
 		if (LogUtils.isActive) {
 			Log.d(LOGTAG, "onPlayerStarted");
-		}		
+		}
 	}
 
 	/**
