@@ -787,13 +787,13 @@ public class RcsSettingsData {
 	/**
 	 * IMS authentication procedure for mobile access
 	 */
-	public static final String IMS_AUTHENT_PROCEDURE_MOBILE = "ImsAuhtenticationProcedureForMobile";
+	public static final String IMS_AUTHENT_PROCEDURE_MOBILE = "ImsAuthenticationProcedureForMobile";
 	/* package private */static final String DEFAULT_IMS_AUTHENT_PROCEDURE_MOBILE = AuthenticationProcedure.DIGEST.name();
 	
 	/**
 	 * IMS authentication procedure for Wi-Fi access
 	 */
-	public static final String IMS_AUTHENT_PROCEDURE_WIFI = "ImsAuhtenticationProcedureForWifi";
+	public static final String IMS_AUTHENT_PROCEDURE_WIFI = "ImsAuthenticationProcedureForWifi";
 	/* package private */static final String DEFAULT_IMS_AUTHENT_PROCEDURE_WIFI = AuthenticationProcedure.DIGEST.name();
 
 	/**

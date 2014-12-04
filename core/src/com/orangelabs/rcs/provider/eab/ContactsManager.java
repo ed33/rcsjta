@@ -818,8 +818,7 @@ public final class ContactsManager {
 		Uri photoUri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
 		OutputStream outstream = null;
 		try {
-			// TODO replace by local resolver
-			outstream = mContentResolver.openOutputStream(photoUri);
+			outstream = mLocalContentResolver.openContentOutputStream(photoUri);
 			outstream.write(photoContent);
 			outstream.flush();
 		} catch (IOException e) {
@@ -847,8 +846,7 @@ public final class ContactsManager {
 		Uri photoUri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
 		try {
 			String etag = cursor.getString(cursor.getColumnIndexOrThrow(RichAddressBookData.KEY_PRESENCE_PHOTO_ETAG));
-			// TODO replace by local resolver
-			InputStream stream = mContentResolver.openInputStream(photoUri);
+			InputStream stream = mLocalContentResolver.openContentInputStream(photoUri);
 			byte[] content = new byte[stream.available()];
 			stream.read(content, 0, content.length);
 			Bitmap bmp = BitmapFactory.decodeByteArray(content, 0, content.length);

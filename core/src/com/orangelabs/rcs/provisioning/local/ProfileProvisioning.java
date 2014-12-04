@@ -125,14 +125,14 @@ public class ProfileProvisioning extends Activity {
 	 */
 	private void updateProfileProvisioningUI(Bundle bundle) {
 		// Display parameters
-		Spinner spinner = (Spinner) findViewById(R.id.ImsAuhtenticationProcedureForMobile);
+		Spinner spinner = (Spinner) findViewById(R.id.ImsAuthenticationProcedureForMobile);
 		ArrayAdapter<String> adapter = new ArrayAdapter<String>(ProfileProvisioning.this, android.R.layout.simple_spinner_item,
 				MOBILE_IMS_AUTHENT);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner.setAdapter(adapter);
 		setSpinnerParameter(spinner, RcsSettingsData.IMS_AUTHENT_PROCEDURE_MOBILE, bundle, MOBILE_IMS_AUTHENT);
 
-		spinner = (Spinner) findViewById(R.id.ImsAuhtenticationProcedureForWifi);
+		spinner = (Spinner) findViewById(R.id.ImsAuthenticationProcedureForWifi);
 		adapter = new ArrayAdapter<String>(ProfileProvisioning.this, android.R.layout.simple_spinner_item, WIFI_IMS_AUTHENT);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner.setAdapter(adapter);
@@ -201,15 +201,15 @@ public class ProfileProvisioning extends Activity {
 	 * Save parameters either in bundle or in RCS settings
 	 */
 	private void saveInstanceState(Bundle bundle) {
-		Spinner spinner = (Spinner) findViewById(R.id.ImsAuhtenticationProcedureForMobile);
+		Spinner spinner = (Spinner) findViewById(R.id.ImsAuthenticationProcedureForMobile);
 		if (bundle != null) {
 			bundle.putInt(RcsSettingsData.IMS_AUTHENT_PROCEDURE_MOBILE, spinner.getSelectedItemPosition());
 		} else {
 			AuthenticationProcedure procedure = AuthenticationProcedure.valueOf((String)spinner.getSelectedItem());
-			RcsSettings.getInstance().setImsAuhtenticationProcedureForMobile(procedure);
+			RcsSettings.getInstance().setImsAuthenticationProcedureForMobile(procedure);
 		}
 
-		spinner = (Spinner) findViewById(R.id.ImsAuhtenticationProcedureForWifi);
+		spinner = (Spinner) findViewById(R.id.ImsAuthenticationProcedureForWifi);
 		if (bundle != null) {
 			bundle.putInt(RcsSettingsData.IMS_AUTHENT_PROCEDURE_WIFI, spinner.getSelectedItemPosition());
 		} else {

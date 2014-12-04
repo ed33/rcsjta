@@ -60,15 +60,21 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	 */
 	private final Logger logger = Logger.getLogger(getClass().getName());
 
+	/*
+	 * This purpose of this handler is to make the request asynchronous with the
+	 * mechanisms provider by android by placing the request in the main thread
+	 * message queue.
+	 */
+
 	private final Handler mOptionsExchangeRequestHandler;
 
-	private class CapabilitesRequester implements Runnable {
+	private class CapabilitiesRequester implements Runnable {
 
 		private final ContactId mContact;
 
 		private final CapabilityService mCapabilityService;
 
-		public CapabilitesRequester(CapabilityService capabilityService, ContactId contact) {
+		public CapabilitiesRequester(CapabilityService capabilityService, ContactId contact) {
 			mContact = contact;
 			mCapabilityService = capabilityService;
 		}
@@ -78,13 +84,13 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 		}
 	}
 
-	private class AllCapabilitesRequester implements Runnable {
+	private class AllCapabilitiesRequester implements Runnable {
 
 		private final ContactsManager mContactManager;
 
 		private final CapabilityService mCapabilityService;
 
-		public AllCapabilitesRequester(ContactsManager contactManager, CapabilityService capabilityService) {
+		public AllCapabilitiesRequester(ContactsManager contactManager, CapabilityService capabilityService) {
 			mContactManager = contactManager;
 			mCapabilityService = capabilityService;
 		}
@@ -216,9 +222,8 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 
 		// Test IMS connection
 		ServerApiUtils.testIms();
-
 		try {
-			mOptionsExchangeRequestHandler.post(new CapabilitesRequester(Core.getInstance().getCapabilityService(), contact));
+			mOptionsExchangeRequestHandler.post(new CapabilitiesRequester(Core.getInstance().getCapabilityService(), contact));
 		} catch(Exception e) {
 			if (logger.isActivated()) {
 				logger.error("Unexpected error", e);
@@ -274,12 +279,11 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 		if (logger.isActivated()) {
 			logger.info("Request all contacts capabilities");
 		}
-
 		// Test IMS connection
 		ServerApiUtils.testIms();
 
 		try {
-			mOptionsExchangeRequestHandler.post(new AllCapabilitesRequester(ContactsManager.getInstance(), Core
+			mOptionsExchangeRequestHandler.post(new AllCapabilitiesRequester(ContactsManager.getInstance(), Core
 					.getInstance().getCapabilityService()));
 		} catch(Exception e) {
 			if (logger.isActivated()) {

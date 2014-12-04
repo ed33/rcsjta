@@ -1476,7 +1476,7 @@ public class RcsSettings {
 	 *
 	 * @return Authentication procedure
 	 */
-	public AuthenticationProcedure getImsAuhtenticationProcedureForMobile() {
+	public AuthenticationProcedure getImsAuthenticationProcedureForMobile() {
 		String procedure = readString(RcsSettingsData.IMS_AUTHENT_PROCEDURE_MOBILE, null);
 		try {
 			return AuthenticationProcedure.valueOf(procedure);
@@ -1489,7 +1489,7 @@ public class RcsSettings {
 	 * Set the authentication procedure for mobile
 	 * @param procedure
 	 */
-	public void setImsAuhtenticationProcedureForMobile(AuthenticationProcedure procedure) {
+	public void setImsAuthenticationProcedureForMobile(AuthenticationProcedure procedure) {
 		writeParameter(RcsSettingsData.IMS_AUTHENT_PROCEDURE_MOBILE, procedure.name());
 	}
 
@@ -1498,7 +1498,7 @@ public class RcsSettings {
 	 *
 	 * @return Authentication procedure
 	 */
-	public AuthenticationProcedure getImsAuhtenticationProcedureForWifi() {
+	public AuthenticationProcedure getImsAuthenticationProcedureForWifi() {
 		String procedure = readString(RcsSettingsData.IMS_AUTHENT_PROCEDURE_WIFI, null);
 		try {
 			return AuthenticationProcedure.valueOf(procedure);
@@ -2078,7 +2078,7 @@ public class RcsSettings {
 		if (TextUtils.isEmpty(getUserProfileImsDomain())) {
 			return false;
 		}
-		AuthenticationProcedure mode = getImsAuhtenticationProcedureForMobile();
+		AuthenticationProcedure mode = getImsAuthenticationProcedureForMobile();
 		switch (mode) {
 		case DIGEST:
 			if (TextUtils.isEmpty(getUserProfileImsUserName())) {

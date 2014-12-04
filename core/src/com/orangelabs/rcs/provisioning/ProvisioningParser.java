@@ -1547,9 +1547,9 @@ public class ProvisioningParser {
                 if (authType == null) {
                     if ((authType = getValueByParamName("AuthType", childnode, TYPE_TXT)) != null) {
                         if (authType.equals("EarlyIMS")) {
-                            RcsSettings.getInstance().setImsAuhtenticationProcedureForMobile(AuthenticationProcedure.GIBA);
+                            RcsSettings.getInstance().setImsAuthenticationProcedureForMobile(AuthenticationProcedure.GIBA);
                         } else {
-                            RcsSettings.getInstance().setImsAuhtenticationProcedureForMobile(AuthenticationProcedure.DIGEST);
+                            RcsSettings.getInstance().setImsAuthenticationProcedureForMobile(AuthenticationProcedure.DIGEST);
                         }
                         continue;
                     }
