@@ -21,18 +21,18 @@
  ******************************************************************************/
 package com.orangelabs.rcs.provider.ipcall;
 
-import com.gsma.services.rcs.ipcall.IPCallLog;
-
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.UriMatcher;
 import android.database.Cursor;
-import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.text.TextUtils;
+
+import com.gsma.services.rcs.ipcall.IPCallLog;
+import com.orangelabs.rcs.utils.DatabaseUtils;
 
 /**
  * IP call history provider
@@ -72,7 +72,7 @@ public class IPCallProvider extends ContentProvider {
     }
 
     private static class DatabaseHelper extends SQLiteOpenHelper {
-        private static final int DATABASE_VERSION = 4;
+        private static final int DATABASE_VERSION = 5;
 
         public DatabaseHelper(Context ctx) {
             super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
@@ -90,12 +90,13 @@ public class IPCallProvider extends ContentProvider {
                     .append(IPCallData.KEY_VIDEO_ENCODING).append(" TEXT,")
                     .append(IPCallData.KEY_AUDIO_ENCODING).append(" TEXT,")
                     .append(IPCallData.KEY_WIDTH).append(" INTEGER NOT NULL,")
-                    .append(IPCallData.KEY_HEIGHT).append(" INTEGER NOT NULL);")
-                    .append("CREATE INDEX ").append(IPCallData.KEY_CONTACT).append("_idx")
-                    .append(" ON ").append(TABLE).append("(").append(IPCallData.KEY_CONTACT)
-                    .append("); ").append("CREATE INDEX ").append(IPCallData.KEY_TIMESTAMP)
+                    .append(IPCallData.KEY_HEIGHT).append(" INTEGER NOT NULL)").toString());
+            db.execSQL(new StringBuilder("CREATE INDEX ").append(IPCallData.KEY_CONTACT)
                     .append("_idx").append(" ON ").append(TABLE).append("(")
-                    .append(IPCallData.KEY_TIMESTAMP).append("); ").toString());
+                    .append(IPCallData.KEY_CONTACT).append(")").toString());
+            db.execSQL(new StringBuilder("CREATE INDEX ").append(IPCallData.KEY_TIMESTAMP)
+                    .append("_idx").append(" ON ").append(TABLE).append("(")
+                    .append(IPCallData.KEY_TIMESTAMP).append(")").toString());
         }
 
         @Override

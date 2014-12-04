@@ -29,7 +29,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.UriMatcher;
 import android.database.Cursor;
-import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
@@ -37,6 +36,7 @@ import android.text.TextUtils;
 
 import com.gsma.services.rcs.RcsServiceConfiguration;
 import com.orangelabs.rcs.R;
+import com.orangelabs.rcs.utils.DatabaseUtils;
 
 /**
  * RCS settings provider
@@ -140,8 +140,8 @@ public class RcsSettingsProvider extends ContentProvider {
         @Override
         public void onCreate(SQLiteDatabase db) {
             db.execSQL(new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(TABLE).append("(")
-                    .append(RcsSettingsData.KEY_KEY).append(" TEXT PRIMARY KEY,")
-                    .append(RcsSettingsData.KEY_VALUE).append(" TEXT);").toString());
+                    .append(RcsSettingsData.KEY_KEY).append(" TEXT NOT NULL PRIMARY KEY,")
+                    .append(RcsSettingsData.KEY_VALUE).append(" TEXT NOT NULL)").toString());
 
             /* Insert default values for parameters */
 			addParameter(db, RcsSettingsData.SERVICE_ACTIVATED, RcsSettingsData.DEFAULT_SERVICE_ACTIVATED.toString());

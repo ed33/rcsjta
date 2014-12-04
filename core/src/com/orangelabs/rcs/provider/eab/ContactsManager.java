@@ -73,30 +73,31 @@ import com.orangelabs.rcs.core.ims.service.presence.FavoriteLink;
 import com.orangelabs.rcs.core.ims.service.presence.Geoloc;
 import com.orangelabs.rcs.core.ims.service.presence.PhotoIcon;
 import com.orangelabs.rcs.core.ims.service.presence.PresenceInfo;
-import com.orangelabs.rcs.provider.eab.RichAddressBookData.CapabilitySupport;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.StringUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
- * Contains utility methods for interfacing with the Android SDK ContactsProvider.
+ * Contains utility methods for interfacing with the Android SDK ContactsProvider and the Rich Address book provider.
  *
  * @author Jean-Marc AUFFRET
  * @author Deutsche Telekom AG
+ * @author yplo6403
+ *
  */
 public final class ContactsManager {
 	/**
 	 * Current instance
 	 */
-	private static ContactsManager instance;
+	private static volatile ContactsManager instance;
+
+	private final ContentResolver mContentResolver;
+
+	private final LocalContentResolver mLocalContentResolver;
 	
-	/**
-	 * Context
-	 */
-	private Context mContext;
-	
-	private ContentResolver mResolver;
+	private final Context mContext;
 	
     /** 
      * Constant for invalid id. 
@@ -184,7 +185,15 @@ public final class ContactsManager {
      * Account name for SIM contacts
      */
     private static final String SIM_ACCOUNT_NAME = "com.android.contacts.sim";
-    
+
+    private final static String NOT_SIM_ACCOUNT_SELECTION = new StringBuilder("(")
+            .append(RawContacts.ACCOUNT_TYPE).append(" IS NULL OR ")
+            .append(RawContacts.ACCOUNT_TYPE).append("!='").append(SIM_ACCOUNT_NAME)
+            .append("') AND ").append(RawContacts._ID).append("=?").toString();
+
+    private final static String SIM_ACCOUNT_SELECTION = new StringBuilder(RawContacts.ACCOUNT_TYPE).append("='").append(SIM_ACCOUNT_NAME)
+            .append("' AND ").append(RawContacts._ID).append("=?").toString();
+
     /**
      * Contact for "Me"
      */
@@ -199,19 +208,15 @@ public final class ContactsManager {
 	private static final String WHERE_RCS_RAW_CONTACT_ID = new StringBuilder(AggregationData.KEY_RCS_RAW_CONTACT_ID).append("=?").toString();
   
 	private static final String[] PROJECTION_RCS_RAW_CONTACT_ID = new String[] { AggregationData.KEY_RCS_RAW_CONTACT_ID };
-	
-	private static final String WHERE_RCS_STATUS_FILTER2 = new StringBuilder(RichAddressBookData.KEY_RCS_STATUS).append("<>? AND ")
-			.append(RichAddressBookData.KEY_RCS_STATUS).append("<>?").toString();
-	
-	private static final String[] WHERE_ARGS_RCS_STATUS_FILTER2 = { Integer.toString(RcsStatus.NO_INFO.toInt()),
-			Integer.toString(RcsStatus.NOT_RCS.toInt()) };
-	
-	private static final String WHERE_RCS_STATUS_FILTER3 = new StringBuilder(RichAddressBookData.KEY_RCS_STATUS).append("<>? AND ")
-			.append(RichAddressBookData.KEY_RCS_STATUS).append("<>? AND ").append(RichAddressBookData.KEY_RCS_STATUS).append("<>?")
-			.toString();
-	
-	private static final String[] WHERE_ARGS_RCS_STATUS_FILTER3 = { Integer.toString(RcsStatus.NO_INFO.toInt()),
-			Integer.toString(RcsStatus.NOT_RCS.toInt()), Integer.toString(RcsStatus.RCS_CAPABLE.toInt()) };
+
+	private static final String WHERE_RCS_STATUS_RCS = new StringBuilder(RichAddressBookData.KEY_RCS_STATUS).append("!='")
+			.append(RcsStatus.NO_INFO.toInt()).append("' AND ").append(RichAddressBookData.KEY_RCS_STATUS).append("!='")
+			.append(RcsStatus.NOT_RCS.toInt()).append("'").toString();
+
+	private static final String WHERE_RCS_STATUS_WITH_SOCIAL_PRESENCE = new StringBuilder(RichAddressBookData.KEY_RCS_STATUS)
+			.append("!='").append(RcsStatus.NO_INFO.toInt()).append("' AND ").append(RichAddressBookData.KEY_RCS_STATUS).append("!='")
+			.append(RcsStatus.NOT_RCS.toInt()).append("' AND ").append(RichAddressBookData.KEY_RCS_STATUS).append("!='")
+			.append(RcsStatus.RCS_CAPABLE.toInt()).append("'").toString();
 	
 	private static final String WHERE_RCS_RAW_CONTACT_ID_AND_RCS_NUMBER = new StringBuilder(AggregationData.KEY_RCS_NUMBER)
 			.append("=? AND ").append(AggregationData.KEY_RAW_CONTACT_ID).append("=?").toString();
@@ -262,37 +267,84 @@ public final class ContactsManager {
 	private static final String SELECTION_RABP_FT_BLOCKED = new StringBuilder(RichAddressBookData.KEY_FT_BLOCKED).append("=")
 			.append(RichAddressBookData.BLOCKED_VALUE_SET).toString();
 
+	private static final String SELECTION_RAW_CONTACT_FROM_NUMBER = new StringBuilder(Data.MIMETYPE)
+			.append("=? AND PHONE_NUMBERS_EQUAL(").append(Phone.NUMBER).append(", ?)").toString();
+
+	private static final String STRICT_SELECTION_RAW_CONTACT_FROM_NUMBER = new StringBuilder(Data.MIMETYPE)
+			.append("=? AND (NOT PHONE_NUMBERS_EQUAL(").append(Phone.NUMBER).append(", ?) AND PHONE_NUMBERS_EQUAL(")
+			.append(Phone.NUMBER).append(", ?, 1))").toString();
+	
+	private static final String[] PROJECTION_RAW_CONTACT_ID = { RawContacts._ID };
+	
+	private static final String SELECTION_RAW_CONTACT = new StringBuilder(RawContacts._ID).append("=?").toString();
+	
+	private static final String SELECTION_RAW_CONTACT_WITH_WEBLINK = new StringBuilder(Data.RAW_CONTACT_ID).append("=? AND ")
+			.append(Website.TYPE).append("=?").toString();
+	
+	private static final String[] PROJECTION_DATA_ID = new String[] { Data._ID };
+	
+	private static final String SELECTION_DATA_ID = new StringBuilder(Data._ID).append("=?").toString();
+	
+	private static final String SELECTION_RAW_CONTACT_WITH_MIMETYPE = new StringBuilder(Data.RAW_CONTACT_ID).append("=? AND ")
+			.append(Data.MIMETYPE).append("=?").toString();
+	
+	private static final String SELECTION_RAW_CONTACT_ME = new StringBuilder(RawContacts.ACCOUNT_TYPE).append("='")
+			.append(AuthenticationService.ACCOUNT_MANAGER_TYPE).append("' AND ").append(RawContacts.SOURCE_ID).append("='")
+			.append(MYSELF).append("'").toString();
+
+	private static final String SELECTION_DATA_MIMETYPE_CAPABILITY_FILE_TRANSFER = new StringBuilder(Data.MIMETYPE).append("='")
+			.append(MIMETYPE_CAPABILITY_FILE_TRANSFER).append("'").toString();
+
+	private static final String SELECTION_DATA_MIMETYPE_CAPABILITY_IM_SESSION = new StringBuilder(Data.MIMETYPE).append("='")
+			.append(MIMETYPE_CAPABILITY_IM_SESSION).append("'").toString();
+
+	private static final String SELECTION_DATA_MIMETYPE_CAPABILITY_IMAGE_SHARING = new StringBuilder(Data.MIMETYPE).append("='")
+			.append(MIMETYPE_CAPABILITY_IMAGE_SHARING).append("'").toString();
+
+	private static final String SELECTION_DATA_MIMETYPE_CAPABILITY_VIDEO_SHARING = new StringBuilder(Data.MIMETYPE).append("='")
+			.append(MIMETYPE_CAPABILITY_VIDEO_SHARING).append("'").toString();
+
+	private static final String SELECTION_DATA_MIMETYPE_CAPABILITY_IP_VOICE_CALL = new StringBuilder(Data.MIMETYPE).append("='")
+			.append(MIMETYPE_CAPABILITY_IP_VOICE_CALL).append("'").toString();
+
+	private static final String SELECTION_DATA_MIMETYPE_CAPABILITY_IP_VIDEO_CALL = new StringBuilder(Data.MIMETYPE).append("='")
+			.append(MIMETYPE_CAPABILITY_IP_VIDEO_CALL).append("'").toString();
+
+	private static final String SELECTION_DATA_MIMETYPE_NUMBER = new StringBuilder(Data.MIMETYPE).append("='")
+			.append(MIMETYPE_NUMBER).append("'").toString();
+
+	private static final String[] PROJECTION_RAW_CONTACT_DATA1 = { Data.RAW_CONTACT_ID, Data.DATA1 };
+	
+	private static final String SELECTION_RAW_CONTACT_ID = new StringBuilder(Data.RAW_CONTACT_ID).append("=?").toString();
+	
 	/**
 	 * The cache for client queries
 	 */
-	private Map<ContactId,Capabilities> mCapabilitiesCache;
+	private final Map<ContactId,Capabilities> mCapabilitiesCache;
 	
 	/**
 	 * The logger
 	 */
 	private static final Logger logger = Logger.getLogger(ContactsManager.class.getSimpleName());
-    
-	/**
-	 * Empty constructor : prevent caller from creating multiple instances
-	 */
-	private ContactsManager() {
-	}
-	
+
 	/**
 	 * Create instance
 	 * 
-	 * @param ctx Context
+	 * @param ctx
+	 *            Application context
+	 * @param contentResolver
+	 *            Content resolver
+	 * @param localContentResolver
+	 *            Local content resolver
 	 */
-	public static void createInstance(Context ctx) {
+	public static void createInstance(Context ctx, ContentResolver contentResolver, LocalContentResolver localContentResolver) {
 		if (instance != null) {
 			return;
 		}
 		synchronized (ContactsManager.class) {
-			if (instance != null) {
-				return;
+			if (instance == null) {
+				instance = new ContactsManager(ctx, contentResolver, localContentResolver);
 			}
-			instance = new ContactsManager(ctx);
-			
 		}
 	}
 
@@ -305,15 +357,28 @@ public final class ContactsManager {
 		return instance;
 	}
 	
+	/**
+	 * Empty constructor : prevent caller from creating multiple instances
+	 */
+	private ContactsManager() {
+		mContext = null;
+		mContentResolver = null;
+		mLocalContentResolver = null;
+		mCapabilitiesCache = null;
+	}
+	
     /**
      * Constructor
      *      
-     * @param context Application context
+	 * @param context Application context
+	 * @param contentResolver Content resolver
+	 * @param localContentResolver Local content resolver
      */
-    private ContactsManager(Context context) {
-    	mContext = context;
-    	mResolver = mContext.getContentResolver();
-    	mCapabilitiesCache = new HashMap<ContactId,Capabilities>();
+    private ContactsManager(Context context, ContentResolver contentResolver, LocalContentResolver localContentResolver) {
+        mContext = context;
+        mContentResolver = contentResolver;
+        mLocalContentResolver = localContentResolver;
+        mCapabilitiesCache = new HashMap<ContactId,Capabilities>();
     }
 
 	/**
@@ -363,52 +428,53 @@ public final class ContactsManager {
 		// Save capabilities, if the contact is not registered, do not set the capability to true
 		boolean isRegistered = RegistrationState.ONLINE.equals(newInfo.getRegistrationState());
 		Capabilities newCapabilities = newInfo.getCapabilities();
-		
-		CapabilitySupport support = CapabilitySupport.valueOf(newCapabilities.isCsVideoSupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_CS_VIDEO, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isFileTransferSupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isImageSharingSupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_IMAGE_SHARING, support.toInt());
-		
-		support = CapabilitySupport.valueOf((newCapabilities.isImSessionSupported() && isRegistered)||(RcsSettings.getInstance().isImAlwaysOn() && newInfo.isRcsContact()));
-		values.put(RichAddressBookData.KEY_CAPABILITY_IM_SESSION, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isPresenceDiscoverySupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_PRESENCE_DISCOVERY, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isSocialPresenceSupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_SOCIAL_PRESENCE, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isVideoSharingSupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_VIDEO_SHARING, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isGeolocationPushSupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_GEOLOCATION_PUSH, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isFileTransferHttpSupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_HTTP, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isFileTransferThumbnailSupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_THUMBNAIL, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isIPVoiceCallSupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_IP_VOICE_CALL, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isIPVideoCallSupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_IP_VIDEO_CALL, support.toInt());
-		
-		support = CapabilitySupport.valueOf((newCapabilities.isFileTransferStoreForwardSupported() && isRegistered) ||
-				(RcsSettings.getInstance().isFtAlwaysOn() && newInfo.isRcsContact()));
-		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_SF, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isSipAutomata() && isRegistered);
-		values.put(RichAddressBookData.KEY_AUTOMATA, support.toInt());
-		
-		support = CapabilitySupport.valueOf(newCapabilities.isGroupChatStoreForwardSupported() && isRegistered);
-		values.put(RichAddressBookData.KEY_CAPABILITY_GROUP_CHAT_SF, support.toInt());
+
+		boolean support = newCapabilities.isCsVideoSupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_CS_VIDEO, support);
+
+		support = newCapabilities.isFileTransferSupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER, support);
+
+		support = newCapabilities.isImageSharingSupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_IMAGE_SHARING, support);
+
+		support = (newCapabilities.isImSessionSupported() && isRegistered)
+				|| (RcsSettings.getInstance().isImAlwaysOn() && newInfo.isRcsContact());
+		values.put(RichAddressBookData.KEY_CAPABILITY_IM_SESSION, support);
+
+		support = newCapabilities.isPresenceDiscoverySupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_PRESENCE_DISCOVERY, support);
+
+		support = newCapabilities.isSocialPresenceSupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_SOCIAL_PRESENCE, support);
+
+		support = newCapabilities.isVideoSharingSupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_VIDEO_SHARING, support);
+
+		support = newCapabilities.isGeolocationPushSupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_GEOLOCATION_PUSH, support);
+
+		support = newCapabilities.isFileTransferHttpSupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_HTTP, support);
+
+		support = newCapabilities.isFileTransferThumbnailSupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_THUMBNAIL, support);
+
+		support = newCapabilities.isIPVoiceCallSupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_IP_VOICE_CALL, support);
+
+		support = newCapabilities.isIPVideoCallSupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_IP_VIDEO_CALL, support);
+
+		support = (newCapabilities.isFileTransferStoreForwardSupported() && isRegistered)
+				|| (RcsSettings.getInstance().isFtAlwaysOn() && newInfo.isRcsContact());
+		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_SF, support);
+
+		support = newCapabilities.isSipAutomata() && isRegistered;
+		values.put(RichAddressBookData.KEY_AUTOMATA, support);
+
+		support = newCapabilities.isGroupChatStoreForwardSupported() && isRegistered;
+		values.put(RichAddressBookData.KEY_CAPABILITY_GROUP_CHAT_SF, support);
 
 		// Save the capabilities extensions
 		values.put(RichAddressBookData.KEY_CAPABILITY_EXTENSIONS,
@@ -420,7 +486,7 @@ public final class ContactsManager {
 
 		PhotoIcon photoIcon = null;
 		
-		// Save presence infos
+		// Save presence information
         PresenceInfo newPresenceInfo = newInfo.getPresenceInfo();
 		if (newPresenceInfo != null) {
 			values.put(RichAddressBookData.KEY_PRESENCE_SHARING_STATUS, newPresenceInfo.getPresenceStatus());
@@ -468,37 +534,16 @@ public final class ContactsManager {
         if (hasEntryInRichAddressBook) {
             // Update RABP
         	Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-			mResolver.update(uri, values, null, null);
+			mLocalContentResolver.update(uri, values, null, null);
         } else {
             // Insert
-        	mResolver.insert(RichAddressBookData.CONTENT_URI, values);
+            mLocalContentResolver.insert(RichAddressBookData.CONTENT_URI, values);
         }
 
-        // Save presence photo content
-        if (photoIcon != null) {
-            byte photoContent[] = photoIcon.getContent();
-            if (photoContent != null) {
-                Uri photoUri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI,
-                        contact.toString());
-                OutputStream outstream = null;
-                try {
-                    outstream = mResolver.openOutputStream(photoUri);
-                    outstream.write(photoContent);
-                    outstream.flush();
-                } catch (IOException e) {
-                    if (logger.isActivated()){
-                        logger.error("Photo can't be saved",e);
-                    }
-                } finally {
-                	if (outstream != null) {
-                		try {
-							outstream.close();
-						} catch (Exception e2) {
-						}
-                	}
-                }
-            }
-        }
+		// Save presence photo content
+		if (photoIcon != null) {
+			savePhotoIcon(photoIcon, contact);
+		}
 
         // Get all the Ids from raw contacts that have this phone number
         List<Long> rawContactIds = getRawContactIdsFromPhoneNumber(contact);
@@ -516,10 +561,10 @@ public final class ContactsManager {
 			if (!newInfo.isRcsContact()) {
 				// If the contact is not a RCS contact anymore, we have to delete the corresponding native raw contacts
     			ops.add(ContentProviderOperation.newDelete(RawContacts.CONTENT_URI)
-    					.withSelection(RawContacts._ID + "=?", new String[]{Long.toString(rcsRawContactId)})
+    					.withSelection(SELECTION_RAW_CONTACT, new String[]{Long.toString(rcsRawContactId)})
     					.build());
         		// Also delete the corresponding entries in the aggregation provider
-				mResolver.delete(AggregationData.CONTENT_URI, WHERE_RCS_RAW_CONTACT_ID,
+				mLocalContentResolver.delete(AggregationData.CONTENT_URI, WHERE_RCS_RAW_CONTACT_ID,
 						new String[] { Long.toString(rcsRawContactId) });
 			} else {
     			// If the contact is still a RCS contact, we have to update the native raw contacts
@@ -619,7 +664,7 @@ public final class ContactsManager {
 		if (!ops.isEmpty()){
 			// Do the actual database modifications
 			try {
-				mResolver.applyBatch(ContactsContract.AUTHORITY, ops);
+				mContentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
 			} catch (RemoteException e) {
 				if (logger.isActivated()){
 					logger.error("Something went wrong when updating the database with the contact info",e);
@@ -656,7 +701,7 @@ public final class ContactsManager {
 		Cursor cursor = null;
 		try {
 			Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-			cursor = mResolver.query(uri, null, null, null, null);
+			cursor = mLocalContentResolver.query(uri, null, null, null, null);
 			if (cursor.moveToFirst()) {
 				// Get RCS display name
 				infos.setDisplayName(cursor.getString(cursor.getColumnIndexOrThrow(RichAddressBookData.KEY_DISPLAY_NAME)));
@@ -691,25 +736,10 @@ public final class ContactsManager {
 
 				presenceInfo.setTimestamp(cursor.getLong(cursor.getColumnIndexOrThrow(RichAddressBookData.KEY_PRESENCE_TIMESTAMP)));
 
-				PhotoIcon photoIcon = null;
-				if (Boolean.parseBoolean(cursor.getString(cursor.getColumnIndexOrThrow(RichAddressBookData.KEY_PRESENCE_PHOTO_EXIST_FLAG)))) {
-					try {
-						Uri photoUri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-						String etag = cursor.getString(cursor.getColumnIndexOrThrow(RichAddressBookData.KEY_PRESENCE_PHOTO_ETAG));
-						InputStream stream = mResolver.openInputStream(photoUri);
-						byte[] content = new byte[stream.available()];
-						stream.read(content, 0, content.length);
-						Bitmap bmp = BitmapFactory.decodeByteArray(content, 0, content.length);
-						if (bmp != null) {
-							photoIcon = new PhotoIcon(content, bmp.getWidth(), bmp.getHeight(), etag);
-						}
-					} catch (IOException e) {
-						if (logger.isActivated()) {
-							logger.error("Can't get the photo", e);
-						}
-					}
+				if (Boolean.parseBoolean(cursor.getString(cursor
+						.getColumnIndexOrThrow(RichAddressBookData.KEY_PRESENCE_PHOTO_EXIST_FLAG)))) {
+					presenceInfo.setPhotoIcon(getPhotoIcon(cursor, contact));
 				}
-				presenceInfo.setPhotoIcon(photoIcon);
 
 				if (capabilities == null) {
 					// Capabilities are not cached for this contact
@@ -776,6 +806,64 @@ public final class ContactsManager {
 	}
 	
 	/**
+	 * Save photo icon
+	 * @param photoIcon
+	 * @param contact
+	 */
+	private void savePhotoIcon(PhotoIcon photoIcon, ContactId contact) {
+		byte photoContent[] = photoIcon.getContent();
+		if (photoContent == null) {
+			return;
+		}
+		Uri photoUri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
+		OutputStream outstream = null;
+		try {
+			// TODO replace by local resolver
+			outstream = mContentResolver.openOutputStream(photoUri);
+			outstream.write(photoContent);
+			outstream.flush();
+		} catch (IOException e) {
+			if (logger.isActivated()) {
+				logger.error("Photo can't be saved", e);
+			}
+		} finally {
+			if (outstream != null) {
+				try {
+					outstream.close();
+				} catch (Exception e2) {
+				}
+			}
+		}
+	}
+
+	/**
+	 * Get photo icon from rich address book
+	 * 
+	 * @param cursor
+	 * @param contact
+	 * @return PhotoIcon or null
+	 */
+	private PhotoIcon getPhotoIcon(Cursor cursor, ContactId contact) {
+		Uri photoUri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
+		try {
+			String etag = cursor.getString(cursor.getColumnIndexOrThrow(RichAddressBookData.KEY_PRESENCE_PHOTO_ETAG));
+			// TODO replace by local resolver
+			InputStream stream = mContentResolver.openInputStream(photoUri);
+			byte[] content = new byte[stream.available()];
+			stream.read(content, 0, content.length);
+			Bitmap bmp = BitmapFactory.decodeByteArray(content, 0, content.length);
+			if (bmp != null) {
+				return new PhotoIcon(content, bmp.getWidth(), bmp.getHeight(), etag);
+			}
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Can't get the photo", e);
+			}
+		}
+		return null;
+	}
+	
+	/**
 	 * Get sharing status of a contact
 	 *  
 	 * @param contact Contact
@@ -790,7 +878,7 @@ public final class ContactsManager {
 		try {
 			// Get this number status in address book provider
 			Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-			cursor = mResolver.query(uri, PROJECTION_PRESENCE_SHARING_STATUS, null, null, null);
+			cursor = mLocalContentResolver.query(uri, PROJECTION_PRESENCE_SHARING_STATUS, null, null, null);
 			if (!cursor.moveToFirst()) {
 				return RcsStatus.NO_INFO;
 			}
@@ -837,7 +925,7 @@ public final class ContactsManager {
 	 */
 	public void flushContactProvider() {
 		mCapabilitiesCache.clear();
-		mResolver.delete(RichAddressBookData.CONTENT_URI, null, null);
+		mLocalContentResolver.delete(RichAddressBookData.CONTENT_URI, null, null);
 	}
 	
 	/**
@@ -853,11 +941,11 @@ public final class ContactsManager {
 		if (!isContactIdAssociatedWithContactInRichAddressBook(contact)) {
 			values.put(RichAddressBookData.KEY_CONTACT, contact.toString());
 			// Contact not present in provider, insert
-			mResolver.insert(RichAddressBookData.CONTENT_URI, values);
+			mLocalContentResolver.insert(RichAddressBookData.CONTENT_URI, values);
 		} else {
 			// Contact already present, update
 			Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-			mResolver.update(uri, values, null,	null);
+			mLocalContentResolver.update(uri, values, null,	null);
 		}
 	}
 
@@ -871,7 +959,7 @@ public final class ContactsManager {
 		// Filter the RCS status
 		Cursor cursor = null;
 		try {
-			cursor = mResolver.query(RichAddressBookData.CONTENT_URI, PROJECTION_RABP, WHERE_RCS_STATUS_FILTER3, WHERE_ARGS_RCS_STATUS_FILTER3, null);
+			cursor = mLocalContentResolver.query(RichAddressBookData.CONTENT_URI, PROJECTION_RABP, WHERE_RCS_STATUS_WITH_SOCIAL_PRESENCE, null, null);
 			if (!cursor.moveToFirst()) {
 				return rcsNumbers;
 			}
@@ -886,6 +974,9 @@ public final class ContactsManager {
 				}
 			} while (cursor.moveToNext());
 		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
 		} finally {
 			if (cursor != null) {
 				cursor.close();
@@ -901,11 +992,10 @@ public final class ContactsManager {
 	 */
 	public Set<ContactId> getRcsContacts() {
 		Set<ContactId> rcsNumbers = new HashSet<ContactId>();
-		String[] projection = { RichAddressBookData.KEY_CONTACT };
 		// Filter the RCS status
 		Cursor cursor = null;
 		try {
-			cursor = mResolver.query(RichAddressBookData.CONTENT_URI, projection, WHERE_RCS_STATUS_FILTER2, WHERE_ARGS_RCS_STATUS_FILTER2, null);
+			cursor = mLocalContentResolver.query(RichAddressBookData.CONTENT_URI, PROJECTION_RABP, WHERE_RCS_STATUS_RCS, null, null);
 			if (!cursor.moveToFirst()) {
 				return rcsNumbers;
 			}
@@ -920,6 +1010,9 @@ public final class ContactsManager {
 				}
 			} while (cursor.moveToNext());
 		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
 		} finally {
 			if (cursor != null) {
 				cursor.close();
@@ -937,7 +1030,7 @@ public final class ContactsManager {
 		Set<ContactId> numbers = new HashSet<ContactId>();
 		Cursor cursor = null;
 		try {
-			cursor = mResolver.query(RichAddressBookData.CONTENT_URI, PROJECTION_RABP, null, null, null);
+			cursor = mLocalContentResolver.query(RichAddressBookData.CONTENT_URI, PROJECTION_RABP, null, null, null);
 			if (!cursor.moveToFirst()) {
 				return numbers;
 			}
@@ -952,6 +1045,9 @@ public final class ContactsManager {
 				}
 			} while (cursor.moveToNext());
 		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
 		} finally {
 			if (cursor != null) {
 				cursor.close();
@@ -1147,11 +1243,10 @@ public final class ContactsManager {
 			String[] projection = {Data._ID, Data.RAW_CONTACT_ID};
 
 			long dataId = INVALID_ID;
-			String selection = new StringBuilder(Data.RAW_CONTACT_ID).append("=?").toString();
 			String[] selectionArgs = { Long.toString(rawContactId)};
 			Cursor cursor = null;
 			try {
-				cursor = mResolver.query(Data.CONTENT_URI, projection, selection, selectionArgs, null);
+				cursor = mContentResolver.query(Data.CONTENT_URI, projection, SELECTION_RAW_CONTACT_ID, selectionArgs, null);
 				if (cursor.moveToNext()) {
 					dataId = cursor.getLong(cursor.getColumnIndexOrThrow(Data._ID));
 				}
@@ -1289,40 +1384,21 @@ public final class ContactsManager {
    				values.put(Data.IS_SUPER_PRIMARY, 1);
 
 				// Get the id of the current weblink mimetype
-				long currentNativeWebLinkDataId = INVALID_ID;
-				Cursor cursor = null;
-				try {
-					cursor = mResolver.query(Data.CONTENT_URI, new String[] { Data._ID },
-							Data.RAW_CONTACT_ID + "=? AND " + Website.TYPE + "=?",
-							new String[] { Long.toString(rawContactId), String.valueOf(Website.TYPE_HOMEPAGE) },
-							null);
-					if (cursor.moveToNext()) {
-						currentNativeWebLinkDataId = cursor.getLong(cursor.getColumnIndexOrThrow(Data._ID));
-					}
-				} catch (Exception e) {
-				} finally {
-					if (cursor != null) {
-						cursor.close();
-					}
-				}
+				long currentNativeWebLinkDataId = getCurrentNativeWebLinkDataId(rawContactId);
    				
-    			if (oldPresenceInfo.getFavoriteLinkUrl()==null){
-    				// There was no weblink, insert
-        			ops.add(ContentProviderOperation.newInsert(Data.CONTENT_URI)
-        					.withValues(values)
-        					.build());
-    			}else if (newPresenceInfo.getFavoriteLinkUrl()!=null){
-    				// Update the existing weblink
-    				ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
-    					.withSelection(Data._ID + "=?", new String[]{String.valueOf(currentNativeWebLinkDataId)})
-    					.withValues(values)
-    					.build());
-    			}else{
-    				// Remove the existing weblink
-    				ops.add(ContentProviderOperation.newDelete(Data.CONTENT_URI)
-        					.withSelection(Data._ID + "=?", new String[]{String.valueOf(currentNativeWebLinkDataId)})
-        					.build());
-    			}
+				if (oldPresenceInfo.getFavoriteLinkUrl() == null) {
+					// There was no weblink, insert
+					ops.add(ContentProviderOperation.newInsert(Data.CONTENT_URI).withValues(values).build());
+				} else if (newPresenceInfo.getFavoriteLinkUrl() != null) {
+					// Update the existing weblink
+					ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
+							.withSelection(SELECTION_DATA_ID, new String[] { String.valueOf(currentNativeWebLinkDataId) })
+							.withValues(values).build());
+				} else {
+					// Remove the existing weblink
+					ops.add(ContentProviderOperation.newDelete(Data.CONTENT_URI)
+							.withSelection(SELECTION_DATA_ID, new String[] { String.valueOf(currentNativeWebLinkDataId) }).build());
+				}
     		}
 
     		// Set the photo-icon
@@ -1332,9 +1408,9 @@ public final class ContactsManager {
     		boolean haveSameEtags = false;
     		String oldPhotoIconEtag = null;
     		String newPhotoIconEtag = null;
-    		if (oldPhotoIcon!=null){
-    			oldPhotoIconEtag = oldPhotoIcon.getEtag();
-    		}
+			if (oldPhotoIcon != null) {
+				oldPhotoIconEtag = oldPhotoIcon.getEtag();
+			}
 			if (newPhotoIcon != null) {
 				newPhotoIconEtag = newPhotoIcon.getEtag();
 			}
@@ -1382,40 +1458,20 @@ public final class ContactsManager {
 			values.put(Data.IS_SUPER_PRIMARY, 1);
 
 			// Get the id of the current weblink mimetype
-			long currentNativeWebLinkDataId = INVALID_ID;
-			Cursor cur = null;
-			try {
-				cur = mResolver.query(Data.CONTENT_URI,
-								new String[] { Data._ID },
-								Data.RAW_CONTACT_ID + "=? AND " + Website.TYPE + "=?",
-								new String[] { Long.toString(rawContactId), String.valueOf(Website.TYPE_HOMEPAGE) },
-								null);
-				if (cur.moveToNext()) {
-					currentNativeWebLinkDataId = cur.getLong(cur.getColumnIndexOrThrow(Data._ID));
-				}
-			} catch (Exception e) {
-			} finally {
-				if (cur != null) {
-					cur.close();
-				}
-			}
+			long currentNativeWebLinkDataId = getCurrentNativeWebLinkDataId(rawContactId);
 				
-			if (oldPresenceInfo.getFavoriteLinkUrl()==null){
+			if (oldPresenceInfo.getFavoriteLinkUrl() == null) {
 				// There was no weblink, insert
-    			ops.add(ContentProviderOperation.newInsert(Data.CONTENT_URI)
-    					.withValues(values)
-    					.build());
-			}else if (newPresenceInfo.getFavoriteLinkUrl()!=null){
+				ops.add(ContentProviderOperation.newInsert(Data.CONTENT_URI).withValues(values).build());
+			} else if (newPresenceInfo.getFavoriteLinkUrl() != null) {
 				// Update the existing weblink
 				ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
-					.withSelection(Data._ID + "=?", new String[]{String.valueOf(currentNativeWebLinkDataId)})
-					.withValues(values)
-					.build());
-			}else{
+						.withSelection(SELECTION_DATA_ID, new String[] { String.valueOf(currentNativeWebLinkDataId) })
+						.withValues(values).build());
+			} else {
 				// Remove the existing weblink
 				ops.add(ContentProviderOperation.newDelete(Data.CONTENT_URI)
-    					.withSelection(Data._ID + "=?", new String[]{String.valueOf(currentNativeWebLinkDataId)})
-    					.build());
+						.withSelection(SELECTION_DATA_ID, new String[] { String.valueOf(currentNativeWebLinkDataId) }).build());
 			}
 
 			// Set the photo
@@ -1443,24 +1499,9 @@ public final class ContactsManager {
 				// Remove presence web link in native address book
 				// Add the weblink to the native @book
 				// Get the id of the current weblink mimetype
-				long currentNativeWebLinkDataId = INVALID_ID;
-				Cursor cur = null;
-				try {
-					cur = mResolver.query(Data.CONTENT_URI, new String[] { Data._ID },
-							Data.RAW_CONTACT_ID + "=? AND " + Website.TYPE + "=?",
-							new String[] { Long.toString(rawContactId), String.valueOf(Website.TYPE_HOMEPAGE) }, null);
-					if (cur.moveToNext()) {
-						currentNativeWebLinkDataId = cur.getLong(cur.getColumnIndexOrThrow(Data._ID));
-					}
-				} catch (Exception e) {
-				} finally {
-					if (cur != null) {
-						cur.close();
-					}
-				}
-
+				long currentNativeWebLinkDataId = getCurrentNativeWebLinkDataId(rawContactId);
 				ops.add(ContentProviderOperation.newDelete(Data.CONTENT_URI)
-						.withSelection(Data._ID + "=?", new String[] { String.valueOf(currentNativeWebLinkDataId) }).build());
+						.withSelection(SELECTION_DATA_ID, new String[] { String.valueOf(currentNativeWebLinkDataId) }).build());
 
 				// Set the photo
 				List<ContentProviderOperation> photoOps = setContactPhoto(rawContactId, null, true);
@@ -1473,6 +1514,32 @@ public final class ContactsManager {
 		}
     	
     	return ops;
+	}
+	
+	/**
+	 * Get the id of the current weblink mimetype
+	 * @param rawContactId
+	 * @return id
+	 */
+	private long getCurrentNativeWebLinkDataId(long rawContactId) {
+		Cursor cur = null;
+		try {
+			cur = mContentResolver.query(Data.CONTENT_URI, PROJECTION_DATA_ID, SELECTION_RAW_CONTACT_WITH_WEBLINK, new String[] {
+					Long.toString(rawContactId), String.valueOf(Website.TYPE_HOMEPAGE) }, null);
+			if (cur.moveToNext()) {
+				return cur.getLong(cur.getColumnIndexOrThrow(Data._ID));
+			}
+			return INVALID_ID;
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
+			return INVALID_ID;
+		} finally {
+			if (cur != null) {
+				cur.close();
+			}
+		}
 	}
 	
 	/**
@@ -1586,10 +1653,6 @@ public final class ContactsManager {
 	 * @param caps Capabilities
 	 */
 	public void setContactCapabilities(ContactId contact, Capabilities caps) {
-		// Check if contact exists in RAB
-		if (!isContactIdAssociatedWithContactInRichAddressBook(contact)) {
-			return;
-		}
 		// contact exists in RAB : we can update it
 		RcsStatus rcsStatus = getContactStatus(contact);
 		boolean isRcsContact = (!RcsStatus.NO_INFO.equals(rcsStatus) && !RcsStatus.NOT_RCS.equals(rcsStatus));
@@ -1602,67 +1665,66 @@ public final class ContactsManager {
 		
 		ContentValues values = new ContentValues();
 		
-		caps.setCsVideoSupport(caps.isCsVideoSupported() && isRegistered);
-		CapabilitySupport supported = CapabilitySupport.valueOf(caps.isCsVideoSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_CS_VIDEO, supported.toInt());
+		boolean supported = caps.isCsVideoSupported() && isRegistered;
+		caps.setCsVideoSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_CS_VIDEO, supported);
+
+		supported = caps.isFileTransferSupported() && isRegistered;
+		caps.setFileTransferSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER, supported);
+
+		supported = caps.isImageSharingSupported() && isRegistered;
+		caps.setImageSharingSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_IMAGE_SHARING, supported);
 		
-		caps.setFileTransferSupport(caps.isFileTransferSupported() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isFileTransferSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER, supported.toInt());
+		supported = (caps.isImSessionSupported() && isRegistered) || (RcsSettings.getInstance().isImAlwaysOn() && isRcsContact);
+		caps.setImSessionSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_IM_SESSION, supported);
+
+		supported = caps.isPresenceDiscoverySupported() && isRegistered;
+		caps.setPresenceDiscoverySupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_PRESENCE_DISCOVERY, supported);
+
+		supported = caps.isSocialPresenceSupported() && isRegistered;
+		caps.setSocialPresenceSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_SOCIAL_PRESENCE, supported);
+
+		supported = caps.isVideoSharingSupported() && isRegistered;
+		caps.setVideoSharingSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_VIDEO_SHARING, supported);
+
+		supported = caps.isGeolocationPushSupported() && isRegistered;
+		caps.setGeolocationPushSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_GEOLOCATION_PUSH, supported);
+
+		supported = caps.isFileTransferHttpSupported() && isRegistered;
+		caps.setFileTransferHttpSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_HTTP, supported);
+
+		supported = caps.isFileTransferThumbnailSupported() && isRegistered;
+		caps.setFileTransferThumbnailSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_THUMBNAIL, supported);
+
+		supported = caps.isIPVoiceCallSupported() && isRegistered;
+		caps.setIPVoiceCallSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_IP_VOICE_CALL, supported);
+
+		supported = caps.isIPVideoCallSupported() && isRegistered;
+		caps.setIPVideoCallSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_IP_VIDEO_CALL, supported);
+
+		supported = (caps.isFileTransferStoreForwardSupported() && isRegistered)
+				|| (RcsSettings.getInstance().isFtAlwaysOn() && isRcsContact);
+		caps.setFileTransferStoreForwardSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_SF, supported);
 		
-		caps.setImageSharingSupport(caps.isImageSharingSupported() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isImageSharingSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_IMAGE_SHARING, supported.toInt());
+		supported = caps.isSipAutomata() && isRegistered;
+		caps.setSipAutomata(supported);
+		values.put(RichAddressBookData.KEY_AUTOMATA, supported);
 		
-		caps.setImSessionSupport((caps.isImSessionSupported() && isRegistered)
-				|| (RcsSettings.getInstance().isImAlwaysOn() && isRcsContact));
-		supported = CapabilitySupport.valueOf(caps.isImSessionSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_IM_SESSION, supported.toInt());
-		
-		caps.setPresenceDiscoverySupport(caps.isPresenceDiscoverySupported() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isPresenceDiscoverySupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_PRESENCE_DISCOVERY, supported.toInt());
-		
-		caps.setSocialPresenceSupport(caps.isSocialPresenceSupported() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isSocialPresenceSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_SOCIAL_PRESENCE, supported.toInt());
-		
-		caps.setVideoSharingSupport(caps.isVideoSharingSupported() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isVideoSharingSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_VIDEO_SHARING, supported.toInt());
-		
-		caps.setGeolocationPushSupport(caps.isGeolocationPushSupported() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isGeolocationPushSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_GEOLOCATION_PUSH, supported.toInt());
-		
-		caps.setFileTransferHttpSupport(caps.isFileTransferHttpSupported() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isFileTransferHttpSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_HTTP, supported.toInt());
-		
-		caps.setFileTransferThumbnailSupport(caps.isFileTransferThumbnailSupported() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isFileTransferThumbnailSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_THUMBNAIL, supported.toInt());
-		
-		caps.setIPVoiceCallSupport(caps.isIPVoiceCallSupported() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isIPVoiceCallSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_IP_VOICE_CALL, supported.toInt());
-		
-		caps.setIPVideoCallSupport(caps.isIPVideoCallSupported() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isIPVideoCallSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_IP_VIDEO_CALL, supported.toInt());
-		
-		caps.setFileTransferStoreForwardSupport((caps.isFileTransferStoreForwardSupported() && isRegistered)
-				|| (RcsSettings.getInstance().isFtAlwaysOn() && isRcsContact));
-		supported = CapabilitySupport.valueOf(caps.isFileTransferStoreForwardSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_SF, supported.toInt());
-		
-		caps.setSipAutomata(caps.isSipAutomata() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isSipAutomata());
-		values.put(RichAddressBookData.KEY_AUTOMATA, supported.toInt());
-		
-		caps.setGroupChatStoreForwardSupport(caps.isGroupChatStoreForwardSupported() && isRegistered);
-		supported = CapabilitySupport.valueOf(caps.isGroupChatStoreForwardSupported());
-		values.put(RichAddressBookData.KEY_CAPABILITY_GROUP_CHAT_SF, supported.toInt());
+		supported = caps.isGroupChatStoreForwardSupported() && isRegistered;
+		caps.setGroupChatStoreForwardSupport(supported);
+		values.put(RichAddressBookData.KEY_CAPABILITY_GROUP_CHAT_SF, supported);
 		
 		String extensions = ServiceExtensionManager.getInstance().getExtensions(caps.getSupportedExtensions());
 		// Save the capabilities extensions
@@ -1673,7 +1735,7 @@ public final class ContactsManager {
 		values.put(RichAddressBookData.KEY_CAPABILITY_TIME_LAST_REFRESH, caps.getTimestampOfLastRefresh());
 		
 		Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-		mResolver.update(uri, values, null, null);
+		mLocalContentResolver.update(uri, values, null, null);
 	}
 	
 	/**
@@ -1685,7 +1747,7 @@ public final class ContactsManager {
 		Cursor cursor = null;
 		try {
 			Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-			cursor = mResolver.query(uri, PROJECTION_RCS_STATUS, null, null, null);
+			cursor = mLocalContentResolver.query(uri, PROJECTION_RCS_STATUS, null, null, null);
 			if (!cursor.moveToFirst()) {
 				return RcsStatus.NO_INFO;
 			}
@@ -1713,7 +1775,7 @@ public final class ContactsManager {
 		Cursor cursor = null;
 		try {
 			Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-			cursor = mResolver.query(uri, PROJECTION_REGISTRATION_STATE, null, null, null);
+			cursor = mLocalContentResolver.query(uri, PROJECTION_REGISTRATION_STATE, null, null, null);
 			if (!cursor.moveToFirst()) {
 				return RegistrationState.UNKNOWN;
 			}
@@ -1753,7 +1815,7 @@ public final class ContactsManager {
 		Cursor cursor = null;
 		try {
 			Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-			cursor = mResolver.query(uri, PROJECTION_RABP_CAPABILITIES, null, null, null);
+			cursor = mLocalContentResolver.query(uri, PROJECTION_RABP_CAPABILITIES, null, null, null);
 			if (!cursor.moveToFirst()) {
 				return caps;
 			}
@@ -1823,7 +1885,7 @@ public final class ContactsManager {
 		ContentValues values = new ContentValues();
 		values.put(RichAddressBookData.KEY_CAPABILITY_TIME_LAST_RQST, now);
 		Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-		mResolver.update(uri, values, null, null);
+		mLocalContentResolver.update(uri, values, null, null);
 	}
 
     /**
@@ -1915,10 +1977,13 @@ public final class ContactsManager {
         long rcsRawContactId = INVALID_ID;
         try {
         	ContentProviderResult[] results;
-        	results = mResolver.applyBatch(ContactsContract.AUTHORITY, ops);
+        	results = mContentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
         	rcsRawContactId =  ContentUris.parseId(results[rawContactRefIms].uri);
         } catch (RemoteException e) {
         } catch (OperationApplicationException e) {
+        	if (logger.isActivated()) {
+        		logger.debug("Operation exception => "+e);
+			}
         	return INVALID_ID;
         }
 
@@ -1930,13 +1995,13 @@ public final class ContactsManager {
         		.withValue(AggregationExceptions.RAW_CONTACT_ID2, rawContactId).build());
 
         try {
-        	mResolver.applyBatch(ContactsContract.AUTHORITY, ops);
+        	mContentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
         	// Add to exception provider
         	ContentValues values = new ContentValues();
         	values.put(AggregationData.KEY_RAW_CONTACT_ID, rawContactId);
         	values.put(AggregationData.KEY_RCS_RAW_CONTACT_ID, rcsRawContactId);
         	values.put(AggregationData.KEY_RCS_NUMBER, info.getContact().toString());
-        	mResolver.insert(AggregationData.CONTENT_URI, values);
+        	mLocalContentResolver.insert(AggregationData.CONTENT_URI, values);
         } catch (RemoteException e) {
         	if (logger.isActivated()){
         		logger.debug("Remote exception => "+e);
@@ -2036,7 +2101,7 @@ public final class ContactsManager {
             
             try {
                 ContentProviderResult[] results;
-                results = mResolver.applyBatch(ContactsContract.AUTHORITY, ops);
+                results = mContentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
                 imsRawContactId = ContentUris.parseId(results[rawContactRefIms].uri);
             } catch (RemoteException e) {
             	imsRawContactId = INVALID_ID;
@@ -2056,7 +2121,7 @@ public final class ContactsManager {
 			}
     		
             try {
-            	mResolver.applyBatch(ContactsContract.AUTHORITY, ops);
+                mContentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
             } catch (RemoteException e) {
             	imsRawContactId = INVALID_ID;
             } catch (OperationApplicationException e) {
@@ -2076,14 +2141,13 @@ public final class ContactsManager {
     private List<Long> getRawContactIdsFromPhoneNumber(ContactId contact) {
         List<Long> rawContactsIds = new ArrayList<Long>(); 
     	String[] projection = { Data.RAW_CONTACT_ID };
-        String selection = Data.MIMETYPE + "=? AND PHONE_NUMBERS_EQUAL(" + Phone.NUMBER + ", ?)";
         String[] selectionArgs = { Phone.CONTENT_ITEM_TYPE, contact.toString() };
         String sortOrder = Data.RAW_CONTACT_ID;
 
 		// Starting LOOSE equal
 		Cursor cursor = null;
 		try {
-			cursor = mResolver.query(Data.CONTENT_URI, projection, selection, selectionArgs, sortOrder);
+			cursor = mContentResolver.query(Data.CONTENT_URI, projection, SELECTION_RAW_CONTACT_FROM_NUMBER, selectionArgs, sortOrder);
 			if (cursor.moveToFirst()) {
 				int contactColumnIdx = cursor.getColumnIndexOrThrow(Data.RAW_CONTACT_ID);
 				do {
@@ -2096,6 +2160,9 @@ public final class ContactsManager {
 				} while (cursor.moveToNext());
 			}
 		} catch (Exception e) {
+			if (logger.isActivated()){
+				logger.error("Exception occurred",e);
+			}
 		} finally {
 			if (cursor != null) {
 				cursor.close();
@@ -2108,12 +2175,10 @@ public final class ContactsManager {
          * doesn't always return true when doing loose lookup of a phone number
          * against itself
          */
-        String selectionStrict = Data.MIMETYPE + "=? AND (NOT PHONE_NUMBERS_EQUAL(" + Phone.NUMBER
-                + ", ?) AND PHONE_NUMBERS_EQUAL(" + Phone.NUMBER + ", ?, 1))";
         String[] selectionArgsStrict = { Phone.CONTENT_ITEM_TYPE, contact.toString(), contact.toString() };
         cursor = null;
 		try {
-			cursor = mResolver.query(Data.CONTENT_URI, projection, selectionStrict, selectionArgsStrict, sortOrder);
+			cursor = mContentResolver.query(Data.CONTENT_URI, projection, STRICT_SELECTION_RAW_CONTACT_FROM_NUMBER, selectionArgsStrict, sortOrder);
 			if (!cursor.moveToFirst()) {
 				 return rawContactsIds;
 			}
@@ -2128,6 +2193,9 @@ public final class ContactsManager {
 				}
 			} while (cursor.moveToNext());
 		} catch (Exception e) {
+			if (logger.isActivated()){
+				logger.error("Exception occurred",e);
+			}
 		} finally {
 			if (cursor != null) {
 				cursor.close();
@@ -2147,13 +2215,16 @@ public final class ContactsManager {
 	public long getAssociatedRcsRawContact(final long rawContactId, final ContactId contact) {
 		Cursor cursor = null;
 		try {
-			cursor = mResolver.query(AggregationData.CONTENT_URI, PROJECTION_RCS_RAW_CONTACT_ID,
+			cursor = mLocalContentResolver.query(AggregationData.CONTENT_URI, PROJECTION_RCS_RAW_CONTACT_ID,
 					WHERE_RCS_RAW_CONTACT_ID_AND_RCS_NUMBER, new String[] { contact.toString(), String.valueOf(rawContactId) },
 					null);
 			if (cursor.moveToFirst()) {
 				return cursor.getLong(cursor.getColumnIndexOrThrow(AggregationData.KEY_RCS_RAW_CONTACT_ID));
 			}
 		} catch (Exception e) {
+			if (logger.isActivated()){
+				logger.error("Exception occurred",e);
+			}
 		} finally {
 			if (cursor != null) {
 				cursor.close();
@@ -2174,9 +2245,12 @@ public final class ContactsManager {
 		Cursor cursor = null;
 		try {
 			Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-			cursor = mResolver.query(uri, PROJECTION_RABP, null, null, null);
+			cursor = mLocalContentResolver.query(uri, PROJECTION_RABP, null, null, null);
 			return cursor.moveToFirst();
 		} catch (Exception e) {
+			if (logger.isActivated()){
+				logger.error("Exception occurred",e);
+			}
 			return false;
 		} finally {
 			if (cursor != null) {
@@ -2191,28 +2265,25 @@ public final class ContactsManager {
      * @param contact the contact Identifier
      * @return true if the raw contact is only associated to a SIM account, else false
      */
-    public boolean isOnlySimAssociated(final ContactId contact) {
+	public boolean isOnlySimAssociated(final ContactId contact) {
 		List<Long> rawContactIds = getRawContactIdsFromPhoneNumber(contact);
-		for (int i = 0; i < rawContactIds.size(); i++) {
-			Cursor rawCur = null;
+		for (Long rawContactId : rawContactIds) {
+			String[] selectionArgs = new String[] { Long.toString(rawContactId) };
+			Cursor cursor = null;
 			try {
-				rawCur = mResolver.query(
-						RawContacts.CONTENT_URI,
-						new String[] { RawContacts._ID },
-						"(" + RawContacts.ACCOUNT_TYPE + " IS NULL OR " + RawContacts.ACCOUNT_TYPE + " <> \'" + SIM_ACCOUNT_NAME
-								+ "\') AND " + RawContacts._ID + "= " + Long.toString(rawContactIds.get(i)), null, null);
-				if (rawCur.getCount() > 0) {
+				cursor = mContentResolver.query(RawContacts.CONTENT_URI, PROJECTION_RAW_CONTACT_ID,
+						NOT_SIM_ACCOUNT_SELECTION, selectionArgs, null);
+				if (cursor.moveToFirst()) {
 					return false;
 				}
-			} catch (Exception e) {
 			} finally {
-				if (rawCur != null) {
-					rawCur.close();
+				if (cursor != null) {
+					cursor.close();
 				}
 			}
 		}
 		return true;
-    }
+	}
     
     /**
      * Utility method to check if a raw contact id is a SIM account
@@ -2221,19 +2292,21 @@ public final class ContactsManager {
      * @return
      */
 	public boolean isSimAccount(final long rawContactId) {
-		Cursor rawCur = null;
+		Cursor cursor = null;
 		try {
-			rawCur = mResolver.query(
-					RawContacts.CONTENT_URI,
-					new String[] { RawContacts._ID },
-					RawContacts.ACCOUNT_TYPE + "= \'" + SIM_ACCOUNT_NAME + "\' AND " + RawContacts._ID + "= "
-							+ Long.toString(rawContactId), null, null);
-			return (rawCur.getCount() > 0);
+			String[] selectionArgs = new String[] { String.valueOf(rawContactId) };
+			cursor = mContentResolver.query(RawContacts.CONTENT_URI, PROJECTION_RAW_CONTACT_ID, SIM_ACCOUNT_SELECTION,
+					selectionArgs, null);
+			return cursor.moveToFirst();
+
 		} catch (Exception e) {
+			if (logger.isActivated()){
+				logger.error("Exception occurred",e);
+			}
 			return false;
 		} finally {
-			if (rawCur != null) {
-				rawCur.close();
+			if (cursor != null) {
+				cursor.close();
 			}
 		}
 	}
@@ -2251,16 +2324,11 @@ public final class ContactsManager {
     	List<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
     	
     	// Get the photo data id
-    	String[] projection = { Data._ID };
-    	String selection = Data.RAW_CONTACT_ID + "=? AND " + Data.MIMETYPE + "=?";
     	String[] selectionArgs = { Long.toString(rawContactId), Photo.CONTENT_ITEM_TYPE };
-    	String sortOrder = Data._ID + " DESC";
+    	String sortOrder = new StringBuilder(Data._ID).append(" DESC").toString();
 
-    	Cursor cursor = mResolver.query(Data.CONTENT_URI, 
-    			projection, 
-    			selection,
-    			selectionArgs, 
-    			sortOrder);
+		Cursor cursor = mContentResolver.query(Data.CONTENT_URI, PROJECTION_DATA_ID, SELECTION_RAW_CONTACT_WITH_MIMETYPE, selectionArgs,
+				sortOrder);
     	if (cursor == null) {
     		return ops;
     	}
@@ -2285,9 +2353,8 @@ public final class ContactsManager {
     			if (cursor.moveToNext()) {
     				dataId = cursor.getLong(cursor.getColumnIndex(Data._ID));
     				// Add delete operation
-    				ops.add(ContentProviderOperation.newDelete(Data.CONTENT_URI)
-	        			.withSelection(Data._ID+"=?", new String[]{String.valueOf(dataId)})
-	        			.build());
+					ops.add(ContentProviderOperation.newDelete(Data.CONTENT_URI)
+							.withSelection(SELECTION_DATA_ID, new String[] { String.valueOf(dataId) }).build());
     			}
     		} else {
     			ContentValues values = new ContentValues();
@@ -2322,18 +2389,17 @@ public final class ContactsManager {
     			values.put(Data.DATA2, etag);
 
     			String[] projection2 = { Data._ID, Data.RAW_CONTACT_ID, Data.MIMETYPE };
-    			String selection2 = Data.RAW_CONTACT_ID + "=?";
     			String[] selectionArgs2 = { Long.toString(rawContactId) };
 
 				Cursor cur2 = null;
 				try {
-					cur2 = mResolver.query(Data.CONTENT_URI, projection2, selection2, selectionArgs2, null);
+					cur2 = mContentResolver.query(Data.CONTENT_URI, projection2, SELECTION_RAW_CONTACT_ID, selectionArgs2, null);
 					if (cur2.moveToNext()) {
 						dataId = cur2.getLong(cur2.getColumnIndexOrThrow(Data._ID));
 						// We already had an etag, update it
 						dataId = cursor.getLong(cursor.getColumnIndexOrThrow(Data._ID));
 						ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
-								.withSelection(Data._ID + "=?", new String[] { String.valueOf(dataId) }).withValues(values).build());
+								.withSelection(SELECTION_DATA_ID, new String[] { String.valueOf(dataId) }).withValues(values).build());
 					} else {
 						// Insert etag
 						ops.add(ContentProviderOperation.newInsert(Data.CONTENT_URI).withValues(values).build());
@@ -2360,17 +2426,18 @@ public final class ContactsManager {
      * @return rawContactId
      */
 	private long getRawContactIdForMe() {
-		String[] projection = { RawContacts._ID };
-		String selection = RawContacts.ACCOUNT_TYPE + "=? AND " + RawContacts.SOURCE_ID + "=?";
-		String[] selectionArgs = { AuthenticationService.ACCOUNT_MANAGER_TYPE, MYSELF };
 		Cursor cursor = null;
 		try {
-			cursor = mResolver.query(RawContacts.CONTENT_URI, projection, selection, selectionArgs, null);
+			cursor = mContentResolver.query(RawContacts.CONTENT_URI, PROJECTION_RAW_CONTACT_ID, SELECTION_RAW_CONTACT_ME, null,
+					null);
 			if (!cursor.moveToNext()) {
 				return INVALID_ID;
 			}
 			return cursor.getLong(cursor.getColumnIndexOrThrow(RawContacts._ID));
 		} catch (Exception e) {
+			if (logger.isActivated()){
+				logger.error("Exception occurred",e);
+			}
 			return INVALID_ID;
 		} finally {
 			if (cursor != null) {
@@ -2389,9 +2456,12 @@ public final class ContactsManager {
 		Cursor cursor = null;
 		try {
 			Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-			cursor = mResolver.query(uri, PROJECTION_RABP, SELECTION_RAPB_IM_BLOCKED, null, null);
+			cursor = mLocalContentResolver.query(uri, PROJECTION_RABP, SELECTION_RAPB_IM_BLOCKED, null, null);
 			return cursor.moveToFirst();
 		} catch (Exception e) {
+			if (logger.isActivated()){
+				logger.error("Exception occurred",e);
+			}
 			return false;
 		} finally {
 			if (cursor != null) {
@@ -2410,9 +2480,12 @@ public final class ContactsManager {
 		Cursor cursor = null;
 		try {
 			Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-			cursor = mResolver.query(uri, PROJECTION_RABP, SELECTION_RABP_FT_BLOCKED, null, null);
+			cursor = mContentResolver.query(uri, PROJECTION_RABP, SELECTION_RABP_FT_BLOCKED, null, null);
 			return cursor.moveToFirst();
 		} catch (Exception e) {
+			if (logger.isActivated()){
+				logger.error("Exception occurred",e);
+			}
 			return false;
 		} finally {
 			if (cursor != null) {
@@ -2561,7 +2634,7 @@ public final class ContactsManager {
                 MIMETYPE_CAPABILITY_EXTENSIONS
         };
 
-        Cursor cur = mResolver.query(Data.CONTENT_URI, 
+        Cursor cur = mContentResolver.query(Data.CONTENT_URI,
         		projection, 
         		selection, 
         		selectionArgs, 
@@ -2582,62 +2655,50 @@ public final class ContactsManager {
     	values.put(StructuredName.DISPLAY_NAME, mContext.getString(R.string.rcs_core_my_profile));
     	
     	ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
-    			.withSelection("(" + Data.RAW_CONTACT_ID + " =?) AND (" + Data.MIMETYPE + "=?)", new String[]{Long.toString(getRawContactIdForMe()), StructuredName.DISPLAY_NAME})
+    			.withSelection(SELECTION_RAW_CONTACT_WITH_MIMETYPE, new String[]{Long.toString(getRawContactIdForMe()), StructuredName.DISPLAY_NAME})
     			.withValues(values)
     			.build());
     	
     	// Update file transfer menu
     	values.clear();
     	values.put(Data.DATA2, getMimeTypeDescription(MIMETYPE_CAPABILITY_FILE_TRANSFER));
-    	ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
-    			.withSelection(Data.MIMETYPE + "=?", new String[]{MIMETYPE_CAPABILITY_FILE_TRANSFER})
-    			.withValues(values)
-    			.build());
+		ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
+				.withSelection(SELECTION_DATA_MIMETYPE_CAPABILITY_FILE_TRANSFER, null).withValues(values).build());
     	
     	// Update chat menu 
     	values.clear();
     	values.put(Data.DATA2, getMimeTypeDescription(MIMETYPE_CAPABILITY_IM_SESSION));
-    	ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
-    			.withSelection(Data.MIMETYPE + "=?", new String[]{MIMETYPE_CAPABILITY_IM_SESSION})
-    			.withValues(values)
-    			.build());
+		ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
+				.withSelection(SELECTION_DATA_MIMETYPE_CAPABILITY_IM_SESSION, null).withValues(values).build());
 
     	// Update image sharing menu 
     	values.clear();
     	values.put(Data.DATA2, getMimeTypeDescription(MIMETYPE_CAPABILITY_IMAGE_SHARING));
-    	ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
-    			.withSelection(Data.MIMETYPE + "=?", new String[]{MIMETYPE_CAPABILITY_IMAGE_SHARING})
-    			.withValues(values)
-    			.build());
+		ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
+				.withSelection(SELECTION_DATA_MIMETYPE_CAPABILITY_IMAGE_SHARING, null).withValues(values).build());
 
     	// Update video sharing menu 
     	values.clear();
     	values.put(Data.DATA2, getMimeTypeDescription(MIMETYPE_CAPABILITY_VIDEO_SHARING));
-    	ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
-    			.withSelection(Data.MIMETYPE + "=?", new String[]{MIMETYPE_CAPABILITY_VIDEO_SHARING})
-    			.withValues(values)
-    			.build());
+		ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
+				.withSelection(SELECTION_DATA_MIMETYPE_CAPABILITY_VIDEO_SHARING, null).withValues(values).build());
 
-    	// Update IP voice call menu 
-    	values.clear();
-    	values.put(Data.DATA2, getMimeTypeDescription(MIMETYPE_CAPABILITY_IP_VOICE_CALL));
-    	ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
-    			.withSelection(Data.MIMETYPE + "=?", new String[]{MIMETYPE_CAPABILITY_IP_VOICE_CALL})
-    			.withValues(values)
-    			.build());
+		// Update IP voice call menu
+		values.clear();
+		values.put(Data.DATA2, getMimeTypeDescription(MIMETYPE_CAPABILITY_IP_VOICE_CALL));
+		ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
+				.withSelection(SELECTION_DATA_MIMETYPE_CAPABILITY_IP_VOICE_CALL, null).withValues(values).build());
 
-    	// Update IP video call menu 
-    	values.clear();
-    	values.put(Data.DATA2, getMimeTypeDescription(MIMETYPE_CAPABILITY_IP_VIDEO_CALL));
-    	ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
-    			.withSelection(Data.MIMETYPE + "=?", new String[]{MIMETYPE_CAPABILITY_IP_VIDEO_CALL})
-    			.withValues(values)
-    			.build());
+		// Update IP video call menu
+		values.clear();
+		values.put(Data.DATA2, getMimeTypeDescription(MIMETYPE_CAPABILITY_IP_VIDEO_CALL));
+		ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
+				.withSelection(SELECTION_DATA_MIMETYPE_CAPABILITY_IP_VIDEO_CALL, null).withValues(values).build());
 
     	if (!ops.isEmpty()){
 			// Do the actual database modifications
 			try {
-				mResolver.applyBatch(ContactsContract.AUTHORITY, ops);
+				mContentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
 			} catch (RemoteException e) {
 				if (logger.isActivated()){
 					logger.error("Something went wrong when updating the database strings",e);
@@ -2667,14 +2728,12 @@ public final class ContactsManager {
      */
     private void cleanRCSRawContactsInAB() {
 		// Get all RCS raw contacts id
-		String[] projection = { Data.RAW_CONTACT_ID, Data.DATA1 };
-		String selection = Data.MIMETYPE + "=?";
-		String[] selectionArgs = { MIMETYPE_NUMBER };
         // Delete RCS Entry where number is not in the address book anymore
      	ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
 		Cursor cursor = null;
 		try {
-			cursor = mResolver.query(Data.CONTENT_URI, projection, selection, selectionArgs, null);
+			cursor = mContentResolver.query(Data.CONTENT_URI, PROJECTION_RAW_CONTACT_DATA1, SELECTION_DATA_MIMETYPE_NUMBER, null,
+					null);
 			if (cursor.moveToFirst()) {
 				int contactColumnIdx = cursor.getColumnIndexOrThrow(Data.RAW_CONTACT_ID);
 				int data1ColumnIdx = cursor.getColumnIndexOrThrow(Data.DATA1);
@@ -2685,9 +2744,9 @@ public final class ContactsManager {
 						ContactId contact = ContactUtils.createContactId(phoneNumber);
 						if (getRawContactIdsFromPhoneNumber(contact).isEmpty()) {
 							ops.add(ContentProviderOperation.newDelete(RawContacts.CONTENT_URI)
-									.withSelection(RawContacts._ID + "=?", new String[] { Long.toString(rawContactId) }).build());
+									.withSelection(SELECTION_RAW_CONTACT, new String[] { Long.toString(rawContactId) }).build());
 							// Also delete the corresponding entries in the aggregation provider
-							mResolver.delete(AggregationData.CONTENT_URI, WHERE_RCS_RAW_CONTACT_ID,
+							mLocalContentResolver.delete(AggregationData.CONTENT_URI, WHERE_RCS_RAW_CONTACT_ID,
 									new String[] { Long.toString(rawContactId) });
 						}
 					} catch (RcsContactFormatException e) {
@@ -2698,6 +2757,9 @@ public final class ContactsManager {
 				} while (cursor.moveToNext());
 			}
 		} catch (Exception e) {
+			if (logger.isActivated()){
+				logger.error("Exception occurred",e);
+			}
 		} finally {
 			if (cursor != null) {
 				cursor.close();
@@ -2707,7 +2769,7 @@ public final class ContactsManager {
 		if (!ops.isEmpty()){
 			// Do the actual database modifications
 			try {
-				mResolver.applyBatch(ContactsContract.AUTHORITY, ops);
+			    mContentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
 			} catch (RemoteException e) {
 				if (logger.isActivated()){
 					logger.error("Something went wrong when updating the database strings",e);
@@ -2729,7 +2791,7 @@ public final class ContactsManager {
 		// Get All contact in EAB
 		Cursor cursor = null;
 		try {
-			cursor = mResolver.query(RichAddressBookData.CONTENT_URI, PROJECTION_RABP, null, null, null);
+			cursor = mLocalContentResolver.query(RichAddressBookData.CONTENT_URI, PROJECTION_RABP, null, null, null);
 			if (!cursor.moveToFirst()) {
 				return;
 			}
@@ -2741,7 +2803,7 @@ public final class ContactsManager {
 					ContactId contact = ContactUtils.createContactId(phoneNumber);
 					if (getRawContactIdsFromPhoneNumber(contact).isEmpty()) {
 						Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, phoneNumber);
-						mResolver.delete(uri, null, null);
+						mLocalContentResolver.delete(uri, null, null);
 					}
 				} catch (RcsContactFormatException e) {
 					if (logger.isActivated()) {
@@ -2765,13 +2827,13 @@ public final class ContactsManager {
      */
     public void deleteRCSEntries() {
         // Delete Aggregation data
-    	mResolver.delete(AggregationData.CONTENT_URI, null, null);
+    	mLocalContentResolver.delete(AggregationData.CONTENT_URI, null, null);
 
     	// Empty the cache
     	mCapabilitiesCache.clear();
     	
         // Delete presence data
-    	mResolver.delete(RichAddressBookData.CONTENT_URI, null, null);
+    	mLocalContentResolver.delete(RichAddressBookData.CONTENT_URI, null, null);
     }
     
     /**
@@ -2784,7 +2846,7 @@ public final class ContactsManager {
     private boolean isCapabilitySupported(Cursor cursor, String column) {
     	return cursor.getInt(cursor.getColumnIndexOrThrow(column)) == CapabilitiesLog.SUPPORTED;
     }
-
+    
 	/**
 	 * Set the display name into the rich address book provider
 	 * 
@@ -2804,14 +2866,14 @@ public final class ContactsManager {
 			if (updateRequired) {
 				Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
 				// Contact already present and display name is new, update
-				mResolver.update(uri, values, null, null);
+				mLocalContentResolver.update(uri, values, null, null);
 			}
 		} catch (IllegalStateException e) {
 			// RCS account does not exist : insert it
 			values.put(RichAddressBookData.KEY_CONTACT, contact.toString());
 			values.put(RichAddressBookData.KEY_TIMESTAMP, System.currentTimeMillis());
 			// Contact not present in provider, insert
-			mResolver.insert(RichAddressBookData.CONTENT_URI, values);
+			mLocalContentResolver.insert(RichAddressBookData.CONTENT_URI, values);
 		}
 	}
 	
@@ -2825,7 +2887,7 @@ public final class ContactsManager {
 		Cursor cursor = null;
 		try {
 			Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-			cursor = mResolver.query(uri, PROJECTION_RABP_DISPLAY_NAME, null, null, null);
+			cursor = mLocalContentResolver.query(uri, PROJECTION_RABP_DISPLAY_NAME, null, null, null);
 			if (cursor.moveToFirst()) {
 				return cursor.getString(cursor.getColumnIndexOrThrow(RichAddressBookData.KEY_DISPLAY_NAME));
 			}
@@ -2860,6 +2922,6 @@ public final class ContactsManager {
 		ContentValues values = new ContentValues();
 		values.put(RichAddressBookData.KEY_CAPABILITY_TIME_LAST_REFRESH, now);
 		Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
-		mResolver.update(uri, values, null, null);
+		mLocalContentResolver.update(uri, values, null, null);
 	}
 }

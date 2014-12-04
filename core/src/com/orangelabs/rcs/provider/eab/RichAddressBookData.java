@@ -23,7 +23,6 @@
 package com.orangelabs.rcs.provider.eab;
 
 import android.net.Uri;
-import android.util.SparseArray;
 
 import com.gsma.services.rcs.capability.CapabilitiesLog;
 
@@ -259,31 +258,4 @@ public class RichAddressBookData {
      */
     static final int BLOCKED_VALUE_SET = 1;
     
-    // TODO replace by API definition CR031
- 	public enum CapabilitySupport {
- 		FALSE(0), TRUE(1);
-
- 		private int mValue;
-
- 		private static SparseArray<CapabilitySupport> mValueToEnum = new SparseArray<CapabilitySupport>();
- 		static {
- 			for (CapabilitySupport entry : CapabilitySupport.values()) {
- 				mValueToEnum.put(entry.toInt(), entry);
- 			}
- 		}
-
- 		private CapabilitySupport(int value) {
- 			mValue = value;
- 		}
-
- 		public final int toInt() {
- 			return mValue;
- 		}
- 		
- 		public static CapabilitySupport valueOf(boolean supported) {
- 			return supported ? CapabilitySupport.TRUE : CapabilitySupport.FALSE;
- 		}
-
- 	};
-
 }

@@ -86,22 +86,22 @@ public class PresenceInfo {
 	/**
 	 * Free text
 	 */
-	private String freetext = null;
+	private String freetext;
 	
 	/**
 	 * Favorite link
 	 */
-	private FavoriteLink favoriteLink = null;
+	private FavoriteLink favoriteLink;
 
 	/**
 	 * Photo icon
 	 */
-	private PhotoIcon photo = null;
+	private PhotoIcon photo;
 
 	/**
 	 * Geoloc
 	 */
-	private Geoloc geoloc = null;
+	private Geoloc geoloc;
 	
 	/**
 	 * Constructor

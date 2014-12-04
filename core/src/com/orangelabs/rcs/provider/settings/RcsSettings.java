@@ -30,7 +30,6 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -80,22 +79,19 @@ public class RcsSettings {
 	/**
 	 * Content resolver
 	 */
-	private ContentResolver mContentResolver;
+	final private ContentResolver mContentResolver;
 
-	/**
-	 * Database URI
-	 */
-	private Uri databaseUri = RcsSettingsData.CONTENT_URI;
-	
 	/**
 	 * A cache for storing settings in order to increase performance
 	 */
-	private Map<String,String> mCache;
+	final private Map<String,String> mCache;
 
 	/**
 	 * Empty constructor : prevent caller from creating multiple instances
 	 */
 	private RcsSettings() {
+		mContentResolver = null;
+		mCache = null;
 	}
 
 	/**
@@ -109,10 +105,9 @@ public class RcsSettings {
 			return;
 		}
 		synchronized (RcsSettings.class) {
-			if (instance != null) {
-				return;
+			if (instance == null) {
+				instance = new RcsSettings(ctx);;
 			}
-			instance = new RcsSettings(ctx);
 		}
 	}
 
@@ -309,7 +304,7 @@ public class RcsSettings {
 		Cursor c = null;
 		try {
 			String[] whereArg = new String[] { key };
-			c = mContentResolver.query(databaseUri, null, WHERE_CLAUSE, whereArg, null);
+			c = mContentResolver.query(RcsSettingsData.CONTENT_URI, null, WHERE_CLAUSE, whereArg, null);
 			if (c.moveToFirst()) {
 				value = c.getString(c.getColumnIndexOrThrow(RcsSettingsData.KEY_VALUE));
 				// Update cache
@@ -347,7 +342,7 @@ public class RcsSettings {
 		ContentValues values = new ContentValues();
 		values.put(RcsSettingsData.KEY_VALUE, value);
 		String[] whereArgs = new String[] { key };
-		int count = mContentResolver.update(databaseUri, values, WHERE_CLAUSE, whereArgs);
+		int count = mContentResolver.update(RcsSettingsData.CONTENT_URI, values, WHERE_CLAUSE, whereArgs);
 		if (count != 0 && updateCache) {
 			// Put in cache
 			mCache.put(key, value);
