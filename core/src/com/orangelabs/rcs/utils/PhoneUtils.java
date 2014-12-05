@@ -23,8 +23,10 @@ import java.util.regex.Pattern;
 
 import android.content.Context;
 import android.telephony.PhoneNumberUtils;
+import android.text.TextUtils;
 
 import com.gsma.services.rcs.contacts.ContactId;
+import com.gsma.services.rcs.contacts.ContactUtils;
 import com.orangelabs.rcs.core.ims.ImsModule;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 
@@ -67,9 +69,10 @@ public class PhoneUtils {
 	 */
 	public static synchronized void initialize(Context context) {
 		RcsSettings.createInstance(context);
+		ContactUtils contactUtils = ContactUtils.getInstance(context);
 		TEL_URI_SUPPORTED = RcsSettings.getInstance().isTelUriFormatUsed();
-		COUNTRY_CODE = RcsSettings.getInstance().getCountryCode();
-		COUNTRY_AREA_CODE = RcsSettings.getInstance().getCountryAreaCode();
+		COUNTRY_CODE = contactUtils.getMyCountryCode();
+		COUNTRY_AREA_CODE = contactUtils.getMyCountryAreaCode();
 	}
 
 	/**
@@ -101,14 +104,11 @@ public class PhoneUtils {
 		// Format into international
 		if (phoneNumber.startsWith("00" + COUNTRY_CODE.substring(1))) {
 			// International format
-			phoneNumber = COUNTRY_CODE + phoneNumber.substring(1+COUNTRY_CODE.length());
-		} else
-		if ((COUNTRY_AREA_CODE != null) && (COUNTRY_AREA_CODE.length() > 0) &&
-				phoneNumber.startsWith(COUNTRY_AREA_CODE)) {
+			phoneNumber = COUNTRY_CODE + phoneNumber.substring(1 + COUNTRY_CODE.length());
+		} else if (!TextUtils.isEmpty(COUNTRY_AREA_CODE) && phoneNumber.startsWith(COUNTRY_AREA_CODE)) {
 			// National number with area code
 			phoneNumber = COUNTRY_CODE + phoneNumber.substring(COUNTRY_AREA_CODE.length());
-		} else
-		if (!phoneNumber.startsWith("+")) {
+		} else if (!phoneNumber.startsWith("+")) {
 			// National number
 			phoneNumber = COUNTRY_CODE + phoneNumber;
 		}
@@ -132,8 +132,7 @@ public class PhoneUtils {
 		// Extract username part
 		if (number.startsWith("tel:")) {
 			number = number.substring(4);
-		} else		
-		if (number.startsWith("sip:")) {
+		} else if (number.startsWith("sip:")) {
 			number = number.substring(4, number.indexOf("@"));
 		}
 		

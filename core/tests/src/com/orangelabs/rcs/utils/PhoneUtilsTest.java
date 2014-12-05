@@ -17,16 +17,16 @@
  ******************************************************************************/
 package com.orangelabs.rcs.utils;
 
+import android.content.Context;
 import android.test.AndroidTestCase;
-
-import com.orangelabs.rcs.provider.settings.RcsSettings;
 
 public class PhoneUtilsTest extends AndroidTestCase {
 
+	private Context mContext;
+
 	protected void setUp() throws Exception {
 		super.setUp();
-
-		RcsSettings.createInstance(getContext());
+		mContext = getContext();
 	}
 
 	protected void tearDown() throws Exception {
@@ -34,9 +34,7 @@ public class PhoneUtilsTest extends AndroidTestCase {
 	}
 
 	public void testFranceNumber() {
-		RcsSettings.getInstance().setCountryCode("+33");
-		RcsSettings.getInstance().setCountryAreaCode("0");
-		PhoneUtils.initialize(getContext());
+		PhoneUtils.initialize(mContext);
 
 		assertEquals(PhoneUtils.formatNumberToInternational("0033121345678"), "+33121345678");
 		assertEquals(PhoneUtils.formatNumberToInternational("0121345678"), "+33121345678");
@@ -47,8 +45,6 @@ public class PhoneUtilsTest extends AndroidTestCase {
 	}
 
 	public void testSpainNumber() {
-		RcsSettings.getInstance().setCountryCode("+34");
-		RcsSettings.getInstance().setCountryAreaCode("");
 		PhoneUtils.initialize(getContext());
 
 		assertEquals(PhoneUtils.formatNumberToInternational("0034121345678"), "+34121345678");

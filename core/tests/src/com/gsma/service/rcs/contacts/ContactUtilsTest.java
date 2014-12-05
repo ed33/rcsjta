@@ -24,18 +24,13 @@ import android.text.TextUtils;
 import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
-import com.orangelabs.rcs.provider.settings.RcsSettings;
 
 public class ContactUtilsTest extends AndroidTestCase {
 
-	private RcsSettings rcsSettings;
 	private ContactUtils contactUtils;
 	
 	protected void setUp() throws Exception {
 		super.setUp();
-		RcsSettings.createInstance(getContext());
-		rcsSettings = RcsSettings.getInstance();
-		assertNotNull("Cannot instantiate RcsSettings", rcsSettings);
 		contactUtils = ContactUtils.getInstance(getContext());
 		assertNotNull("Cannot instantiate ContactUtils", contactUtils);
 	}
@@ -115,10 +110,10 @@ public class ContactUtilsTest extends AndroidTestCase {
 	}
 	
 	public void testFormatContactIdWithLocalNumbering() {
-		String cac = rcsSettings.getCountryAreaCode();
+		String cac = contactUtils.getMyCountryAreaCode();
 		if (TextUtils.isEmpty(cac)) 
 			return;
-		String cc = rcsSettings.getCountryCode();
+		String cc = contactUtils.getMyCountryCode();
 		try {
 			ContactId cid = contactUtils.formatContact(cac+"612345678");
 			assertTrue(cid.toString().equals(cc+"612345678"));
@@ -128,7 +123,7 @@ public class ContactUtilsTest extends AndroidTestCase {
 	}
 	
 	public void testFormatContactIdWithLocalNumberingButDifferentCountryAreaCode() {
-		String cac = rcsSettings.getCountryAreaCode();
+		String cac = contactUtils.getMyCountryAreaCode();
 		if (TextUtils.isEmpty(cac)) 
 			return;
 		try {
@@ -141,7 +136,7 @@ public class ContactUtilsTest extends AndroidTestCase {
 	}
 	
 	public void testFormatContactIdWithPrefixedInternationalNumbering() {
-		String cc = rcsSettings.getCountryCode();
+		String cc = contactUtils.getMyCountryCode();
 		try {
 			ContactId cid = contactUtils.formatContact("00"+cc.substring(1)+"612345678");
 			assertTrue(cid.toString().equals(cc+"612345678"));

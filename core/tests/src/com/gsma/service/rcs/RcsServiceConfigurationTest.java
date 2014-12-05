@@ -23,6 +23,7 @@ import android.test.AndroidTestCase;
 
 import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.RcsServiceConfiguration;
+import com.gsma.services.rcs.contacts.ContactUtils;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.MessagingMode;
@@ -30,12 +31,15 @@ import com.orangelabs.rcs.provider.settings.RcsSettingsData.MessagingMode;
 public class RcsServiceConfigurationTest extends AndroidTestCase {
 
 	private RcsSettings rcsSettings;
+	private ContactUtils contactUtils;
 
 	protected void setUp() throws Exception {
 		super.setUp();
 		RcsSettings.createInstance(getContext());
 		rcsSettings = RcsSettings.getInstance();
+		contactUtils = ContactUtils.getInstance(getContext());
 		assertNotNull("Cannot instantiate RcsSettings", rcsSettings);
+		assertNotNull("Cannot instantiate ContactUtils", contactUtils);
 	}
 
 	protected void tearDown() throws Exception {
@@ -98,16 +102,6 @@ public class RcsServiceConfigurationTest extends AndroidTestCase {
 		}
 	}
 
-	public void testGetMyCountryCode() {
-		String countryCode = rcsSettings.getCountryCode();
-		assertEquals(countryCode, RcsServiceConfiguration.getMyCountryCode(getContext()));
-	}
-
-	public void testGetMyCountryAreaCode() {
-		String countryAreaCode = rcsSettings.getCountryAreaCode();
-		assertEquals(countryAreaCode, RcsServiceConfiguration.getMyCountryAreaCode(getContext()));
-	}
-
 	public void testGetMyContactId() {
 		String contactIdSav = rcsSettings.getUserProfileImsUserName();
 		rcsSettings.setUserProfileImsUserName("+33123456789");
@@ -121,10 +115,10 @@ public class RcsServiceConfigurationTest extends AndroidTestCase {
 	}
 
 	public void testGetMyContactIdWithoutCC() {
-		String cac = rcsSettings.getCountryAreaCode();
+		String cac = contactUtils.getMyCountryAreaCode();
 		String contactIdSav = rcsSettings.getUserProfileImsUserName();
 		rcsSettings.setUserProfileImsUserName(cac + "23456789");
-		String cc = rcsSettings.getCountryCode();
+		String cc = contactUtils.getMyCountryCode();
 		try {
 			assertEquals(cc + "23456789", RcsServiceConfiguration.getMyContactId(getContext())
 					.toString());
