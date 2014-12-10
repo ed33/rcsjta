@@ -25,6 +25,12 @@ import com.orangelabs.rcs.core.ims.network.sip.FeatureTags;
  * @author jexa7410
  */
 public class ExtensionUtils {
+	
+	// 2nd party apps extension prefix
+	private static final String MNO_EXT= new StringBuilder(FeatureTags.FEATURE_RCSE_EXTENSION).append(".mnc").toString();
+	// 3rd party apps extension prefix
+	private static final String OTHER_EXT= new StringBuilder(FeatureTags.FEATURE_RCSE_EXTENSION).append(".mnc").toString();
+	
 	/**
 	 * Is a valid extension
 	 * 
@@ -40,11 +46,7 @@ public class ExtensionUtils {
 	 * @return Boolean
 	 */
 	public static boolean isMnoExt(String ext) {
-		if (ext.startsWith(FeatureTags.FEATURE_RCSE_EXTENSION + ".mnc")) {
-			return true;
-		} else {
-			return false;
-		}
+		return (ext.startsWith(MNO_EXT));
 	}
 
 	/**
@@ -53,10 +55,6 @@ public class ExtensionUtils {
 	 * @return Boolean
 	 */
 	public static boolean isThirdPartyExt(String ext) {
-		if (ext.startsWith(FeatureTags.FEATURE_RCSE_EXTENSION + ".ext")) {
-			return true;
-		} else {
-			return false;
-		}
+		return (ext.startsWith(OTHER_EXT));
 	}
 }

@@ -171,7 +171,7 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 
     /**
      * Returns the capabilities of a given contact from the local database. This
-     * method doesn’t request any network update to the remote contact. The parameter
+     * method doesnâ€™t request any network update to the remote contact. The parameter
      * contact supports the following formats: MSISDN in national or international
      * format, SIP address, SIP-URI or Tel-URI. If the format of the contact is not
      * supported an exception is thrown.

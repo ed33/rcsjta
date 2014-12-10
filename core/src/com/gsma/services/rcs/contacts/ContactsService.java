@@ -206,7 +206,7 @@ public class ContactsService extends JoynService {
     
     /**
      * Returns the vCard of a contact. The method returns the complete filename including the path of the visit
-     * card. The filename has the file extension ì.vcfî and is generated from the native address book
+     * card. The filename has the file extension ‚Äú.vcf‚Äù and is generated from the native address book
      * vCard URI (see Android SDK attribute ContactsContract.Contacts.CONTENT_VCARD_URI which returns
      * the referenced contact formatted as a vCard when opened through openAssetFileDescriptor(Uri, String)).
      * 

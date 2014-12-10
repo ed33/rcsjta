@@ -144,8 +144,8 @@ public class FileTransferService extends JoynService {
 	}
 
 	private void persistUriPermissionForClient(Uri file) {
-		 ctx.getContentResolver().takePersistableUriPermission(file,
-				Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+//		 ctx.getContentResolver().takePersistableUriPermission(file,
+//				Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 	}
 
     /**
@@ -171,7 +171,7 @@ public class FileTransferService extends JoynService {
 	 * @param file the file URI
 	 */
 	private void grantAndPersistUriPermission(Uri file) {
-		if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.KITKAT) {
+		if (android.os.Build.VERSION.SDK_INT < 19) {
 			return;
 		}
 		if (ContentResolver.SCHEME_CONTENT.equals(file.getScheme())) {

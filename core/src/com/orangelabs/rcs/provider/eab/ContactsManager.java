@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import android.accounts.AccountManager;
 import android.content.ContentProviderOperation;
@@ -56,6 +57,7 @@ import com.orangelabs.rcs.R;
 import com.orangelabs.rcs.addressbook.AuthenticationService;
 import com.orangelabs.rcs.core.ims.service.ContactInfo;
 import com.orangelabs.rcs.core.ims.service.capability.Capabilities;
+import com.orangelabs.rcs.core.ims.service.extension.ServiceExtensionManager;
 import com.orangelabs.rcs.core.ims.service.presence.FavoriteLink;
 import com.orangelabs.rcs.core.ims.service.presence.Geoloc;
 import com.orangelabs.rcs.core.ims.service.presence.PhotoIcon;
@@ -281,6 +283,12 @@ public final class ContactsManager {
      */
     private static final String WHERE_CLAUSE_CONTACT = new StringBuilder(RichAddressBookData.KEY_CONTACT_NUMBER).append("=?").toString();
     
+    /**
+     * Where clause to query raw contact
+     */
+        private static final String SELECTION_RAW_CONTACT_MIMETYPE_DATA1 = new StringBuilder(Data.RAW_CONTACT_ID).append("=? AND ")
+                        .append(Data.MIMETYPE).append("=? AND ").append(Data.DATA1).append("=?").toString();
+
 	/**
 	 * The logger
 	 */
@@ -406,13 +414,10 @@ public final class ContactsManager {
 				(RcsSettings.getInstance().isFtAlwaysOn() && newInfo.isRcsContact())));
 		values.put(RichAddressBookData.KEY_CAPABILITY_GROUP_CHAT_SF, setCapabilityToColumn(newCapabilities.isGroupChatStoreForwardSupported() && isRegistered));
 
-		// Save the capabilities extensions
-		ArrayList<String> newExtensions = newCapabilities.getSupportedExtensions();
-		StringBuffer aggregatedExtensions = new StringBuffer();
-		for (int i=0; i<newExtensions.size(); i++){
-			aggregatedExtensions.append(newExtensions.get(i)+";");
-		}
-		values.put(RichAddressBookData.KEY_CAPABILITY_EXTENSIONS, aggregatedExtensions.toString());
+		 // Save the capabilities extensions
+        values.put(RichAddressBookData.KEY_CAPABILITY_EXTENSIONS,
+                        ServiceExtensionManager.getInstance().getExtensions(newCapabilities.getSupportedExtensions()));
+
 
 		// Save capabilities timestamp
 		values.put(RichAddressBookData.KEY_CAPABILITY_TIMESTAMP, newCapabilities.getTimestamp());
@@ -612,12 +617,12 @@ public final class ContactsManager {
     				ops.add(op);
     			}
     			// RCS extensions
-    			ArrayList<String> extensions = newInfo.getCapabilities().getSupportedExtensions();
+    			Set<String> extensions = newInfo.getCapabilities().getSupportedExtensions();
     			if (!isRegistered){
     				// If contact is not registered, do not put any extensions
     				extensions.clear();
     			}
-    			List<ContentProviderOperation> extensionOps = modifyExtensionsCapabilityForContact(rcsRawContactId, contact, extensions, oldInfo.getCapabilities().getSupportedExtensions());
+                List<ContentProviderOperation> extensionOps = modifyExtensionsCapabilityForContact(rcsRawContactId, contact, extensions, oldInfo.getCapabilities().getSupportedExtensions());
     			for (int j=0;j<extensionOps.size();j++){
     				op = extensionOps.get(j);
     				if (op!=null){
@@ -1296,59 +1301,33 @@ public final class ContactsManager {
 		return ops;
 	}
 	
-	/**
-	 * Modify the RCS extensions capability for the contact
-	 * 
-	 * @param rawContactId Raw contact id of the RCS contact
-	 * @param number RCS number of the contact
-	 * @param newExtensions New extensions capabilities
-	 * @param oldExtensions Old extensions capabilities 
-	 * @return list of contentProviderOperation to be done
-	 */
-	private List<ContentProviderOperation> modifyExtensionsCapabilityForContact(long rawContactId, String rcsNumber, ArrayList<String> newExtensions, ArrayList<String> oldExtensions){
+    /**
+     * Modify the RCS extensions capability for the contact
+     *
+     * @param rawContactId Raw contact id of the RCS contact
+     * @param contact RCS number of the contact
+     * @param newExtensions New extensions capabilities
+     * @param oldExtensions Old extensions capabilities
+     * @return list of contentProviderOperation to be done
+     */
+    private List<ContentProviderOperation> modifyExtensionsCapabilityForContact(long rawContactId, String contact,
+                    Set<String> newExtensions, Set<String> oldExtensions) {
+            List<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+            // Compare the two lists of extensions
+            if (newExtensions.containsAll(oldExtensions) && oldExtensions.containsAll(newExtensions)) {
+                    // Both lists have the same tags, no need to update
+                    return ops;
+            }
 
-		List<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
-		
-		// Compare the two lists of extensions
-		if (newExtensions.containsAll(oldExtensions) && oldExtensions.containsAll(newExtensions)){
-			// Both lists have the same tags, no need to update
-			return ops;
-		}
-		
-		StringBuffer extension = new StringBuffer();
-		for (int j=0;j<newExtensions.size();j++){
-			extension.append(newExtensions.get(j)+";");
-		}
-		
-        // Check if we support at least one of the extensions this contact has
-        boolean oldHasCommonExtensions = false;
-        boolean newHasCommonExtensions = false;
-        
-        // Get my extensions
-        String exts = RcsSettings.getInstance().getSupportedRcsExtensions();
-		if ((exts != null) && (exts.length() > 0)) {
-			String[] ext = exts.split(",");
-			for(int i=0; i < ext.length; i++) {
-				String capability = ext[i];
-				if (newExtensions.contains(capability)){
-					newHasCommonExtensions = true;
-				}
-				if (oldExtensions.contains(capability)){
-					oldHasCommonExtensions = true;
-				}
-			}
-		}
-        
-		// Add or remove the common extensions mimetype
-		ops.add(modifyMimeTypeForContact(rawContactId, rcsNumber, MIMETYPE_CAPABILITY_COMMON_EXTENSION, newHasCommonExtensions, oldHasCommonExtensions));
-		
-        // Update extensions        
-        ops.add(ContentProviderOperation.newUpdate(Data.CONTENT_URI)
-        		.withSelection(Data.RAW_CONTACT_ID + "=?" + " AND " + Data.MIMETYPE + "=?" + " AND " + Data.DATA1 + "=?", new String[]{String.valueOf(rawContactId), MIMETYPE_CAPABILITY_EXTENSIONS, rcsNumber})
-        		.withValue(Data.DATA2, extension.toString())
-        		.build());
-		return ops;
-	}
+            // Update extensions
+            ops.add(ContentProviderOperation
+                            .newUpdate(Data.CONTENT_URI)
+                            .withSelection(SELECTION_RAW_CONTACT_MIMETYPE_DATA1,
+                                            new String[] { String.valueOf(rawContactId), MIMETYPE_CAPABILITY_EXTENSIONS, contact.toString() })
+                            .withValue(Data.DATA2, ServiceExtensionManager.getInstance().getExtensions(newExtensions)).build());
+            return ops;
+    }
+
 	
 	/**
 	 * Modify the presence info for a contact
@@ -2056,35 +2035,14 @@ public final class ContactsManager {
             ops.add(createMimeTypeForContact(rawContactRefIms, info.getContact(), MIMETYPE_CAPABILITY_FILE_TRANSFER_HTTP));
         }
         // Insert extensions
-		boolean hasCommonExtensions = false;
-		StringBuffer extension = new StringBuffer();
-        ArrayList<String> newExtensions = info.getCapabilities().getSupportedExtensions();
-        String exts = RcsSettings.getInstance().getSupportedRcsExtensions();
-        for (int j = 0; j < newExtensions.size(); j++) {
-            extension.append(newExtensions.get(j) +";");
-	        // Check if we support at least one of the extensions this contact has
-	        // Get my extensions
-			if ((exts != null) && (exts.length() > 0)) {
-				String[] ext = exts.split(",");
-				for(int i=0; i < ext.length; i++) {
-					String capability = ext[i];
-					if (newExtensions.contains(capability)){
-						hasCommonExtensions = true;
-					}
-				}
-			}
-		}
-		ops.add(ContentProviderOperation.newInsert(Data.CONTENT_URI)
-				.withValueBackReference(Data.RAW_CONTACT_ID, rawContactRefIms)
-				.withValue(Data.MIMETYPE, MIMETYPE_CAPABILITY_EXTENSIONS)
-				.withValue(Data.DATA1, info.getContact())
-				.withValue(Data.DATA2, extension.toString())
-				.withValue(Data.DATA3, info.getContact())
-				.build());
-		if (hasCommonExtensions) {
-			// Insert common extensions item
-            ops.add(createMimeTypeForContact(rawContactRefIms, info.getContact(), MIMETYPE_CAPABILITY_COMMON_EXTENSION));
-		}
+        ops.add(ContentProviderOperation.newInsert(Data.CONTENT_URI)
+                .withValueBackReference(Data.RAW_CONTACT_ID, rawContactRefIms)
+                .withValue(Data.MIMETYPE, MIMETYPE_CAPABILITY_EXTENSIONS)
+                .withValue(Data.DATA1, info.getContact().toString())
+                .withValue(Data.DATA2, ServiceExtensionManager.getInstance().getExtensions(info.getCapabilities().getSupportedExtensions()))
+                .withValue(Data.DATA3, info.getContact().toString())
+                .build());
+
 
     	// Insert registration status
     	ops.add(ContentProviderOperation.newInsert(Data.CONTENT_URI)

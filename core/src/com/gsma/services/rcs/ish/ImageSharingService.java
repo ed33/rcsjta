@@ -144,8 +144,8 @@ public class ImageSharingService extends JoynService {
 	}
 
 	private void persistUriPermissionForClient(Uri file) {
-		ctx.getContentResolver().takePersistableUriPermission(file,
-				Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+//		ctx.getContentResolver().takePersistableUriPermission(file,
+//				Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 	}
 
     /**

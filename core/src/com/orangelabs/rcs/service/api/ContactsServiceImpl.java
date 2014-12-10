@@ -76,11 +76,7 @@ public class ContactsServiceImpl extends IContactsService.Stub {
 		ContactInfo contactInfo = ContactsManager.getInstance().getContactInfo(contactId);
 		if (contactInfo !=  null) {
 			com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities = contactInfo.getCapabilities();
-    		Set<String> exts = new HashSet<String>();
-    		List<String> listExts = capabilities.getSupportedExtensions();
-    		for(int j=0; j < listExts.size(); j++) {
-    			exts.add(listExts.get(j));
-    		}
+    		Set<String> exts = capabilities.getSupportedExtensions();
     		Capabilities capaApi = new Capabilities(
     				capabilities.isImageSharingSupported(),
     				capabilities.isVideoSharingSupported(),
@@ -119,10 +115,10 @@ public class ContactsServiceImpl extends IContactsService.Stub {
 			Capabilities capaApi = null;
 			if (capabilities != null) {
 	    		Set<String> exts = new HashSet<String>();
-	    		List<String> listExts = capabilities.getSupportedExtensions();
-	    		for(int j=0; j < listExts.size(); j++) {
-	    			exts.add(listExts.get(j));
-	    		}
+	    		Set<String> listExts = capabilities.getSupportedExtensions();
+	    		for (String extension : listExts) {
+	    			exts.add(extension);
+				}
 				capaApi = new Capabilities(
 	    				capabilities.isImageSharingSupported(),
 	    				capabilities.isVideoSharingSupported(),
@@ -204,10 +200,9 @@ public class ContactsServiceImpl extends IContactsService.Stub {
 			com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities = contactInfo.getCapabilities();
 			Capabilities capaApi = null;
 			if (capabilities != null) {
-				ArrayList<String> exts = capabilities.getSupportedExtensions();
-				for (int j=0; j < exts.size(); j++) {
-					String ext = exts.get(j);
-					if (ext.equals(serviceId)) { 
+				Set<String> exts = capabilities.getSupportedExtensions();
+				for (String extension : exts) {
+					if (extension.equals(serviceId)) { 
 						capaApi = new Capabilities(
 			    				capabilities.isImageSharingSupported(),
 			    				capabilities.isVideoSharingSupported(),

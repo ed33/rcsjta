@@ -17,7 +17,8 @@
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.capability;
 
-import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Capabilities
@@ -101,9 +102,9 @@ public class Capabilities {
     private boolean sipAutomata = false;
 
     /**
-	 * List of supported extensions
-	 */
-	private ArrayList<String> extensions = new ArrayList<String>();
+     * Set of supported extensions
+     */
+    private Set<String> extensions = new HashSet<String>();
 	
 	/**
 	 * Last capabilities update
@@ -384,23 +385,33 @@ public class Capabilities {
 		this.sipAutomata = sipAutomata;
 	}
 
-	/**
-	 * Add supported extension
-	 * 
-	 * @param serviceId Service ID
-	 */
-	public void addSupportedExtension(String serviceId) {
-		extensions.add(serviceId);
-	}
-	
-	/**
-	 * Get list of supported extensions
-	 * 
-	 * @return List
-	 */
-	public ArrayList<String> getSupportedExtensions() {
-		return extensions;
-	}
+    /**
+     * Set supported extensions
+     *
+     * @param extensions set of supported extensions
+     */
+    public void setSupportedExtensions(Set<String> extensions) {
+            this.extensions = extensions;
+    }
+   
+    /**
+     * Add supported extension
+     *
+     * @param serviceId Service ID
+     */
+    public void addSupportedExtension(String serviceId) {
+            extensions.add(serviceId);
+    }
+   
+    /**
+     * Get set of supported extensions
+     *
+     * @return List
+     */
+    public Set<String> getSupportedExtensions() {
+            return extensions;
+    }
+
 	
 	/**
 	 * Get the capabilities timestamp 

@@ -110,7 +110,9 @@ public class ImsModule implements SipEventListener {
     	}
     	
     	// Get capability extensions
-    	ServiceExtensionManager.updateSupportedExtensions(AndroidFactory.getApplicationContext());
+    	ServiceExtensionManager extensionManager = ServiceExtensionManager.getInstance();
+    	// TODO
+    	extensionManager.updateSupportedExtensions(AndroidFactory.getApplicationContext(), true);
    	
 		// Create the IMS connection manager
         try {
