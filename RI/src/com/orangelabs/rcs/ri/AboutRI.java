@@ -23,7 +23,7 @@ import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.widget.TextView;
 
-import com.gsma.services.rcs.JoynService.Build;
+import com.gsma.services.rcs.RcsService.Build;
 import com.orangelabs.rcs.ri.utils.Utils;
 
 /**
@@ -40,9 +40,6 @@ public class AboutRI extends Activity {
         // Set layout
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.app_about);
-
-        // Set title
-        setTitle(R.string.menu_about);
         
         // Display release number
         String appRelease = Utils.getApplicationVersion(this); 

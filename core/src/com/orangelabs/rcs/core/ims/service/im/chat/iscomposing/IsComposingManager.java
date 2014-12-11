@@ -18,6 +18,7 @@
 
 package com.orangelabs.rcs.core.ims.service.im.chat.iscomposing;
 
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatSessionListener;
 import com.orangelabs.rcs.utils.logger.Logger;
@@ -56,7 +57,7 @@ public class IsComposingManager {
     /**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private static final Logger logger = Logger.getLogger(IsComposingManager.class.getSimpleName());
     
     /**
      * Constructor
@@ -70,10 +71,10 @@ public class IsComposingManager {
     /**
      * Receive is-composing event
      * 
-     * @param contact Contact
+     * @param contact Contact identifier
      * @param event Event 
      */
-    public void receiveIsComposingEvent(String contact, byte[] event) {
+    public void receiveIsComposingEvent(ContactId contact, byte[] event) {
     	try {
         	// Parse received event
 			InputSource input = new InputSource(new ByteArrayInputStream(event));
@@ -110,10 +111,10 @@ public class IsComposingManager {
 	/**
 	 * Receive is-composing event
 	 * 
-	 * @param contact Contact
+	 * @param contact Contact identifier
 	 * @param state State
 	 */
-	public void receiveIsComposingEvent(String contact, boolean state) {
+	public void receiveIsComposingEvent(ContactId contact, boolean state) {
     	// We just received an instant message, so if composing info was active, it must
 		// be changed to idle. If it was already idle, no need to notify listener again
     	for(int j=0; j < session.getListeners().size(); j++) {
@@ -128,9 +129,9 @@ public class IsComposingManager {
      * Start the expiration timer for a given contact
      * 
      * @param duration Timer period
-     * @param contact Contact
+     * @param contact Contact identifier
      */
-    public synchronized void startExpirationTimer(long duration, String contact) {
+    public synchronized void startExpirationTimer(long duration, ContactId contact) {
     	// Remove old timer
 		if (timerTask != null) {
 			timerTask.cancel();
@@ -149,9 +150,9 @@ public class IsComposingManager {
     /**
      * Stop the expiration timer for a given contact
      * 
-     * @param contact Contact
+     * @param contact Contact identifier
      */
-    public synchronized void stopExpirationTimer(String contact) {
+    public synchronized void stopExpirationTimer(ContactId contact) {
     	// Stop timer
     	if (logger.isActivated()) {
     		logger.debug("Stop is-composing timer");
@@ -169,9 +170,9 @@ public class IsComposingManager {
      */
     private class ExpirationTimer extends TimerTask {
     	
-    	private String contact;
+    	private ContactId contact;
     	
-    	public ExpirationTimer(String contact){
+    	public ExpirationTimer(ContactId contact){
     		this.contact = contact;
     	}
     	

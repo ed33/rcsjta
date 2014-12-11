@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,57 +15,90 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.service.api;
 
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Set;
-
-import android.os.RemoteCallbackList;
-
-import com.gsma.services.rcs.IJoynServiceRegistrationListener;
-import com.gsma.services.rcs.JoynService;
+import com.gsma.services.rcs.IRcsServiceRegistrationListener;
+import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.capability.Capabilities;
 import com.gsma.services.rcs.capability.ICapabilitiesListener;
 import com.gsma.services.rcs.capability.ICapabilityService;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.Core;
+import com.orangelabs.rcs.core.ims.service.capability.CapabilityService;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.service.broadcaster.CapabilitiesBroadcaster;
+import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.os.Handler;
 
 /**
  * Capability service API implementation
  * 
  * @author Jean-Marc AUFFRET
+ * @author YPLO6403
  */
 public class CapabilityServiceImpl extends ICapabilityService.Stub {
-	/**
-	 * List of service event listeners
-	 */
-	private RemoteCallbackList<IJoynServiceRegistrationListener> serviceListeners = new RemoteCallbackList<IJoynServiceRegistrationListener>();
 
-	/**
-	 * List of capabilities listeners
-	 */
-	private RemoteCallbackList<ICapabilitiesListener> capabilitiesListeners = new RemoteCallbackList<ICapabilitiesListener>();
+	private final RcsServiceRegistrationEventBroadcaster mRcsServiceRegistrationEventBroadcaster = new RcsServiceRegistrationEventBroadcaster();
 
-	/**
-	 * List of listeners per contact
-	 */
-	private Hashtable<String, RemoteCallbackList<ICapabilitiesListener>> contactCapalitiesListeners = new Hashtable<String, RemoteCallbackList<ICapabilitiesListener>>();
+	private final CapabilitiesBroadcaster mCapabilitiesBroadcaster = new CapabilitiesBroadcaster();
 
 	/**
 	 * Lock used for synchronization
 	 */
-	private Object lock = new Object();
+	private final Object lock = new Object();
 
     /**
 	 * The logger
 	 */
-	private Logger logger = Logger.getLogger(this.getClass().getName());
+	private final Logger logger = Logger.getLogger(getClass().getName());
+
+	/*
+	 * This purpose of this handler is to make the request asynchronous with the
+	 * mechanisms provider by android by placing the request in the main thread
+	 * message queue.
+	 */
+
+	private final Handler mOptionsExchangeRequestHandler;
+
+	private class CapabilitiesRequester implements Runnable {
+
+		private final ContactId mContact;
+
+		private final CapabilityService mCapabilityService;
+
+		public CapabilitiesRequester(CapabilityService capabilityService, ContactId contact) {
+			mContact = contact;
+			mCapabilityService = capabilityService;
+		}
+
+		public void run() {
+			mCapabilityService.requestContactCapabilities(mContact);
+		}
+	}
+
+	private class AllCapabilitiesRequester implements Runnable {
+
+		private final ContactsManager mContactManager;
+
+		private final CapabilityService mCapabilityService;
+
+		public AllCapabilitiesRequester(ContactsManager contactManager, CapabilityService capabilityService) {
+			mContactManager = contactManager;
+			mCapabilityService = capabilityService;
+		}
+
+		public void run() {
+			mCapabilityService.requestContactCapabilities(mContactManager.getAllContacts());
+		}
+	}
 
 	/**
 	 * Constructor
@@ -73,6 +107,7 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 		if (logger.isActivated()) {
 			logger.info("Capability service API is loaded");
 		}
+		mOptionsExchangeRequestHandler = new Handler();
 	}
 
 	/**
@@ -95,60 +130,48 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 
 	/**
 	 * Registers a listener on service registration events
-	 * 
+	 *
 	 * @param listener Service registration listener
 	 */
-	public void addServiceRegistrationListener(IJoynServiceRegistrationListener listener) {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Add a service listener");
-			}
-
-			serviceListeners.register(listener);
+	public void addEventListener(IRcsServiceRegistrationListener listener) {
+		if (logger.isActivated()) {
+			logger.info("Add a service listener");
+		}
+		synchronized (lock) {
+			mRcsServiceRegistrationEventBroadcaster.addEventListener(listener);
 		}
 	}
-	
+
 	/**
 	 * Unregisters a listener on service registration events
-	 * 
+	 *
 	 * @param listener Service registration listener
 	 */
-	public void removeServiceRegistrationListener(IJoynServiceRegistrationListener listener) {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Remove a service listener");
-			}
-			
-			serviceListeners.unregister(listener);
-    	}	
+	public void removeEventListener(IRcsServiceRegistrationListener listener) {
+		if (logger.isActivated()) {
+			logger.info("Remove a service listener");
+		}
+		synchronized (lock) {
+			mRcsServiceRegistrationEventBroadcaster.removeEventListener(listener);
+		}
 	}
-	
-    /**
-     * Receive registration event
-     * 
-     * @param state Registration state
-     */
-    public void notifyRegistrationEvent(boolean state) {
-    	// Notify listeners
-    	synchronized(lock) {
-			final int N = serviceListeners.beginBroadcast();
-	        for (int i=0; i < N; i++) {
-	            try {
-	            	if (state) {
-	            		serviceListeners.getBroadcastItem(i).onServiceRegistered();
-	            	} else {
-	            		serviceListeners.getBroadcastItem(i).onServiceUnregistered();
-	            	}
-	            } catch(Exception e) {
-	            	if (logger.isActivated()) {
-	            		logger.error("Can't notify listener", e);
-	            	}
-	            }
-	        }
-	        serviceListeners.finishBroadcast();
-	    }    	    	
-    }
-    
+
+	/**
+	 * Receive registration event
+	 *
+	 * @param state Registration state
+	 */
+	public void notifyRegistrationEvent(boolean state) {
+		// Notify listeners
+		synchronized (lock) {
+			if (state) {
+				mRcsServiceRegistrationEventBroadcaster.broadcastServiceRegistered();
+			} else {
+				mRcsServiceRegistrationEventBroadcaster.broadcastServiceUnRegistered();
+			}
+		}
+	}
+
     /**
      * Returns the capabilities supported by the local end user. The supported
      * capabilities are fixed by the MNO and read during the provisioning.
@@ -156,51 +179,25 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
      * @return Capabilities
      */
 	public Capabilities getMyCapabilities() {
-		com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities = RcsSettings.getInstance().getMyCapabilities();
-		Set<String> exts = new HashSet<String>(capabilities.getSupportedExtensions());
-		return new Capabilities(capabilities.isImageSharingSupported(),
-				capabilities.isVideoSharingSupported(),
-				capabilities.isImSessionSupported(),
-				capabilities.isFileTransferSupported() || capabilities.isFileTransferHttpSupported(),
-				capabilities.isGeolocationPushSupported(),
-				capabilities.isIPVoiceCallSupported(),
-				capabilities.isIPVideoCallSupported(),
-    			exts,
-    			capabilities.isSipAutomata());
+		return ContactsServiceImpl.getCapabilities(RcsSettings.getInstance().getMyCapabilities());
 	}
 
     /**
      * Returns the capabilities of a given contact from the local database. This
-     * method doesn’t request any network update to the remote contact. The parameter
+     * method does not request any network update to the remote contact. The parameter
      * contact supports the following formats: MSISDN in national or international
      * format, SIP address, SIP-URI or Tel-URI. If the format of the contact is not
      * supported an exception is thrown.
      * 
-     * @param contact Contact
+     * @param contact ContactId
      * @return Capabilities
      */
-	public Capabilities getContactCapabilities(String contact) {
+	public Capabilities getContactCapabilities(ContactId contact) {
 		if (logger.isActivated()) {
 			logger.info("Get capabilities for contact " + contact);
 		}
-
 		// Read capabilities in the local database
-		com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities = ContactsManager.getInstance().getContactCapabilities(contact);
-		if (capabilities != null) {
-    		Set<String> exts = new HashSet<String>(capabilities.getSupportedExtensions());
-			return new Capabilities(
-    				capabilities.isImageSharingSupported(),
-    				capabilities.isVideoSharingSupported(),
-    				capabilities.isImSessionSupported(),
-    				capabilities.isFileTransferSupported() || capabilities.isFileTransferHttpSupported(),
-    				capabilities.isGeolocationPushSupported(),
-    				capabilities.isIPVoiceCallSupported(),
-    				capabilities.isIPVideoCallSupported(),
-    				exts,
-    				capabilities.isSipAutomata()); 
-		} else {
-			return null;
-		}
+		return ContactsServiceImpl.getCapabilities( ContactsManager.getInstance().getContactCapabilities(contact));
 	}
 
     /**
@@ -215,25 +212,18 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	 * capability refresh request is provided to all the clients that have registered
 	 * the listener for this event.
 	 * 
-	 * @param contact Contact
+	 * @param contact ContactId
 	 * @throws ServerApiException
 	 */
-	public void requestContactCapabilities(final String contact) throws ServerApiException {
+	public void requestContactCapabilities(final ContactId contact) throws ServerApiException {
 		if (logger.isActivated()) {
 			logger.info("Request capabilities for contact " + contact);
 		}
 
 		// Test IMS connection
 		ServerApiUtils.testIms();
-
-		// Request contact capabilities
 		try {
-	        Thread t = new Thread() {
-	    		public void run() {
-					Core.getInstance().getCapabilityService().requestContactCapabilities(contact);
-	    		}
-	    	};
-	    	t.start();
+			mOptionsExchangeRequestHandler.post(new CapabilitiesRequester(Core.getInstance().getCapabilityService(), contact));
 		} catch(Exception e) {
 			if (logger.isActivated()) {
 				logger.error("Unexpected error", e);
@@ -245,59 +235,34 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	/**
      * Receive capabilities from a contact
      * 
-     * @param contact Contact
+     * @param contact ContactId
      * @param capabilities Capabilities
      */
-    public void receiveCapabilities(String contact, com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities) {
+    public void receiveCapabilities(ContactId contact, com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities) {
     	synchronized(lock) {
     		if (logger.isActivated()) {
     			logger.info("Receive capabilities for " + contact);
     		}
 	
     		// Create capabilities instance
-    		Set<String> exts = new HashSet<String>(capabilities.getSupportedExtensions());
-    		Capabilities c = new Capabilities(
-    				capabilities.isImageSharingSupported(),
-    				capabilities.isVideoSharingSupported(),
-    				capabilities.isImSessionSupported(),
-    				capabilities.isFileTransferSupported(),
-    				capabilities.isGeolocationPushSupported(),
-    				capabilities.isIPVoiceCallSupported(),
-    				capabilities.isIPVideoCallSupported(),
-    				exts,
-    				capabilities.isSipAutomata()); 
+    		Capabilities c = ContactsServiceImpl.getCapabilities(capabilities);
 
-    		// Notify capabilities listeners
-        	notifyListeners(contact, c, capabilitiesListeners);
-
-    		// Notify capabilities listeners for a given contact
-	        RemoteCallbackList<ICapabilitiesListener> listeners = contactCapalitiesListeners.get(contact);
-	        if (listeners != null) {
-	        	notifyListeners(contact, c, listeners);
-	        }
+			// Notify capabilities listeners
+			notifyListeners(contact, c);
     	}
     }
-	
-    /**
-     * Notify listeners
-     * 
-     * @param capabilities Capabilities
-     * @param listeners Listeners
-     */
-    private void notifyListeners(String contact, Capabilities capabilities, RemoteCallbackList<ICapabilitiesListener> listeners) {
-		final int N = listeners.beginBroadcast();
-        for (int i=0; i < N; i++) {
-            try {
-            	listeners.getBroadcastItem(i).onCapabilitiesReceived(contact, capabilities);
-            } catch(Exception e) {
-            	if (logger.isActivated()) {
-            		logger.error("Can't notify listener", e);
-            	}
-            }
-        }
-        listeners.finishBroadcast();
-    }
-    
+
+	/**
+	 * Notify listeners
+	 *
+	 * @param contact ContactId
+	 * @param capabilities Capabilities
+	 */
+	private void notifyListeners(ContactId contact, Capabilities capabilities) {
+		mCapabilitiesBroadcaster.broadcastCapabilitiesReceived(contact,
+				capabilities);
+	}
+
     /**
 	 * Requests capabilities for all contacts existing in the local address book. This
 	 * method initiates in background new capability requests for each contact of the
@@ -314,19 +279,12 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 		if (logger.isActivated()) {
 			logger.info("Request all contacts capabilities");
 		}
-
 		// Test IMS connection
 		ServerApiUtils.testIms();
 
-		// Request all contacts capabilities
 		try {
-	        Thread t = new Thread() {
-	    		public void run() {
-	    			List<String> contactList = ContactsManager.getInstance().getAllContacts();
-	    			Core.getInstance().getCapabilityService().requestContactCapabilities(contactList);
-	    		}
-	    	};
-	    	t.start();
+			mOptionsExchangeRequestHandler.post(new AllCapabilitiesRequester(ContactsManager.getInstance(), Core
+					.getInstance().getCapabilityService()));
 		} catch(Exception e) {
 			if (logger.isActivated()) {
 				logger.error("Unexpected error", e);
@@ -337,82 +295,70 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 
 	/**
 	 * Registers a capabilities listener on any contact
-	 * 
+	 *
 	 * @param listener Capabilities listener
 	 */
 	public void addCapabilitiesListener(ICapabilitiesListener listener) {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Add a listener");
-			}
-
-			capabilitiesListeners.register(listener);
+		if (logger.isActivated()) {
+			logger.info("Add a listener");
+		}
+		synchronized (lock) {
+			mCapabilitiesBroadcaster.addCapabilitiesListener(listener);
 		}
 	}
-	
+
 	/**
 	 * Unregisters a capabilities listener
-	 * 
+	 *
 	 * @param listener Capabilities listener
 	 */
 	public void removeCapabilitiesListener(ICapabilitiesListener listener) {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Remove a listener");
-			}
-			
-			capabilitiesListeners.unregister(listener);
-    	}	
-	}
-	
-	/**
-	 * Registers a listener for receiving capabilities of a given contact
-	 * 
-	 * @param contact Contact
-	 * @param listener Capabilities listener
-	 */
-	public void addContactCapabilitiesListener(String contact, ICapabilitiesListener listener) {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Add a listener for contact " + contact);
-			}
-
-			RemoteCallbackList<ICapabilitiesListener> listeners = contactCapalitiesListeners.get(contact);
-			if (listeners == null) {
-				listeners = new RemoteCallbackList<ICapabilitiesListener>();
-				contactCapalitiesListeners.put(contact, listeners);
-			}
-			listeners.register(listener);
+		if (logger.isActivated()) {
+			logger.info("Remove a listener");
+		}
+		synchronized (lock) {
+			mCapabilitiesBroadcaster.removeCapabilitiesListener(listener);
 		}
 	}
-	
+
 	/**
-	 * Unregisters a listener of capabilities for a given contact
-	 * 
-	 * @param contact Contact
+	 * Registers a listener for receiving capabilities of a given contact
+	 *
+	 * @param contact ContactId
 	 * @param listener Capabilities listener
 	 */
-	public void removeContactCapabilitiesListener(String contact, ICapabilitiesListener listener) {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Remove a listener for contact " + contact);
-			}
+	public void addCapabilitiesListener2(ContactId contact, ICapabilitiesListener listener) {
+		if (logger.isActivated()) {
+			logger.info("Add a listener for contact " + contact);
+		}
+		synchronized (lock) {
+			mCapabilitiesBroadcaster.addContactCapabilitiesListener(contact, listener);
+		}
+	}
 
-			RemoteCallbackList<ICapabilitiesListener> listeners = contactCapalitiesListeners.get(contact);
-			if (listeners != null) {
-				listeners.unregister(listener);
-			}
-		}	
+	/**
+	 * Unregisters a listener of capabilities for a given contact
+	 *
+	 * @param contact ContactId
+	 * @param listener Capabilities listener
+	 */
+	public void removeCapabilitiesListener2(ContactId contact, ICapabilitiesListener listener) {
+		if (logger.isActivated()) {
+			logger.info("Remove a listener for contact " + contact);
+		}
+		synchronized (lock) {
+			mCapabilitiesBroadcaster.removeContactCapabilitiesListener(contact, listener);
+		}
 	}
 
 	/**
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see JoynService.Build.VERSION_CODES
+	 * @see RcsService.Build.VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {
-		return JoynService.Build.API_VERSION;
+		return RcsService.Build.API_VERSION;
 	}
 }

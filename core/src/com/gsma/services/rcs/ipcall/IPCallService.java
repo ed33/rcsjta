@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.ipcall;
 
@@ -28,11 +32,11 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.IInterface;
 
-import com.gsma.services.rcs.JoynContactFormatException;
-import com.gsma.services.rcs.JoynService;
-import com.gsma.services.rcs.JoynServiceException;
-import com.gsma.services.rcs.JoynServiceListener;
-import com.gsma.services.rcs.JoynServiceNotAvailableException;
+import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.RcsServiceListener;
+import com.gsma.services.rcs.RcsServiceNotAvailableException;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * This class offers the main entry point to initiate IP calls. Several
@@ -44,11 +48,11 @@ import com.gsma.services.rcs.JoynServiceNotAvailableException;
  * 
  * @author Jean-Marc AUFFRET
  */
-public class IPCallService extends JoynService {
+public class IPCallService extends RcsService {
 	/**
 	 * API
 	 */
-	private IIPCallService api = null;
+	private IIPCallService api;
 	
     /**
      * Constructor
@@ -56,7 +60,7 @@ public class IPCallService extends JoynService {
      * @param ctx Application context
      * @param listener Service listener
      */
-    public IPCallService(Context ctx, JoynServiceListener listener) {
+    public IPCallService(Context ctx, RcsServiceListener listener) {
     	super(ctx, listener);
     }
 
@@ -103,7 +107,7 @@ public class IPCallService extends JoynService {
         public void onServiceDisconnected(ComponentName className) {
         	setApi(null);
         	if (serviceListener != null) {
-        		serviceListener.onServiceDisconnected(JoynService.Error.CONNECTION_LOST);
+        		serviceListener.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
         	}
         }
     };
@@ -112,17 +116,17 @@ public class IPCallService extends JoynService {
      * Returns the configuration of IP call service
      * 
      * @return Configuration
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public IPCallServiceConfiguration getConfiguration() throws JoynServiceException {
+    public IPCallServiceConfiguration getConfiguration() throws RcsServiceException {
 		if (api != null) {
 			try {
 				return api.getConfiguration();
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
@@ -131,28 +135,26 @@ public class IPCallService extends JoynService {
      * formats: MSISDN in national or international format, SIP address, SIP-URI or Tel-URI. If the
      * format of the contact is not supported an exception is thrown.
      * 
-     * @param contact Contact
+     * @param contact Contact identifier
      * @param player IP call player
      * @param renderer IP call renderer
-     * @param listener IP call event listener
      * @return IP call
-     * @throws JoynServiceException
-	 * @throws JoynContactFormatException
+     * @throws RcsServiceException
      */
-    public IPCall initiateCall(String contact, IPCallPlayer player, IPCallRenderer renderer, IPCallListener listener) throws JoynServiceException, JoynContactFormatException {
+    public IPCall initiateCall(ContactId contact, IPCallPlayer player, IPCallRenderer renderer) throws RcsServiceException {
 		if (api != null) {
 			try {
-				IIPCall callIntf = api.initiateCall(contact, player, renderer, listener);
+				IIPCall callIntf = api.initiateCall(contact, player, renderer);
 				if (callIntf != null) {
 					return new IPCall(callIntf);
 				} else {
 					return null;
 				}
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
     
@@ -161,28 +163,26 @@ public class IPCallService extends JoynService {
      * formats: MSISDN in national or international format, SIP address, SIP-URI or Tel-URI. If the format of
      * the contact is not supported an exception is thrown.
      * 
-     * @param contact Contact
+     * @param contact Contact identifier
      * @param player IP call player
      * @param renderer IP call renderer
-     * @param listener IP call event listener
      * @return IP call
-     * @throws JoynServiceException
-	 * @throws JoynContactFormatException
+     * @throws RcsServiceException
      */
-    public IPCall initiateVisioCall(String contact, IPCallPlayer player, IPCallRenderer renderer, IPCallListener listener) throws JoynServiceException, JoynContactFormatException {
+    public IPCall initiateVisioCall(ContactId contact, IPCallPlayer player, IPCallRenderer renderer) throws RcsServiceException {
 		if (api != null) {
 			try {
-				IIPCall callIntf = api.initiateVisioCall(contact, player, renderer, listener);
+				IIPCall callIntf = api.initiateVisioCall(contact, player, renderer);
 				if (callIntf != null) {
 					return new IPCall(callIntf);
 				} else {
 					return null;
 				}
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
     
@@ -190,9 +190,9 @@ public class IPCallService extends JoynService {
      * Returns the list of IP calls in progress
      * 
      * @return List of IP calls
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public Set<IPCall> getIPCalls() throws JoynServiceException {
+    public Set<IPCall> getIPCalls() throws RcsServiceException {
 		if (api != null) {
 			try {
 	    		Set<IPCall> result = new HashSet<IPCall>();
@@ -203,10 +203,10 @@ public class IPCallService extends JoynService {
 				}
 				return result;
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
 
@@ -215,9 +215,9 @@ public class IPCallService extends JoynService {
      * 
      * @param callId Call ID
      * @return IP call or null if not found
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public IPCall getIPCall(String callId) throws JoynServiceException {
+    public IPCall getIPCall(String callId) throws RcsServiceException {
 		if (api != null) {
 			try {
 				IIPCall callIntf = api.getIPCall(callId);
@@ -227,70 +227,46 @@ public class IPCallService extends JoynService {
 					return null;
 				}
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
     
-    /**
-     * Returns a current IP call from its invitation Intent
-     * 
-     * @param intent Invitation intent
-     * @return IP call or null if not found
-     * @throws JoynServiceException
-     */
-    public IPCall getIPCallFor(Intent intent) throws JoynServiceException {
-		if (api != null) {
-			try {
-				String callId = intent.getStringExtra(IPCallIntent.EXTRA_CALL_ID);
-				if (callId != null) {
-					return getIPCall(callId);
-				} else {
-					return null;
-				}
-			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
-			}
-		} else {
-			throw new JoynServiceNotAvailableException();
-		}
-    }     
-    
-    /**
-	 * Registers a new IP call invitation listener
+	/**
+	 * Adds an event listener on IP call events
 	 * 
-	 * @param listener New IP call listener
-	 * @throws JoynServiceException
+	 * @param listener Listener
+	 * @throws RcsServiceException
 	 */
-	public void addNewIPCallListener(NewIPCallListener listener) throws JoynServiceException {
+	public void addEventListener(IPCallListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
-				api.addNewIPCallListener(listener);
-			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				api.addEventListener2(listener);
+			} catch (Exception e) {
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
 	/**
-	 * Unregisters a new IP call invitation listener
+	 * Removes an event listener from IP call events
 	 * 
-	 * @param listener New IP call listener
-	 * @throws JoynServiceException
+	 * @param listener Listener
+	 * @throws RcsServiceException
 	 */
-	public void removeNewIPCallListener(NewIPCallListener listener) throws JoynServiceException {
+	public void removeEventListener(IPCallListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
-				api.removeNewIPCallListener(listener);
-			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				api.removeEventListener2(listener);
+			} catch (Exception e) {
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 }

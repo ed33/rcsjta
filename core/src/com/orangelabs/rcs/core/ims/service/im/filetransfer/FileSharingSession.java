@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.im.filetransfer;
@@ -25,7 +25,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.gsma.services.rcs.chat.ParticipantInfo;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.content.MmContent;
+import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
@@ -61,7 +63,7 @@ public abstract class FileSharingSession extends ImsServiceSession {
     /**
 	 * Fileicon
 	 */
-	private MmContent fileicon = null;
+	private MmContent fileIcon;
 	
 	/**
 	 * File transfer paused
@@ -76,21 +78,22 @@ public abstract class FileSharingSession extends ImsServiceSession {
 	/**
      * The logger
      */
-    private static final Logger logger = Logger.getLogger(FileSharingSession.class.getName());
+    private static final Logger logger = Logger.getLogger(FileSharingSession.class.getSimpleName());
 
     /**
 	 * Constructor
 	 * 
 	 * @param parent IMS service
 	 * @param content Content to be shared
-	 * @param contact Remote contact
-	 * @param fileicon Thumbnail
+	 * @param contact Remote contactId
+	 * @param remoteUri the remote URI
+	 * @param fileIcon File icon
 	 */
-	public FileSharingSession(ImsService parent, MmContent content, String contact, MmContent fileicon, String filetransferId) {
-		super(parent, contact);
+	public FileSharingSession(ImsService parent, MmContent content, ContactId contact, String remoteUri, MmContent fileIcon, String filetransferId) {
+		super(parent, contact, remoteUri);
 		
 		this.content = content;
-		this.fileicon = fileicon;
+		this.fileIcon = fileIcon;
 		this.filetransferId = filetransferId;
 	}
 
@@ -198,21 +201,21 @@ public abstract class FileSharingSession extends ImsServiceSession {
 	}
 
     /**
-     * Returns the fileicon content
+     * Returns the fileIcon content
      * 
      * @return Fileicon
      */
     public MmContent getFileicon() {
-    	return fileicon;
+    	return fileIcon;
     }
 
 	/**
-	 * Set the fileicon
+	 * Set the fileIcon
 	 * 
-	 * @param fileicon Fileicon content
+	 * @param fileIcon Fileicon content
 	 */
-    public void setFileicon(MmContent fileicon) {
-        this.fileicon = fileicon;
+    public void setFileicon(MmContent fileIcon) {
+        this.fileIcon = fileIcon;
     }
     
 	/**
@@ -239,16 +242,21 @@ public abstract class FileSharingSession extends ImsServiceSession {
 		}
 		return null;
 	}
+
 	
-	/**
-	 * Check is file transfer should be auto accepted depending on settings and roaming conditions
-	 * @return true if file transfer should be Auto Accepted
-	 */
-	public boolean shouldFileTransferBeAutoAccepted() {
-		if (getImsService().getImsModule().isInRoaming()) {
-			return RcsSettings.getInstance().isFileTransferAutoAcceptedInRoaming();
-		} else {
-			return RcsSettings.getInstance().isFileTransferAutoAccepted();
-		}
+	@Override
+	public void receiveBye(SipRequest bye) {
+		super.receiveBye(bye);
+		
+		// Request capabilities to the remote
+	    getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getRemoteContact());
+	}
+	
+	@Override
+	public void receiveCancel(SipRequest cancel) {
+		super.receiveCancel(cancel);
+
+		// Request capabilities to the remote
+		getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getRemoteContact());
 	}
 }

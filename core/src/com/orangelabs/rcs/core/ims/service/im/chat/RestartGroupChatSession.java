@@ -23,6 +23,7 @@ import java.util.Set;
 import javax2.sip.header.RequireHeader;
 import javax2.sip.header.SubjectHeader;
 import javax2.sip.header.WarningHeader;
+import android.text.TextUtils;
 
 import com.gsma.services.rcs.chat.ParticipantInfo;
 import com.orangelabs.rcs.core.ims.network.sip.Multipart;
@@ -62,10 +63,10 @@ public class RestartGroupChatSession extends GroupChatSession {
 	 * @param contributionId Contribution ID
 	 */
 	public RestartGroupChatSession(ImsService parent, String conferenceId, String subject, Set<ParticipantInfo> participants, String contributionId) {
-		super(parent, conferenceId, participants);
-
+		super(parent, null, conferenceId, participants);
+		
 		// Set subject
-		if ((subject != null) && (subject.length() > 0)) {
+		if (!TextUtils.isEmpty(subject)) {
 			setSubject(subject);		
 		}
 		
@@ -106,7 +107,7 @@ public class RestartGroupChatSession extends GroupChatSession {
                     SdpUtils.DIRECTION_SENDRECV);
 
 	        // Generate the resource list for given participants
-	        String resourceList = ChatUtils.generateChatResourceList(ParticipantInfoUtils.getContactsFromParticipantInfo(getParticipants()));
+	        String resourceList = ChatUtils.generateChatResourceList(ParticipantInfoUtils.getContacts(getParticipants()));
 	    	
 	    	// Build multipart
 	    	String multipart =
@@ -214,4 +215,9 @@ public class RestartGroupChatSession extends GroupChatSession {
     public void handle404SessionNotFound(SipResponse resp) {
         handleError(new ChatError(ChatError.SESSION_NOT_FOUND, resp.getReasonPhrase()));
     }
+
+	@Override
+	public boolean isInitiatedByRemote() {
+		return false;
+	}
 }

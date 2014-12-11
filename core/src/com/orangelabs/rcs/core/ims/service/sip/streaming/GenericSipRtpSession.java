@@ -17,6 +17,7 @@
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.sip.streaming;
 
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
 import com.orangelabs.rcs.core.ims.protocol.rtp.MediaRtpReceiver;
 import com.orangelabs.rcs.core.ims.protocol.rtp.MediaRtpSender;
@@ -39,7 +40,7 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * 
  * @author jexa7410
  */
-public class GenericSipRtpSession extends GenericSipSession implements RtpStreamListener {
+public abstract class GenericSipRtpSession extends GenericSipSession implements RtpStreamListener {
 	/**
 	 * RTP payload format
 	 */
@@ -63,12 +64,12 @@ public class GenericSipRtpSession extends GenericSipSession implements RtpStream
 	/**
 	 * RTP receiver
 	 */
-	private MediaRtpReceiver rtpReceiver = null;
+	private MediaRtpReceiver rtpReceiver;
 	
 	/**
 	 * RTP sender
 	 */
-	private MediaRtpSender rtpSender = null;
+	private MediaRtpSender rtpSender;
 	
 	/**
 	 * Startup flag
@@ -78,16 +79,16 @@ public class GenericSipRtpSession extends GenericSipSession implements RtpStream
 	/**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private final static Logger logger = Logger.getLogger(GenericSipRtpSession.class.getSimpleName());
 
     /**
 	 * Constructor
 	 * 
 	 * @param parent IMS service
-	 * @param contact Remote contact
+	 * @param contact Remote contact Id
 	 * @param featureTag Feature tag
 	 */
-	public GenericSipRtpSession(ImsService parent, String contact, String featureTag) {
+	public GenericSipRtpSession(ImsService parent, ContactId contact, String featureTag) {
 		super(parent, contact, featureTag);
 
 		// Get local port

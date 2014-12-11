@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.provider.messaging;
@@ -31,15 +35,11 @@ public class ChatData {
 	/**
 	 * Database URIs
 	 */
-	protected static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.chat/chat");
+	protected static final Uri CONTENT_URI = Uri
+			.parse("content://com.orangelabs.rcs.chat/groupchat");
 	
 	/**
-	 * Column name
-	 */
-	static final String KEY_ID = ChatLog.GroupChat.ID;
-	
-	/**
-	 * Column name
+	 * Id for chat room
 	 */
 	static final String KEY_CHAT_ID = ChatLog.GroupChat.CHAT_ID;
 
@@ -49,32 +49,51 @@ public class ChatData {
 	static final String KEY_REJOIN_ID = "rejoin_id";
 
 	/**
-	 * Column name
+	 * State of chat room.
+	 *
+	 * @see ChatLog.Message.State for the list of states
 	 */
-	static final String KEY_STATUS = ChatLog.GroupChat.STATE;
+	static final String KEY_STATE = ChatLog.GroupChat.STATE;
 
 	/**
-	 * Column name
+	 * Reason code associated with the group chat state.
+	 *
+	 * @see ChatLog.Message.ReasonCode for the list of reason codes
+	 */
+	static final String KEY_REASON_CODE = ChatLog.GroupChat.REASON_CODE;
+
+	/**
+	 * Subject of the group chat room
 	 */
 	static final String KEY_SUBJECT = ChatLog.GroupChat.SUBJECT;
 
 	/**
-	 * Column name
+	 * List of participants and associated status stored as a String
+	 * parseable with the ChatLog.GroupChat.getParticipantInfos() method.
 	 */
-	static final String KEY_PARTICIPANTS = "participants";
+	static final String KEY_PARTICIPANTS = ChatLog.GroupChat.PARTICIPANTS;
 
 	/**
-	 * Column name
+	 * Status direction of group chat
+	 *
+	 * @see com.gsma.services.rcs.RcsCommon.Direction for the list of directions
 	 */
 	static final String KEY_DIRECTION = ChatLog.GroupChat.DIRECTION;	
 
 	/**
-	 * Column name
+	 * Timestamp of the invitation
 	 */
 	static final String KEY_TIMESTAMP = ChatLog.GroupChat.TIMESTAMP;
 
 	/**
-	 * Column name : reject next Group Chat
+	 * Column name : Departed by usert
 	 */
-	public static final String KEY_REJECT_GC = "reject_gc";
+	public static final String KEY_DEPARTED_BY_USER = "departure_status";
+
+	/**
+	 * ContactId formatted number of the inviter of the group chat or null if
+	 * this is a group chat initiated by the local user (ie outgoing group
+	 * chat).
+	 */
+	public static final String KEY_CONTACT = ChatLog.GroupChat.CONTACT;
 }

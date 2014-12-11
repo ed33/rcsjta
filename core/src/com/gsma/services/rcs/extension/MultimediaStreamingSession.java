@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +15,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.extension;
 
-import com.gsma.services.rcs.JoynServiceException;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * This class maintains the information related to a multimedia
@@ -46,27 +51,27 @@ public class MultimediaStreamingSession extends MultimediaSession {
 	 * Returns the session ID of the multimedia session
 	 * 
 	 * @return Session ID
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public String getSessionId() throws JoynServiceException {
+	public String getSessionId() throws RcsServiceException {
 		try {
 			return sessionIntf.getSessionId();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
-	
+
 	/**
-	 * Returns the remote contact
+	 * Returns the remote contact identifier
 	 * 
-	 * @return Contact
-	 * @throws JoynServiceException
+	 * @return ContactId
+	 * @throws RcsServiceException
 	 */
-	public String getRemoteContact() throws JoynServiceException {
+	public ContactId getRemoteContact() throws RcsServiceException {
 		try {
 			return sessionIntf.getRemoteContact();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
@@ -74,13 +79,13 @@ public class MultimediaStreamingSession extends MultimediaSession {
 	 * Returns the service ID
 	 * 
 	 * @return Service ID
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public String getServiceId() throws JoynServiceException {
+	public String getServiceId() throws RcsServiceException {
 		try {
 			return sessionIntf.getServiceId();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
@@ -89,13 +94,28 @@ public class MultimediaStreamingSession extends MultimediaSession {
 	 * 
 	 * @return State
 	 * @see MultimediaSession.State
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public int getState() throws JoynServiceException {
+	public int getState() throws RcsServiceException {
 		try {
 			return sessionIntf.getState();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
+		}
+	}
+
+	/**
+	 * Returns the reason code of the state of the session
+	 *
+	 * @return ReasonCode
+	 * @see MultimediaSession.ReasonCode
+	 * @throws RcsServiceException
+	 */
+	public int getReasonCode() throws RcsServiceException {
+		try {
+			return sessionIntf.getReasonCode();
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
@@ -104,95 +124,66 @@ public class MultimediaStreamingSession extends MultimediaSession {
 	 * 
 	 * @return Direction
 	 * @see MultimediaSession.Direction
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public int getDirection() throws JoynServiceException {
+	public int getDirection() throws RcsServiceException {
 		try {
 			return sessionIntf.getDirection();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}	
 	
 	/**
 	 * Accepts session invitation.
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void acceptInvitation() throws JoynServiceException {
+	public void acceptInvitation() throws RcsServiceException {
 		try {
 			sessionIntf.acceptInvitation();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
 	 * Rejects session invitation
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void rejectInvitation() throws JoynServiceException {
+	public void rejectInvitation() throws RcsServiceException {
 		try {
 			sessionIntf.rejectInvitation();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
 	 * Aborts the session
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void abortSession() throws JoynServiceException {
+	public void abortSession() throws RcsServiceException {
 		try {
 			sessionIntf.abortSession();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
-    
-    /**
-     * Sends a payload in real time
-     * 
-     * @param content Payload content
-	 * @return Returns true if sent successfully else returns false
-     * @throws JoynServiceException
-     */
-    public boolean sendPayload(byte[] content) throws JoynServiceException {
-		try {
-			return sessionIntf.sendPayload(content);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
-		}
-    }    
 
 	/**
-	 * Adds a listener on session events
+	 * Sends a payload in real time
 	 * 
-	 * @param listener Session event listener
-	 * @throws JoynServiceException
+	 * @param content Payload content
+	 * @throws RcsServiceException
 	 */
-	public void addEventListener(MultimediaStreamingSessionListener listener) throws JoynServiceException {
+	public void sendPayload(byte[] content) throws RcsServiceException {
 		try {
-			sessionIntf.addEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
-		}
-	}
-	
-	/**
-	 * Removes a listener on session events
-	 * 
-	 * @param listener Session event listener
-	 * @throws JoynServiceException
-	 */
-	public void removeEventListener(MultimediaStreamingSessionListener listener) throws JoynServiceException {
-		try {
-			sessionIntf.removeEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			sessionIntf.sendPayload(content);
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 }

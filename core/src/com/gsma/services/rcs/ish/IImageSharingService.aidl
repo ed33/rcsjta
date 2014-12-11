@@ -1,20 +1,23 @@
 package com.gsma.services.rcs.ish;
 
-import com.gsma.services.rcs.IJoynServiceRegistrationListener;
+import android.net.Uri;
+
+import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.ish.IImageSharing;
 import com.gsma.services.rcs.ish.IImageSharingListener;
-import com.gsma.services.rcs.ish.INewImageSharingListener;
 import com.gsma.services.rcs.ish.ImageSharingServiceConfiguration;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Image sharing service API
  */
 interface IImageSharingService {
+
 	boolean isServiceRegistered();
 
-	void addServiceRegistrationListener(IJoynServiceRegistrationListener listener);
+	void addEventListener(IRcsServiceRegistrationListener listener);
 
-	void removeServiceRegistrationListener(IJoynServiceRegistrationListener listener); 
+	void removeEventListener(IRcsServiceRegistrationListener listener);
 
 	ImageSharingServiceConfiguration getConfiguration();
     
@@ -22,11 +25,11 @@ interface IImageSharingService {
 	
 	IImageSharing getImageSharing(in String sharingId);
 
-	IImageSharing shareImage(in String contact, in Uri file, in IImageSharingListener listener);
-	
-	void addNewImageSharingListener(in INewImageSharingListener listener);
+	IImageSharing shareImage(in ContactId contact, in Uri file);
 
-	void removeNewImageSharingListener(in INewImageSharingListener listener);
-	
+	void addEventListener2(in IImageSharingListener listener);
+
+	void removeEventListener2(in IImageSharingListener listener);
+
 	int getServiceVersion();
 }

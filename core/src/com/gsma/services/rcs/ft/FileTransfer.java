@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.ft;
 
-import java.io.File;
-
 import android.net.Uri;
 
-import com.gsma.services.rcs.JoynServiceException;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * File transfer
@@ -39,88 +38,173 @@ public class FileTransfer {
      */
     public static class State {
     	/**
-    	 * Inactive state
-    	 */
-    	public final static int INACTIVE = 0;
-
-    	/**
     	 * File transfer invitation received
     	 */
-    	public final static int INVITED = 1;
+    	public final static int INVITED = 0;
     	
     	/**
     	 * File transfer invitation sent
     	 */
-    	public final static int INITIATED = 2;
+    	public final static int INITIATED = 1;
     	
     	/**
     	 * File transfer is started
     	 */
-    	public final static int STARTED = 3;
+    	public final static int STARTED = 2;
     	
     	/**
     	 * File transfer has been transferred with success 
     	 */
-    	public final static int TRANSFERRED = 4;
+    	public final static int TRANSFERRED = 3;
     	
     	/**
     	 * File transfer has been aborted 
     	 */
-    	public final static int ABORTED = 5;
+    	public final static int ABORTED = 4;
     	
     	/**
-    	 * File transfer has failed 
+    	 * File transfer has failed
     	 */
-    	public final static int FAILED = 6;
+    	public final static int FAILED = 5;
+
+    	/**
+    	 * File transfer is paused
+    	 */
+    	public final static int PAUSED = 6;
+
+    	/**
+    	 * File transfer is rejected
+    	 */
+    	public final static int REJECTED = 7;
+
+    	/**
+    	 * File transfer has been accepted and is in the process of becoming started
+    	 */
+    	public final static int ACCEPTING = 8;
     	
     	/**
-    	 * File transfer has been delivered 
+    	 * File transfer has been delivered
     	 */
-    	public final static int DELIVERED = 7;
+    	public final static int DELIVERED = 9;
 
     	/**
-    	 * File transfer has been displayed or opened 
+    	 * File transfer has been displayed or opened
     	 */
-    	public final static int DISPLAYED = 8;
+    	public final static int DISPLAYED = 10;
 
     	/**
-    	 * File transfer is paused 
+    	 * File transfer has been queued
     	 */
-    	public final static int PAUSED = 9;
+    	public final static int QUEUED = 11;
     	
     	private State() {
         }    	
     }
 
     /**
-     * File transfer read status
+     * File transfer reason code
      */
-    public static class ReadStatus {
+    public static class ReasonCode {
         /**
-         * The invitation or file corresponding to this file transfer has not yet been displayed in the UI.
+         * No specific reason code specified.
          */
-        public final static int UNREAD = 0;
+        public final static int UNSPECIFIED = 0;
 
         /**
-         * The invitation or file corresponding to the file transfer has been displayed in the UI.
+         * File transfer is aborted by local user.
          */
-        public final static int READ = 1;
+        public final static int ABORTED_BY_USER = 1;
+
+        /**
+         * File transfer is aborted by remote user..
+         */
+        public final static int ABORTED_BY_REMOTE = 2;
+
+        /**
+         * File transfer is aborted by system.
+         */
+        public final static int ABORTED_BY_SYSTEM = 3;
+
+        /**
+         * file transfer is rejected because already taken by the secondary device.
+         */
+        public final static int REJECTED_BY_SECONDARY_DEVICE = 4;
+
+        /**
+         * File transfer has been rejected due to time out.
+         */
+        public final static int REJECTED_TIME_OUT = 5;
+
+        /**
+         * Incoming file transfer was rejected as it was detected as spam.
+         */
+        public final static int REJECTED_SPAM = 6;
+
+        /**
+         * Incoming file transfer was rejected as is cannot be received due to lack of local storage space.
+         */
+        public final static int REJECTED_LOW_SPACE = 7;
+
+        /**
+         * Incoming transfer was rejected as it was too big to be received.
+         */
+        public final static int REJECTED_MAX_SIZE = 8;
+
+        /**
+         * Incoming file transfer was rejected as there was too many file transfers ongoing.
+         */
+        public final static int REJECTED_MAX_FILE_TRANSFERS = 9;
+
+        /**
+         * File transfer invitation was rejected by local user.
+         */
+        public final static int REJECTED_BY_USER = 10;
+
+        /**
+         * File transfer invitation was rejected by remote.
+         */
+        public final static int REJECTED_BY_REMOTE = 11;
+
+        /**
+         * File transfer was paused by system.
+         */
+        public final static int PAUSED_BY_SYSTEM = 12;
+
+        /**
+         * File transfer was paused by user.
+         */
+        public final static int PAUSED_BY_USER = 13;
+
+        /**
+         * File transfer initiation failed.
+         */
+        public final static int FAILED_INITIATION = 14;
+
+        /**
+         * The transferring of the file contents (data) from/to remote side failed.
+         */
+        public final static int FAILED_DATA_TRANSFER = 15;
+
+        /**
+         * Saving of the incoming file transfer failed.
+         */
+        public final static int FAILED_SAVING = 16;
+
+        /**
+         * Delivering of the file transfer invitation failed.
+         */
+        public final static int FAILED_DELIVERY = 17;
+
+        /**
+         * Displaying of the file transfer invitation failed.
+         */
+        public final static int FAILED_DISPLAY = 18;
+
+        /**
+         * File transfer not allowed to be sent.
+         */
+        public final static int FAILED_NOT_ALLOWED_TO_SEND = 19;
     }
-    
-    /**
-     * Direction of the transfer
-     */
-    public static class Direction {
-        /**
-         * Incoming transfer
-         */
-        public static final int INCOMING = 0;
-        
-        /**
-         * Outgoing transfer
-         */
-        public static final int OUTGOING = 1;
-    }     
     
     /**
      * File transfer error
@@ -159,32 +243,46 @@ public class FileTransfer {
     public FileTransfer(IFileTransfer transferIntf) {
     	this.transferInf = transferIntf;
     }
+
+	/**
+	 * Returns the chat ID if this file transfer is a group file transfer
+	 *
+	 * @return Chat ID
+	 * @throws RcsServiceException
+	 */
+	public String getChatId() throws RcsServiceException {
+		try {
+			return transferInf.getChatId();
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}
+	}
     	
     /**
 	 * Returns the file transfer ID of the file transfer
 	 * 
 	 * @return Transfer ID
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public String getTransferId() throws JoynServiceException {
+	public String getTransferId() throws RcsServiceException {
 		try {
 			return transferInf.getTransferId();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
-	 * Returns the remote contact
+	 * Returns the remote contact identifier
 	 * 
-	 * @return Contact
-	 * @throws JoynServiceException
+	 * @return ContactId
+	 * @throws RcsServiceException
 	 */
-	public String getRemoteContact() throws JoynServiceException {
+	public ContactId getRemoteContact() throws RcsServiceException {
 		try {
 			return transferInf.getRemoteContact();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
@@ -192,13 +290,13 @@ public class FileTransfer {
      * Returns the complete filename including the path of the file to be transferred
      *
      * @return Filename
-	 * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-	public String getFileName() throws JoynServiceException {
+	public String getFileName() throws RcsServiceException {
 		try {
 			return transferInf.getFileName();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
@@ -206,13 +304,13 @@ public class FileTransfer {
      * Returns the size of the file to be transferred
      *
      * @return Size in bytes
-	 * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-	public long getFileSize() throws JoynServiceException {
+	public long getFileSize() throws RcsServiceException {
 		try {
 			return transferInf.getFileSize();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}	
 
@@ -220,31 +318,27 @@ public class FileTransfer {
      * Returns the MIME type of the file to be transferred
      * 
      * @return Type
-	 * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public String getFileType() throws JoynServiceException {
+    public String getMimeType() throws RcsServiceException {
 		try {
-			return transferInf.getFileType();
+			return transferInf.getMimeType();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
     }
     
 	/**
-	 * Returns the URI of the file icon
+	 * Returns the Uri of the file icon
 	 * 
-	 * @return the URI of the file icon or thumbnail
-	 * @throws JoynServiceException
+	 * @return the Uri of the file icon or thumbnail
+	 * @throws RcsServiceException
 	 */
-	public Uri getFileIcon() throws JoynServiceException {
+	public Uri getFileIcon() throws RcsServiceException {
 		try {
-			String fileIconName = transferInf.getFileIconName();
-			if (fileIconName != null) {
-				return Uri.fromFile(new File(fileIconName));
-			}
-			return null;
+			return transferInf.getFileIcon();
 		} catch (Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
@@ -252,13 +346,13 @@ public class FileTransfer {
 	 * Returns the Uri of the file
 	 *
 	 * @return Uri of file
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public Uri getFile() throws JoynServiceException {
+	public Uri getFile() throws RcsServiceException {
 		try {
 			return transferInf.getFile();
 		} catch (Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
@@ -267,121 +361,108 @@ public class FileTransfer {
 	 * 
 	 * @return State
 	 * @see FileTransfer.State
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public int getState() throws JoynServiceException {
+	public int getState() throws RcsServiceException {
 		try {
 			return transferInf.getState();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}		
-		
+
+	/**
+	 * Returns the reason code of the state of the sharing
+	 *
+	 * @return ReasonCode
+	 * @see GeolocSharing.ReasonCode
+	 * @throws RcsServiceException
+	 */
+	public int getReasonCode() throws RcsServiceException {
+		try {
+			return transferInf.getReasonCode();
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}
+	}
+
 	/**
 	 * Returns the direction of the transfer (incoming or outgoing)
 	 * 
 	 * @return Direction
-	 * @see FileTransfer.Direction
-	 * @throws JoynServiceException
+	 * @see com.gsma.services.rcs.RcsCommon.Direction
+	 * @throws RcsServiceException
 	 */
-	public int getDirection() throws JoynServiceException {
+	public int getDirection() throws RcsServiceException {
 		try {
 			return transferInf.getDirection();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
 	 * Accepts file transfer invitation
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void acceptInvitation() throws JoynServiceException {
+	public void acceptInvitation() throws RcsServiceException {
 		try {
 			transferInf.acceptInvitation();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
 	 * Rejects file transfer invitation
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void rejectInvitation() throws JoynServiceException {
+	public void rejectInvitation() throws RcsServiceException {
 		try {
 			transferInf.rejectInvitation();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
 	/**
 	 * Aborts the file transfer
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void abortTransfer() throws JoynServiceException {
+	public void abortTransfer() throws RcsServiceException {
 		try {
 			transferInf.abortTransfer();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
 	 * Pauses the file transfer
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void pauseTransfer() throws JoynServiceException {
+	public void pauseTransfer() throws RcsServiceException {
 		try {
 			transferInf.pauseTransfer();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
 	 * Resumes the file transfer
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void resumeTransfer() throws JoynServiceException {
+	public void resumeTransfer() throws RcsServiceException {
 		try {
 			transferInf.resumeTransfer();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
-		}
-	}
-
-	/**
-	 * Adds a listener on file transfer events
-	 * 
-	 * @param listener Listener
-	 * @throws JoynServiceException
-	 */
-	public void addEventListener(FileTransferListener listener) throws JoynServiceException {
-		try {
-			transferInf.addEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
-		}
-	}
-	
-	/**
-	 * Removes a listener from file transfer
-	 * 
-	 * @param listener Listener
-	 * @throws JoynServiceException
-	 */
-	public void removeEventListener(FileTransferListener listener) throws JoynServiceException {
-		try {
-			transferInf.removeEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 }

@@ -24,8 +24,13 @@ import java.util.Set;
  * Capabilities
  * 
  * @author jexa7410
+ * @author YPLO6403
+ *
  */
 public class Capabilities {
+	
+	public static final long INVALID_TIMESTAMP = -1;
+	
 	/**
 	 * Image sharing support
 	 */
@@ -102,14 +107,19 @@ public class Capabilities {
     private boolean sipAutomata = false;
 
     /**
-     * Set of supported extensions
-     */
-    private Set<String> extensions = new HashSet<String>();
+	 * Set of supported extensions
+	 */
+	private Set<String> extensions = new HashSet<String>();
 	
 	/**
-	 * Last capabilities update
+	 * Last timestamp capabilities was requested
 	 */
-	private long timestamp = System.currentTimeMillis();
+	private long mTimestampOfLastRequest = INVALID_TIMESTAMP;
+	
+	/**
+	 * Last timestamp capabilities was refreshed
+	 */
+	private long mTimestampOfLastRefresh = INVALID_TIMESTAMP;
 
 	/**
 	 * Constructor
@@ -385,50 +395,49 @@ public class Capabilities {
 		this.sipAutomata = sipAutomata;
 	}
 
-    /**
-     * Set supported extensions
-     *
-     * @param extensions set of supported extensions
-     */
-    public void setSupportedExtensions(Set<String> extensions) {
-            this.extensions = extensions;
-    }
-   
-    /**
-     * Add supported extension
-     *
-     * @param serviceId Service ID
-     */
-    public void addSupportedExtension(String serviceId) {
-            extensions.add(serviceId);
-    }
-   
-    /**
-     * Get set of supported extensions
-     *
-     * @return List
-     */
-    public Set<String> getSupportedExtensions() {
-            return extensions;
-    }
-
+	/**
+	 * Set supported extensions
+	 * 
+	 * @param extensions set of supported extensions
+	 */
+	public void setSupportedExtensions(Set<String> extensions) {
+		this.extensions = extensions;
+	}
 	
 	/**
-	 * Get the capabilities timestamp 
+	 * Add supported extension
 	 * 
-	 * @return Timestamp (in milliseconds)
+	 * @param serviceId Service ID
 	 */
-	public long getTimestamp() {
-		return timestamp;
+	public void addSupportedExtension(String serviceId) {
+		extensions.add(serviceId);
+	}
+	
+	/**
+	 * Get set of supported extensions
+	 * 
+	 * @return List
+	 */
+	public Set<String> getSupportedExtensions() {
+		return extensions;
+	}
+	
+	/**
+	 * Get timestamp of last request
+	 * 
+	 * @return timetampOfLastRequest (in milliseconds)
+	 */
+	public long getTimestampOfLastRequest() {
+		return mTimestampOfLastRequest;
 	}
 
 	/**
-	 * Set capabilities timestamp
+	 * Set timestamp of the last request
 	 * 
-	 * @param Timestamp
+	 * @param timestampOfLastRequest (in milliseconds)
 	 */
-	public void setTimestamp(long timestamp) {
-		this.timestamp = timestamp;
+	public void setTimestampOfLastRequest(long timestampOfLastRequest) {
+		this.mTimestampOfLastRequest = timestampOfLastRequest;
 	}
 	
 	/**
@@ -443,13 +452,39 @@ public class Capabilities {
 			", IP_video_call=" + ipVideoCall +			
 			", File_transfer=" + fileTransfer +
 			", Chat=" + imSession +
-			", CS_video=" + csVideo +
-			", Presence_discovery=" + presenceDiscovery +
-			", Social_presence=" + socialPresence +
             ", FT_http=" + fileTransferHttp +
             ", Geolocation_push=" + geolocationPush +
-            ", FT_thumbnail=" + fileTransferThumbnail +
             ", Automata=" + sipAutomata +
-			", Timestamp=" + timestamp;
+			", TimestampLastRequest=" + mTimestampOfLastRequest+
+			", TimestampLastRefresh=" + mTimestampOfLastRefresh;
 	}
+
+	/**
+	 * Check validity of capability
+	 * 
+	 * @return true if the capability is valid (no need to refresh it), otherwise False.
+	 */
+	public boolean isValid() {
+		// If no refresh of capabilities is required then capabilities are valid
+		return !PollingManager.isCapabilityRefreshRequired(this.mTimestampOfLastRefresh);
+	}
+
+	/**
+	 * Get timestamp of last refresh
+	 * 
+	 * @return timestampOfLastRefresh (in milliseconds)
+	 */
+	public long getTimestampOfLastRefresh() {
+		return mTimestampOfLastRefresh;
+	}
+
+	/**
+	 * Set timestamp of last refresh
+	 * 
+	 * @param timestampOfLastRefresh (in milliseconds)
+	 */
+	public void setTimestampOfLastRefresh(long timestampOfLastRefresh) {
+		this.mTimestampOfLastRefresh = timestampOfLastRefresh;
+	}
+
 }

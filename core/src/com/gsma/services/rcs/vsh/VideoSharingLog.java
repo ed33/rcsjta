@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.vsh;
 
@@ -28,14 +32,9 @@ public class VideoSharingLog {
     /**
      * Content provider URI
      */
-    public static final Uri CONTENT_URI = Uri.parse("content://com.gsma.services.rcs.provider.vsh/vsh");
+    public static final Uri CONTENT_URI = Uri
+            .parse("content://com.gsma.services.rcs.provider.videoshare/videoshare");
 
-    /**
-     * The name of the column containing the unique ID for a row.
-     * <P>Type: primary key</P>
-     */
-    public static final String ID = "_id";
-    
     /**
      * The name of the column containing the unique ID of the video sharing.
      * <P>Type: TEXT</P>
@@ -46,12 +45,12 @@ public class VideoSharingLog {
      * The name of the column containing the MSISDN of the remote contact.
      * <P>Type: TEXT</P>
      */
-    public static final String CONTACT_NUMBER = "contact_number";
+    public static final String CONTACT = "contact";
 
     /**
      * The name of the column containing the direction of the sharing.
      * <P>Type: INTEGER</P>
-	 * @see VideoSharing.Direction
+     * @see com.orangelabs.rcs.RcsCommon.Direction
      */
     public static final String DIRECTION = "direction";
 
@@ -74,4 +73,37 @@ public class VideoSharingLog {
 	 * @see VideoSharing.State
      */
     public static final String STATE = "state";    
+
+    /**
+     * The name of the column containing the reason code of the state.
+     * <P>Type: INTEGER</P>
+     * @see VideoSharing.ReasonCode
+     */
+    public static final String REASON_CODE = "reason_code";
+
+    /**
+     * The name of the column containing the encoding type of video
+     * <P>Type: INTEGER</P>
+	 * @see VideoSharing.Encoding
+     */
+    public static final String VIDEO_ENCODING = "videoEncoding";
+
+    /**
+     * The name of the column containing the width of video
+     * <P>Type: INTEGER</P>
+     */
+    public static final String WIDTH = "width";
+
+    /**
+     * The name of the column containing the height of video
+     * <P>Type: INTEGER</P>
+     */
+    public static final String HEIGHT = "height";
+
+    /**
+     * The name of the column containing the video orientation
+     * <P>Type: INTEGER</P>
+     * @see VideoSharing.Orientation
+     */
+    public static final String ORIENTATION = "orientation";
 }

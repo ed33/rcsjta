@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.core.ims.service.sip;
@@ -23,6 +27,8 @@ import java.util.Vector;
 
 import android.content.Intent;
 
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.CoreException;
 import com.orangelabs.rcs.core.ims.ImsModule;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
@@ -50,7 +56,7 @@ public class SipService extends ImsService {
 	/**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private final static Logger logger = Logger.getLogger(SipService.class.getSimpleName());
 
 	/**
 	 * MIME-type for multimedia services
@@ -98,20 +104,17 @@ public class SipService extends ImsService {
     /**
      * Initiate a MSRP session
      * 
-     * @param contact Remote contact
+     * @param contact Remote contact Id
      * @param featureTag Feature tag of the service
      * @return SIP session
      */
-	public GenericSipMsrpSession initiateMsrpSession(String contact, String featureTag) {
+	public GenericSipMsrpSession initiateMsrpSession(ContactId contact, String featureTag) {
 		if (logger.isActivated()) {
 			logger.info("Initiate a MSRP session with contact " + contact);
 		}
 		
 		// Create a new session
-		OriginatingSipMsrpSession session = new OriginatingSipMsrpSession(
-				this,
-				PhoneUtils.formatNumberToSipUri(contact),
-				featureTag);
+		OriginatingSipMsrpSession session = new OriginatingSipMsrpSession(this, contact, featureTag);
 		
 		return session;
 	}
@@ -119,20 +122,18 @@ public class SipService extends ImsService {
     /**
      * Receive a session invitation with MSRP media
      * 
-     * @param intent Resolved intent
+     * @param sessionInvite Resolved intent
      * @param invite Initial invite
+     * @throws RcsContactFormatException
      */
-	public void receiveMsrpSessionInvitation(Intent intent, SipRequest invite) {
+	public void receiveMsrpSessionInvitation(Intent sessionInvite, SipRequest invite) throws RcsContactFormatException {
+
 		// Create a new session
-    	TerminatingSipMsrpSession session = new TerminatingSipMsrpSession(
-					this,
-					invite);
+		TerminatingSipMsrpSession session = new TerminatingSipMsrpSession(this, invite, sessionInvite);
 
-		// Start the session
+		getImsModule().getCore().getListener().handleSipMsrpSessionInvitation(sessionInvite, session);
+
 		session.startSession();
-
-		// Notify listener
-		getImsModule().getCore().getListener().handleSipMsrpSessionInvitation(intent, session);
 	}
 
     /**
@@ -142,16 +143,13 @@ public class SipService extends ImsService {
      * @param featureTag Feature tag of the service
      * @return SIP session
      */
-	public GenericSipRtpSession initiateRtpSession(String contact, String featureTag) {
+	public GenericSipRtpSession initiateRtpSession(ContactId contact, String featureTag) {
 		if (logger.isActivated()) {
 			logger.info("Initiate a RTP session with contact " + contact);
 		}
 		
 		// Create a new session
-		OriginatingSipRtpSession session = new OriginatingSipRtpSession(
-				this,
-				PhoneUtils.formatNumberToSipUri(contact),
-				featureTag);
+		OriginatingSipRtpSession session = new OriginatingSipRtpSession(this, contact, featureTag);
 		
 		return session;
 	}
@@ -159,20 +157,17 @@ public class SipService extends ImsService {
 	/**
      * Receive a session invitation with RTP media
      * 
-     * @param intent Resolved intent
+     * @param sessionInvite Resolved intent
      * @param invite Initial invite
+     * @throws RcsContactFormatException
      */
-	public void receiveRtpSessionInvitation(Intent intent, SipRequest invite) {
+	public void receiveRtpSessionInvitation(Intent sessionInvite, SipRequest invite) throws RcsContactFormatException {
 		// Create a new session
-    	TerminatingSipRtpSession session = new TerminatingSipRtpSession(
-					this,
-					invite);
+		TerminatingSipRtpSession session = new TerminatingSipRtpSession(this, invite, sessionInvite);
 
-		// Start the session
+		getImsModule().getCore().getListener().handleSipRtpSessionInvitation(sessionInvite, session);
+
 		session.startSession();
-		
-		// Notify listener
-		getImsModule().getCore().getListener().handleSipRtpSessionInvitation(intent, session);
 	}
 	
 	/**
@@ -197,16 +192,16 @@ public class SipService extends ImsService {
 	/**
      * Returns SIP sessions with a given contact
      * 
-     * @param contact Contact
+     * @param contact Contact Id
      * @return List of sessions
      */
-	public Vector<GenericSipMsrpSession> getSipSessionsWith(String contact) {
+	public Vector<GenericSipMsrpSession> getSipSessionsWith(ContactId contact) {
 		// Search all SIP sessions
 		Vector<GenericSipMsrpSession> result = new Vector<GenericSipMsrpSession>();
 		Enumeration<ImsServiceSession> list = getSessions();
 		while(list.hasMoreElements()) {
 			ImsServiceSession session = list.nextElement();
-			if ((session instanceof GenericSipMsrpSession) && PhoneUtils.compareNumbers(session.getRemoteContact(), contact)) {
+			if ((session instanceof GenericSipMsrpSession) && session.getRemoteContact().equals(contact)) {
 				result.add((GenericSipMsrpSession)session);
 			}
 		}

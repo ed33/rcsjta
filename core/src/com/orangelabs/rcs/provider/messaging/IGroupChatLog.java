@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.provider.messaging;
@@ -24,6 +24,7 @@ package com.orangelabs.rcs.provider.messaging;
 import java.util.Set;
 
 import com.gsma.services.rcs.chat.ParticipantInfo;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.service.im.chat.GroupChatInfo;
 
 /**
@@ -39,16 +40,21 @@ public interface IGroupChatLog {
 	 * 
 	 * @param chatId
 	 *            Chat ID
+	 * @param contact
+	 *            Contact ID
 	 * @param subject
 	 *            Subject
 	 * @param participants
 	 *            List of participants
-	 * @param status
-	 *            Status
+	 * @param state
+	 *            State
+	 * @param reasonCode
+	 *            ReasonCode
 	 * @param direction
 	 *            Direction
 	 */
-	public void addGroupChat(String chatId, String subject, Set<ParticipantInfo> participants, int status, int direction);
+	public void addGroupChat(String chatId, ContactId contact, String subject,
+			Set<ParticipantInfo> participants, int state, int reasonCode, int direction);
 
 	/**
 	 * Accept next Group Chat invitation
@@ -62,10 +68,12 @@ public interface IGroupChatLog {
 	 * 
 	 * @param chatId
 	 *            Chat ID
-	 * @param status
-	 *            Status
+	 * @param state
+	 *            Group chat state
+	 * @param reasonCode
+	 *            Group chat state reason code
 	 */
-	public void updateGroupChatStatus(String chatId, int status);
+	public void updateGroupChatStateAndReasonCode(String chatId, int state, int reasonCode);
 
 	/**
 	 * Update group chat set of participants
@@ -82,12 +90,12 @@ public interface IGroupChatLog {
 	 * 
 	 * @param chatId
 	 *            Chat ID
-	 * @param rejoingId
+	 * @param rejoinId
 	 *            Rejoin ID
 	 * @param status
 	 *            Status
 	 */
-	public void updateGroupChatRejoinId(String chatId, String rejoingId);
+	public void updateGroupChatRejoinIdOnSessionStart(String chatId, String rejoinId);
 
 	/**
 	 * Get the group chat info

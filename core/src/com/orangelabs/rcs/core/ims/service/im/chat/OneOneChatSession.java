@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.core.ims.service.im.chat;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import javax2.sip.header.SubjectHeader;
 
-import com.gsma.services.rcs.chat.ChatLog;
+import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.chat.ParticipantInfo;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.ImsModule;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpSession;
@@ -37,16 +39,18 @@ import com.orangelabs.rcs.core.ims.protocol.sip.SipException;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
 import com.orangelabs.rcs.core.ims.service.ImsService;
+import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
 import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 import com.orangelabs.rcs.core.ims.service.im.chat.cpim.CpimMessage;
 import com.orangelabs.rcs.core.ims.service.im.chat.geoloc.GeolocInfoDocument;
 import com.orangelabs.rcs.core.ims.service.im.chat.imdn.ImdnDocument;
 import com.orangelabs.rcs.core.ims.service.im.chat.iscomposing.IsComposingInfo;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.FileTransferHttpInfoDocument;
-import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.IdGenerator;
 import com.orangelabs.rcs.utils.StringUtils;
+import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
  * Abstract 1-1 chat session
@@ -59,14 +63,20 @@ public abstract class OneOneChatSession extends ChatSession {
 	 */
 	private final static String BOUNDARY_TAG = "boundary1";
 
+	/**
+     * The logger
+     */
+    private final static Logger logger = Logger.getLogger(OneOneChatSession.class.getSimpleName());
+    
     /**
 	 * Constructor
 	 * 
 	 * @param parent IMS service
-	 * @param contact Remote contact
+	 * @param contact Remote contact identifier
+	 * @param remoteUri Remote URI
 	 */
-	public OneOneChatSession(ImsService parent, String contact) {
-		super(parent, contact, OneOneChatSession.generateOneOneParticipants(contact));
+	public OneOneChatSession(ImsService parent, ContactId contact, String remoteUri) {
+		super(parent, contact, remoteUri, OneOneChatSession.generateOneOneParticipants(contact));
 		
 		// Set feature tags
         List<String> featureTags = ChatUtils.getSupportedFeatureTagsForChat();
@@ -89,7 +99,7 @@ public abstract class OneOneChatSession extends ChatSession {
         }
         setWrappedTypes(wrappedTypes);
 	}
-	
+
 	/**
 	 * Is group chat
 	 * 
@@ -100,21 +110,21 @@ public abstract class OneOneChatSession extends ChatSession {
 	}
 	
 	/**
-	 * Generate the list of participants for a 1-1 chat
+	 * Generate the set of participants for a 1-1 chat
 	 * 
-	 * @param contact Contact
-	 * @return List of participants
+	 * @param contact ContactId
+	 * @return Set of participants
 	 */
-    private static Set<ParticipantInfo> generateOneOneParticipants(String contact) {
+    private static Set<ParticipantInfo> generateOneOneParticipants(ContactId contact) {
     	Set<ParticipantInfo> set = new HashSet<ParticipantInfo>();
     	ParticipantInfoUtils.addParticipant(set, contact);
 		return set;
 	}
 
     /**
-	 * Returns the list of participants currently connected to the session
+	 * Returns the set of participants currently connected to the session
 	 * 
-	 * @return List of participants
+	 * @return Set of participants
 	 */
     public Set<ParticipantInfo> getConnectedParticipants() {
 		return getParticipants();
@@ -130,98 +140,90 @@ public abstract class OneOneChatSession extends ChatSession {
         // Close MSRP session
         closeMsrpSession();
     }
-    
+
 	/**
 	 * Send a text message
-	 * 
+	 *
 	 * @param id Message-ID
 	 * @param txt Text message
 	 */
 	public void sendTextMessage(String msgId, String txt) {
-        boolean useImdn = getImdnManager().isImdnActivated();
-        String imdnMsgId = null;
-        String mime = CpimMessage.MIME_TYPE;
+		boolean useImdn = getImdnManager().isImdnActivated();
 		String from = ChatUtils.ANOMYNOUS_URI;
 		String to = ChatUtils.ANOMYNOUS_URI;
-
-		String content;
+		String networkContent;
 		if (useImdn) {
-            // Send message in CPIM + IMDN
-            imdnMsgId = IdGenerator.generateMessageID();
-			content = ChatUtils.buildCpimMessageWithImdn(from, to, imdnMsgId, StringUtils.encodeUTF8(txt), InstantMessage.MIME_TYPE);
+			networkContent = ChatUtils.buildCpimMessageWithImdn(from, to, msgId,
+					StringUtils.encodeUTF8(txt), InstantMessage.MIME_TYPE);
+
 		} else {
-			// Send message in CPIM
-			content = ChatUtils.buildCpimMessage(from, to, StringUtils.encodeUTF8(txt), InstantMessage.MIME_TYPE);
+			networkContent = ChatUtils.buildCpimMessage(from, to, StringUtils.encodeUTF8(txt),
+					InstantMessage.MIME_TYPE);
+		}
+		InstantMessage msg = new InstantMessage(msgId, getRemoteContact(), txt, useImdn, null);
+
+		Collection<ImsSessionListener> listeners = getListeners();
+		for (ImsSessionListener listener : listeners) {
+			((ChatSessionListener)listener).handleMessageSending(msg);
 		}
 
-		// Send content
-		boolean result = sendDataChunks(msgId, content, mime, MsrpSession.TypeMsrpChunk.TextMessage);
+		boolean result = sendDataChunks(IdGenerator.generateMessageID(), networkContent, CpimMessage.MIME_TYPE,
+				MsrpSession.TypeMsrpChunk.TextMessage);
 
-        // Use IMDN MessageID as reference if existing
-        if (useImdn) {
-            msgId = imdnMsgId;
-        }
+		/* TODO:This will be redone with CR037 */
+		if (result) {
+			for (ImsSessionListener listener : listeners) {
+				((ChatSessionListener)listener).handleMessageSent(msgId);
+			}
 
-		// Update rich messaging history
-		InstantMessage msg = new InstantMessage(msgId, getRemoteContact(), txt, useImdn, null);
-		MessagingLog.getInstance().addChatMessage(msg, ChatLog.Message.Direction.OUTGOING);
-
-		// Check if message has been sent with success or not
-		if (!result) {
-			// Update rich messaging history
-			MessagingLog.getInstance().updateChatMessageStatus(msgId, ChatLog.Message.Status.Content.FAILED);
-			
-			// Notify listeners
-	    	for(int i=0; i < getListeners().size(); i++) {
-	    		((ChatSessionListener)getListeners().get(i)).handleSendMessageFailure(msgId);
+		} else {
+			for (ImsSessionListener listener : listeners) {
+				((ChatSessionListener)listener).handleMessageFailedSend(msgId);
 			}
 		}
 	}
 
+
 	/**
 	 * Send a geoloc message
-	 * 
+	 *
 	 * @param msgId Message ID
 	 * @param geoloc Geoloc info
 	 */
 	public void sendGeolocMessage(String msgId, GeolocPush geoloc) {
 		boolean useImdn = getImdnManager().isImdnActivated();
-        String imdnMsgId = null;
-		String mime = CpimMessage.MIME_TYPE;
 		String from = ChatUtils.ANOMYNOUS_URI;
 		String to = ChatUtils.ANOMYNOUS_URI;
-		String geoDoc = ChatUtils.buildGeolocDocument(geoloc, ImsModule.IMS_USER_PROFILE.getPublicUri(), msgId);
-
-		String content;
+		String geoDoc = ChatUtils.buildGeolocDocument(geoloc,
+				ImsModule.IMS_USER_PROFILE.getPublicUri(), msgId);
+		String networkContent;
 		if (useImdn) {
-			// Send message in CPIM + IMDN
-            imdnMsgId = IdGenerator.generateMessageID();
-			content = ChatUtils.buildCpimMessageWithImdn(from, to, imdnMsgId, geoDoc, GeolocInfoDocument.MIME_TYPE);
+			networkContent = ChatUtils.buildCpimMessageWithImdn(from, to, msgId, geoDoc,
+					GeolocInfoDocument.MIME_TYPE);
+
 		} else {
-			// Send message in CPIM
-			content = ChatUtils.buildCpimMessage(from, to, geoDoc, GeolocInfoDocument.MIME_TYPE);
+			networkContent = ChatUtils.buildCpimMessage(from, to, geoDoc,
+					GeolocInfoDocument.MIME_TYPE);
+		}
+		GeolocMessage geolocMsg = new GeolocMessage(msgId, getRemoteContact(), geoloc, useImdn, null);
+
+		Collection<ImsSessionListener> listeners = getListeners();
+		for (ImsSessionListener listener : listeners) {
+			((ChatSessionListener)listener).handleMessageSending(geolocMsg);
 		}
 
-		// Send content
-		boolean result = sendDataChunks(msgId, content, mime, MsrpSession.TypeMsrpChunk.GeoLocation);
+		boolean result = sendDataChunks(IdGenerator.generateMessageID(), networkContent, CpimMessage.MIME_TYPE,
+				MsrpSession.TypeMsrpChunk.GeoLocation);
 
-        // Use IMDN MessageID as reference if existing
-        if (useImdn) {
-            msgId = imdnMsgId;
-        }
+		/* TODO:This will be redone with CR037 */
+		if (result) {
+			for (ImsSessionListener listener : listeners) {
+				((ChatSessionListener)listener).handleMessageSent(msgId);
+			}
 
-		// Update rich messaging history
-		GeolocMessage geolocMsg = new GeolocMessage(msgId, getRemoteContact(), geoloc, useImdn, null);
-		MessagingLog.getInstance().addChatMessage(geolocMsg, ChatLog.Message.Direction.OUTGOING);
-
-		// Check if message has been sent with success or not
-		if (!result) {
-			// Update rich messaging history
-			MessagingLog.getInstance().updateChatMessageStatus(msgId, ChatLog.Message.Status.Content.FAILED);
-			
-			// Notify listeners
-	    	for(int i=0; i < getListeners().size(); i++) {
-	    		((ChatSessionListener)getListeners().get(i)).handleSendMessageFailure(msgId);
+		} else {
+			for (ImsSessionListener listener : listeners) {
+				((ChatSessionListener)listener).handleMessageFailedSend(msgId);
 			}
 		}
 	}
@@ -327,16 +329,36 @@ public abstract class OneOneChatSession extends ChatSession {
      */
     public abstract String getDirection();
     
-    // Changed by Deutsche Telekom
     /* (non-Javadoc)
      * @see com.orangelabs.rcs.core.ims.service.im.chat.ChatSession#msrpTransferError(java.lang.String, java.lang.String, com.orangelabs.rcs.core.ims.protocol.msrp.MsrpSession.TypeMsrpChunk)
      */
     @Override
     public void msrpTransferError(String msgId, String error, MsrpSession.TypeMsrpChunk typeMsrpChunk) {
     	super.msrpTransferError(msgId, error, typeMsrpChunk);
-    	
-        // Request capabilities
-        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getDialogPath().getRemoteParty());
+        try {
+			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+			// Request capabilities to the remote
+	        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
+		} catch (RcsContactFormatException e) {
+			if (logger.isActivated()) {
+				logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
+			}
+		}
     }
+    
+    @Override
+    public void receiveBye(SipRequest bye) {
+		super.receiveBye(bye);
+		
+		// Request capabilities to the remote
+	    getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getRemoteContact());
+	}
 
+    @Override
+    public void receiveCancel(SipRequest cancel) {      
+    	super.receiveCancel(cancel);
+        
+		// Request capabilities to the remote
+	    getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getRemoteContact());
+	}
 }

@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.ish;
 
+import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,11 +36,11 @@ import android.net.Uri;
 import android.os.IBinder;
 import android.os.IInterface;
 
-import com.gsma.services.rcs.JoynContactFormatException;
-import com.gsma.services.rcs.JoynService;
-import com.gsma.services.rcs.JoynServiceException;
-import com.gsma.services.rcs.JoynServiceListener;
-import com.gsma.services.rcs.JoynServiceNotAvailableException;
+import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.RcsServiceListener;
+import com.gsma.services.rcs.RcsServiceNotAvailableException;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * This class offers the main entry point to transfer image during
@@ -51,11 +52,20 @@ import com.gsma.services.rcs.JoynServiceNotAvailableException;
  * 
  * @author Jean-Marc AUFFRET
  */
-public class ImageSharingService extends JoynService {
+public class ImageSharingService extends RcsService {
+
+	private static final int KITKAT_VERSION_CODE = 19;
+
+	private static final String TAKE_PERSISTABLE_URI_PERMISSION_METHOD_NAME = "takePersistableUriPermission";
+
+	private static final Class<?>[] TAKE_PERSISTABLE_URI_PERMISSION_PARAM_TYPES = new Class[] {
+			Uri.class, int.class
+	};
+
 	/**
 	 * API
 	 */
-	private IImageSharingService api = null;
+	private IImageSharingService api;
 	
     /**
      * Constructor
@@ -63,7 +73,7 @@ public class ImageSharingService extends JoynService {
      * @param ctx Application context
      * @param listener Service listener
      */
-    public ImageSharingService(Context ctx, JoynServiceListener listener) {
+    public ImageSharingService(Context ctx, RcsServiceListener listener) {
     	super(ctx, listener);
     }
 
@@ -110,7 +120,7 @@ public class ImageSharingService extends JoynService {
         public void onServiceDisconnected(ComponentName className) {
         	setApi(null);
         	if (serviceListener != null) {
-        		serviceListener.onServiceDisconnected(JoynService.Error.CONNECTION_LOST);
+        		serviceListener.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
         	}
         }
     };
@@ -119,17 +129,17 @@ public class ImageSharingService extends JoynService {
      * Returns the configuration of image sharing service
      * 
      * @return Configuration
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public ImageSharingServiceConfiguration getConfiguration() throws JoynServiceException {
+    public ImageSharingServiceConfiguration getConfiguration() throws RcsServiceException {
 		if (api != null) {
 			try {
 				return api.getConfiguration();
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
@@ -143,48 +153,76 @@ public class ImageSharingService extends JoynService {
 		}
 	}
 
-	private void persistUriPermissionForClient(Uri file) {
-//		ctx.getContentResolver().takePersistableUriPermission(file,
-//				Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+	/**
+	 * Using reflection to persist Uri permission in order to support backward
+	 * compatibility since this API is available only from Kitkat onwards.
+	 *
+	 * @param file Uri of file to share
+	 * @throws RcsServiceException
+	 */
+	private void takePersistableUriPermission(Uri file) throws RcsServiceException {
+		try {
+			ContentResolver contentResolver = ctx.getContentResolver();
+			Method takePersistableUriPermissionMethod = contentResolver.getClass().getMethod(
+					TAKE_PERSISTABLE_URI_PERMISSION_METHOD_NAME,
+					TAKE_PERSISTABLE_URI_PERMISSION_PARAM_TYPES);
+			Object[] methodArgs = new Object[] {
+					file,
+					Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+			};
+			takePersistableUriPermissionMethod.invoke(contentResolver, methodArgs);
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}
 	}
 
     /**
+     * Grant permission to the stack and persist access permission
+     * 
+     * @param file the file URI
+     * @throws RcsServiceException
+     */
+    private void tryToGrantAndPersistUriPermission(Uri file) throws RcsServiceException {
+        if (ContentResolver.SCHEME_CONTENT.equals(file.getScheme())) {
+            // Granting temporary read Uri permission from client to
+            // stack service if it is a content URI
+            grantUriPermissionToStackServices(file);
+            // Persist Uri access permission for the client
+            // to be able to read the contents from this Uri even
+            // after the client is restarted after device reboot.
+            if (android.os.Build.VERSION.SDK_INT >= KITKAT_VERSION_CODE) {
+                takePersistableUriPermission(file);
+            }
+        }
+    }
+
+    /**
      * Shares an image with a contact. The parameter file contains the URI
-     * of the image to be shared(for a local or a remote image). An exception if thrown if there is
+     * of the image to be shared (for a local or a remote image). An exception if thrown if there is
      * no ongoing CS call. The parameter contact supports the following formats: MSISDN
      * in national or international format, SIP address, SIP-URI or Tel-URI. If the format
      * of the contact is not supported an exception is thrown.
      * 
-     * @param contact Contact
+     * @param contact Contact identifier
      * @param file Uri of file to share
-     * @param listener Image sharing event listener
      * @return Image sharing
-     * @throws JoynServiceException
-	 * @throws JoynContactFormatException
+     * @throws RcsServiceException
      */
-    public ImageSharing shareImage(String contact, Uri file, ImageSharingListener listener) throws JoynServiceException, JoynContactFormatException {
+    public ImageSharing shareImage(ContactId contact, Uri file) throws RcsServiceException {
 		if (api != null) {
 			try {
-				if (ContentResolver.SCHEME_CONTENT.equals(file.getScheme())) {
-					// Granting temporary read Uri permission from client to
-					// stack service if it is a content URI
-					grantUriPermissionToStackServices(file);
-					// Persist Uri access permission for the client
-					// to be able to read the contents from this Uri even
-					// after the client is restarted after device reboot.
-					persistUriPermissionForClient(file);
-				}
-				IImageSharing sharingIntf = api.shareImage(contact, file, listener);
+				tryToGrantAndPersistUriPermission(file);
+				IImageSharing sharingIntf = api.shareImage(contact, file);
 				if (sharingIntf != null) {
 					return new ImageSharing(sharingIntf);
 				} else {
 					return null;
 				}
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
     
@@ -192,9 +230,9 @@ public class ImageSharingService extends JoynService {
      * Returns the list of image sharings in progress
      * 
      * @return List of image sharings
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public Set<ImageSharing> getImageSharings() throws JoynServiceException {
+    public Set<ImageSharing> getImageSharings() throws RcsServiceException {
 		if (api != null) {
 			try {
 	    		Set<ImageSharing> result = new HashSet<ImageSharing>();
@@ -205,10 +243,10 @@ public class ImageSharingService extends JoynService {
 				}
 				return result;
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
 
@@ -217,9 +255,9 @@ public class ImageSharingService extends JoynService {
      * 
      * @param sharingId Sharing ID
      * @return Image sharing or null if not found
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public ImageSharing getImageSharing(String sharingId) throws JoynServiceException {
+    public ImageSharing getImageSharing(String sharingId) throws RcsServiceException {
 		if (api != null) {
 			try {
 				IImageSharing sharingIntf = api.getImageSharing(sharingId);
@@ -229,70 +267,46 @@ public class ImageSharingService extends JoynService {
 					return null;
 				}
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
-    
-    /**
-     * Returns a current image sharing from its invitation Intent
-     * 
-     * @param intent Invitation intent
-     * @return Image sharing or null if not found
-     * @throws JoynServiceException
-     */
-    public ImageSharing getImageSharingFor(Intent intent) throws JoynServiceException {
-		if (api != null) {
-			try {
-				String sharingId = intent.getStringExtra(ImageSharingIntent.EXTRA_SHARING_ID);
-				if (sharingId != null) {
-					return getImageSharing(sharingId);
-				} else {
-					return null;
-				}
-			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
-			}
-		} else {
-			throw new JoynServiceNotAvailableException();
-		}
-    }     
-    
-    /**
-	 * Registers a new image sharing invitation listener
+
+	/**
+	 * Adds a listener on image sharing events
 	 * 
-	 * @param listener New image sharing listener
-	 * @throws JoynServiceException
+	 * @param listener Listener
+	 * @throws RcsServiceException
 	 */
-	public void addNewImageSharingListener(NewImageSharingListener listener) throws JoynServiceException {
+	public void addEventListener(ImageSharingListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
-				api.addNewImageSharingListener(listener);
-			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				api.addEventListener2(listener);
+			} catch (Exception e) {
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
 	/**
-	 * Unregisters a new image sharing invitation listener
+	 * Removes a listener on image sharing events
 	 * 
-	 * @param listener New image sharing listener
-	 * @throws JoynServiceException
+	 * @param listener Listener
+	 * @throws RcsServiceException
 	 */
-	public void removeNewImageSharingListener(NewImageSharingListener listener) throws JoynServiceException {
+	public void removeEventListener(ImageSharingListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
-				api.removeNewImageSharingListener(listener);
-			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				api.removeEventListener2(listener);
+			} catch (Exception e) {
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 }

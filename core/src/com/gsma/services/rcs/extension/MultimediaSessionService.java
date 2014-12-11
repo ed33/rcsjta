@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.gsma.services.rcs.extension;
@@ -29,11 +33,11 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.IInterface;
 
-import com.gsma.services.rcs.JoynContactFormatException;
-import com.gsma.services.rcs.JoynService;
-import com.gsma.services.rcs.JoynServiceException;
-import com.gsma.services.rcs.JoynServiceListener;
-import com.gsma.services.rcs.JoynServiceNotAvailableException;
+import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.RcsServiceListener;
+import com.gsma.services.rcs.RcsServiceNotAvailableException;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * This class offers the main entry point to initiate and to manage
@@ -42,11 +46,11 @@ import com.gsma.services.rcs.JoynServiceNotAvailableException;
  * 
  * @author Jean-Marc AUFFRET
  */
-public class MultimediaSessionService extends JoynService {
+public class MultimediaSessionService extends RcsService {
 	/**
 	 * API
 	 */
-	private IMultimediaSessionService api = null;
+	private IMultimediaSessionService api;
 	
     /**
      * Constructor
@@ -54,7 +58,7 @@ public class MultimediaSessionService extends JoynService {
      * @param ctx Application context
      * @param listener Service listener
      */
-    public MultimediaSessionService(Context ctx, JoynServiceListener listener) {
+    public MultimediaSessionService(Context ctx, RcsServiceListener listener) {
     	super(ctx, listener);
     }
 
@@ -101,7 +105,7 @@ public class MultimediaSessionService extends JoynService {
         public void onServiceDisconnected(ComponentName className) {
         	setApi(null);
         	if (serviceListener != null) {
-        		serviceListener.onServiceDisconnected(JoynService.Error.CONNECTION_LOST);
+        		serviceListener.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
         	}
         }
     };
@@ -110,17 +114,17 @@ public class MultimediaSessionService extends JoynService {
      * Returns the configuration of the multimedia session service
      * 
      * @return Configuration
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public MultimediaSessionServiceConfiguration getConfiguration() throws JoynServiceException {
+    public MultimediaSessionServiceConfiguration getConfiguration() throws RcsServiceException {
 		if (api != null) {
 			try {
 				return api.getConfiguration();
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}     
     
@@ -132,26 +136,24 @@ public class MultimediaSessionService extends JoynService {
      * not supported an exception is thrown.
      * 
      * @param serviceId Service ID
-     * @param contact Contact
-     * @param listener Multimedia messaging session event listener
+     * @param contact Contact identifier
      * @return Multimedia messaging session
-     * @throws JoynServiceException
-	 * @throws JoynContactFormatException
+     * @throws RcsServiceException
      */
-    public MultimediaMessagingSession initiateMessagingSession(String serviceId, String contact, MultimediaMessagingSessionListener listener) throws JoynServiceException, JoynContactFormatException {
+    public MultimediaMessagingSession initiateMessagingSession(String serviceId, ContactId contact) throws RcsServiceException {
 		if (api != null) {
 			try {
-				IMultimediaMessagingSession sessionIntf = api.initiateMessagingSession(serviceId, contact, listener);
+				IMultimediaMessagingSession sessionIntf = api.initiateMessagingSession(serviceId, contact);
 				if (sessionIntf != null) {
 					return new MultimediaMessagingSession(sessionIntf);
 				} else {
 					return null;
 				}
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
     
@@ -160,9 +162,9 @@ public class MultimediaSessionService extends JoynService {
      * 
      * @param serviceId Service ID
      * @return List of messaging sessions
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public Set<MultimediaMessagingSession> getMessagingSessions(String serviceId) throws JoynServiceException {
+    public Set<MultimediaMessagingSession> getMessagingSessions(String serviceId) throws RcsServiceException {
 		if (api != null) {
 			try {
 	    		Set<MultimediaMessagingSession> result = new HashSet<MultimediaMessagingSession>();
@@ -173,10 +175,10 @@ public class MultimediaSessionService extends JoynService {
 				}
 				return result;
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
 
@@ -184,9 +186,9 @@ public class MultimediaSessionService extends JoynService {
      * Returns a current messaging session from its unique session ID
      * 
      * @return Multimedia messaging session or null if not found
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public MultimediaMessagingSession getMessagingSession(String sessionId) throws JoynServiceException {
+    public MultimediaMessagingSession getMessagingSession(String sessionId) throws RcsServiceException {
 		if (api != null) {
 			try {
 				IMultimediaMessagingSession sessionIntf = api.getMessagingSession(sessionId);
@@ -196,37 +198,13 @@ public class MultimediaSessionService extends JoynService {
 					return null;
 				}
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
     
-    /**
-     * Returns a current messaging session from its invitation Intent
-     * 
-     * @param intent Invitation intent
-     * @return Multimedia messaging session or null if not found
-     * @throws JoynServiceException
-     */
-    public MultimediaMessagingSession getMessagingSessionFor(Intent intent) throws JoynServiceException {
-		if (api != null) {
-			try {
-				String sessionId = intent.getStringExtra(MultimediaMessagingSessionIntent.EXTRA_SESSION_ID);
-				if (sessionId != null) {
-					return getMessagingSession(sessionId);
-				} else {
-					return null;
-				}
-			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
-			}
-		} else {
-			throw new JoynServiceNotAvailableException();
-		}
-    }     
-
     /**
      * Initiates a new session for real time streaming with a remote contact and for a given
      * service extension. The payload are exchanged in real time during the session and may be
@@ -235,26 +213,24 @@ public class MultimediaSessionService extends JoynService {
      * not supported an exception is thrown.
      * 
      * @param serviceId Service ID
-     * @param contact Contact
-     * @param listener Multimedia streaming session event listener
+     * @param contact Contact ID
      * @return Multimedia streaming session
-     * @throws JoynServiceException
-	 * @throws JoynContactFormatException
+     * @throws RcsServiceException
      */
-    public MultimediaStreamingSession initiateStreamingSession(String serviceId, String contact, MultimediaStreamingSessionListener listener) throws JoynServiceException, JoynContactFormatException {
+    public MultimediaStreamingSession initiateStreamingSession(String serviceId, ContactId contact) throws RcsServiceException {
 		if (api != null) {
 			try {
-				IMultimediaStreamingSession sessionIntf = api.initiateStreamingSession(serviceId, contact, listener);
+				IMultimediaStreamingSession sessionIntf = api.initiateStreamingSession(serviceId, contact);
 				if (sessionIntf != null) {
 					return new MultimediaStreamingSession(sessionIntf);
 				} else {
 					return null;
 				}
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
     
@@ -263,9 +239,9 @@ public class MultimediaSessionService extends JoynService {
      * 
      * @param serviceId Service ID
      * @return List of streaming sessions
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public Set<MultimediaStreamingSession> getStreamingSessions(String serviceId) throws JoynServiceException {
+    public Set<MultimediaStreamingSession> getStreamingSessions(String serviceId) throws RcsServiceException {
 		if (api != null) {
 			try {
 	    		Set<MultimediaStreamingSession> result = new HashSet<MultimediaStreamingSession>();
@@ -276,10 +252,10 @@ public class MultimediaSessionService extends JoynService {
 				}
 				return result;
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
 
@@ -287,9 +263,9 @@ public class MultimediaSessionService extends JoynService {
      * Returns a current streaming session from its unique session ID
      * 
      * @return Multimedia streaming session or null if not found
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public MultimediaStreamingSession getStreamingSession(String sessionId) throws JoynServiceException {
+    public MultimediaStreamingSession getStreamingSession(String sessionId) throws RcsServiceException {
 		if (api != null) {
 			try {
 				IMultimediaStreamingSession sessionIntf = api.getStreamingSession(sessionId);
@@ -299,34 +275,86 @@ public class MultimediaSessionService extends JoynService {
 					return null;
 				}
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
     
-    /**
-     * Returns a current streaming session from its invitation Intent
-     * 
-     * @param intent Invitation intent
-     * @return Multimedia streaming session or null if not found
-     * @throws JoynServiceException
-     */
-    public MultimediaStreamingSession getStreamingSessionFor(Intent intent) throws JoynServiceException {
+	/**
+	 * Adds a listener on multimedia messaging session events
+	 *
+	 * @param listener Session event listener
+	 * @throws RcsServiceException
+	 */
+	public void addEventListener(MultimediaMessagingSessionListener listener)
+			throws RcsServiceException {
 		if (api != null) {
 			try {
-				String sessionId = intent.getStringExtra(MultimediaStreamingSessionIntent.EXTRA_SESSION_ID);
-				if (sessionId != null) {
-					return getStreamingSession(sessionId);
-				} else {
-					return null;
-				}
-			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				api.addEventListener2(listener);
+			} catch (Exception e) {
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
-    }     
+	}
+
+	/**
+	 * Removes a listener on multimedia messaging session events
+	 *
+	 * @param listener Session event listener
+	 * @throws RcsServiceException
+	 */
+	public void removeEventListener(MultimediaMessagingSessionListener listener)
+			throws RcsServiceException {
+		if (api != null) {
+			try {
+				api.removeEventListener2(listener);
+			} catch (Exception e) {
+				throw new RcsServiceException(e.getMessage());
+			}
+		} else {
+			throw new RcsServiceNotAvailableException();
+		}
+	}
+
+	/**
+	 * Adds a listener on multimedia streaming session events
+	 *
+	 * @param listener Session event listener
+	 * @throws RcsServiceException
+	 */
+	public void addEventListener(MultimediaStreamingSessionListener listener)
+			throws RcsServiceException {
+		if (api != null) {
+			try {
+				api.addEventListener3(listener);
+			} catch (Exception e) {
+				throw new RcsServiceException(e.getMessage());
+			}
+		} else {
+			throw new RcsServiceNotAvailableException();
+		}
+	}
+
+	/**
+	 * Removes a listener on multimedia streaming session events
+	 *
+	 * @param listener Session event listener
+	 * @throws RcsServiceException
+	 */
+	public void removeEventListener(MultimediaStreamingSessionListener listener)
+			throws RcsServiceException {
+		if (api != null) {
+			try {
+				api.removeEventListener3(listener);
+			} catch (Exception e) {
+				throw new RcsServiceException(e.getMessage());
+			}
+		} else {
+			throw new RcsServiceNotAvailableException();
+		}
+	}
 }

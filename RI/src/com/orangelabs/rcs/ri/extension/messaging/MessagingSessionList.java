@@ -22,10 +22,9 @@ import java.util.List;
 import java.util.Set;
 
 import android.content.Intent;
-import android.os.Bundle;
 import android.widget.ArrayAdapter;
 
-import com.gsma.services.rcs.JoynServiceException;
+import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.extension.MultimediaMessagingSession;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.extension.MultimediaSessionList;
@@ -41,19 +40,11 @@ public class MessagingSessionList extends MultimediaSessionList {
 	 * List of sessions
 	 */
 	private List<MultimediaMessagingSession> sessions = new ArrayList<MultimediaMessagingSession>();
-
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		
-        // Set title
-        setTitle(R.string.menu_messaging_sessions_list);
-	}
 	
 	/**
 	 * Display a session
 	 * 
-	 * @param sessionId Session ID
+	 * @param position
 	 */
 	public void displaySession(int position) {
 		try {
@@ -62,9 +53,9 @@ public class MessagingSessionList extends MultimediaSessionList {
 			intent.putExtra(MessagingSessionView.EXTRA_MODE, MessagingSessionView.MODE_OPEN);
 			intent.putExtra(MessagingSessionView.EXTRA_SESSION_ID, sessionId);
 			startActivity(intent);
-		} catch(JoynServiceException e) {
+		} catch(RcsServiceException e) {
 			e.printStackTrace();
-			Utils.showMessageAndExit(MessagingSessionList.this, getString(R.string.label_api_failed));
+			Utils.showMessageAndExit(this, getString(R.string.label_api_failed));
 		}
 	}
 	
@@ -75,24 +66,22 @@ public class MessagingSessionList extends MultimediaSessionList {
 		try {
 			// Reset the list
 			sessions.clear();
-			
-			if (apiEnabled) {
-		    	// Get list of pending sessions
-		    	Set<MultimediaMessagingSession> currentSessions = sessionApi.getMessagingSessions(MessagingSessionUtils.SERVICE_ID);
-		    	sessions = new ArrayList<MultimediaMessagingSession>(currentSessions);
-				if (sessions.size() > 0){
-			        String[] items = new String[sessions.size()];    
-			        for (int i = 0; i < items.length; i++) {
-						items[i] = getString(R.string.label_session, sessions.get(i).getSessionId());
-			        }
-					setListAdapter(new ArrayAdapter<String>(MessagingSessionList.this, android.R.layout.simple_list_item_1, items));
-				} else {
-					setListAdapter(null);
+
+			// Get list of pending sessions
+			Set<MultimediaMessagingSession> currentSessions = connectionManager.getMultimediaSessionApi().getMessagingSessions(
+					MessagingSessionUtils.SERVICE_ID);
+			sessions = new ArrayList<MultimediaMessagingSession>(currentSessions);
+			if (sessions.size() > 0) {
+				String[] items = new String[sessions.size()];
+				for (int i = 0; i < items.length; i++) {
+					items[i] = getString(R.string.label_session, sessions.get(i).getSessionId());
 				}
+				setListAdapter(new ArrayAdapter<String>(MessagingSessionList.this, android.R.layout.simple_list_item_1, items));
+			} else {
+				setListAdapter(null);
 			}
-		} catch(Exception e) {
-			e.printStackTrace();
-			Utils.showMessageAndExit(MessagingSessionList.this, getString(R.string.label_api_failed));
+		} catch (Exception e) {
+			Utils.showMessageAndExit(MessagingSessionList.this, getString(R.string.label_api_failed), exitOnce);
 		}
-    }
+	}
 }

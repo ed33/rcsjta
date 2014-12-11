@@ -26,6 +26,7 @@ import android.content.DialogInterface.OnClickListener;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -35,15 +36,20 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.gsma.services.rcs.JoynService;
-import com.gsma.services.rcs.JoynServiceException;
-import com.gsma.services.rcs.JoynServiceListener;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.extension.MultimediaSession;
 import com.gsma.services.rcs.extension.MultimediaSessionService;
 import com.gsma.services.rcs.extension.MultimediaStreamingSession;
 import com.gsma.services.rcs.extension.MultimediaStreamingSessionIntent;
 import com.gsma.services.rcs.extension.MultimediaStreamingSessionListener;
+import com.orangelabs.rcs.ri.ApiConnectionManager;
+import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;
+import com.orangelabs.rcs.ri.RiApplication;
+import com.orangelabs.rcs.ri.utils.LockAccess;
+import com.orangelabs.rcs.ri.utils.LogUtils;
+import com.orangelabs.rcs.ri.utils.RcsDisplayName;
 import com.orangelabs.rcs.ri.utils.Utils;
 
 /**
@@ -51,7 +57,7 @@ import com.orangelabs.rcs.ri.utils.Utils;
  *  
  * @author Jean-Marc AUFFRET
  */
-public class StreamingSessionView extends Activity implements JoynServiceListener {
+public class StreamingSessionView extends Activity {
 	/**
 	 * View modes
 	 */
@@ -72,11 +78,6 @@ public class StreamingSessionView extends Activity implements JoynServiceListene
     private final Handler handler = new Handler();
 
 	/**
-	 * MM session API
-	 */
-	private MultimediaSessionService sessionApi;
-
-	/**
 	 * Session ID
 	 */
     private String sessionId;
@@ -84,7 +85,7 @@ public class StreamingSessionView extends Activity implements JoynServiceListene
 	/**
 	 * Remote contact
 	 */
-    private String contact;
+    private ContactId contact;
 
 	/**
 	 * Service ID
@@ -94,18 +95,119 @@ public class StreamingSessionView extends Activity implements JoynServiceListene
     /**
 	 * Session
 	 */
-	private MultimediaStreamingSession session = null;
+	private MultimediaStreamingSession session;
+
+    /**
+	 * Progress dialog
+	 */
+	private Dialog progressDialog;
+	
+    /**
+	 * A locker to exit only once
+	 */
+	private LockAccess exitOnce = new LockAccess();
+	
+  	/**
+	 * API connection manager
+	 */
+	private ApiConnectionManager connectionManager;
+	
+	/**
+   	 * The log tag for this class
+   	 */
+   	private static final String LOGTAG = LogUtils.getTag(StreamingSessionView.class.getSimpleName());
 
     /**
      * Session listener
      */
-    private MySessionListener sessionListener = new MySessionListener();    
-	
-    /**
-	 * Progress dialog
-	 */
-	private Dialog progressDialog = null;
+    private MultimediaStreamingSessionListener serviceListener = new MultimediaStreamingSessionListener() {
 
+		@Override
+		public void onStateChanged(ContactId contact, String sessionId, final int state, int reasonCode) {
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "onMultimediaStreamingStateChanged contact=" + contact + " sessionId=" + sessionId + " state="
+						+ state + " reason=" + reasonCode);
+			}
+			if (state > RiApplication.MMS_STATES.length) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "onMultimediaStreamingStateChanged unhandled state=" + state);
+				}
+				return;
+			}
+			if (reasonCode > RiApplication.MMS_REASON_CODES.length) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "onMultimediaStreamingStateChanged unhandled reason=" + reasonCode);
+				}
+				return;
+			}
+			// Discard event if not for current sessionId
+			if (StreamingSessionView.this.sessionId == null || !StreamingSessionView.this.sessionId.equals(sessionId)) {
+				return;
+			}
+			final String _reasonCode = RiApplication.MMS_REASON_CODES[reasonCode];
+			handler.post(new Runnable() {
+				public void run() {
+
+					switch (state) {
+					case MultimediaSession.State.STARTED:
+						// Session is established: hide progress dialog
+						hideProgressDialog();
+						// Activate button
+						Button sendBtn = (Button) findViewById(R.id.send_btn);
+						sendBtn.setEnabled(true);
+						break;
+
+					case MultimediaSession.State.ABORTED:
+						// Session is aborted: hide progress dialog then exit
+						hideProgressDialog();
+						Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_session_aborted, _reasonCode), exitOnce);
+						break;
+
+					case MultimediaSession.State.REJECTED:
+						// Session is rejected: hide progress dialog then exit
+						hideProgressDialog();
+						Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_session_rejected, _reasonCode), exitOnce);
+						break;
+
+					case MultimediaSession.State.FAILED:
+						// Session is failed: hide progress dialog then exit
+						hideProgressDialog();
+						Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_session_failed, _reasonCode), exitOnce);
+						break;
+
+					default:
+						if (LogUtils.isActive) {
+							Log.d(LOGTAG,
+									"onMultimediaStreamingStateChanged "
+											+ getString(R.string.label_mms_state_changed, RiApplication.MMS_STATES[state],
+													_reasonCode));
+						}
+					}
+				}
+			});
+		}
+
+		@Override
+		public void onPayloadReceived(ContactId contact, String sessionId, byte[] content) {
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "onNewMessage contact=" + contact + " sessionId=" + sessionId);
+			}
+			if (StreamingSessionView.this.sessionId == null || !StreamingSessionView.this.sessionId.equals(sessionId)) {
+				return;
+			}
+			final String data = new String(content);
+
+			handler.post(new Runnable() {
+				public void run() {
+					// Display received data
+					TextView txt = (TextView) StreamingSessionView.this.findViewById(R.id.recv_data);
+					txt.setText(data);
+				}
+			});
+		} 
+    	
+    };    
+    
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -114,35 +216,47 @@ public class StreamingSessionView extends Activity implements JoynServiceListene
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.extension_session_view);
 
-        // Set title
-        setTitle(R.string.title_streaming_session);
-    	
         // Set buttons callback
 		Button sendBtn = (Button)findViewById(R.id.send_btn);
 		sendBtn.setOnClickListener(btnSendListener);
 		sendBtn.setEnabled(false);
 
-		// Instanciate API
-        sessionApi = new MultimediaSessionService(getApplicationContext(), this);
-        
-        // Connect API
-        sessionApi.connect();
+		// Register to API connection manager
+		connectionManager = ApiConnectionManager.getInstance(this);
+		if (connectionManager == null || !connectionManager.isServiceConnected(RcsServiceName.MULTIMEDIA, RcsServiceName.CONTACTS)) {
+			Utils.showMessageAndExit(this, getString(R.string.label_service_not_available), exitOnce);
+			return;
+		}
+		connectionManager.startMonitorServices(this, exitOnce, RcsServiceName.MULTIMEDIA, RcsServiceName.CONTACTS);
+		try {
+			// Add service listener
+			connectionManager.getMultimediaSessionApi().addEventListener(serviceListener);
+			initialiseStreamingSession();
+		} catch (RcsServiceException e) {
+			if (LogUtils.isActive) {
+				Log.e(LOGTAG, "Failed to add listener", e);
+			}
+			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), exitOnce);
+		}
     }
     
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-
-		// Remove session listener
-		if (session != null) {
+		if (connectionManager == null) {
+    		return;
+    	}
+		connectionManager.stopMonitorServices(this);
+		if (connectionManager.isServiceConnected(RcsServiceName.MULTIMEDIA)) {
+			// Remove listener
 			try {
-				session.removeEventListener(sessionListener);
+				connectionManager.getMultimediaSessionApi().removeEventListener(serviceListener);
 			} catch (Exception e) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "Failed to remove listener", e);
+				}
 			}
 		}
-
-        // Disconnect API
-        sessionApi.disconnect();
 	}
 	
 	/**
@@ -154,7 +268,7 @@ public class StreamingSessionView extends Activity implements JoynServiceListene
 			session.acceptInvitation();
     	} catch(Exception e) {
     		e.printStackTrace();
-			Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_invitation_failed));
+			Utils.showMessageAndExit(this, getString(R.string.label_invitation_failed), exitOnce);
     	}
 	}
 	
@@ -164,98 +278,81 @@ public class StreamingSessionView extends Activity implements JoynServiceListene
 	private void rejectInvitation() {
     	try {
     		// Reject the invitation
-    		session.removeEventListener(sessionListener);
 			session.rejectInvitation();
     	} catch(Exception e) {
     		e.printStackTrace();
     	}
 	}	
     
-    /**
-     * Callback called when service is connected. This method is called when the
-     * service is well connected to the RCS service (binding procedure successfull):
-     * this means the methods of the API may be used.
-     */
-    public void onServiceConnected() {
+    public void initialiseStreamingSession() {
+    	MultimediaSessionService sessionApi = connectionManager.getMultimediaSessionApi();
 		try {
 	        int mode = getIntent().getIntExtra(StreamingSessionView.EXTRA_MODE, -1);
 			if (mode == StreamingSessionView.MODE_OUTGOING) {
 				// Outgoing session
 
 	            // Check if the service is available
-	        	boolean registered = false;
-	        	try {
-	        		if ((sessionApi != null) && sessionApi.isServiceRegistered()) {
-	        			registered = true;
-	        		}
-	        	} catch(Exception e) {
-	        		e.printStackTrace();
-	        	}
-	            if (!registered) {
-	    	    	Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_service_not_available));
+	            if (!sessionApi.isServiceRegistered()) {
+	    	    	Utils.showMessageAndExit(this, getString(R.string.label_service_not_available), exitOnce);
 	    	    	return;
 	            } 
-	            
+	    		
 		    	// Get remote contact
-				contact = getIntent().getStringExtra(StreamingSessionView.EXTRA_CONTACT);
+				contact = getIntent().getParcelableExtra(StreamingSessionView.EXTRA_CONTACT);
 		        
 		        // Initiate session
     			startSession();
-			} else
-			if (mode == StreamingSessionView.MODE_OPEN) {
-				// Open an existing session
-				
-				// Incoming session
-		        sessionId = getIntent().getStringExtra(StreamingSessionView.EXTRA_SESSION_ID);
-
-		    	// Get the session
-	    		session = sessionApi.getStreamingSession(sessionId);
-				if (session == null) {
-					// Session not found or expired
-					Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_session_has_expired));
-					return;
-				}
-				
-    			// Add session event listener
-				session.addEventListener(sessionListener);
-				
-		    	// Get remote contact
-				contact = session.getRemoteContact();
 			} else {
-				// Incoming session from its Intent
-		        sessionId = getIntent().getStringExtra(MultimediaStreamingSessionIntent.EXTRA_SESSION_ID);
+				if (mode == StreamingSessionView.MODE_OPEN) {
+					// Open an existing session
 
-		    	// Get the session
-	    		session = sessionApi.getStreamingSession(sessionId);
-				if (session == null) {
-					// Session not found or expired
-					Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_session_has_expired));
-					return;
+					// Incoming session
+					sessionId = getIntent().getStringExtra(StreamingSessionView.EXTRA_SESSION_ID);
+
+					// Get the session
+					session = sessionApi.getStreamingSession(sessionId);
+					if (session == null) {
+						// Session not found or expired
+						Utils.showMessageAndExit(this, getString(R.string.label_session_has_expired), exitOnce);
+						return;
+					}
+
+					// Get remote contact
+					contact = session.getRemoteContact();
+				} else {
+					// Incoming session from its Intent
+					sessionId = getIntent().getStringExtra(MultimediaStreamingSessionIntent.EXTRA_SESSION_ID);
+
+					// Get the session
+					session = sessionApi.getStreamingSession(sessionId);
+					if (session == null) {
+						// Session not found or expired
+						Utils.showMessageAndExit(this, getString(R.string.label_session_has_expired), exitOnce);
+						return;
+					}
+					
+					// Get remote contact
+					contact = session.getRemoteContact();
+					String from = RcsDisplayName.getInstance(this).getDisplayName(contact);
+					
+					// Manual accept
+					AlertDialog.Builder builder = new AlertDialog.Builder(this);
+					builder.setTitle(R.string.title_streaming_session);
+					builder.setMessage(getString(R.string.label_mm_from_id, from, serviceId));
+					builder.setCancelable(false);
+					builder.setIcon(R.drawable.ri_notif_mm_session_icon);
+					builder.setPositiveButton(getString(R.string.label_accept), acceptBtnListener);
+					builder.setNegativeButton(getString(R.string.label_decline), declineBtnListener);
+					builder.show();
 				}
-				
-    			// Add session event listener
-				session.addEventListener(sessionListener);
-				
-		    	// Get remote contact
-				contact = session.getRemoteContact();
-		
-				// Manual accept
-				AlertDialog.Builder builder = new AlertDialog.Builder(this);
-				builder.setTitle(R.string.title_streaming_session);
-				builder.setMessage(getString(R.string.label_from) +	" " + contact + "\n" +
-						getString(R.string.label_service_id) + " " + serviceId);
-				builder.setCancelable(false);
-				builder.setIcon(R.drawable.ri_notif_mm_session_icon);
-				builder.setPositiveButton(getString(R.string.label_accept), acceptBtnListener);
-				builder.setNegativeButton(getString(R.string.label_decline), declineBtnListener);
-				builder.show();
 			}
 			
 			// Display session info
 	    	TextView featureTagEdit = (TextView)findViewById(R.id.feature_tag);
 	    	featureTagEdit.setText(serviceId);
 	    	TextView contactEdit = (TextView)findViewById(R.id.contact);
-	    	contactEdit.setText(contact);
+			String from = RcsDisplayName.getInstance(this).getDisplayName(contact);
+	    	contactEdit.setText(from);
 			Button sendBtn = (Button)findViewById(R.id.send_btn);
 			if (session != null) {
 				sendBtn.setEnabled(true);
@@ -263,22 +360,11 @@ public class StreamingSessionView extends Activity implements JoynServiceListene
 				sendBtn.setEnabled(false);
 			}
 	    	
-		} catch(JoynServiceException e) {
+		} catch(RcsServiceException e) {
 			e.printStackTrace();
-			Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_api_failed));
+			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), exitOnce);
 		}
     }
-    
-    /**
-     * Callback called when service has been disconnected. This method is called when
-     * the service is disconnected from the RCS service (e.g. service deactivated).
-     * 
-     * @param error Error
-     * @see JoynService.Error
-     */
-    public void onServiceDisconnected(int error) {
-		Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_api_disabled));
-    }    
 	
     /**
      * Start session
@@ -287,14 +373,16 @@ public class StreamingSessionView extends Activity implements JoynServiceListene
 		// Initiate the chat session in background
     	try {
 			// Initiate session
-			session = sessionApi.initiateStreamingSession(serviceId, contact, sessionListener);
+			session = connectionManager.getMultimediaSessionApi().initiateStreamingSession(serviceId, contact);
+			sessionId = session.getSessionId();
     	} catch(Exception e) {
     		e.printStackTrace();
-			Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_invitation_failed));		
+			Utils.showMessageAndExit(this, getString(R.string.label_invitation_failed), exitOnce);
+			return;
     	}
 
         // Display a progress dialog
-        progressDialog = Utils.showProgressDialog(StreamingSessionView.this, getString(R.string.label_command_in_progress));
+        progressDialog = Utils.showProgressDialog(this, getString(R.string.label_command_in_progress));
         progressDialog.setOnCancelListener(new OnCancelListener() {
 			public void onCancel(DialogInterface dialog) {
 				Toast.makeText(StreamingSessionView.this, getString(R.string.label_session_canceled), Toast.LENGTH_SHORT).show();
@@ -335,73 +423,6 @@ public class StreamingSessionView extends Activity implements JoynServiceListene
 			finish();
         }
     };
-    
-    /**
-     * Session event listener
-     */
-    private class MySessionListener extends MultimediaStreamingSessionListener {
-    	// Session ringing
-    	public void onSessionRinging() {
-    		// TODO: play ringtone
-    	}
-
-    	// Session started
-    	public void onSessionStarted() {
-			handler.post(new Runnable() { 
-				public void run() {
-					// Hide progress dialog
-					hideProgressDialog();
-					
-					// Activate button
-					Button sendBtn = (Button)findViewById(R.id.send_btn);
-					sendBtn.setEnabled(true);
-				}
-			});
-    	}
-    	
-    	// Session aborted
-    	public void onSessionAborted() {
-			handler.post(new Runnable(){
-				public void run(){
-					// Hide progress dialog
-					hideProgressDialog();
-
-					// Show info
-					Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_session_aborted));
-				}
-			});
-    	}
-
-    	// Session error
-    	public void onSessionError(final int error) {
-			handler.post(new Runnable() {
-				public void run() {
-					// Hide progress dialog
-					hideProgressDialog();
-					
-					// Display error
-					if (error == MultimediaSession.Error.INVITATION_DECLINED) {
-						Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_session_declined));
-					} else {
-						Utils.showMessageAndExit(StreamingSessionView.this, getString(R.string.label_session_failed, error));
-					}					
-				}
-			});
-    	}
-    	
-    	// Receive new payload
-    	public void onNewPayload(byte[] content) {
-    		final String data = new String(content);
-    		
-			handler.post(new Runnable() {
-				public void run() {
-					// Display received data
-					TextView txt = (TextView)StreamingSessionView.this.findViewById(R.id.recv_data);
-			        txt.setText(data);					
-				}
-			});
-    	}
-    };
         
 	/**
      * Quit the session
@@ -410,7 +431,6 @@ public class StreamingSessionView extends Activity implements JoynServiceListene
 		// Stop session
         if (session != null) {
         	try {
-        		session.removeEventListener(sessionListener);
         		session.abortSession();
         	} catch(Exception e) {
         		e.printStackTrace();

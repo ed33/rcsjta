@@ -1,46 +1,47 @@
 package com.gsma.services.rcs.chat;
 
-import com.gsma.services.rcs.IJoynServiceRegistrationListener;
-import com.gsma.services.rcs.chat.IChatListener;
-import com.gsma.services.rcs.chat.IChat;
+import com.gsma.services.rcs.IRcsServiceRegistrationListener;
+import com.gsma.services.rcs.chat.IOneToOneChatListener;
+import com.gsma.services.rcs.chat.IOneToOneChat;
 import com.gsma.services.rcs.chat.IGroupChatListener;
 import com.gsma.services.rcs.chat.IGroupChat;
-import com.gsma.services.rcs.chat.INewChatListener;
 import com.gsma.services.rcs.chat.ChatServiceConfiguration;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Chat service API
  */
 interface IChatService {
+
 	boolean isServiceRegistered();
     
-	void addServiceRegistrationListener(IJoynServiceRegistrationListener listener);
+	void addEventListener(IRcsServiceRegistrationListener listener);
 
-	void removeServiceRegistrationListener(IJoynServiceRegistrationListener listener); 
+	void removeEventListener(IRcsServiceRegistrationListener listener);
 
 	ChatServiceConfiguration getConfiguration();
     
-	IChat openSingleChat(in String contact, in IChatListener listener);
+	IOneToOneChat openSingleChat(in ContactId contact);
 
-	IGroupChat initiateGroupChat(in List<String> contacts, in String subject, in IGroupChatListener listener);
+	IGroupChat initiateGroupChat(in List<ContactId> contacts, in String subject);
     
 	IGroupChat rejoinGroupChat(in String chatId);
     
 	IGroupChat restartGroupChat(in String chatId);
     
-	void addNewChatListener(in INewChatListener listener);
-    
-	void removeNewChatListener(in INewChatListener listener);
-    
-	IChat getChat(in String contact);
-
-	List<IBinder> getChats();
-
-	List<IBinder> getGroupChats();
+	IOneToOneChat getChat(in ContactId contact);
     
 	IGroupChat getGroupChat(in String chatId);
 	
 	void markMessageAsRead(in String msgId);
+
+	void addEventListener3(in IGroupChatListener listener);
+
+	void removeEventListener3(in IGroupChatListener listener);
+
+	void addEventListener2(in IOneToOneChatListener listener);
+
+	void removeEventListener2(in IOneToOneChatListener listener);
 
 	int getServiceVersion();
 	

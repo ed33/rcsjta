@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,32 +15,32 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.ipcall;
 
 import java.util.Enumeration;
 import java.util.Vector;
 
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ipcall.IIPCallPlayer;
 import com.gsma.services.rcs.ipcall.IIPCallRenderer;
+import com.gsma.services.rcs.ipcall.IPCall;
 import com.orangelabs.rcs.core.CoreException;
 import com.orangelabs.rcs.core.content.AudioContent;
 import com.orangelabs.rcs.core.content.ContentManager;
 import com.orangelabs.rcs.core.content.VideoContent;
 import com.orangelabs.rcs.core.ims.ImsModule;
 import com.orangelabs.rcs.core.ims.network.sip.FeatureTags;
-import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
-import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
-import com.orangelabs.rcs.core.ims.service.ContactInfo;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
-import com.orangelabs.rcs.core.ims.service.capability.Capabilities;
-import com.orangelabs.rcs.core.ims.service.capability.CapabilityUtils;
-import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
-import com.orangelabs.rcs.utils.PhoneUtils;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -68,7 +69,7 @@ public class IPCallService extends ImsService {
 	/**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private static final Logger logger = Logger.getLogger(IPCallService.class.getSimpleName());
 
     /**
      * Constructor
@@ -81,6 +82,17 @@ public class IPCallService extends ImsService {
 		
 		this.maxSessions = RcsSettings.getInstance().getMaxIPCallSessions();
     }
+
+	private void handleIPCallInvitationRejected(SipRequest invite, int reasonCode) {
+		ContactId contact = ContactUtils.createContactId(SipUtils.getAssertedIdentity(invite));
+		byte[] sessionDescriptionProtocol = invite.getSdpContent().getBytes();
+		AudioContent audioContent = ContentManager
+				.createLiveAudioContentFromSdp(sessionDescriptionProtocol);
+		VideoContent videoContent = ContentManager
+				.createLiveVideoContentFromSdp(sessionDescriptionProtocol);
+		getImsModule().getCore().getListener()
+				.handleIPCallInvitationRejected(contact, audioContent, videoContent, reasonCode);
+	}
 
 	/**
 	 * Start the IMS service
@@ -128,14 +140,14 @@ public class IPCallService extends ImsService {
     /**
      * Initiate an IP call session
      *
-     * @param contact Remote contact
+     * @param contact Remote contact identifier
      * @param video Video
      * @param player Player
      * @param renderer Renderer
      * @return IP call session
      * @throws CoreException
      */
-    public IPCallSession initiateIPCallSession(String contact, boolean video, IIPCallPlayer player, IIPCallRenderer renderer) throws CoreException {
+    public IPCallSession initiateIPCallSession(ContactId contact, boolean video, IIPCallPlayer player, IIPCallRenderer renderer) throws CoreException {
 		if (logger.isActivated()) {
 			logger.info("Initiate an IP call session");
 		}
@@ -155,14 +167,8 @@ public class IPCallService extends ImsService {
 	    	videoContent = ContentManager.createGenericLiveVideoContent();
 	    }
 
-        // Create a new session
-		OriginatingIPCallSession session = new OriginatingIPCallSession(
-				this,
-				PhoneUtils.formatNumberToSipUri(contact),
-				audioContent,
-				videoContent,
-				player,
-				renderer);
+		// Create a new session
+		OriginatingIPCallSession session = new OriginatingIPCallSession(this, contact, audioContent, videoContent, player, renderer);
 		
 		return session;
 	}
@@ -176,62 +182,32 @@ public class IPCallService extends ImsService {
         // Reject if there is already a call in progress
         Vector<IPCallSession> currentSessions = getIPCallSessions();
         if (currentSessions.size() >= 1) {
-        	// Max session
-        	if (logger.isActivated()) {
+            // Max session
+            if (logger.isActivated()) {
                 logger.debug("The max number of IP call sessions is achieved: reject the invitation");
             }
+            handleIPCallInvitationRejected(invite, IPCall.ReasonCode.REJECTED_MAX_SESSIONS);
             sendErrorResponse(invite, 486);
             return;
         } 
-
+        ContactId contact = null;
+        try {
+			contact = ContactUtils.createContactId(SipUtils.getAssertedIdentity(invite));
+        } catch (RcsContactFormatException e) {
+        	// Max session
+        	if (logger.isActivated()) {
+                logger.debug("Cannot parse contact: reject the invitation");
+            }
+            sendErrorResponse(invite, 486);
+            return;
+		}
 		// Create a new session    
-        IPCallSession session = new TerminatingIPCallSession(this, invite);
-        
-		// Start the session
+        IPCallSession session = new TerminatingIPCallSession(this, invite, contact);
+
+		getImsModule().getCore().getListener().handleIPCallInvitation(session);
+
 		session.startSession();
 	}
-	
-    /**
-     * Receive a capability request (options procedure)
-     *
-     * @param options Received options message
-     */
-    public void receiveCapabilityRequest(SipRequest options) { 
-    	String contact = SipUtils.getAssertedIdentity(options);
-    	if (logger.isActivated()) {
-			logger.debug("OPTIONS request received from " + contact);
-		}
-
-	    try {
-	    	// Create 200 OK response
-	    	String ipAddress = getImsModule().getCurrentNetworkInterface().getNetworkAccess().getIpAddress();
-			boolean ipcall = getImsModule().getIPCallService().isCallConnectedWith(contact);
-	        SipResponse resp = SipMessageFactory.create200OkOptionsResponse(options,
-	        		getImsModule().getSipManager().getSipStack().getLocalContact(),
-	        		CapabilityUtils.getSupportedFeatureTags(false, ipcall),
-	        		CapabilityUtils.buildSdp(ipAddress, ipcall));
-
-	        // Send 200 OK response
-	        getImsModule().getSipManager().sendSipResponse(resp);
-	    } catch(Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Can't send 200 OK for OPTIONS", e);
-        	}
-	    }
-
-		// Extract capabilities from the request
-    	Capabilities capabilities = CapabilityUtils.extractCapabilities(options);
-    	if (capabilities.isImSessionSupported()) {
-    		// The contact is RCS capable
-   			ContactsManager.getInstance().setContactCapabilities(contact, capabilities, ContactInfo.RCS_CAPABLE, ContactInfo.REGISTRATION_STATUS_ONLINE);
-    	} else {
-    		// The contact is not RCS
-    		ContactsManager.getInstance().setContactCapabilities(contact, capabilities, ContactInfo.NOT_RCS, ContactInfo.REGISTRATION_STATUS_UNKNOWN);
-    	}
-
-    	// Notify listener
-    	getImsModule().getCore().getListener().handleCapabilitiesNotification(contact, capabilities);
-    }
 	
 	/**
 	 * Abort all pending sessions
@@ -262,15 +238,15 @@ public class IPCallService extends ImsService {
 	/**
      * Is call connected with a given contact
      * 
-     * @param contact Contact
+     * @param contact Contact Id
      * @return Boolean
      */
-	public boolean isCallConnectedWith(String contact) {
+	public boolean isCallConnectedWith(ContactId contact) {
 		boolean connected = false;
 		Vector<IPCallSession> sessions = getIPCallSessions(); 
 		for(int i=0; i < sessions.size(); i++) {
 			IPCallSession session = sessions.get(i);
-			if (PhoneUtils.compareNumbers(session.getRemoteContact(), contact)) {
+			if (contact != null && contact.equals(session.getRemoteContact())) {
 				connected = true;
 				break;
 			}

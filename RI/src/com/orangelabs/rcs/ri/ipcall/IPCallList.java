@@ -26,6 +26,7 @@ import android.content.pm.ActivityInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.BaseColumns;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -36,6 +37,7 @@ import android.widget.CursorAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.gsma.services.rcs.RcsCommon;
 import com.gsma.services.rcs.ipcall.IPCall;
 import com.gsma.services.rcs.ipcall.IPCallLog;
 import com.orangelabs.rcs.ri.R;
@@ -47,6 +49,13 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * @author Jean-Marc AUFFRET
  */
 public class IPCallList extends Activity {
+	
+	/**
+	 * Contact is the ID since there is a single contact occurrence in the query result
+	 */
+	private static final String CONTACT_AS_ID = new StringBuilder(IPCallLog.CONTACT).append(" AS ").append(BaseColumns._ID)
+			.toString();
+
 	
 	/**
 	 * List view
@@ -84,8 +93,7 @@ public class IPCallList extends Activity {
 	private CallListAdapter createListAdapter() {
 		Uri uri = IPCallLog.CONTENT_URI;
         String[] projection = new String[] {
-    		IPCallLog.ID,
-    		IPCallLog.CONTACT_NUMBER,
+        	CONTACT_AS_ID,
     		IPCallLog.STATE,
     		IPCallLog.DIRECTION,
     		IPCallLog.TIMESTAMP
@@ -119,10 +127,10 @@ public class IPCallList extends Activity {
             View view = inflater.inflate(R.layout.ipcall_list_item, parent, false);
             
             CallItemCache cache = new CallItemCache();
-    		cache.number = cursor.getString(1);
-    		cache.state = cursor.getInt(2);
-    		cache.direction = cursor.getInt(3);
-    		cache.date = cursor.getLong(4);
+    		cache.number = cursor.getString(cursor.getColumnIndex(BaseColumns._ID));
+    		cache.state = cursor.getInt(cursor.getColumnIndex(IPCallLog.STATE));
+    		cache.direction = cursor.getInt(cursor.getColumnIndex(IPCallLog.DIRECTION));
+    		cache.date = cursor.getLong(cursor.getColumnIndex(IPCallLog.TIMESTAMP));
             view.setTag(cache);
             
             return view;
@@ -159,27 +167,26 @@ public class IPCallList extends Activity {
 	 * @return String
 	 */
 	private String decodeState(int state) {
-		if (state == IPCall.State.ABORTED) {
-			return getString(R.string.label_state_aborted);
-		} else
-		if (state == IPCall.State.TERMINATED) {
-			return getString(R.string.label_state_terminated);
-		} else
-		if (state == IPCall.State.FAILED) {
-			return getString(R.string.label_state_failed);
-		} else
-		if (state == IPCall.State.INITIATED) {
-			return getString(R.string.label_state_initiated);
-		} else
-		if (state == IPCall.State.INVITED) {
+		switch (state) {
+		case IPCall.State.INVITED:
 			return getString(R.string.label_state_invited);
-		} else
-		if (state == IPCall.State.STARTED) {
+		case IPCall.State.INITIATED:
+			return getString(R.string.label_state_initiated);
+		case IPCall.State.STARTED:
 			return getString(R.string.label_state_started);
-		} else
-		if (state == IPCall.State.INACTIVE) {
-			return getString(R.string.label_state_inactive);
-		} else {
+		case IPCall.State.ABORTED:
+			return getString(R.string.label_state_aborted);
+		case IPCall.State.FAILED:
+			return getString(R.string.label_state_failed);
+		case IPCall.State.REJECTED:
+			return getString(R.string.label_state_rejected);
+		case IPCall.State.HOLD:
+			return getString(R.string.label_state_hold);
+		case IPCall.State.ACCEPTING:
+			return getString(R.string.label_state_accepting);
+		case IPCall.State.RINGING:
+			return getString(R.string.label_state_ringing);
+		default:
 			return getString(R.string.label_state_unknown);
 		}
 	}
@@ -191,7 +198,7 @@ public class IPCallList extends Activity {
 	 * @return String
 	 */
 	private String decodeDirection(int direction) {
-		if (direction == IPCall.Direction.INCOMING) {
+		if (direction == RcsCommon.Direction.INCOMING) {
 			return getString(R.string.label_incoming);
 		} else {
 			return getString(R.string.label_outgoing);

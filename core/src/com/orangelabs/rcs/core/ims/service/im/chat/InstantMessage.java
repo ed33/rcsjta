@@ -20,6 +20,8 @@ package com.orangelabs.rcs.core.ims.service.im.chat;
 
 import java.util.Date;
 
+import com.gsma.services.rcs.contacts.ContactId;
+
 /**
  * Instant message
  * 
@@ -34,9 +36,9 @@ public class InstantMessage {
 	public static final String MIME_TYPE = "text/plain";
 	
 	/**
-	 * Remote user
+	 * Remote user identifier
 	 */
-	private String remote;
+	private ContactId remote;
 	
 	/**
 	 * Remote user display name
@@ -74,7 +76,7 @@ public class InstantMessage {
 	 * @param messageId
 	 *            Message Id
 	 * @param remote
-	 *            Remote user
+	 *            Remote user identifier
 	 * @param message
 	 *            Text message
 	 * @param imdnDisplayedRequested
@@ -82,16 +84,9 @@ public class InstantMessage {
 	 * @param displayName
 	 *            the name to display or null if unknown
 	 */
-	public InstantMessage(String messageId, String remote, String message, boolean imdnDisplayedRequested, String displayName) {
-		this.msgId = messageId;
-		this.remote = remote;
-		this.message = message;
-		this.imdnDisplayedRequested = imdnDisplayedRequested;
-		Date date = new Date();
-		this.receiptAt = date;
-		this.serverReceiptAt = date;	
-		this.displayName = displayName;
-	}
+	public InstantMessage(String messageId, ContactId remote, String message, boolean imdnDisplayedRequested, String displayName) {
+		this(messageId, remote, message, imdnDisplayedRequested, null, displayName);
+    }
 	
 	/**
 	 * Constructor for incoming message
@@ -99,7 +94,7 @@ public class InstantMessage {
 	 * @param messageId
 	 *            Message Id
 	 * @param remote
-	 *            Remote user
+	 *            Remote user identifier
 	 * @param message
 	 *            Text message
 	 * @param imdnDisplayedRequested
@@ -109,13 +104,13 @@ public class InstantMessage {
 	 * @param displayName
 	 *            the name to display or null if unknown
 	 */
-	public InstantMessage(String messageId, String remote, String message, boolean imdnDisplayedRequested, Date serverReceiptAt, String displayName) {
+	public InstantMessage(String messageId, ContactId remote, String message, boolean imdnDisplayedRequested, Date serverReceiptAt, String displayName) {
 		this.msgId = messageId;
 		this.remote = remote;
 		this.message = message;
 		this.imdnDisplayedRequested = imdnDisplayedRequested;
 		this.receiptAt = new Date();
-		this.serverReceiptAt = serverReceiptAt;
+		this.serverReceiptAt = (serverReceiptAt != null ? serverReceiptAt : this.receiptAt);
 		this.displayName = displayName;
 	}
 
@@ -140,9 +135,9 @@ public class InstantMessage {
 	/**
 	 * Returns the remote user
 	 * 
-	 * @return Remote user
+	 * @return Remote user identifier
 	 */
-	public String getRemote() {
+	public ContactId getRemote() {
 		return remote;
 	}
 	
@@ -180,4 +175,17 @@ public class InstantMessage {
 	public String getDisplayName() {
 		return displayName;
 	}
+
+	@Override
+	public String toString() {
+		if (message != null && message.length() < 30) {
+			return "IM [from=" + remote + ", pseudo='" + displayName + "', msg='" + message + "', msgId=" + msgId
+				+ ", imdnDisplayedRequested=" + imdnDisplayedRequested + "]";
+		} else {
+			return "IM [from=" + remote + ", pseudo='" + displayName + "', msgId=" + msgId
+					+ ", imdnDisplayedRequested=" + imdnDisplayedRequested + "]";
+		}
+	}
+	
+	
 }

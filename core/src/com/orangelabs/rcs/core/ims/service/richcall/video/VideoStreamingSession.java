@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.core.ims.service.richcall.video;
 
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.IVideoRenderer;
 import com.orangelabs.rcs.core.content.MmContent;
@@ -33,6 +35,7 @@ import com.orangelabs.rcs.core.ims.service.ImsServiceError;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingSession;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -54,26 +57,26 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
 	/**
 	 * Video renderer
 	 */
-	private IVideoRenderer renderer = null;
+	private IVideoRenderer renderer;
 
     /**
      * Video renderer
      */
-    private IVideoPlayer player = null;
+    private IVideoPlayer player;
 
     /**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private final static Logger logger = Logger.getLogger(VideoStreamingSession.class.getSimpleName());
 
 	/**
 	 * Constructor
 	 * 
 	 * @param parent IMS service
 	 * @param content Content to be shared
-	 * @param contact Remote contact
+	 * @param contact Remote contact Id
 	 */
-	public VideoStreamingSession(ImsService parent, MmContent content, String contact) {
+	public VideoStreamingSession(ImsService parent, MmContent content, ContactId contact) {
 		super(parent, content, contact);
 	}
 
@@ -131,15 +134,6 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
         this.player = player;
     }
 
-	/**
-	 * Receive BYE request 
-	 * 
-	 * @param bye BYE request
-	 */
-	public void receiveBye(SipRequest bye) {
-		super.receiveBye(bye);
-	}
-
     /**
      * Create an INVITE request
      *
@@ -173,8 +167,15 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
         // Remove the current session
         getImsService().removeSession(this);
 
-        // Request capabilities to the remote
-        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getDialogPath().getRemoteParty());
+        try {
+			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+			// Request capabilities to the remote
+	        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
+		} catch (RcsContactFormatException e) {
+			if (logger.isActivated()) {
+				logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
+			}
+		}
 
         // Notify listeners
         for (int i = 0; i < getListeners().size(); i++) {

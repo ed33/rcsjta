@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +15,27 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.service.api;
 
-import android.os.RemoteCallbackList;
+import javax2.sip.message.Response;
 
+import com.gsma.services.rcs.RcsCommon.Direction;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.extension.IMultimediaStreamingSession;
-import com.gsma.services.rcs.extension.IMultimediaStreamingSessionListener;
 import com.gsma.services.rcs.extension.MultimediaSession;
+import com.gsma.services.rcs.extension.MultimediaSession.ReasonCode;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipDialogPath;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
 import com.orangelabs.rcs.core.ims.service.sip.SipSessionError;
 import com.orangelabs.rcs.core.ims.service.sip.SipSessionListener;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.GenericSipRtpSession;
-import com.orangelabs.rcs.core.ims.service.sip.streaming.OriginatingSipRtpSession;
-import com.orangelabs.rcs.utils.PhoneUtils;
+import com.orangelabs.rcs.core.ims.service.sip.streaming.TerminatingSipRtpSession;
+import com.orangelabs.rcs.service.broadcaster.IMultimediaStreamingSessionEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -44,30 +50,42 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 	 */
 	private GenericSipRtpSession session;
 
-	/**
-	 * List of listeners for streaming session
-	 */
-	private RemoteCallbackList<IMultimediaStreamingSessionListener> listeners = new RemoteCallbackList<IMultimediaStreamingSessionListener>();
+	private final IMultimediaStreamingSessionEventBroadcaster mMultimediaStreamingSessionEventBroadcaster;
 
 	/**
-	 * Lock used for synchronisation
+	 * Lock used for synchronization
 	 */
-	private Object lock = new Object();
+	private final Object lock = new Object();
 	
     /**
 	 * The logger
 	 */
-	private Logger logger = Logger.getLogger(this.getClass().getName());
+	private final static Logger logger = Logger.getLogger(MultimediaStreamingSessionImpl.class.getSimpleName());
 
     /**
      * Constructor
      *
      * @param session Session
+     * @param broadcaster IMultimediaStreamingSessionEventBroadcaster
      */
-	public MultimediaStreamingSessionImpl(GenericSipRtpSession session) {
+	public MultimediaStreamingSessionImpl(GenericSipRtpSession session,
+			IMultimediaStreamingSessionEventBroadcaster broadcaster) {
 		this.session = session;
-		
+		mMultimediaStreamingSessionEventBroadcaster = broadcaster;
 		session.addListener(this);
+	}
+
+	private void handleSessionRejected(int reasonCode) {
+		if (logger.isActivated()) {
+			logger.info("Session rejected; reasonCode=" + reasonCode + ".");
+		}
+		String sessionId = getSessionId();
+		synchronized (lock) {
+			MultimediaSessionServiceImpl.removeStreamingSipSession(sessionId);
+
+			mMultimediaStreamingSessionEventBroadcaster.broadcastStateChanged(
+					getRemoteContact(), sessionId, MultimediaSession.State.REJECTED, reasonCode);
+		}
 	}
 
     /**
@@ -80,12 +98,12 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 	}
 
 	/**
-	 * Returns the remote contact
+	 * Returns the remote contact ID
 	 * 
-	 * @return Contact
+	 * @return ContactId
 	 */
-	public String getRemoteContact() {
-		return PhoneUtils.extractNumberFromUri(session.getRemoteContact());
+	public ContactId getRemoteContact() {
+		return session.getRemoteContact();
 	}
 	
 	/**
@@ -94,43 +112,42 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 	 * @return State
 	 */
 	public int getState() {
-		int result = MultimediaSession.State.INACTIVE;
+		// TODO missing states
 		SipDialogPath dialogPath = session.getDialogPath();
-		if (dialogPath != null) {
-			if (dialogPath.isSessionCancelled()) {
-				// Session canceled
-				result = MultimediaSession.State.ABORTED;
-			} else
-			if (dialogPath.isSessionEstablished()) {
-				// Session started
-				result = MultimediaSession.State.STARTED;
-			} else
-			if (dialogPath.isSessionTerminated()) {
-				// Session terminated
-				result = MultimediaSession.State.TERMINATED;
-			} else {
-				// Session pending
-				if (session instanceof OriginatingSipRtpSession) {
-					result = MultimediaSession.State.INITIATED;
-				} else {
-					result = MultimediaSession.State.INVITED;
-				}
+		if (dialogPath != null && dialogPath.isSessionEstablished()) {
+			return MultimediaSession.State.STARTED;
+
+		} else if (session.isInitiatedByRemote()) {
+			if (session.isSessionAccepted()) {
+				return MultimediaSession.State.ACCEPTING;
 			}
+
+			return MultimediaSession.State.INVITED;
 		}
-		return result;	
-	}	
+
+		return MultimediaSession.State.INITIATED;
+	}
+
+	/**
+	 * Returns the reason code of the state of the multimedia streaming session
+	 *
+	 * @return ReasonCode
+	 */
+	public int getReasonCode() {
+		return ReasonCode.UNSPECIFIED;
+	}
 
 	/**
 	 * Returns the direction of the session (incoming or outgoing)
 	 * 
 	 * @return Direction
-	 * @see MultimediaSession.Direction
+	 * @see Direction
 	 */
 	public int getDirection() {
-		if (session instanceof OriginatingSipRtpSession) {
-			return MultimediaSession.Direction.OUTGOING;
+		if (session.isInitiatedByRemote()) {
+			return Direction.INCOMING;
 		} else {
-			return MultimediaSession.Direction.INCOMING;
+			return Direction.OUTGOING;
 		}
 	}		
 	
@@ -157,12 +174,11 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
 
 		// Accept invitation
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
     			session.acceptSession();
     		}
-    	};
-    	t.start();
+    	}.start();
 	}
 
 	/**
@@ -179,12 +195,11 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
 
 		// Reject invitation
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
-    			session.rejectSession(603);
+    			session.rejectSession(Response.DECLINE);
     		}
-    	};
-    	t.start();
+    	}.start();
     }
 
 	/**
@@ -201,143 +216,81 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
 
 		// Abort the session
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
     			session.abortSession(ImsServiceSession.TERMINATION_BY_USER);
     		}
-    	};
-    	t.start();
+    	}.start();
 	}
 
 	/**
-	 * Adds a listener on streaming session events
+	 * Sends a payload in real time
 	 * 
-	 * @param listener Session event listener
+	 * @param content Payload content
+	 * @throws ServerApiException
 	 */
-	public void addEventListener(IMultimediaStreamingSessionListener listener) {
-		if (logger.isActivated()) {
-			logger.info("Add an event listener");
-		}
-
-    	synchronized(lock) {
-    		listeners.register(listener);
-    	}
-	}
-
-	/**
-	 * Removes a listener on messaging session events
-	 * 
-	 * @param listener Session event listener
-	 */
-	public void removeEventListener(IMultimediaStreamingSessionListener listener) {
-		if (logger.isActivated()) {
-			logger.info("Remove an event listener");
-		}
-
-    	synchronized(lock) {
-    		listeners.unregister(listener);
-    	}
-	}
-
-    /**
-     * Sends a payload in real time
-     * 
-     * @param content Payload content
-	 * @return Returns true if sent successfully else returns false
-	 * @throws ServerApiException 
-     */
-    public boolean sendPayload(byte[] content) throws ServerApiException  {
+	public void sendPayload(byte[] content) throws ServerApiException {
 		// Test security extension
 		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
 
-		if (session != null) {
-    		return session.sendPlayload(content);
-    	} else {
-    		return false;	
-    	}
-    }	
+		/* TODO: This exception handling is not correct. Will be fixed CR037. */
+		if (!session.sendPlayload(content)) {
+			throw new ServerApiException("Unable to send payload!");
+		}
+
+	}
 	
     /*------------------------------- SESSION EVENTS ----------------------------------*/
 
 	/**
 	 * Session is started
 	 */
-    public void handleSessionStarted() {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Session started");
-			}
-	
-	  		// Notify event listeners
-			final int N = listeners.beginBroadcast();
-	        for (int i=0; i < N; i++) {
-	            try {
-	            	listeners.getBroadcastItem(i).onSessionStarted();
-	            } catch(Exception e) {
-	            	if (logger.isActivated()) {
-	            		logger.error("Can't notify listener", e);
-	            	}
-	            }
-	        }
-	        listeners.finishBroadcast();
-	    }
-    }
-    
-    /**
-     * Session has been aborted
-     * 
+	public void handleSessionStarted() {
+		if (logger.isActivated()) {
+			logger.info("Session started");
+		}
+		synchronized (lock) {
+			mMultimediaStreamingSessionEventBroadcaster.broadcastStateChanged(
+					getRemoteContact(), getSessionId(), MultimediaSession.State.STARTED,
+					ReasonCode.UNSPECIFIED);
+		}
+	}
+
+	/**
+	 * Session has been aborted
+	 *
 	 * @param reason Termination reason
-     */
-    public void handleSessionAborted(int reason) {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Session aborted (reason " + reason + ")");
-			}
-	
-	  		// Notify event listeners
-			final int N = listeners.beginBroadcast();
-	        for (int i=0; i < N; i++) {
-	            try {
-	            	listeners.getBroadcastItem(i).onSessionAborted();
-	            } catch(Exception e) {
-	            	if (logger.isActivated()) {
-	            		logger.error("Can't notify listener", e);
-	            	}
-	            }
-	        }
-	        listeners.finishBroadcast();
-	        
-	        // Remove session from the list
-	        MultimediaSessionServiceImpl.removeStreamingSipSession(session.getSessionID());
-	    }
-    }
-    
-    /**
-     * Session has been terminated by remote
-     */
-    public void handleSessionTerminatedByRemote() {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Session terminated by remote");
-			}
-	
-	  		// Notify event listeners
-			final int N = listeners.beginBroadcast();
-	        for (int i=0; i < N; i++) {
-	            try {
-	            	listeners.getBroadcastItem(i).onSessionAborted();
-	            } catch(Exception e) {
-	            	if (logger.isActivated()) {
-	            		logger.error("Can't notify listener", e);
-	            	}
-	            }
-	        }
-	        listeners.finishBroadcast();
-	        
-	        // Remove session from the list
-	        MultimediaSessionServiceImpl.removeStreamingSipSession(session.getSessionID());
-	    }
-    }
+	 */
+	public void handleSessionAborted(int reason) {
+		if (logger.isActivated()) {
+			logger.info("Session aborted (reason " + reason + ")");
+		}
+		String sessionId = getSessionId();
+		synchronized (lock) {
+			MultimediaSessionServiceImpl.removeStreamingSipSession(sessionId);
+
+			mMultimediaStreamingSessionEventBroadcaster.broadcastStateChanged(
+					getRemoteContact(), sessionId, MultimediaSession.State.ABORTED,
+					ReasonCode.UNSPECIFIED);
+		}
+	}
+
+	/**
+	 * Session has been terminated by remote
+	 */
+	public void handleSessionTerminatedByRemote() {
+		if (logger.isActivated()) {
+			logger.info("Session terminated by remote");
+		}
+		String sessionId = getSessionId();
+		synchronized (lock) {
+			MultimediaSessionServiceImpl.removeStreamingSipSession(sessionId);
+
+			mMultimediaStreamingSessionEventBroadcaster.broadcastStateChanged(
+					getRemoteContact(), sessionId, MultimediaSession.State.ABORTED,
+					ReasonCode.UNSPECIFIED);
+		}
+	}
     
     /**
      * Session error
@@ -345,39 +298,34 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
      * @param error Error
      */
     public void handleSessionError(SipSessionError error) {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Session error " + error.getErrorCode());
+		if (logger.isActivated()) {
+			logger.info("Session error " + error.getErrorCode());
+		}
+		String sessionId = getSessionId();
+		synchronized (lock) {
+			MultimediaSessionServiceImpl.removeStreamingSipSession(sessionId);
+
+			switch (error.getErrorCode()) {
+				case SipSessionError.SESSION_INITIATION_DECLINED:
+					mMultimediaStreamingSessionEventBroadcaster
+							.broadcastStateChanged(getRemoteContact(),
+									sessionId, MultimediaSession.State.REJECTED,
+									ReasonCode.REJECTED_BY_REMOTE);
+					break;
+				case SipSessionError.MEDIA_FAILED:
+					mMultimediaStreamingSessionEventBroadcaster
+							.broadcastStateChanged(getRemoteContact(),
+									sessionId, MultimediaSession.State.FAILED,
+									ReasonCode.FAILED_MEDIA);
+					break;
+				default:
+					mMultimediaStreamingSessionEventBroadcaster
+							.broadcastStateChanged(getRemoteContact(),
+									sessionId, MultimediaSession.State.FAILED,
+									ReasonCode.FAILED_SESSION);
 			}
-	
-	  		// Notify event listeners
-			final int N = listeners.beginBroadcast();
-	        for (int i=0; i < N; i++) {
-	            try {
-	            	int code;
-	            	switch(error.getErrorCode()) {
-            			case SipSessionError.SESSION_INITIATION_DECLINED:
-	            			code = MultimediaSession.Error.INVITATION_DECLINED;
-	            			break;
-            			case SipSessionError.MEDIA_FAILED:
-	            			code = MultimediaSession.Error.MEDIA_FAILED;
-	            			break;
-	            		default:
-	            			code = MultimediaSession.Error.SESSION_FAILED;
-	            	}
-	            	listeners.getBroadcastItem(i).onSessionError(code);
-	            } catch(Exception e) {
-	            	if (logger.isActivated()) {
-	            		logger.error("Can't notify listener", e);
-	            	}
-	            }
-	        }
-	        listeners.finishBroadcast();
-	        
-	        // Remove session from the list
-	        MultimediaSessionServiceImpl.removeStreamingSipSession(session.getSessionID());
-	    }
-    }
+		}
+	}
     
     /**
      * Receive data
@@ -385,19 +333,57 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
      * @param data Data
      */
     public void handleReceiveData(byte[] data) {
-    	synchronized(lock) {
-	  		// Notify event listeners
-			final int N = listeners.beginBroadcast();
-	        for (int i=0; i < N; i++) {
-	            try {
-	            	listeners.getBroadcastItem(i).onNewPayload(data);
-	            } catch(Exception e) {
-	            	if (logger.isActivated()) {
-	            		logger.error("Can't notify listener", e);
-	            	}
-	            }
-	        }
-	        listeners.finishBroadcast();
-	    }  	
+		synchronized (lock) {
+			// Notify event listeners
+			mMultimediaStreamingSessionEventBroadcaster.broadcastPayloadReceived(getRemoteContact(),
+					getSessionId(), data);
+		}
     }
+
+	@Override
+	public void handleSessionAccepted() {
+		if (logger.isActivated()) {
+			logger.info("Accepting session");
+		}
+		synchronized (lock) {
+			mMultimediaStreamingSessionEventBroadcaster.broadcastStateChanged(
+					getRemoteContact(), getSessionId(), MultimediaSession.State.ACCEPTING,
+					ReasonCode.UNSPECIFIED);
+		}
+	}
+
+	@Override
+	public void handleSessionRejectedByUser() {
+		handleSessionRejected(ReasonCode.REJECTED_BY_USER);
+	}
+
+	@Override
+	public void handleSessionRejectedByTimeout() {
+		handleSessionRejected(ReasonCode.REJECTED_TIME_OUT);
+	}
+
+	@Override
+	public void handleSessionRejectedByRemote() {
+		handleSessionRejected(ReasonCode.REJECTED_BY_REMOTE);
+	}
+
+	@Override
+	public void handleSessionInvited() {
+		if (logger.isActivated()) {
+			logger.info("Invited to multimedia streaming session");
+		}
+		synchronized (lock) {
+			mMultimediaStreamingSessionEventBroadcaster.broadcastInvitation(getSessionId(),
+					((TerminatingSipRtpSession) session).getSessionInvite());
+		}
+	}
+
+	@Override
+	public void handle180Ringing() {
+		synchronized (lock) {
+			mMultimediaStreamingSessionEventBroadcaster.broadcastStateChanged(
+					getRemoteContact(), getSessionId(), MultimediaSession.State.RINGING,
+					ReasonCode.UNSPECIFIED);
+		}
+	}
 }

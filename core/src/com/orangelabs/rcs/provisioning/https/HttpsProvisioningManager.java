@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.provisioning.https;
@@ -65,9 +69,11 @@ import android.os.Environment;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
-import com.gsma.services.rcs.JoynService;
+import com.gsma.services.rcs.RcsService;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
-import com.orangelabs.rcs.provider.settings.RcsSettingsData;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.MessagingMode;
 import com.orangelabs.rcs.provisioning.ProvisioningFailureReasons;
 import com.orangelabs.rcs.provisioning.ProvisioningInfo;
 import com.orangelabs.rcs.provisioning.ProvisioningInfo.Version;
@@ -75,6 +81,7 @@ import com.orangelabs.rcs.provisioning.ProvisioningParser;
 import com.orangelabs.rcs.provisioning.TermsAndConditionsRequest;
 import com.orangelabs.rcs.service.LauncherUtils;
 import com.orangelabs.rcs.utils.HttpUtils;
+import com.orangelabs.rcs.utils.IntentUtils;
 import com.orangelabs.rcs.utils.NetworkUtils;
 import com.orangelabs.rcs.utils.StringUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
@@ -107,10 +114,12 @@ public class HttpsProvisioningManager {
      */
     private boolean isPending = false;
 
+    private final LocalContentResolver mLocalContentResolver;
+
     /**
      * The Service Context
      */
-	private Context context;
+	private final Context mCtx;
 
     /**
      * Provisioning SMS manager
@@ -148,8 +157,11 @@ public class HttpsProvisioningManager {
 	 * @param user
 	 *            is provisioning service launch after user action ?
 	 */
-    public HttpsProvisioningManager(Context applicationContext, final PendingIntent retryIntent, boolean first, boolean user) {
-		this.context = applicationContext;
+	public HttpsProvisioningManager(Context applicationContext,
+			LocalContentResolver localContentResolver, final PendingIntent retryIntent,
+			boolean first, boolean user) {
+		mCtx = applicationContext;
+		mLocalContentResolver = localContentResolver;
 		this.retryIntent = retryIntent;
 		this.first = first;
 		this.user = user;
@@ -161,7 +173,7 @@ public class HttpsProvisioningManager {
      * @return the context
      */
     protected Context getContext() {
-        return context;
+        return mCtx;
     }
 
     /**
@@ -258,15 +270,15 @@ public class HttpsProvisioningManager {
     private String getHttpsRequestArguments(String imsi, String imei, String smsPort, String token, String msisdn) {
     	String vers = RcsSettings.getInstance().getProvisioningVersion();
     	if (this.user && ProvisioningInfo.Version.DISABLED_DORMANT.equals(vers)) {
-    		vers = LauncherUtils.getProvisioningVersion(context);
+    		vers = LauncherUtils.getProvisioningVersion(mCtx);
     		this.user = false;
     	}
     		
         String args = "?vers=" + vers
         		+ "&rcs_version=" + HttpsProvisioningUtils.getRcsVersion()
                 + "&rcs_profile=" + HttpsProvisioningUtils.getRcsProfile()
-                + "&client_vendor=" + HttpsProvisioningUtils.getClientVendorFromContext(context)
-                + "&client_version=" + HttpsProvisioningUtils.getClientVersionFromContext(context)
+                + "&client_vendor=" + HttpsProvisioningUtils.getClientVendorFromContext(mCtx)
+                + "&client_version=" + HttpsProvisioningUtils.getClientVersionFromContext(mCtx)
                 + "&terminal_vendor=" + HttpUtils.encodeURL(HttpsProvisioningUtils.getTerminalVendor())
                 + "&terminal_model=" + HttpUtils.encodeURL(HttpsProvisioningUtils.getTerminalModel())
                 + "&terminal_sw_version=" + HttpUtils.encodeURL(HttpsProvisioningUtils.getTerminalSoftwareVersion());
@@ -338,7 +350,7 @@ public class HttpsProvisioningManager {
                     }
                     
                     msisdn = RcsSettings.getInstance().getMsisdn();
-                    msisdn = HttpsProvionningMSISDNInput.getInstance().displayPopupAndWaitResponse(context);
+                    msisdn = HttpsProvionningMSISDNInput.getInstance().displayPopupAndWaitResponse(mCtx);
 
                     if (msisdn == null) {
                         return null;
@@ -363,7 +375,7 @@ public class HttpsProvisioningManager {
                 }
                 
                 // Register SMS provisioning receiver
-                smsManager.registerSmsProvisioningReceiver(smsPortForOTP, primaryUri, client, localContext);
+                smsManager.registerSmsProvisioningReceiver(mLocalContentResolver, smsPortForOTP, primaryUri, client, localContext);
                 
                 // Save the MSISDN
                 RcsSettings.getInstance().setMsisdn(msisdn);
@@ -407,7 +419,7 @@ public class HttpsProvisioningManager {
      */
     protected void updateConfigWithOTP(String otp, String requestUri, DefaultHttpClient client, HttpContext localContext) {
 		// Cancel previous retry alarm
-		HttpsProvisioningService.cancelRetryAlarm(context, retryIntent);
+		HttpsProvisioningService.cancelRetryAlarm(mCtx, retryIntent);
 
         // Get config via HTTPS with OTP
         HttpsProvisioningResult result = sendSecondHttpsRequestWithOTP(otp, requestUri, client, localContext);
@@ -452,7 +464,7 @@ public class HttpsProvisioningManager {
 			}
 
             // Get provisioning address
-            TelephonyManager tm = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+            TelephonyManager tm = (TelephonyManager)mCtx.getSystemService(Context.TELEPHONY_SERVICE);
             String primaryUri = null;
             String secondaryUri = null;
             if (RcsSettings.getInstance().isSecondaryProvisioningAddressOnly()) {
@@ -593,7 +605,7 @@ public class HttpsProvisioningManager {
      */
     protected void updateConfig() {
 		// Cancel previous retry alarm
-		HttpsProvisioningService.cancelRetryAlarm(context, retryIntent);
+		HttpsProvisioningService.cancelRetryAlarm(mCtx, retryIntent);
 
         // Get config via HTTPS
         HttpsProvisioningResult result = getConfig();
@@ -696,15 +708,14 @@ public class HttpsProvisioningManager {
 				ProvisioningParser parser = new ProvisioningParser(result.content);
 				
 				// Save GSMA release set into the provider
-				int gsmaRelease = RcsSettings.getInstance().getGsmaRelease();
+				GsmaRelease gsmaRelease = RcsSettings.getInstance().getGsmaRelease();
 				// Save client Messaging Mode set into the provider
-				int messagingMode = RcsSettings.getInstance().getMessagingMode();
+				MessagingMode messagingMode = RcsSettings.getInstance().getMessagingMode();
 				
 				// Before parsing the provisioning, the GSMA release is set to Albatros
-				RcsSettings.getInstance().setGsmaRelease(RcsSettingsData.VALUE_GSMA_REL_ALBATROS);
-				
+				RcsSettings.getInstance().setGsmaRelease(GsmaRelease.ALBATROS);
 				// Before parsing the provisioning, the client Messaging mode is set to NONE 
-				RcsSettings.getInstance().setMessagingMode(RcsSettingsData.VALUE_MESSAGING_MODE_NONE);
+				RcsSettings.getInstance().setMessagingMode(MessagingMode.NONE);
 				
 				if (parser.parse(gsmaRelease, first)) {
 					// Successfully provisioned, 1st time reg finalized
@@ -719,10 +730,10 @@ public class HttpsProvisioningManager {
 					}
 					
 					// Save the latest positive version of the configuration
-					LauncherUtils.saveProvisioningVersion(context, version);
+					LauncherUtils.saveProvisioningVersion(mCtx, version);
 					
 					// Save the validity of the configuration
-					LauncherUtils.saveProvisioningValidity(context, validity);
+					LauncherUtils.saveProvisioningValidity(mCtx, validity);
 					RcsSettings.getInstance().setProvisioningVersion(version);
 
 					// Save token
@@ -742,12 +753,12 @@ public class HttpsProvisioningManager {
 						}
 						// Start retry alarm
 						if (validity > 0) {
-							HttpsProvisioningService.startRetryAlarm(context, retryIntent, validity * 1000);
+							HttpsProvisioningService.startRetryAlarm(mCtx, retryIntent, validity * 1000);
 						}
 						// We parsed successfully the configuration
 						RcsSettings.getInstance().setConfigurationValid(true);
 						// Stop the RCS core service. Provisioning is still running.
-						LauncherUtils.stopRcsCoreService(context);
+						LauncherUtils.stopRcsCoreService(mCtx);
 					} else {
 						if (ProvisioningInfo.Version.DISABLED_NOQUERY.equals(version)) {
 							// -2 : Disable RCS client and stop configuration query
@@ -758,7 +769,7 @@ public class HttpsProvisioningManager {
 							RcsSettings.getInstance().setConfigurationValid(true);
 							// Disable and stop RCS service
 							RcsSettings.getInstance().setServiceActivationState(false);
-							LauncherUtils.stopRcsService(context);
+							LauncherUtils.stopRcsService(mCtx);
 						} else {
 							if (ProvisioningInfo.Version.RESETED_NOQUERY.equals(version)) {
 								// -1 Forbidden: reset account + version = 0-1 (doesn't restart)
@@ -766,7 +777,7 @@ public class HttpsProvisioningManager {
 									logger.debug("Provisioning forbidden: reset account");
 								}
 								// Reset config
-								LauncherUtils.resetRcsConfig(context);
+								LauncherUtils.resetRcsConfig(mCtx, mLocalContentResolver);
 								// Force version to "-1" (resetRcs set version to "0")
 								RcsSettings.getInstance().setProvisioningVersion(version);
 								// Disable the RCS service
@@ -777,11 +788,11 @@ public class HttpsProvisioningManager {
 										logger.debug("Provisioning forbidden: no account");
 									}
 									// Reset config
-									LauncherUtils.resetRcsConfig(context);
+									LauncherUtils.resetRcsConfig(mCtx, mLocalContentResolver);
 								} else {
 									// Start retry alarm
 									if (validity > 0) {
-										HttpsProvisioningService.startRetryAlarm(context, retryIntent, validity * 1000);
+										HttpsProvisioningService.startRetryAlarm(mCtx, retryIntent, validity * 1000);
 									}
 									// Terms request
 									if (info.getMessage() != null && !RcsSettings.getInstance().isProvisioningTermsAccepted()) {
@@ -790,15 +801,16 @@ public class HttpsProvisioningManager {
 									// We parsed successfully the configuration
 									RcsSettings.getInstance().setConfigurationValid(true);
 									// Start the RCS core service
-									LauncherUtils.launchRcsCoreService(context);
+									LauncherUtils.launchRcsCoreService(mCtx);
 								}
 							}
 						}
 					}
-					
+
 					// Send service provisioning intent
-					Intent intent = new Intent(JoynService.ACTION_SERVICE_PROVISIONED);
-					context.sendBroadcast(intent);
+					Intent serviceProvisioned = new Intent(RcsService.ACTION_SERVICE_PROVISIONED);
+					IntentUtils.tryToSetReceiverForegroundFlag(serviceProvisioned);
+					mCtx.sendBroadcast(serviceProvisioned);
 				} else {
 					if (logger.isActivated()) {
 						logger.debug("Can't parse provisioning document");
@@ -820,7 +832,7 @@ public class HttpsProvisioningManager {
 						if (logger.isActivated()) {
 							logger.debug("This is not first launch, use old configuration to register");
 						}
-						tryLaunchRcsCoreService(context, -1);
+						tryLaunchRcsCoreService(mCtx, -1);
 					}
 				}
 			} else if (result.code == 503) {
@@ -832,10 +844,10 @@ public class HttpsProvisioningManager {
 					// Reason: Unable to get configuration
 					provisioningFails(ProvisioningFailureReasons.UNABLE_TO_GET_CONFIGURATION);
 					if (result.retryAfter > 0) {
-						HttpsProvisioningService.startRetryAlarm(context, retryIntent, result.retryAfter * 1000);
+						HttpsProvisioningService.startRetryAlarm(mCtx, retryIntent, result.retryAfter * 1000);
 					}
 				} else {
-					tryLaunchRcsCoreService(context, result.retryAfter * 1000);
+					tryLaunchRcsCoreService(mCtx, result.retryAfter * 1000);
 				}
 			} else if (result.code == 403) {
 				// Forbidden: reset account + version = 0
@@ -845,7 +857,7 @@ public class HttpsProvisioningManager {
 				// Reset version to "0"
 				RcsSettings.getInstance().setProvisioningVersion(Version.RESETED.toString());
 				// Reset config
-				LauncherUtils.resetRcsConfig(context);
+				LauncherUtils.resetRcsConfig(mCtx, mLocalContentResolver);
 				// Reason: Provisioning forbidden
 				provisioningFails(ProvisioningFailureReasons.PROVISIONING_FORBIDDEN);
 			} else if (result.code == 511) {
@@ -871,7 +883,7 @@ public class HttpsProvisioningManager {
 					provisioningFails(ProvisioningFailureReasons.CONNECTIVITY_ISSUE);
 					retry();
 				} else {
-					tryLaunchRcsCoreService(context, -1);
+					tryLaunchRcsCoreService(mCtx, -1);
 				}
 			}
 		} else { // result is null
@@ -884,7 +896,7 @@ public class HttpsProvisioningManager {
 				provisioningFails(ProvisioningFailureReasons.CONNECTIVITY_ISSUE);
 				retry();
 			} else {
-				tryLaunchRcsCoreService(context, -1);
+				tryLaunchRcsCoreService(mCtx, -1);
 			}
 		}
 	}
@@ -927,7 +939,7 @@ public class HttpsProvisioningManager {
      */
     private void showTermsAndConditions(ProvisioningInfo info) {
         final Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setClass(context, TermsAndConditionsRequest.class);
+        intent.setClass(mCtx, TermsAndConditionsRequest.class);
 
         // Required as the activity is started outside of an Activity context
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -939,7 +951,7 @@ public class HttpsProvisioningManager {
         intent.putExtra(TermsAndConditionsRequest.TITLE_KEY, info.getTitle());
         intent.putExtra(TermsAndConditionsRequest.MESSAGE_KEY, info.getMessage());
 
-        context.startActivity(intent);
+        mCtx.startActivity(intent);
     }
     
     /**
@@ -950,7 +962,7 @@ public class HttpsProvisioningManager {
     private boolean retryAfter511Error() {
         if (retryAfter511ErrorCount < HttpsProvisioningUtils.RETRY_AFTER_511_ERROR_MAX_COUNT) {
             retryAfter511ErrorCount++;
-            HttpsProvisioningService.startRetryAlarm(context, retryIntent, HttpsProvisioningUtils.RETRY_AFTER_511_ERROR_TIMEOUT);
+            HttpsProvisioningService.startRetryAlarm(mCtx, retryIntent, HttpsProvisioningUtils.RETRY_AFTER_511_ERROR_TIMEOUT);
             if (logger.isActivated()) {
                 logger.debug("Retry after 511 error (" + retryAfter511ErrorCount + "/" + HttpsProvisioningUtils.RETRY_AFTER_511_ERROR_MAX_COUNT + ") provisionning after " + HttpsProvisioningUtils.RETRY_AFTER_511_ERROR_TIMEOUT + "ms");
             }
@@ -987,7 +999,7 @@ public class HttpsProvisioningManager {
         if (retryCount < HttpsProvisioningUtils.RETRY_MAX_COUNT) {
             retryCount++;
             int retryDelay = HttpsProvisioningUtils.RETRY_BASE_TIMEOUT + 2 * (retryCount - 1) * HttpsProvisioningUtils.RETRY_BASE_TIMEOUT;
-            HttpsProvisioningService.startRetryAlarm(context, retryIntent, retryDelay);
+            HttpsProvisioningService.startRetryAlarm(mCtx, retryIntent, retryDelay);
             if (logger.isActivated()) {
                 logger.debug("Retry provisionning count: "+retryCount );
             }

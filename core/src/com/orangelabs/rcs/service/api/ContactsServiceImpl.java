@@ -19,15 +19,16 @@
 package com.orangelabs.rcs.service.api;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.gsma.services.rcs.JoynService;
+import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.capability.Capabilities;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.IContactsService;
-import com.gsma.services.rcs.contacts.JoynContact;
+import com.gsma.services.rcs.contacts.RcsContact;
 import com.orangelabs.rcs.core.ims.service.ContactInfo;
+import com.orangelabs.rcs.core.ims.service.ContactInfo.RegistrationState;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -35,12 +36,13 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * Contacts service API implementation
  * 
  * @author Jean-Marc AUFFRET
+ * @author Philippe LEMORDANT
  */
 public class ContactsServiceImpl extends IContactsService.Stub {
     /**
 	 * The logger
 	 */
-	private Logger logger = Logger.getLogger(this.getClass().getName());
+	private static final Logger logger = Logger.getLogger(ContactsServiceImpl.class.getSimpleName());
 
 	/**
 	 * Constructor
@@ -61,80 +63,107 @@ public class ContactsServiceImpl extends IContactsService.Stub {
 	}
     
     /**
-     * Returns the joyn contact infos from its contact ID (i.e. MSISDN)
+     * Returns the rcs contact infos from its contact ID (i.e. MSISDN)
      * 
-     * @param contactId Contact ID
+     * @param contact Contact ID
      * @return Contact
      * @throws ServerApiException
      */
-	public JoynContact getJoynContact(String contactId) throws ServerApiException {
+	public RcsContact getRcsContact(ContactId contact) throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Get joyn contact " + contactId);
+			logger.info("Get rcs contact " + contact);
 		}
-
 		// Read capabilities in the local database
-		ContactInfo contactInfo = ContactsManager.getInstance().getContactInfo(contactId);
-		if (contactInfo !=  null) {
-			com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities = contactInfo.getCapabilities();
-    		Set<String> exts = capabilities.getSupportedExtensions();
-    		Capabilities capaApi = new Capabilities(
-    				capabilities.isImageSharingSupported(),
-    				capabilities.isVideoSharingSupported(),
-    				capabilities.isImSessionSupported(),
-    				capabilities.isFileTransferSupported(),
-    				capabilities.isGeolocationPushSupported(),
-    				capabilities.isIPVoiceCallSupported(),
-    				capabilities.isIPVideoCallSupported(),
-    				exts,
-    				capabilities.isSipAutomata()); 
-			boolean registered = (contactInfo.getRegistrationState() == ContactInfo.REGISTRATION_STATUS_ONLINE);
-			return new JoynContact(contactId, registered, capaApi);
-		} else {
+		return getRcsContact(ContactsManager.getInstance().getContactInfo(contact));
+	}
+	
+	/**
+	 * Convert the com.orangelabs.rcs.core.ims.service.capability.Capabilities instance into a Capabilities instance
+	 * 
+	 * @param capabilities
+	 *            com.orangelabs.rcs.core.ims.service.capability.Capabilities instance
+	 * @return Capabilities instance
+	 */
+	/* package private */static Capabilities getCapabilities(com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities) {
+		if (capabilities == null) {
 			return null;
 		}
-    }	
+		return new Capabilities(capabilities.isImageSharingSupported(), capabilities.isVideoSharingSupported(),
+				capabilities.isImSessionSupported(), capabilities.isFileTransferSupported()
+						|| capabilities.isFileTransferHttpSupported(), capabilities.isGeolocationPushSupported(),
+				capabilities.isIPVoiceCallSupported(), capabilities.isIPVideoCallSupported(), capabilities.getSupportedExtensions(),
+				capabilities.isSipAutomata(), capabilities.getTimestampOfLastRefresh(), capabilities.isValid());
+	}
 	
-    /**
-     * Returns the list of joyn contacts
+	/**
+	 * Convert the ContactInfo instance into a RcsContact instance
+	 * 
+	 * @param contactInfo
+	 *            the ContactInfo instance
+	 * @return RcsContact instance
+	 */
+	private RcsContact getRcsContact(ContactInfo contactInfo) {
+		// Discard if argument is null
+		if (contactInfo == null) {
+			return null;
+		}
+		Capabilities capaApi = getCapabilities(contactInfo.getCapabilities());
+		boolean registered = RegistrationState.ONLINE.equals(contactInfo.getRegistrationState());
+		return new RcsContact(contactInfo.getContact(), registered, capaApi, contactInfo.getDisplayName());
+	}
+	
+	
+	/**
+	 * Interface to filter ContactInfo
+	 * @author YPLO6403
+	 *
+	 */
+	private interface FilterContactInfo {
+		/**
+		 * The filtering method
+		 * 
+		 * @param contactInfo
+		 * @return true if contactInfo is in the scope
+		 */
+		boolean inScope(ContactInfo contactInfo);
+	}
+	
+	/**
+	 * Get a filtered list of RcsContact
+	 * 
+	 * @param filterContactInfo
+	 *            the filter (or null if not applicable)
+	 * @return the filtered list of RcsContact
+	 */
+	private List<RcsContact> getRcsContacts(FilterContactInfo filterContactInfo) {
+		List<RcsContact> rcsContacts = new ArrayList<RcsContact>();
+		// Read capabilities in the local database
+		Set<ContactId> contacts = ContactsManager.getInstance().getRcsContacts();
+		for (ContactId contact : contacts) {
+			ContactInfo contactInfo = ContactsManager.getInstance().getContactInfo(contact);
+			if (contactInfo != null) {
+				if (filterContactInfo == null || filterContactInfo.inScope(contactInfo)) {
+					RcsContact contact2add = getRcsContact(contactInfo);
+					if (contact2add != null) {
+						rcsContacts.add(getRcsContact(contactInfo));
+					}
+				}
+			}
+		}
+		return rcsContacts;
+	}
+	
+	/**
+     * Returns the list of rcs contacts
      * 
      * @return List of contacts
      * @throws ServerApiException
      */
-    public List<JoynContact> getJoynContacts() throws ServerApiException {
+    public List<RcsContact> getRcsContacts() throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Get joyn contacts");
+			logger.info("Get rcs contacts");
 		}
-		ArrayList<JoynContact> result = new ArrayList<JoynContact>();
-
-		// Read capabilities in the local database
-		List<String> contacts = ContactsManager.getInstance().getRcsContacts();
-		for(int i =0; i < contacts.size(); i++) {
-			String contact = contacts.get(i);
-			ContactInfo contactInfo = ContactsManager.getInstance().getContactInfo(contact);
-			com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities = contactInfo.getCapabilities();
-			Capabilities capaApi = null;
-			if (capabilities != null) {
-	    		Set<String> exts = new HashSet<String>();
-	    		Set<String> listExts = capabilities.getSupportedExtensions();
-	    		for (String extension : listExts) {
-	    			exts.add(extension);
-				}
-				capaApi = new Capabilities(
-	    				capabilities.isImageSharingSupported(),
-	    				capabilities.isVideoSharingSupported(),
-	    				capabilities.isImSessionSupported(),
-	    				capabilities.isFileTransferSupported(),
-	    				capabilities.isGeolocationPushSupported(),
-	    				capabilities.isIPVoiceCallSupported(),
-	    				capabilities.isIPVideoCallSupported(),
-	    				exts,
-	    				capabilities.isSipAutomata()); 
-			}
-			boolean registered = (contactInfo.getRegistrationState() == ContactInfo.REGISTRATION_STATUS_ONLINE);
-			result.add(new JoynContact(contact, registered, capaApi));
-		}
-		
-		return result;
+		return getRcsContacts(null);
 	}
 
     /**
@@ -143,39 +172,17 @@ public class ContactsServiceImpl extends IContactsService.Stub {
      * @return List of contacts
      * @throws ServerApiException
      */
-    public List<JoynContact> getJoynContactsOnline() throws ServerApiException {
+	public List<RcsContact> getRcsContactsOnline() throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Get registered joyn contacts");
+			logger.info("Get registered rcs contacts");
 		}
-		ArrayList<JoynContact> result = new ArrayList<JoynContact>();
+		return getRcsContacts(new FilterContactInfo() {
 
-		// Read capabilities in the local database
-		List<String> contacts = ContactsManager.getInstance().getRcsContacts();
-		for(int i =0; i < contacts.size(); i++) {
-			String contact = contacts.get(i);
-			ContactInfo contactInfo = ContactsManager.getInstance().getContactInfo(contact);
-			com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities = contactInfo.getCapabilities();
-			if (contactInfo.getRegistrationState() == ContactInfo.REGISTRATION_STATUS_ONLINE) {			
-				Capabilities capaApi = null;
-				if (capabilities != null) {
-		    		Set<String> exts = new HashSet<String>(capabilities.getSupportedExtensions());
-					capaApi = new Capabilities(
-		    				capabilities.isImageSharingSupported(),
-		    				capabilities.isVideoSharingSupported(),
-		    				capabilities.isImSessionSupported(),
-		    				capabilities.isFileTransferSupported(),
-		    				capabilities.isGeolocationPushSupported(),
-		    				capabilities.isIPVoiceCallSupported(),
-		    				capabilities.isIPVideoCallSupported(),
-		    				exts,
-		    				capabilities.isSipAutomata()); 
-				}
-				boolean registered = (contactInfo.getRegistrationState() == ContactInfo.REGISTRATION_STATUS_ONLINE);
-				result.add(new JoynContact(contact, registered, capaApi));
+			@Override
+			public boolean inScope(ContactInfo contactInfo) {
+				return RegistrationState.ONLINE.equals(contactInfo.getRegistrationState());
 			}
-		}
-		
-		return result;
+		});
 	}
     
     /**
@@ -185,52 +192,39 @@ public class ContactsServiceImpl extends IContactsService.Stub {
      * @return List of contacts
      * @throws ServerApiException
      */
-    public List<JoynContact> getJoynContactsSupporting(String serviceId) throws ServerApiException {
+	public List<RcsContact> getRcsContactsSupporting(final String serviceId) throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Get joyn contacts supporting " + serviceId);
+			logger.info("Get rcs contacts supporting " + serviceId);
 		}
-		
-		ArrayList<JoynContact> result = new ArrayList<JoynContact>();
 
-		// Read capabilities in the local database
-		List<String> contacts = ContactsManager.getInstance().getRcsContacts();
-		for(int i =0; i < contacts.size(); i++) {
-			String contact = contacts.get(i);
-			ContactInfo contactInfo = ContactsManager.getInstance().getContactInfo(contact);
-			com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities = contactInfo.getCapabilities();
-			Capabilities capaApi = null;
-			if (capabilities != null) {
-				Set<String> exts = capabilities.getSupportedExtensions();
-				for (String extension : exts) {
-					if (extension.equals(serviceId)) { 
-						capaApi = new Capabilities(
-			    				capabilities.isImageSharingSupported(),
-			    				capabilities.isVideoSharingSupported(),
-			    				capabilities.isImSessionSupported(),
-			    				capabilities.isFileTransferSupported(),
-			    				capabilities.isGeolocationPushSupported(),
-			    				capabilities.isIPVoiceCallSupported(),
-			    				capabilities.isIPVideoCallSupported(),
-			    				new HashSet<String>(capabilities.getSupportedExtensions()),
-			    				capabilities.isSipAutomata()); 
-						boolean registered = (contactInfo.getRegistrationState() == ContactInfo.REGISTRATION_STATUS_ONLINE);
-						result.add(new JoynContact(contact, registered, capaApi));
+		return getRcsContacts(new FilterContactInfo() {
+
+			@Override
+			public boolean inScope(ContactInfo contactInfo) {
+				com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities = contactInfo.getCapabilities();
+				if (capabilities != null) {
+					Set<String> supportedExtensions = capabilities.getSupportedExtensions();
+					if (supportedExtensions != null) {
+						for (String supportedExtension : supportedExtensions) {
+							if (supportedExtension.equals(serviceId)) {
+								return true;
+							}
+						}
 					}
 				}
+				return false;
 			}
-		}
-		
-		return result;
-    }
+		});
+	}
 
 	/**
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see JoynService.Build.VERSION_CODES
+	 * @see RcsService.Build.VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {
-		return JoynService.Build.API_VERSION;
+		return RcsService.Build.API_VERSION;
 	}
 }

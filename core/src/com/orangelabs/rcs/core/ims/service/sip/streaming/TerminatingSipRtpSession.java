@@ -1,7 +1,9 @@
 /*******************************************************************************
+
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +16,28 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.sip.streaming;
 
+import android.content.Intent;
+
+import com.gsma.services.rcs.RcsContactFormatException;
 import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipTransactionContext;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
 import com.orangelabs.rcs.core.ims.service.SessionTimerManager;
 import com.orangelabs.rcs.core.ims.service.sip.SipSessionError;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import java.util.Collection;
 
 /**
  * Terminating SIP RTP session
@@ -36,17 +48,21 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
 	/**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private final static Logger logger = Logger.getLogger(TerminatingSipRtpSession.class.getSimpleName());
+
+    private final Intent mSessionInvite;
 
     /**
      * Constructor
      * 
 	 * @param parent IMS service
 	 * @param invite Initial INVITE request
+	 * @throws RcsContactFormatException
 	 */
-	public TerminatingSipRtpSession(ImsService parent, SipRequest invite) {
-		super(parent, SipUtils.getAssertedIdentity(invite), invite.getFeatureTags().get(0));
+	public TerminatingSipRtpSession(ImsService parent, SipRequest invite, Intent sessionInvite) throws RcsContactFormatException {
+		super(parent, ContactUtils.createContactId(SipUtils.getAssertedIdentity(invite)), invite.getFeatureTags().get(0));
 
+		mSessionInvite = sessionInvite;
 		// Create dialog path
 		createTerminatingDialogPath(invite);
 	}
@@ -59,48 +75,69 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
 	    	if (logger.isActivated()) {
 	    		logger.info("Initiate a new RTP session as terminating");
 	    	}
-	
-			// Send a 180 Ringing response
-			send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
-        
-			// Wait invitation answer
-	    	int answer = waitInvitationAnswer();
-			if (answer == ImsServiceSession.INVITATION_REJECTED) {
-				if (logger.isActivated()) {
-					logger.debug("Session has been rejected by user");
-				}
-				
-		    	// Remove the current session
-		    	getImsService().removeSession(this);
 
-		    	// Notify listeners
-		    	for(int i=0; i < getListeners().size(); i++) {
-		    		getListeners().get(i).handleSessionAborted(ImsServiceSession.TERMINATION_BY_USER);
-		        }
-				return;
-			} else
-			if (answer == ImsServiceSession.INVITATION_NOT_ANSWERED) {
-				if (logger.isActivated()) {
-					logger.debug("Session has been rejected on timeout");
-				}
+	    	send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
-				// Ringing period timeout
-				send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
-				
-		    	// Remove the current session
-		    	getImsService().removeSession(this);
+            Collection<ImsSessionListener> listeners = getListeners();
+            for (ImsSessionListener listener : listeners) {
+                listener.handleSessionInvited();
+            }
 
-		    	// Notify listeners
-    	    	for(int j=0; j < getListeners().size(); j++) {
-    	    		getListeners().get(j).handleSessionAborted(ImsServiceSession.TERMINATION_BY_TIMEOUT);
-		        }
-				return;
-			} else
-            if (answer == ImsServiceSession.INVITATION_CANCELED) {
-                if (logger.isActivated()) {
-                    logger.debug("Session has been canceled");
-                }
-                return;
+            int answer = waitInvitationAnswer();
+            switch (answer) {
+                case ImsServiceSession.INVITATION_REJECTED:
+                    if (logger.isActivated()) {
+                        logger.debug("Session has been rejected by user");
+                    }
+
+                    getImsService().removeSession(this);
+
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionRejectedByUser();
+                    }
+                    return;
+
+                case ImsServiceSession.INVITATION_NOT_ANSWERED:
+                    if (logger.isActivated()) {
+                        logger.debug("Session has been rejected on timeout");
+                    }
+
+                    // Ringing period timeout
+                    send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+
+                    getImsService().removeSession(this);
+
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionRejectedByTimeout();
+                    }
+                    return;
+
+                case ImsServiceSession.INVITATION_CANCELED:
+                    if (logger.isActivated()) {
+                        logger.debug("Session has been canceled");
+                    }
+
+                    getImsService().removeSession(this);
+
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionRejectedByRemote();
+                    }
+                    return;
+
+                case ImsServiceSession.INVITATION_ACCEPTED:
+                    setSessionAccepted();
+
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionAccepted();
+                    }
+                    break;
+
+                default:
+                    if (logger.isActivated()) {
+                        logger.debug("Unknown invitation answer in run; answer="
+                                .concat(String.valueOf(answer)));
+                    }
+                    return;
             }
 			
 			// Build SDP part
@@ -179,5 +216,14 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
 			handleError(new SipSessionError(SipSessionError.UNEXPECTED_EXCEPTION,
 					e.getMessage()));
 		}
+	}
+
+	@Override
+	public boolean isInitiatedByRemote() {
+		return true;
+	}
+
+	public Intent getSessionInvite() {
+		return mSessionInvite;
 	}
 }

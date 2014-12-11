@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.core.ims.service.im.chat;
 
 import com.gsma.services.rcs.chat.ParticipantInfo;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
+import com.orangelabs.rcs.core.ims.service.im.chat.imdn.ImdnDocument;
 
 /**
  * Chat session listener
@@ -48,47 +50,60 @@ public interface ChatSessionListener extends ImsSessionListener {
     /**
      * Is composing event
      * 
-     * @param contact Contact
+     * @param contact Contact identifier
      * @param status Status
      */
-    public void handleIsComposingEvent(String contact, boolean status);
+    public void handleIsComposingEvent(ContactId contact, boolean status);
 
     /**
      * New conference event
      * 
-	 * @param contact Contact
+	 * @param contact Contact identifier
 	 * @param contactDisplayname Contact display name
      * @param state State associated to the contact
      */
-    public void handleConferenceEvent(String contact, String contactDisplayname, String state);
+    public void handleConferenceEvent(ContactId contact, String contactDisplayname, String state);
 
     /**
-     * New message failure status notifying the failure of sending
+     * Notifying sending of a message
+     *
+     * @param msg Instant message
+     */
+    public void handleMessageSending(InstantMessage msg);
+    /**
+     * Notifying that a message has been sent
      *
      * @param msgId Message ID
      */
-    public void handleSendMessageFailure(String msgId);
+    public void handleMessageSent(String msgId);
+    /**
+     * Notifying failure of sending message
+     *
+     * @param msgId Message ID
+     */
+    public void handleMessageFailedSend(String msgId);
 
     /**
      * New message delivery status that are received as part of imdn notification
-     * 
-	 * @param msgId Message ID
-     * @param status Delivery status
-     * @param contact the remote contact
+     * @param contact the remote contact identifier
+     * @param ImdnDocument imdn Imdn document
      */
-    public void handleMessageDeliveryStatus(String msgId, String status, String contact);
+    public void handleMessageDeliveryStatus(ContactId contact, ImdnDocument imdn);
     
     /**
      * Request to add participant is successful
+     *
+     * @param contact Contact ID
      */
-    public void handleAddParticipantSuccessful();
+    public void handleAddParticipantSuccessful(ContactId contact);
     
     /**
      * Request to add participant has failed
-     * 
+     *
+     * @param contact Contact ID
      * @param reason Error reason
      */
-    public void handleAddParticipantFailed(String reason);
+    public void handleAddParticipantFailed(ContactId contact, String reason);
     
     /**
      * New geoloc message received
@@ -104,4 +119,9 @@ public interface ChatSessionListener extends ImsSessionListener {
 	 *            the participant information
 	 */
     public void handleParticipantStatusChanged(ParticipantInfo participantInfo);
+
+    /**
+     * Chat is auto-accepted and the session is in the process of being started
+     */
+    public void handleSessionAutoAccepted();
 }

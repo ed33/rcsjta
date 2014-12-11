@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.chat;
@@ -33,65 +33,65 @@ public class ChatServiceConfiguration {
 	/**
 	 * IM always-on thanks to the Store & Forward
 	 */
-	private boolean imAlwaysOn;
+	private boolean mImAlwaysOn;
 	
 	/**
 	 * Store and Forward warning
 	 */
-	private boolean warnSF;
+	private boolean mWarnSF;
 	
 	/**
 	 * Chat timeout
 	 */
-	private int chatTimeout;
+	private int mChatTimeout;
 	
 	/**
 	 * Is-composing timeout
 	 */
-	private int isComposingTimeout;
+	private int mIsComposingTimeout;
 
 	/**
 	 * Max participants in a group chat
 	 */
-	private int maxGroupChatParticipants;
+	private int mMaxGroupChatParticipants;
 	
 	/**
-	 * Max length of a message in a single chat
+	 * Max length of a message in a one-to-one chat
 	 */
-	private int maxMsgLengthSingleChat;
+	private int mMaxMsgLengthOneToOneChat;
 
 	/**
 	 * Max length of a message in a group chat
 	 */
-	private int maxMsgLengthGroupChat;
+	private int mMaxMsgLengthGroupChat;
 	
 	/**
 	 * SMS fallback
 	 */
-	private boolean smsFallback;
+	private boolean mSmsFallback;
 
 	/**
 	 * Respond to displayed delivery report
 	 */
-	private boolean respondToDisplayReports;
+	private boolean mRespondToDisplayReports;
 	
 	/**
 	 * Max geoloc label length
 	 */
-	private int maxGeolocLabelLength;
+	private int mMaxGeolocLabelLength;
 
 	/**
 	 * Geoloc expiration time
 	 */
-	private int geolocExpireTime;
+	private int mGeolocExpireTime;
 
-	private int minGroupChatParticipants;
+	private int mMinGroupChatParticipants;
 
 	/**
-	 * The maximum length a group chat subject can have. 
+	 * The maximum length a group chat subject can have.
 	 * <p>The length is the number of bytes of the message encoded in UTF-8.
 	 */
-	private int groupChatSubjectMaxLength;
+	private int mGroupChatSubjectMaxLength;
 	
 	/**
 	 * Constructor
@@ -102,7 +102,7 @@ public class ChatServiceConfiguration {
 	 * @param isComposingTimeout Is-composing timeout
 	 * @param maxGroupChatParticipants Max participants in a group chat
 	 * @param minGroupChatParticipants Min participants in a group chat
-	 * @param maxMsgLengthSingleChat Max length of a message in a single chat
+	 * @param maxMsgLengthOneToOneChat Max length of a message in a one-to-one chat
 	 * @param maxMsgLengthGroupChat Max length of a message in a group chat
 	 * @param groupChatSubjectMaxLength Max length of subject in a group chat
 	 * @param smsFallback SMS fallback
@@ -112,22 +112,22 @@ public class ChatServiceConfiguration {
      * @hide
 	 */
 	public ChatServiceConfiguration(boolean imAlwaysOn, boolean warnSF, int chatTimeout, int isComposingTimeout,
-			int maxGroupChatParticipants, int minGroupChatParticipants, int maxMsgLengthSingleChat, int maxMsgLengthGroupChat,
+			int maxGroupChatParticipants, int minGroupChatParticipants, int maxMsgLengthOneToOneChat, int maxMsgLengthGroupChat,
 			int groupChatSubjectMaxLength, boolean smsFallback, boolean respondToDisplayReports, int maxGeolocLabelLength,
 			int geolocExpireTime) {
-		this.imAlwaysOn = imAlwaysOn;
-		this.warnSF = warnSF;
-		this.chatTimeout = chatTimeout;
-		this.isComposingTimeout = isComposingTimeout;
-		this.maxGroupChatParticipants = maxGroupChatParticipants;
-		this.minGroupChatParticipants = minGroupChatParticipants;
-		this.maxMsgLengthSingleChat = maxMsgLengthSingleChat;
-		this.maxMsgLengthGroupChat = maxMsgLengthGroupChat;
-		this.groupChatSubjectMaxLength = groupChatSubjectMaxLength;
-		this.smsFallback = smsFallback;
-		this.respondToDisplayReports = respondToDisplayReports;
-		this.maxGeolocLabelLength = maxGeolocLabelLength;
-		this.geolocExpireTime = geolocExpireTime;
+		mImAlwaysOn = imAlwaysOn;
+		mWarnSF = warnSF;
+		mChatTimeout = chatTimeout;
+		mIsComposingTimeout = isComposingTimeout;
+		mMaxGroupChatParticipants = maxGroupChatParticipants;
+		mMinGroupChatParticipants = minGroupChatParticipants;
+		mMaxMsgLengthOneToOneChat = maxMsgLengthOneToOneChat;
+		mMaxMsgLengthGroupChat = maxMsgLengthGroupChat;
+		mGroupChatSubjectMaxLength = groupChatSubjectMaxLength;
+		mSmsFallback = smsFallback;
+		mRespondToDisplayReports = respondToDisplayReports;
+		mMaxGeolocLabelLength = maxGeolocLabelLength;
+		mGeolocExpireTime = geolocExpireTime;
     }	
 	
 	/**
@@ -137,19 +137,19 @@ public class ChatServiceConfiguration {
      * @hide
 	 */
 	public ChatServiceConfiguration(Parcel source) {
-		this.imAlwaysOn = source.readInt() != 0;
-		this.warnSF = source.readInt() != 0;
-		this.chatTimeout = source.readInt();
-		this.isComposingTimeout = source.readInt();
-		this.maxGroupChatParticipants = source.readInt();
-		this.minGroupChatParticipants = source.readInt();
-		this.maxMsgLengthSingleChat = source.readInt();
-		this.maxMsgLengthGroupChat = source.readInt();
-		this.groupChatSubjectMaxLength = source.readInt();
-		this.smsFallback = source.readInt() != 0;
-		this.respondToDisplayReports = source.readInt() != 0;
-		this.maxGeolocLabelLength = source.readInt();
-		this.geolocExpireTime = source.readInt();
+		mImAlwaysOn = source.readInt() != 0;
+		mWarnSF = source.readInt() != 0;
+		mChatTimeout = source.readInt();
+		mIsComposingTimeout = source.readInt();
+		mMaxGroupChatParticipants = source.readInt();
+		mMinGroupChatParticipants = source.readInt();
+		mMaxMsgLengthOneToOneChat = source.readInt();
+		mMaxMsgLengthGroupChat = source.readInt();
+		mGroupChatSubjectMaxLength = source.readInt();
+		mSmsFallback = source.readInt() != 0;
+		mRespondToDisplayReports = source.readInt() != 0;
+		mMaxGeolocLabelLength = source.readInt();
+		mGeolocExpireTime = source.readInt();
     }
 
 	/**
@@ -171,19 +171,19 @@ public class ChatServiceConfiguration {
      * @hide
 	 */
     public void writeToParcel(Parcel dest, int flags) {
-    	dest.writeInt(imAlwaysOn ? 1 : 0);
-    	dest.writeInt(warnSF ? 1 : 0);
-    	dest.writeInt(chatTimeout);
-    	dest.writeInt(isComposingTimeout);
-    	dest.writeInt(maxGroupChatParticipants);
-    	dest.writeInt(minGroupChatParticipants);
-    	dest.writeInt(maxMsgLengthSingleChat);
-    	dest.writeInt(maxMsgLengthGroupChat);
-    	dest.writeInt(groupChatSubjectMaxLength);
-    	dest.writeInt(smsFallback ? 1 : 0);
-    	dest.writeInt(respondToDisplayReports ? 1 : 0);
-    	dest.writeInt(maxGeolocLabelLength);
-    	dest.writeInt(geolocExpireTime);
+    	dest.writeInt(mImAlwaysOn ? 1 : 0);
+    	dest.writeInt(mWarnSF ? 1 : 0);
+    	dest.writeInt(mChatTimeout);
+    	dest.writeInt(mIsComposingTimeout);
+    	dest.writeInt(mMaxGroupChatParticipants);
+    	dest.writeInt(mMinGroupChatParticipants);
+    	dest.writeInt(mMaxMsgLengthOneToOneChat);
+    	dest.writeInt(mMaxMsgLengthGroupChat);
+    	dest.writeInt(mGroupChatSubjectMaxLength);
+    	dest.writeInt(mSmsFallback ? 1 : 0);
+    	dest.writeInt(mRespondToDisplayReports ? 1 : 0);
+    	dest.writeInt(mMaxGeolocLabelLength);
+    	dest.writeInt(mGeolocExpireTime);
     }
 
     /**
@@ -208,7 +208,7 @@ public class ChatServiceConfiguration {
 	 * @return True if Store and Forward capability is supported, False if no Store & Forward capability
 	 */
 	public boolean isChatSf() {
-		return imAlwaysOn;
+		return mImAlwaysOn;
 	}
 
 	/**
@@ -220,7 +220,7 @@ public class ChatServiceConfiguration {
 	 * @return Boolean
 	 */
 	public boolean isChatWarnSF() {
-		return warnSF;
+		return mWarnSF;
 	}
 	
 	/**
@@ -229,7 +229,7 @@ public class ChatServiceConfiguration {
 	 * @return Timeout in seconds
 	 */
 	public int getChatTimeout() {
-		return chatTimeout;
+		return mChatTimeout;
 	}
 	
 	/**
@@ -238,7 +238,7 @@ public class ChatServiceConfiguration {
 	 * @return Timeout in seconds
 	 */
 	public int getIsComposingTimeout() {
-		return isComposingTimeout;
+		return mIsComposingTimeout;
 	}	
 	
 	/**
@@ -247,7 +247,7 @@ public class ChatServiceConfiguration {
 	 * @return Number
 	 */
 	public int getGroupChatMaxParticipants() {
-		return maxGroupChatParticipants;
+		return mMaxGroupChatParticipants;
 	}
 	
 	/**
@@ -255,18 +255,18 @@ public class ChatServiceConfiguration {
 	 * @return number
 	 */
 	public int getGroupChatMinParticipants() {
-	  return minGroupChatParticipants;	
+	  return mMinGroupChatParticipants;	
 	}
 	
 	/**
-	 * Return maximum length of a single chat message.
+	 * Returns the maximum one-to-one chat message’s length can have.
 	 * <p>
 	 * The length is the number of bytes of the message encoded in UTF-8.
 	 * 
 	 * @return Number of bytes
 	 */
-	public int getSingleChatMessageMaxLength() {
-		return maxMsgLengthSingleChat;
+	public int getOneToOneChatMessageMaxLength() {
+		return mMaxMsgLengthOneToOneChat;
 	}
 	
 	/**
@@ -277,16 +277,16 @@ public class ChatServiceConfiguration {
 	 * @return Number of bytes
 	 */
 	public int getGroupChatMessageMaxLength() {
-		return maxMsgLengthGroupChat;
+		return mMaxMsgLengthGroupChat;
 	}
 	
 	/**
-	 * The maximum group chat subject’s length can have. 
+	 * The maximum group chat subject's length can have.
 	 * <p>The length is the number of bytes of the message encoded in UTF-8.
-	 * @return The maximum group chat subject’s length can have.
+	 * @return The maximum group chat subject's length can have.
 	 */
 	public int getGroupChatSubjectMaxLength() {
-		return groupChatSubjectMaxLength;
+		return mGroupChatSubjectMaxLength;
 	}
 
 	/**
@@ -296,7 +296,7 @@ public class ChatServiceConfiguration {
 	 * @return Boolean
 	 */
 	public boolean isSmsFallback() {
-		return smsFallback;
+		return mSmsFallback;
 	}
 	
 	/**
@@ -307,7 +307,7 @@ public class ChatServiceConfiguration {
 	 * @return Boolean
 	 */
 	public boolean isRespondToDisplayReportsEnabled() {
-		return respondToDisplayReports;
+		return mRespondToDisplayReports;
 	}
 
 	/**
@@ -316,7 +316,7 @@ public class ChatServiceConfiguration {
 	 * @return Number of bytes
 	 */
 	public int getGeolocLabelMaxLength() {
-		return maxGeolocLabelLength;
+		return mMaxGeolocLabelLength;
 	}
 
     /**
@@ -325,6 +325,6 @@ public class ChatServiceConfiguration {
      * @return Time in seconds
      */
 	public int getGeolocExpirationTime() {
-		return geolocExpireTime;
+		return mGeolocExpireTime;
 	}
 }

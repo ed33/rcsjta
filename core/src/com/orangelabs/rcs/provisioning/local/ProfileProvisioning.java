@@ -49,6 +49,10 @@ import android.widget.Toast;
 import com.orangelabs.rcs.R;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.ConfigurationMode;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.MessagingMode;
 import com.orangelabs.rcs.provisioning.ProvisioningParser;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -61,17 +65,12 @@ public class ProfileProvisioning extends Activity {
 	/**
 	 * IMS authentication for mobile access
 	 */
-	private static final String[] MOBILE_IMS_AUTHENT = { RcsSettingsData.GIBA_AUTHENT, RcsSettingsData.DIGEST_AUTHENT };
+	private static final String[] MOBILE_IMS_AUTHENT = { AuthenticationProcedure.GIBA.name(), AuthenticationProcedure.DIGEST.name() };
 
 	/**
 	 * IMS authentication for Wi-Fi access
 	 */
-	private static final String[] WIFI_IMS_AUTHENT = { RcsSettingsData.DIGEST_AUTHENT };
-
-	/**
-	 * IMS authentication for Wi-Fi access
-	 */
-	private static final String[] GSMA_RELEASE = { "Albatros", "Blackbird", "Crane" };
+	private static final String[] WIFI_IMS_AUTHENT = { AuthenticationProcedure.DIGEST.name() };
 
 	private static Logger logger = Logger.getLogger(ProfileProvisioning.class.getSimpleName());
 
@@ -126,21 +125,21 @@ public class ProfileProvisioning extends Activity {
 	 */
 	private void updateProfileProvisioningUI(Bundle bundle) {
 		// Display parameters
-		Spinner spinner = (Spinner) findViewById(R.id.ImsAuhtenticationProcedureForMobile);
+		Spinner spinner = (Spinner) findViewById(R.id.ImsAuthenticationProcedureForMobile);
 		ArrayAdapter<String> adapter = new ArrayAdapter<String>(ProfileProvisioning.this, android.R.layout.simple_spinner_item,
 				MOBILE_IMS_AUTHENT);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner.setAdapter(adapter);
 		setSpinnerParameter(spinner, RcsSettingsData.IMS_AUTHENT_PROCEDURE_MOBILE, bundle, MOBILE_IMS_AUTHENT);
 
-		spinner = (Spinner) findViewById(R.id.ImsAuhtenticationProcedureForWifi);
+		spinner = (Spinner) findViewById(R.id.ImsAuthenticationProcedureForWifi);
 		adapter = new ArrayAdapter<String>(ProfileProvisioning.this, android.R.layout.simple_spinner_item, WIFI_IMS_AUTHENT);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner.setAdapter(adapter);
 		spinner.setSelection(0);
 
 		setEditTextParameter(this, R.id.ImsUsername, RcsSettingsData.USERPROFILE_IMS_USERNAME, bundle);
-		setEditTextParameter(this, R.id.ImsDisplayName, RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME, bundle);
+		setEditTextParameter(this, R.id.ImsDisplayName, RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME, bundle, false);
 		setEditTextParameter(this, R.id.ImsHomeDomain, RcsSettingsData.USERPROFILE_IMS_HOME_DOMAIN, bundle);
 		setEditTextParameter(this, R.id.ImsPrivateId, RcsSettingsData.USERPROFILE_IMS_PRIVATE_ID, bundle);
 		setEditTextParameter(this, R.id.ImsPassword, RcsSettingsData.USERPROFILE_IMS_PASSWORD, bundle);
@@ -158,8 +157,6 @@ public class ProfileProvisioning extends Activity {
 		setEditTextParameter(this, R.id.ImConferenceUri, RcsSettingsData.IM_CONF_URI, bundle);
 		setEditTextParameter(this, R.id.EndUserConfReqUri, RcsSettingsData.ENDUSER_CONFIRMATION_URI, bundle);
 		setEditTextParameter(this, R.id.RcsApn, RcsSettingsData.RCS_APN, bundle);
-		setEditTextParameter(this, R.id.CountryCode, RcsSettingsData.COUNTRY_CODE, bundle);
-		setEditTextParameter(this, R.id.CountryAreaCode, RcsSettingsData.COUNTRY_AREA_CODE, bundle);
 
 		setCheckBoxParameter(this, R.id.image_sharing, RcsSettingsData.CAPABILITY_IMAGE_SHARING, bundle);
 		setCheckBoxParameter(this, R.id.video_sharing, RcsSettingsData.CAPABILITY_VIDEO_SHARING, bundle);
@@ -178,7 +175,7 @@ public class ProfileProvisioning extends Activity {
 		setCheckBoxParameter(this, R.id.group_chat_sf, RcsSettingsData.CAPABILITY_GROUP_CHAT_SF, bundle);
 		setCheckBoxParameter(this, R.id.sip_automata, RcsSettingsData.CAPABILITY_SIP_AUTOMATA, bundle);
 		TextView txt = (TextView) findViewById(R.id.release);
-		txt.setText(GSMA_RELEASE[RcsSettings.getInstance().getGsmaRelease() % GSMA_RELEASE.length]);
+		txt.setText(RcsSettings.getInstance().getGsmaRelease().name());
 	}
 
 	/**
@@ -202,24 +199,24 @@ public class ProfileProvisioning extends Activity {
 	 * Save parameters either in bundle or in RCS settings
 	 */
 	private void saveInstanceState(Bundle bundle) {
-		Spinner spinner = (Spinner) findViewById(R.id.ImsAuhtenticationProcedureForMobile);
+		Spinner spinner = (Spinner) findViewById(R.id.ImsAuthenticationProcedureForMobile);
 		if (bundle != null) {
 			bundle.putInt(RcsSettingsData.IMS_AUTHENT_PROCEDURE_MOBILE, spinner.getSelectedItemPosition());
 		} else {
-			RcsSettings.getInstance().writeParameter(RcsSettingsData.IMS_AUTHENT_PROCEDURE_MOBILE,
-					(String) spinner.getSelectedItem());
+			AuthenticationProcedure procedure = AuthenticationProcedure.valueOf((String)spinner.getSelectedItem());
+			RcsSettings.getInstance().setImsAuthenticationProcedureForMobile(procedure);
 		}
 
-		spinner = (Spinner) findViewById(R.id.ImsAuhtenticationProcedureForWifi);
+		spinner = (Spinner) findViewById(R.id.ImsAuthenticationProcedureForWifi);
 		if (bundle != null) {
 			bundle.putInt(RcsSettingsData.IMS_AUTHENT_PROCEDURE_WIFI, spinner.getSelectedItemPosition());
 		} else {
-			RcsSettings.getInstance()
-					.writeParameter(RcsSettingsData.IMS_AUTHENT_PROCEDURE_WIFI, (String) spinner.getSelectedItem());
+			AuthenticationProcedure procedure = AuthenticationProcedure.valueOf((String)spinner.getSelectedItem());
+			RcsSettings.getInstance().setImsAuhtenticationProcedureForWifi(procedure);
 		}
 
 		saveEditTextParameter(this, R.id.ImsUsername, RcsSettingsData.USERPROFILE_IMS_USERNAME, bundle);
-		saveEditTextParameter(this, R.id.ImsDisplayName, RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME, bundle);
+		saveEditTextParameter(this, R.id.ImsDisplayName, RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME, bundle, false);
 		saveEditTextParameter(this, R.id.ImsHomeDomain, RcsSettingsData.USERPROFILE_IMS_HOME_DOMAIN, bundle);
 		saveEditTextParameter(this, R.id.ImsPrivateId, RcsSettingsData.USERPROFILE_IMS_PRIVATE_ID, bundle);
 		saveEditTextParameter(this, R.id.ImsPassword, RcsSettingsData.USERPROFILE_IMS_PASSWORD, bundle);
@@ -237,8 +234,6 @@ public class ProfileProvisioning extends Activity {
 		saveEditTextParameter(this, R.id.ImConferenceUri, RcsSettingsData.IM_CONF_URI, bundle);
 		saveEditTextParameter(this, R.id.EndUserConfReqUri, RcsSettingsData.ENDUSER_CONFIRMATION_URI, bundle);
 		saveEditTextParameter(this, R.id.RcsApn, RcsSettingsData.RCS_APN, bundle);
-		saveEditTextParameter(this, R.id.CountryCode, RcsSettingsData.COUNTRY_CODE, bundle);
-		saveEditTextParameter(this, R.id.CountryAreaCode, RcsSettingsData.COUNTRY_AREA_CODE, bundle);
 
 		// Save capabilities
 		saveCheckBoxParameter(this, R.id.image_sharing, RcsSettingsData.CAPABILITY_IMAGE_SHARING, bundle);
@@ -383,19 +378,19 @@ public class ProfileProvisioning extends Activity {
 			ProvisioningParser parser = new ProvisioningParser(mXMLFileContent);
 			RcsSettings rcsSettings = RcsSettings.getInstance();
 			// Save GSMA release set into the provider
-			int gsmaRelease = rcsSettings.getGsmaRelease();
+			GsmaRelease release = rcsSettings.getGsmaRelease();
 			// Save client Messaging Mode set into the provider
-			int messagingMode = rcsSettings.getMessagingMode();
+			MessagingMode messagingMode = rcsSettings.getMessagingMode();
 			
 			// Before parsing the provisioning, the GSMA release is set to Albatros
-			rcsSettings.setGsmaRelease(RcsSettingsData.VALUE_GSMA_REL_ALBATROS);
+			rcsSettings.setGsmaRelease(GsmaRelease.ALBATROS);
 			// Before parsing the provisioning, the client Messaging mode is set to NONE 
-			rcsSettings.setMessagingMode(RcsSettingsData.VALUE_MESSAGING_MODE_NONE);
+			rcsSettings.setMessagingMode(MessagingMode.NONE);
 			
-			if (parser.parse(gsmaRelease,true)) {
+			if (parser.parse(release,true)) {
 				// Customize provisioning data with user phone number
 				rcsSettings.writeParameter(RcsSettingsData.USERPROFILE_IMS_USERNAME, userPhoneNumber);
-				rcsSettings.writeParameter(RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME, userPhoneNumber);
+				rcsSettings.writeParameter(RcsSettingsData.USERPROFILE_IMS_DISPLAY_NAME, userPhoneNumber, false);
 				String homeDomain = rcsSettings.readParameter(RcsSettingsData.USERPROFILE_IMS_HOME_DOMAIN);
 				String sipUri = userPhoneNumber + "@" + homeDomain;
 				rcsSettings.writeParameter(RcsSettingsData.USERPROFILE_IMS_PRIVATE_ID, sipUri);
@@ -406,7 +401,7 @@ public class ProfileProvisioning extends Activity {
 					logger.error("Can't parse provisioning document");
 				}
 				// Restore GSMA release saved before parsing of the provisioning
-				rcsSettings.setGsmaRelease(gsmaRelease);
+				rcsSettings.setGsmaRelease(release);
 				// Restore the client messaging mode saved before parsing of the provisioning
 				rcsSettings.setMessagingMode(messagingMode);
 				return false;
@@ -418,7 +413,7 @@ public class ProfileProvisioning extends Activity {
 			super.onPostExecute(result);
 			updateProfileProvisioningUI(null);
 			// set configuration mode to manual
-			RcsSettings.getInstance().writeInteger(RcsSettingsData.AUTO_CONFIG_MODE, RcsSettingsData.NO_AUTO_CONFIG);
+			RcsSettings.getInstance().setConfigurationMode(ConfigurationMode.MANUAL);
 			if (result)
 				Toast.makeText(ProfileProvisioning.this, getString(R.string.label_reboot_service), Toast.LENGTH_LONG).show();
 			else

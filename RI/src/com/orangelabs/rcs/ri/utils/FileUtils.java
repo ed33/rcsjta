@@ -19,13 +19,18 @@ package com.orangelabs.rcs.ri.utils;
 
 import java.io.File;
 
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.OpenableColumns;
 
 public class FileUtils {
+	
+	private static final int KITKAT_VERSION_CODE = 19;
 
 	/**
 	 * Fetch the file name from URI
@@ -38,7 +43,7 @@ public class FileUtils {
 	public static String getFileName(Context context, Uri file) throws IllegalArgumentException {
 		Cursor cursor = null;
 		try {
-			cursor = context.getContentResolver().query(file, null, null, null, null, null);
+			cursor = context.getContentResolver().query(file, null, null, null, null);
 			if (ContentResolver.SCHEME_CONTENT.equals(file.getScheme())) {
 				if (cursor != null && cursor.moveToFirst()) {
 					String displayName = cursor.getString(cursor
@@ -72,7 +77,7 @@ public class FileUtils {
 	public static long getFileSize(Context context, Uri file) throws IllegalArgumentException {
 		Cursor cursor = null;
 		try {
-			cursor = context.getContentResolver().query(file, null, null, null, null, null);
+			cursor = context.getContentResolver().query(file, null, null, null, null);
 			if (ContentResolver.SCHEME_CONTENT.equals(file.getScheme())) {
 				if (cursor != null && cursor.moveToFirst()) {
 					return Long.valueOf(
@@ -94,4 +99,23 @@ public class FileUtils {
 			}
 		}
 	}
+	
+	/**
+	 * Open file
+	 * @param activity
+	 * @param mimeType
+	 * @param action
+	 */
+	public static void openFile(Activity activity, String mimeType, int action) {
+		Intent intent;
+		if (Build.VERSION.SDK_INT < KITKAT_VERSION_CODE) {
+			intent = new Intent(Intent.ACTION_GET_CONTENT, null);
+		} else {
+			intent = new Intent("android.intent.action.OPEN_DOCUMENT");
+		}
+		intent.addCategory(Intent.CATEGORY_OPENABLE);
+		intent.setType(mimeType);
+		activity.startActivityForResult(intent, action);
+	}
+	
 }

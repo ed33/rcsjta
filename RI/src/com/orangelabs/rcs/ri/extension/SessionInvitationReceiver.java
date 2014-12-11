@@ -17,20 +17,9 @@
  ******************************************************************************/
 package com.orangelabs.rcs.ri.extension;
 
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.media.RingtoneManager;
-
-import com.gsma.services.rcs.extension.MultimediaMessagingSessionIntent;
-import com.gsma.services.rcs.extension.MultimediaStreamingSessionIntent;
-import com.orangelabs.rcs.ri.R;
-import com.orangelabs.rcs.ri.extension.messaging.MessagingSessionView;
-import com.orangelabs.rcs.ri.extension.streaming.StreamingSessionView;
-import com.orangelabs.rcs.ri.utils.Utils;
 
 /**
  * Messaging session invitation receiver
@@ -38,64 +27,14 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * @author Jean-Marc AUFFRET
  */
 public class SessionInvitationReceiver extends BroadcastReceiver {
+	
 	@Override
-	public void onReceive(Context context, Intent intent) {
-        // Display invitation notification
-		SessionInvitationReceiver.addSessionInvitationNotification(context, intent);
+	public void onReceive(Context context, Intent invitation) {
+		// Start MultiMediaSessionIntentService
+		Intent intent = new Intent( invitation );
+		intent.setClass( context, MultiMediaSessionIntentService.class);
+		invitation.setAction(intent.getAction());
+		context.startService(intent);
     }
 
-    /**
-     * Add session invitation notification
-     * 
-     * @param context Context
-     * @param invitation Intent invitation
-     */
-	public static void addSessionInvitationNotification(Context context, Intent invitation) {
-    	// Get remote contact and session
-		String contact = null;
-		String sessionId = null;
-		if (invitation.getAction().equals(MultimediaMessagingSessionIntent.ACTION_NEW_INVITATION)) {
-			contact = invitation.getStringExtra(MultimediaMessagingSessionIntent.EXTRA_CONTACT);
-			sessionId = invitation.getStringExtra(MultimediaMessagingSessionIntent.EXTRA_SESSION_ID);
-		} else {
-			contact = invitation.getStringExtra(MultimediaStreamingSessionIntent.EXTRA_CONTACT);
-			sessionId = invitation.getStringExtra(MultimediaStreamingSessionIntent.EXTRA_SESSION_ID);
-		}
-		
-		// Create notification
-		Class myClass;
-        String notifTitle;
-		if (invitation.getAction().equals(MultimediaMessagingSessionIntent.ACTION_NEW_INVITATION)) {
-			myClass = MessagingSessionView.class;
-	        notifTitle = context.getString(R.string.title_recv_messaging_session);
-		} else {
-			myClass = StreamingSessionView.class;
-			notifTitle = context.getString(R.string.title_recv_streaming_session);
-		}
-		Intent intent = new Intent(invitation);
-		intent.setClass(context, myClass);
-		intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.setAction(sessionId);
-        PendingIntent contentIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-		Notification notif = new Notification(R.drawable.ri_notif_mm_session_icon, notifTitle, System.currentTimeMillis());
-        notif.flags = Notification.FLAG_AUTO_CANCEL;
-        notif.setLatestEventInfo(context, notifTitle, context.getString(R.string.label_session_from, contact), contentIntent);
-		notif.sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-    	notif.defaults |= Notification.DEFAULT_VIBRATE;
-        
-        // Send notification
-		NotificationManager notificationManager = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(sessionId, Utils.NOTIF_ID_MM_SESSION, notif);
-    }
-    
-    /**
-     * Remove session invitation notification
-     * 
-     * @param context Context
-     * @param sessionId Session ID
-     */
-    public static void removeSessionInvitationNotification(Context context, String sessionId) {
-		NotificationManager notificationManager = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
-		notificationManager.cancel(sessionId, Utils.NOTIF_ID_MM_SESSION);
-    }
 }

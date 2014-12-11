@@ -1,18 +1,21 @@
 package com.gsma.services.rcs.extension;
 
-import com.gsma.services.rcs.extension.IMultimediaStreamingSessionListener;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Multimedia streaming session interface
  */
 interface IMultimediaStreamingSession {
+
 	String getSessionId();
 	
-	String getRemoteContact();
+	ContactId getRemoteContact();
 	
 	String getServiceId();
 	
 	int getState();
+	
+	int getReasonCode();
 	
 	int getDirection();
 	
@@ -21,11 +24,7 @@ interface IMultimediaStreamingSession {
 	void rejectInvitation();
 	
 	void abortSession();
-	
-	void addEventListener(in IMultimediaStreamingSessionListener listener);
-	
-	void removeEventListener(in IMultimediaStreamingSessionListener listener);
 
-	boolean sendPayload(in byte[] content);
+	void sendPayload(in byte[] content);
 }
 

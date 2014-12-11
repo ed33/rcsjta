@@ -19,9 +19,9 @@ package com.orangelabs.rcs.core.ims.service.sip;
 
 
 import gov2.nist.javax2.sip.header.ims.PPreferredServiceHeader;
-
 import javax2.sip.header.ExtensionHeader;
 
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.network.sip.FeatureTags;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
@@ -32,6 +32,7 @@ import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceError;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
 import com.orangelabs.rcs.core.ims.service.capability.CapabilityUtils;
+import com.orangelabs.rcs.utils.PhoneUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -48,17 +49,17 @@ public abstract class GenericSipSession extends ImsServiceSession {
 	/**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private final static Logger logger = Logger.getLogger(GenericSipSession.class.getSimpleName());
     
     /**
 	 * Constructor
 	 * 
 	 * @param parent IMS service
-	 * @param contact Remote contact
+	 * @param contact Remote contactId
 	 * @param featureTag Feature tag
 	 */
-	public GenericSipSession(ImsService parent, String contact, String featureTag) {
-		super(parent, contact);
+	public GenericSipSession(ImsService parent, ContactId contact, String featureTag) {
+		super(parent, contact, PhoneUtils.formatContactIdToUri(contact));
 		
 		// Set the service feature tag
 		this.featureTag = featureTag;
@@ -104,7 +105,7 @@ public abstract class GenericSipSession extends ImsServiceSession {
 
         try {
 	    	ExtensionHeader header =  (ExtensionHeader)SipUtils.HEADER_FACTORY.createHeader(PPreferredServiceHeader.NAME,
-	    			FeatureTags.FEATURE_3GPP_EXTENSION);
+	    			FeatureTags.FEATURE_3GPP_SERVICE_EXTENSION);
 	    	invite.getStackMessage().addHeader(header);
 		} catch(Exception e) {
 			if (logger.isActivated()) {
@@ -182,5 +183,21 @@ public abstract class GenericSipSession extends ImsServiceSession {
             ((SipSessionListener) getListeners().get(j))
                     .handleSessionError(new SipSessionError(error));
         }
-    }    
+    }
+    
+    @Override
+	public void receiveBye(SipRequest bye) {
+		super.receiveBye(bye);
+		
+		// Request capabilities to the remote
+	    getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getRemoteContact());
+	}
+	
+    @Override
+    public void receiveCancel(SipRequest cancel) {      
+    	super.receiveCancel(cancel);
+        
+		// Request capabilities to the remote
+	    getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getRemoteContact());
+	}
 }

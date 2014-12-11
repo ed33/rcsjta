@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.chat;
 
-import java.util.Date;
-
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Geoloc push message
@@ -32,15 +32,11 @@ import android.os.Parcelable;
  * @author Jean-Marc AUFFRET
  */
 public class GeolocMessage extends ChatMessage implements Parcelable {
-	/**
-	 * MIME type
-	 */
-	public final static String MIME_TYPE = "application/geoloc"; 
 
 	/**
 	 * Geoloc info
 	 */
-	private Geoloc geoloc = null;
+	private Geoloc mGeoloc;
 		
     /**
      * Constructor for outgoing message
@@ -48,15 +44,14 @@ public class GeolocMessage extends ChatMessage implements Parcelable {
      * Constructor for outgoing message
      * 
      * @param messageId Message Id
-     * @param contact Contact
+     * @param contact Contact Id
      * @param geoloc Geolocation info
-     * @param receiptAt Receipt date
      * @hide
 	 */
-	public GeolocMessage(String messageId, String remote, Geoloc geoloc, Date receiptAt) {
-		super(messageId, remote, null, receiptAt);
+	public GeolocMessage(String messageId, ContactId contact, Geoloc geoloc, long timestamp, long timestampSent) {
+		super(messageId, contact, null, timestamp, timestampSent);
 		
-		this.geoloc = geoloc;
+		mGeoloc = geoloc;
 	}
 	
 	/**
@@ -67,8 +62,12 @@ public class GeolocMessage extends ChatMessage implements Parcelable {
 	 */
 	public GeolocMessage(Parcel source) {
 		super(source);
-		
-		this.geoloc = new Geoloc(source);
+		boolean flag = source.readInt() != 0;
+		if (flag) {
+			mGeoloc = new Geoloc(source);
+		} else {
+			mGeoloc = null;
+		}
     }
 	
 	/**
@@ -91,8 +90,12 @@ public class GeolocMessage extends ChatMessage implements Parcelable {
 	 */
     public void writeToParcel(Parcel dest, int flags) {
     	super.writeToParcel(dest, flags);
-    	
-    	geoloc.writeToParcel(dest, flags);
+    	if (mGeoloc != null) {
+    		dest.writeInt(1);
+    		mGeoloc.writeToParcel(dest, flags);
+    	} else {
+    		dest.writeInt(0);
+    	}
     }
 
     /**
@@ -118,6 +121,7 @@ public class GeolocMessage extends ChatMessage implements Parcelable {
 	 * @see Geoloc
 	 */
 	public Geoloc getGeoloc() {
-		return geoloc;
+		return mGeoloc;
 	}
 }
+

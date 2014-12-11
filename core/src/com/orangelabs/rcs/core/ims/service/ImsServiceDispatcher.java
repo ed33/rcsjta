@@ -25,8 +25,10 @@ import javax2.sip.header.ContactHeader;
 import javax2.sip.header.EventHeader;
 import javax2.sip.message.Request;
 import javax2.sip.message.Response;
+
 import android.content.Intent;
 
+import com.gsma.services.rcs.RcsContactFormatException;
 import com.orangelabs.rcs.core.ims.ImsModule;
 import com.orangelabs.rcs.core.ims.network.ImsNetworkInterface;
 import com.orangelabs.rcs.core.ims.network.sip.FeatureTags;
@@ -216,17 +218,9 @@ public class ImsServiceDispatcher extends Thread {
 
 	    if (request.getMethod().equals(Request.OPTIONS)) {
 	    	// OPTIONS received
-	    	if (imsModule.getCallManager().isCallConnected()) { 
-		    	// Rich call service
-	    		imsModule.getRichcallService().receiveCapabilityRequest(request);
-	    	} else
-	    	if (imsModule.getIPCallService().isCallConnected()) { 
-		    	// IP call service
-	    		imsModule.getIPCallService().receiveCapabilityRequest(request);
-	    	} else {
-	    		// Capability discovery service
-	    		imsModule.getCapabilityService().receiveCapabilityRequest(request);
-	    	}		    	
+
+	    	// Capability discovery service
+    		imsModule.getCapabilityService().receiveCapabilityRequest(request);
 	    } else		
 	    if (request.getMethod().equals(Request.INVITE)) {
 	    	// INVITE received
@@ -307,12 +301,12 @@ public class ImsServiceDispatcher extends Thread {
                             if (logger.isActivated()) {
                                 logger.debug("Single S&F file transfer over HTTP invitation");
                             }
-                            imsModule.getInstantMessagingService().receiveStoredAndForwardHttpFileTranferInvitation(request, ftHttpInfo);
+                            imsModule.getInstantMessagingService().receiveStoredAndForwardOneToOneHttpFileTranferInvitation(request, ftHttpInfo);
                         } else {
 		                    if (logger.isActivated()) {
 		                        logger.debug("Single file transfer over HTTP invitation");
 		                    }
-                            imsModule.getInstantMessagingService().receiveHttpFileTranferInvitation(request, ftHttpInfo);
+                            imsModule.getInstantMessagingService().receiveOneToOneHttpFileTranferInvitation(request, ftHttpInfo);
                         }
                     } else {
                         // TODO : else return error to Originating side
@@ -426,13 +420,25 @@ public class ImsServiceDispatcher extends Thread {
 			    		if (logger.isActivated()) {
 			    			logger.debug("Generic SIP session invitation with MSRP media");
 			    		}
-		    			imsModule.getSipService().receiveMsrpSessionInvitation(intent, request);
+			    		try {
+			    			imsModule.getSipService().receiveMsrpSessionInvitation(intent, request);
+			    		} catch (RcsContactFormatException e) {
+			    			if (logger.isActivated()) {
+				    			logger.warn("Cannot parse contact");
+				    		}
+			    		}
 		    		} else
 		    		if (isTagPresent(sdp, "rtp")) {
 			    		if (logger.isActivated()) {
 			    			logger.debug("Generic SIP session invitation with RTP media");
 			    		}
-		    			imsModule.getSipService().receiveRtpSessionInvitation(intent, request);
+			    		try  {
+			    			imsModule.getSipService().receiveRtpSessionInvitation(intent, request);
+			    		} catch (RcsContactFormatException e) {
+			    			if (logger.isActivated()) {
+				    			logger.warn("Cannot parse contact");
+				    		}
+			    		}
 		    		} else {
 			    		if (logger.isActivated()) {
 			    			logger.debug("Media not supported for a generic SIP session");
@@ -440,11 +446,11 @@ public class ImsServiceDispatcher extends Thread {
 						sendFinalResponse(request, Response.SESSION_NOT_ACCEPTABLE);
 		    		}
 		    	} else {
-					// Unknown service: reject the invitation with a 606 Not Acceptable
+					// Unknown service: reject the invitation with a 403 forbidden
 					if (logger.isActivated()) {
 						logger.debug("Unknown IMS service: automatically reject");
 					}
-					sendFinalResponse(request, Response.SESSION_NOT_ACCEPTABLE);
+					sendFinalResponse(request, Response.FORBIDDEN, "Unsupported Extension");
 		    	}
     		}
 		} else
@@ -458,11 +464,11 @@ public class ImsServiceDispatcher extends Thread {
 	    		// Terms & conditions service
 	    		imsModule.getTermsConditionsService().receiveMessage(request);
 	    	} else {
-				// Unknown service: reject the message with a 606 Not Acceptable
+				// Unknown service: reject the message with a 403 Forbidden
 				if (logger.isActivated()) {
 					logger.debug("Unknown IMS service: automatically reject");
 				}
-				sendFinalResponse(request, Response.SESSION_NOT_ACCEPTABLE);
+				sendFinalResponse(request, Response.FORBIDDEN);
 	    	}
 		} else
 	    if (request.getMethod().equals(Request.NOTIFY)) {
@@ -517,10 +523,11 @@ public class ImsServiceDispatcher extends Thread {
         		session.receiveUpdate(request);
         	}
 		} else {
-			// Unknown request received
+			// Unknown request: : reject the request with a 403 Forbidden
 			if (logger.isActivated()) {
 				logger.debug("Unknown request " + request.getMethod());
 			}
+			sendFinalResponse(request, Response.FORBIDDEN);
 		}
     }
 
@@ -651,4 +658,22 @@ public class ImsServiceDispatcher extends Thread {
     		}
     	}
     }
+    
+    /**
+     * Send a final response
+     * 
+     * @param request SIP request
+     * @param code Response code
+     * @param warning Warning message
+     */
+    private void sendFinalResponse(SipRequest request, int code, String warning) {
+    	try {
+	    	SipResponse resp = SipMessageFactory.createResponse(request, IdGenerator.getIdentifier(), code, warning);
+	    	imsModule.getCurrentNetworkInterface().getSipManager().sendSipResponse(resp);
+    	} catch(Exception e) {
+    		if (logger.isActivated()) {
+    			logger.error("Can't send a " + code + " response");
+    		}
+    	}
+    }    
 }

@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 
@@ -29,6 +29,10 @@ import javax2.sip.header.ContentDispositionHeader;
 import javax2.sip.header.ContentLengthHeader;
 import javax2.sip.header.ContentTypeHeader;
 
+import android.net.Uri;
+
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.network.sip.Multipart;
 import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
@@ -38,17 +42,18 @@ import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpSession;
 import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpSession.TypeMsrpChunk;
 import com.orangelabs.rcs.core.ims.protocol.sdp.SdpUtils;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
+import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceError;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
 import com.orangelabs.rcs.platform.AndroidFactory;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.utils.Base64;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.NetworkRessourceManager;
 import com.orangelabs.rcs.utils.logger.Logger;
-
-import android.net.Uri;
 
 /**
  * Originating content sharing session (transfer)
@@ -64,22 +69,22 @@ public class OriginatingImageTransferSession extends ImageTransferSession implem
 	/**
 	 * MSRP manager
 	 */
-	private MsrpManager msrpMgr = null;
+	private MsrpManager msrpMgr;
 
 	/**
      * The logger
      */
-    private static final Logger logger = Logger.getLogger(OriginatingImageTransferSession.class.getName());
+    private static final Logger logger = Logger.getLogger(OriginatingImageTransferSession.class.getSimpleName());
 
 	/**
 	 * Constructor
 	 * 
 	 * @param parent IMS service
 	 * @param content Content to be shared
-	 * @param contact Remote contact
+	 * @param contact Remote contact Id
 	 * @param thumbnail Thumbnail content option
 	 */
-	public OriginatingImageTransferSession(ImsService parent, MmContent content, String contact, MmContent thumbnail) {
+	public OriginatingImageTransferSession(ImsService parent, MmContent content, ContactId contact, MmContent thumbnail) {
 		super(parent, content, contact, thumbnail);
 
 		// Create dialog path
@@ -221,28 +226,32 @@ public class OriginatingImageTransferSession extends ImageTransferSession implem
     public void startMediaSession() throws Exception {
         // Open the MSRP session
         msrpMgr.openMsrpSession();
+        
+		new Thread() {
+			public void run() {
+				try {
+					// Start sending data chunks
+					byte[] data = getContent().getData();
+					InputStream stream;
+					if (data == null) {
+						// Load data from Uri
+						stream = AndroidFactory.getApplicationContext().getContentResolver().openInputStream(getContent().getUri());
+					} else {
+						// Load data from memory
+						stream = new ByteArrayInputStream(data);
+					}
 
-        try {
-            // Start sending data chunks
-            byte[] data = getContent().getData();
-            InputStream stream; 
-            if (data == null) {
-                // Load data from Uri
-                stream = AndroidFactory.getApplicationContext().getContentResolver().openInputStream(getContent().getUri());
-            } else {
-                // Load data from memory
-                stream = new ByteArrayInputStream(data);
-            }
-            
-            msrpMgr.sendChunks(stream, getFileTransferId(), getContent().getEncoding(), getContent().getSize(), TypeMsrpChunk.FileSharing);
-        } catch(Exception e) {
-            // Unexpected error
-            if (logger.isActivated()) {
-                logger.error("Session initiation has failed", e);
-            }
-            handleError(new ImsServiceError(ImsServiceError.UNEXPECTED_EXCEPTION,
-                    e.getMessage()));
-        }
+					msrpMgr.sendChunks(stream, getFileTransferId(), getContent().getEncoding(), getContent().getSize(),
+							TypeMsrpChunk.FileSharing);
+				} catch (Exception e) {
+					// Unexpected error
+					if (logger.isActivated()) {
+						logger.error("Session initiation has failed", e);
+					}
+					handleError(new ImsServiceError(ImsServiceError.UNEXPECTED_EXCEPTION, e.getMessage()));
+				}
+			}
+		}.start();
     }
 
     /**
@@ -281,8 +290,8 @@ public class OriginatingImageTransferSession extends ImageTransferSession implem
     	getImsService().removeSession(this);
     	
     	// Notify listeners
-    	for(int j=0; j < getListeners().size(); j++) {
-    		((ImageTransferSessionListener)getListeners().get(j)).handleContentTransfered(getContent().getUri());
+    	for (ImsSessionListener listener : getListeners()) {
+    		((ImageTransferSessionListener)listener).handleContentTransfered(getContent().getUri());
         }
 	}
 	
@@ -305,8 +314,8 @@ public class OriginatingImageTransferSession extends ImageTransferSession implem
 	 */
 	public void msrpTransferProgress(long currentSize, long totalSize) {
 		// Notify listeners
-    	for(int j=0; j < getListeners().size(); j++) {
-    		((ImageTransferSessionListener)getListeners().get(j)).handleSharingProgress(currentSize, totalSize);
+		for (ImsSessionListener listener : getListeners()) {
+    		((ImageTransferSessionListener)listener).handleSharingProgress(currentSize, totalSize);
         }
 	}	
 
@@ -353,17 +362,41 @@ public class OriginatingImageTransferSession extends ImageTransferSession implem
         // Close the media session
         closeMediaSession();
         
-        // Request capabilities
-        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getDialogPath().getRemoteParty());
+        try {
+			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+			// Request capabilities to the remote
+	        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
+		} catch (RcsContactFormatException e) {
+			if (logger.isActivated()) {
+				logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
+			}
+		}
 
 		// Remove the current session
     	getImsService().removeSession(this);
     	
-    	// Notify listeners
-        if (!isSessionInterrupted() && !isSessionTerminatedByRemote()) {
-            for(int j=0; j < getListeners().size(); j++) {
-                ((ImageTransferSessionListener)getListeners().get(j)).handleSharingError(new ContentSharingError(ContentSharingError.MEDIA_TRANSFER_FAILED, error));
-            }
-        }
+		// Notify listeners
+		if (!isSessionInterrupted() && !isSessionTerminatedByRemote()) {
+			for (ImsSessionListener listener : getListeners()) {
+				((ImageTransferSessionListener) listener).handleSharingError(new ContentSharingError(
+						ContentSharingError.MEDIA_TRANSFER_FAILED, error));
+			}
+		}
+	}
+
+	@Override
+	public boolean isInitiatedByRemote() {
+		return false;
+	}
+	
+	@Override
+	public void handle180Ringing(SipResponse response) {
+		if (logger.isActivated()) {
+			logger.debug("handle180Ringing");
+		}
+		// Notify listeners
+		for (ImsSessionListener listener : getListeners()) {
+			((ImageTransferSessionListener)listener).handle180Ringing();
+		}
 	}
 }

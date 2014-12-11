@@ -3,7 +3,7 @@
 <iari Id="iari">urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.iari-range-test</iari>
 <iari-range Id="iari-range">urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.*</iari-range>
 <package-name Id="package-name">com.gsma.iariauth.sample</package-name>
-<package-signer Id="package-signer">1E:74:D2:9A:21:FC:D8:6E:66:28:D9:DE:A9:FB:38:B5:04:01:10:28</package-signer>
+<package-signer Id="package-signer">C0:23:13:91:C0:46:FB:39:E9:86:8B:E6:4E:4C:B0:E6:57:65:7E:43</package-signer>
 <ds:Signature Id="Signature" xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
 <ds:SignedInfo>
 <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2006/12/xml-c14n11"/>
@@ -34,49 +34,49 @@
 <ds:Transform Algorithm="http://www.w3.org/2006/12/xml-c14n11"/>
 </ds:Transforms>
 <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
-<ds:DigestValue>DKD9jr7UppeaaB1gK2Lal4UInvf5aiBL6KBUyXBUEAA=</ds:DigestValue>
+<ds:DigestValue>A9Wzc2I4e0DjO6j9eHWYFuD8uQZLmE3nRzsh/Ey5CYk=</ds:DigestValue>
 </ds:Reference>
 <ds:Reference URI="#prop">
 <ds:Transforms>
 <ds:Transform Algorithm="http://www.w3.org/2006/12/xml-c14n11"/>
 </ds:Transforms>
 <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
-<ds:DigestValue>+ZUzZP4shRA6YXUlGwIzEU49EFHnCinwHPDxN34vw6k=</ds:DigestValue>
+<ds:DigestValue>qufihe0aozzJLwF2ZF9GbVjUiG85QCWzEkWQWvNTOsc=</ds:DigestValue>
 </ds:Reference>
 </ds:SignedInfo>
 <ds:SignatureValue>
-W3KGq2t7ARswadkdBIo3MhIInwao9tyHZ2xzH92+r7waMvXvZjAmmUPmgdXfQ+tI0XUfvRuKe9YU
-msnr9kCe3B8pvi0YNKdZ/XKObNiOpE2tbaGJSb8soreKEAaZtolUrAxz57w9LMIv0YvRtzIxA+Z8
-eMC4QVezT78WDPW5LaPCLfIC47jB+adiQczKOhIigdkabE8VZw5X5W5JVyD43U8nRKaxFVNksxvG
-GgP51dcknA3wz8xclsMcwbDAivqM5TIvSGADXgXWykMAn06IG7NLGJ95013IejXT4wDJq7nfUnnF
-eeWITCclNxVUFR+bcL82eTxkSFwywycNXZklrQ==
+HNu1CBbLF8jnO9ZrYfDgBqRlly1eEQr9mKuygSDMscTCVn11qS7Kpl8OYTKnA2jDVRCnQETIJ7N0
+weMy5O2Vf1s4MpCtNMB+/gp56bbNAoiRvtFKUmpukDU797CJKSeiPGtP/As8ZU2cwpsMBCwnimJO
++2XXNOhIvo/b9eVFHU8wvOwd5OgmK5FbfaCRA0zJM/m5yfrXSEXG/8jUG3W2AFmz+mtkf9KNPjIt
+TqDHL2NWzDg0YmXD4qKestsbku+G7hwYZNKllIaZ1fJSOxwOh/ul9nTjtx0p0A7JZ8ZCmWeaKZDr
+LHUqeY0xCr9ztCjEnj74P/GrAEOljQhZVaOUTw==
 </ds:SignatureValue>
 <ds:KeyInfo>
 <ds:X509Data>
 <ds:X509Certificate>
-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
+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
-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
+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
 </ds:X509Certificate>
 </ds:X509Data>
 </ds:KeyInfo>
 <ds:Object Id="prop"><ds:SignatureProperties xmlns:dsp="http://www.w3.org/2009/xmldsig-properties">
 <ds:SignatureProperty Id="profile" Target="#Signature"><dsp:Profile URI="http://gsma.com/ns/iari-authorization#profile"/></ds:SignatureProperty>
 <ds:SignatureProperty Id="role" Target="#Signature"><dsp:Role URI="http://gsma.com/ns/iari-authorization#role-range-owner"/></ds:SignatureProperty>
-<ds:SignatureProperty Id="identifier" Target="#Signature"><dsp:Identifier>urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.iari-range-test:2014-12-10T09:10:25Z</dsp:Identifier></ds:SignatureProperty>
-<ds:SignatureProperty Id="created" Target="#Signature"><dsp:Created>2014-12-10T09:10:25Z</dsp:Created></ds:SignatureProperty>
+<ds:SignatureProperty Id="identifier" Target="#Signature"><dsp:Identifier>urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.iari-range-test:2014-12-11T12:03:10Z</dsp:Identifier></ds:SignatureProperty>
+<ds:SignatureProperty Id="created" Target="#Signature"><dsp:Created>2014-12-11T12:03:10Z</dsp:Created></ds:SignatureProperty>
 </ds:SignatureProperties></ds:Object>
 </ds:Signature>
 </iari-authorization>

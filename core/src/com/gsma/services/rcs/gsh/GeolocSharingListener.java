@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +15,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.gsh;
 
-import com.gsma.services.rcs.chat.Geoloc;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Geoloc sharing event listener
@@ -26,35 +30,23 @@ import com.gsma.services.rcs.chat.Geoloc;
  */
 public abstract class GeolocSharingListener extends IGeolocSharingListener.Stub {
 	/**
-	 * Callback called when the sharing is started
+	 * Callback called when the geoloc sharing state changes
+	 *
+	 * @param contact Contact ID
+	 * @param sharingId ID of geoloc sharing
+	 * @param state State of image sharing
+	 * @param reasonCode Reason code of geoloc sharing state
 	 */
-	public abstract void onSharingStarted();
-	
-	/**
-	 * Callback called when the sharing has been aborted
-	 */
-	public abstract void onSharingAborted();
+	public abstract void onStateChanged(ContactId contact, String sharingId,
+			int state, int reasonCode);
 
 	/**
-	 * Callback called when the sharing has failed
-	 * 
-	 * @param error Error
-	 * @see GeolocSharing.Error
-	 */
-	public abstract void onSharingError(int error);
-	
-	/**
 	 * Callback called during the sharing progress
-	 * 
+	 *
+	 * @param contact Contact ID
+	 * @param sharingId ID of geoloc sharing
 	 * @param currentSize Current transferred size in bytes
 	 * @param totalSize Total size to transfer in bytes
 	 */
-	public abstract void onSharingProgress(long currentSize, long totalSize);
-
-	/**
-	 * Callback called when the geoloc has been shared
-	 * 
-	 * @param geoloc Geoloc object
-	 */
-	public abstract void onGeolocShared(Geoloc geoloc);
+	public abstract void onProgressUpdate(ContactId contact, String sharingId, long currentSize, long totalSize);
 }

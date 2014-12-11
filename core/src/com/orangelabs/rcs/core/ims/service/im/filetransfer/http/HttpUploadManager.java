@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.http;
@@ -36,7 +36,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -107,17 +106,17 @@ public class HttpUploadManager extends HttpTransferManager {
 	/**
 	 * Fileicon to upload
 	 */
-	private MmContent fileicon;
+	private MmContent fileIcon;
 
 	/**
 	 * TID of the upload
 	 */
-	private String tid;
+	private String mTId;
 
 	/**
 	 * TID flag
 	 */
-	private boolean tidFlag = true;
+	private boolean tIdFlag = true;
 
 	/**
 	 * Authentication flag
@@ -148,16 +147,19 @@ public class HttpUploadManager extends HttpTransferManager {
 	 * 
 	 * @param content
 	 *            File content to upload
-	 * @param fileicon
-	 *            content of fileicon
+	 * @param fileIcon
+	 *            content of the file icon
 	 * @param listener
 	 *            HTTP transfer event listener
+	 * @param tId
+	 *            TID of the upload
 	 */
-	public HttpUploadManager(MmContent content, MmContent fileicon, HttpUploadTransferEventListener listener) {
+	public HttpUploadManager(MmContent content, MmContent fileIcon,
+			HttpUploadTransferEventListener listener, String tId) {
 		super(listener);
 		this.content = content;
-		this.fileicon = fileicon;
-		tid = UUID.randomUUID().toString();
+		this.fileIcon = fileIcon;
+		mTId = tId;
 	}
 
 	/**
@@ -288,7 +290,8 @@ public class HttpUploadManager extends HttpTransferManager {
 		connection.setDoInput(true);
 		connection.setDoOutput(true);
 		connection.setReadTimeout(5000);
-
+		connection.setChunkedStreamingMode(CHUNK_MAX_SIZE);
+		
 		// POST construction
 		connection.setRequestMethod("POST");
 		connection.setRequestProperty("Connection", "Keep-Alive");
@@ -299,7 +302,7 @@ public class HttpUploadManager extends HttpTransferManager {
 		String body = "";
 
 		// Add tid
-		if (tidFlag) {
+		if (tIdFlag) {
 			body += generateTidMultipart();
 		}
 
@@ -334,8 +337,8 @@ public class HttpUploadManager extends HttpTransferManager {
 		outputStream = new DataOutputStream(connection.getOutputStream());
 		outputStream.writeBytes(body);
 
-		// Add fileicon
-		if (fileicon != null) {
+		// Add file icon
+		if (fileIcon != null) {
 			writeThumbnailMultipart(outputStream);
 		}
 		// From this point, resuming is possible
@@ -345,7 +348,8 @@ public class HttpUploadManager extends HttpTransferManager {
 			writeFileMultipart(outputStream, file);
 			if (!isCancelled()) {
 				// if the upload is cancelled, we don't send the last boundary to get bad request
-				outputStream.writeBytes(twoHyphens + BOUNDARY_TAG + twoHyphens); 
+				outputStream.writeBytes(twoHyphens + BOUNDARY_TAG + twoHyphens);
+				
 				// Check response status code
 				int responseCode = connection.getResponseCode();
 				if (logger.isActivated()) {
@@ -435,20 +439,20 @@ public class HttpUploadManager extends HttpTransferManager {
 				connection.disconnect();
 				return null;
 			}
-		} catch (Exception e) {
-			
-			if (e instanceof SecurityException) {
-				if (logger.isActivated()) {
-					logger.warn("Unrecoverable SecurityException: File Transfer Upload aborted");
-				}
-				throw e;
+		} catch (SecurityException e) {
+			/*Note! This is needed since this can be called during dequeuing as will be implemented in CR018.*/
+			if (logger.isActivated()) {
+				logger.error("Upload has failed due to that the file is not accessible!", e);
 			}
+			getListener().httpTransferNotAllowedToSend();
+			return null;
+		} catch (Exception e) {
 			e.printStackTrace();
 
 			if (logger.isActivated()) {
 				logger.warn("File Upload aborted due to " + e.getLocalizedMessage() + " now in state pause, waiting for resume...");
 			}
-			pauseTransfer();
+			pauseTransferBySystem();
 			return null;
 		}
 	}
@@ -461,28 +465,28 @@ public class HttpUploadManager extends HttpTransferManager {
 	 */
 	private void writeThumbnailMultipart(DataOutputStream outputStream) throws IOException {
 		if (logger.isActivated()) {
-			logger.debug("write fileicon " + fileicon.getName() + " (size=" + fileicon.getSize() + ")");
+			logger.debug("write file icon " + fileIcon.getName() + " (size=" + fileIcon.getSize() + ")");
 		}
-		if (fileicon.getSize() > 0) {
+		if (fileIcon.getSize() > 0) {
 			outputStream.writeBytes(twoHyphens + BOUNDARY_TAG + lineEnd);
 			outputStream.writeBytes("Content-Disposition: form-data; name=\"Thumbnail\"; filename=\"thumb_" + content.getName() + "\""
 					+ lineEnd);
 			outputStream.writeBytes("Content-Type: image/jpeg" + lineEnd);
-			outputStream.writeBytes("Content-Length: " + fileicon.getSize());
+			outputStream.writeBytes("Content-Length: " + fileIcon.getSize());
 			outputStream.writeBytes(lineEnd + lineEnd);
 			// Are thumbnail data available ?
-			if (fileicon.getData() != null) {
+			if (fileIcon.getData() != null) {
 				// Thumbnail data were loaded upon creation.
 				// Write thumbnail content
-				outputStream.write(fileicon.getData());
+				outputStream.write(fileIcon.getData());
 			} else {
 				// Thumbnail must be loaded from file.
 				FileInputStream fileInputStream = null;
 				try {
 					fileInputStream = (FileInputStream)AndroidFactory.getApplicationContext()
-							.getContentResolver().openInputStream(fileicon.getUri());
-					byte[] buffer = new byte[(int)fileicon.getSize()];
-					int bytesRead = fileInputStream.read(buffer, 0, (int)fileicon.getSize());
+							.getContentResolver().openInputStream(fileIcon.getUri());
+					byte[] buffer = new byte[(int)fileIcon.getSize()];
+					int bytesRead = fileInputStream.read(buffer, 0, (int)fileIcon.getSize());
 					if (bytesRead > 0) {
 						outputStream.write(buffer);
 					}
@@ -509,9 +513,9 @@ public class HttpUploadManager extends HttpTransferManager {
 		String tidPartHeader = twoHyphens + BOUNDARY_TAG + lineEnd;
 		tidPartHeader += "Content-Disposition: form-data; name=\"tid\"" + lineEnd;
 		tidPartHeader += "Content-Type: text/plain" + lineEnd;
-		tidPartHeader += "Content-Length: " + tid.length();
+		tidPartHeader += "Content-Length: " + mTId.length();
 
-		return tidPartHeader + lineEnd + lineEnd + tid + lineEnd;
+		return tidPartHeader + lineEnd + lineEnd + mTId + lineEnd;
 	}
 
 	/**
@@ -558,6 +562,9 @@ public class HttpUploadManager extends HttpTransferManager {
 				buffer = new byte[bufferSize];
 				bytesRead = fileInputStream.read(buffer, 0, bufferSize);
 			}
+		} catch (SecurityException e) {
+			/*TODO: WIll be changed in CR037*/
+			throw e;
 		} catch (Exception e) {
 			if (logger.isActivated()) {
 				logger.error(e.getMessage(), e);
@@ -627,7 +634,7 @@ public class HttpUploadManager extends HttpTransferManager {
 			resp = sendGetUploadInfo();
 		} catch (Exception e) {
 			if (logger.isActivated()) {
-				logger.warn("Could not get upload info due to " + e.getLocalizedMessage());
+				logger.error("Could not get upload info", e);
 			}
 		}
 		resetParamForResume();
@@ -711,8 +718,9 @@ public class HttpUploadManager extends HttpTransferManager {
 		connection.setRequestProperty("User-Agent", SipUtils.userAgentString());
 		connection.setRequestProperty("Content-Type", this.content.getEncoding());
 		connection.setRequestProperty("Content-Length", String.valueOf(content.getSize() - (resumeInfo.getEnd()+1)));
-		connection.setRequestProperty("Content-Range", (resumeInfo.getEnd()+1) + "-" + (content.getSize()-1) + "/"
-				+ content.getSize());
+        // according to RFC 2616, section 14.16 the Content-Range header must contain an element bytes-unit
+        connection.setRequestProperty("Content-Range", "bytes " + (resumeInfo.getEnd()+1) + "-" + (content.getSize()-1) + "/"
+                + content.getSize());
 
 		// Construct the Body
 		String body = "";
@@ -801,19 +809,20 @@ public class HttpUploadManager extends HttpTransferManager {
 				connection.disconnect();
 				return null;
 			}
-		} catch (Exception e) {
-			if (e instanceof SecurityException) {
-				if (logger.isActivated()) {
-					logger.warn("Unrecoverable SecurityException: File Transfer resume Upload aborted");
-				}
-				throw e;
+		} catch (SecurityException e) {
+			/*Note! This is needed since this can be called during dequeuing as will be implemented in CR018.*/
+			if (logger.isActivated()) {
+				logger.error("Upload reasume has failed due to that the file is not accessible!", e);
 			}
+			getListener().httpTransferNotAllowedToSend();
+			return null;
+		} catch (Exception e) {
 			e.printStackTrace();
 
 			if (logger.isActivated()) {
 				logger.warn("File Upload aborted due to " + e.getLocalizedMessage() + " now in state pause, waiting for resume...");
 			}
-			pauseTransfer();
+			pauseTransferBySystem();
 			return null;
 		}
 	}
@@ -874,7 +883,7 @@ public class HttpUploadManager extends HttpTransferManager {
 		String serviceRoot = url.getPath();
 
 		// Build POST request
-		HttpGet get = new HttpGet(new URI(protocol + "://" + host + serviceRoot + "?tid=" + tid + suffix));
+		HttpGet get = new HttpGet(new URI(protocol + "://" + host + serviceRoot + "?tid=" + mTId + suffix));
 		get.addHeader("User-Agent", SipUtils.userAgentString());
 		if (authRequired && auth != null) {
 			get.addHeader("Authorization", auth.generateAuthorizationHeaderValue(get.getMethod(), get.getURI().toString(), ""));
@@ -954,7 +963,7 @@ public class HttpUploadManager extends HttpTransferManager {
 			if (logger.isActivated()) {
 				logger.warn("Could not get upload info due to " + e.getLocalizedMessage());
 			}
-			getListener().httpTransferPaused();
+			getListener().httpTransferPausedBySystem();
 			return null;
 		}
 		return buffer.toByteArray();
@@ -978,11 +987,7 @@ public class HttpUploadManager extends HttpTransferManager {
 		return sendGetInfo(UPLOAD_INFO_REQUEST, false);
 	}
 
-	public String getTid() {
-		return tid;
-	}
-
-	public void setTid(String tid) {
-		this.tid = tid;
+	public String getTId() {
+		return mTId;
 	}
 }

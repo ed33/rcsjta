@@ -1,27 +1,33 @@
 package com.gsma.services.rcs.ft;
 
-import com.gsma.services.rcs.ft.IFileTransferListener;
+import android.net.Uri;
+
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * File transfer interface
  */
 interface IFileTransfer {
 
+	String getChatId();
+
 	String getTransferId();
 
-	String getRemoteContact();
+	ContactId getRemoteContact();
 
 	String getFileName();
 
 	long getFileSize();
 
-	String getFileType();
+	String getMimeType();
 
-	String getFileIconName();
+	Uri getFileIcon();
 
 	Uri getFile();
 
 	int getState();
+
+	int getReasonCode();
 	
 	int getDirection();
 		
@@ -34,8 +40,4 @@ interface IFileTransfer {
 	void pauseTransfer();
 	
 	void resumeTransfer();
-
-	void addEventListener(in IFileTransferListener listener);
-
-	void removeEventListener(in IFileTransferListener listener);
 }

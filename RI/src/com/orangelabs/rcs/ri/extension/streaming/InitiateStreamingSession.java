@@ -18,36 +18,28 @@
 package com.orangelabs.rcs.ri.extension.streaming;
 
 import android.content.Intent;
-import android.os.Bundle;
+import android.os.Parcelable;
 
-import com.orangelabs.rcs.ri.R;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.ri.extension.InitiateMultimediaSession;
-
 /**
  * Initiate streaming session
  *  
  * @author Jean-Marc AUFFRET
  */
 public class InitiateStreamingSession extends InitiateMultimediaSession {
-	@Override
-	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-
-		// Set title
-		setTitle(R.string.menu_initiate_streaming_session);
-	}
 
 	/**
 	 * Initiate session
 	 * 
 	 * @param contact Remote contact
 	 */
-	public void initiateSession(String contact) {
+	public void initiateSession(ContactId contact) {
 		// Display session view
 		Intent intent = new Intent(InitiateStreamingSession.this, StreamingSessionView.class);
     	intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
     	intent.putExtra(StreamingSessionView.EXTRA_MODE, StreamingSessionView.MODE_OUTGOING);
-    	intent.putExtra(StreamingSessionView.EXTRA_CONTACT, contact);
+    	intent.putExtra(StreamingSessionView.EXTRA_CONTACT, (Parcelable)contact);
 		startActivity(intent);
 	}
 }

@@ -24,11 +24,11 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Parcelable;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -41,14 +41,22 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.gsma.services.rcs.JoynServiceListener;
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.chat.Geoloc;
+import com.gsma.services.rcs.contacts.ContactId;
+import com.gsma.services.rcs.contacts.ContactUtils;
 import com.gsma.services.rcs.gsh.GeolocSharing;
 import com.gsma.services.rcs.gsh.GeolocSharingListener;
-import com.gsma.services.rcs.gsh.GeolocSharingService;
+import com.orangelabs.rcs.ri.ApiConnectionManager;
+import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;
+import com.orangelabs.rcs.ri.RiApplication;
 import com.orangelabs.rcs.ri.messaging.geoloc.DisplayGeoloc;
 import com.orangelabs.rcs.ri.messaging.geoloc.EditGeoloc;
+import com.orangelabs.rcs.ri.utils.ContactListAdapter;
+import com.orangelabs.rcs.ri.utils.LockAccess;
+import com.orangelabs.rcs.ri.utils.LogUtils;
 import com.orangelabs.rcs.ri.utils.Utils;
 
 /**
@@ -56,7 +64,7 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * 
  * @author vfml3370
  */
-public class InitiateGeolocSharing extends Activity implements JoynServiceListener {
+public class InitiateGeolocSharing extends Activity {
 	/**
 	 * Activity result constants
 	 */
@@ -70,7 +78,7 @@ public class InitiateGeolocSharing extends Activity implements JoynServiceListen
     /**
      * Progress dialog
      */
-    private Dialog progressDialog = null;    
+    private Dialog progressDialog;    
     
     /**
      * Geoloc info
@@ -78,24 +86,138 @@ public class InitiateGeolocSharing extends Activity implements JoynServiceListen
     private Geoloc geoloc;
     
 	/**
-	 * Geoloc sharing API
-	 */
-    private GeolocSharingService gshApi;
-    
-	/**
      * Geoloc sharing session
      */
-    private GeolocSharing geolocSharing = null;
+    private GeolocSharing geolocSharing;
+    
+    /**
+     * Geoloc sharing identifier
+     */
+    private String sharingId;
     
     /**
      * Remote contact
      */
-    private String contact;
+    private ContactId contact;
     
     /**
-     * Geoloc sharing listener
+   	 * The log tag for this class
+   	 */
+   	private static final String LOGTAG = LogUtils.getTag(InitiateGeolocSharing.class.getSimpleName());
+    
+    /**
+	 * A locker to exit only once
+	 */
+	private LockAccess exitOnce = new LockAccess();
+	
+  	/**
+	 * API connection manager
+	 */
+	private ApiConnectionManager connectionManager;
+   	
+	
+	/**
+	 * Spinner for contact selection
+	 */
+	private Spinner mSpinner;
+	
+    /**
+     * Geolocation sharing listener
      */
-    private MyGeolocSharingListener gshListener = new MyGeolocSharingListener();        
+	private GeolocSharingListener gshListener = new GeolocSharingListener() {
+
+		@Override
+		public void onProgressUpdate(ContactId contact, String sharingId, final long currentSize, final long totalSize) {
+			// Discard event if not for current sharingId
+			if (InitiateGeolocSharing.this.sharingId == null || !InitiateGeolocSharing.this.sharingId.equals(sharingId)) {
+				return;
+			}
+			handler.post(new Runnable() {
+				public void run() {
+					// Display sharing progress
+					updateProgressBar(currentSize, totalSize);
+				}
+			});
+		}
+
+		@Override
+		public void onStateChanged(final ContactId contact, String sharingId, final int state, int reasonCode) {
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "onGeolocSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state
+						+ " reason=" + reasonCode);
+			}
+			// Discard event if not for current sharingId
+			if (InitiateGeolocSharing.this.sharingId == null || !InitiateGeolocSharing.this.sharingId.equals(sharingId)) {
+				return;
+			}
+			if (state > RiApplication.GSH_STATES.length) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "onGeolocSharingStateChanged unhandled state=" + state);
+				}
+				return;
+			}
+			if (reasonCode > RiApplication.GSH_REASON_CODES.length) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "onGeolocSharingStateChanged unhandled reason=" + reasonCode);
+				}
+				return;
+			}
+			final String _state = RiApplication.GSH_STATES[state];
+			final String _reasonCode = RiApplication.GSH_REASON_CODES[reasonCode];
+			
+			handler.post(new Runnable() {
+				public void run() {
+					TextView statusView = (TextView) findViewById(R.id.progress_status);
+					switch (state) {
+					case GeolocSharing.State.STARTED:
+						// Session is established: hide progress dialog
+						hideProgressDialog();
+						// Display session status
+						statusView.setText(_state);
+						break;
+
+					case GeolocSharing.State.ABORTED:
+						// sharing aborted: hide progress dialog then exit
+						hideProgressDialog();
+						// Display session status
+						Utils.showMessageAndExit(InitiateGeolocSharing.this, getString(R.string.label_sharing_aborted, _reasonCode), exitOnce);
+						break;
+
+					case GeolocSharing.State.REJECTED:
+						// sharing rejected: hide progress dialog then exit
+						hideProgressDialog();
+						Utils.showMessageAndExit(InitiateGeolocSharing.this, getString(R.string.label_sharing_rejected, _reasonCode), exitOnce);
+						break;
+
+					case GeolocSharing.State.FAILED:
+						// sharing failed: hide progress dialog then exit
+						hideProgressDialog();
+						Utils.showMessageAndExit(InitiateGeolocSharing.this, getString(R.string.label_sharing_failed, _reasonCode), exitOnce);
+						break;
+
+					case GeolocSharing.State.TRANSFERRED:
+						// Hide progress dialog
+						hideProgressDialog();
+						// Display transfer progress
+						statusView.setText(_state);
+						// Make sure progress bar is at the end
+						ProgressBar progressBar = (ProgressBar) findViewById(R.id.progress_bar);
+						progressBar.setProgress(progressBar.getMax());
+
+						// Show the shared geoloc
+						Intent intent = new Intent(InitiateGeolocSharing.this, DisplayGeoloc.class);
+						intent.putExtra(DisplayGeoloc.EXTRA_CONTACT, (Parcelable) contact);
+						intent.putExtra(DisplayGeoloc.EXTRA_GEOLOC, (Parcelable) geoloc);
+						startActivity(intent);
+						break;
+
+					default:
+						statusView.setText(getString(R.string.label_gsh_state_changed, _state, _reasonCode));
+					}
+				}
+			});
+		}
+	};
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -105,12 +227,9 @@ public class InitiateGeolocSharing extends Activity implements JoynServiceListen
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.geoloc_sharing_initiate);
         
-        // Set title
-        setTitle(R.string.menu_initiate_geoloc_sharing);
-        
         // Set contact selector
-        Spinner spinner = (Spinner)findViewById(R.id.contact);
-        spinner.setAdapter(Utils.createRcsContactListAdapter(this));
+        mSpinner = (Spinner)findViewById(R.id.contact);
+        mSpinner.setAdapter(ContactListAdapter.createRcsContactListAdapter(this));
 
         // Set buttons callback
         Button inviteBtn = (Button)findViewById(R.id.invite_btn);
@@ -123,70 +242,61 @@ public class InitiateGeolocSharing extends Activity implements JoynServiceListen
         dialBtn.setOnClickListener(btnDialListener);
         dialBtn.setEnabled(false);        
         
-        // Instanciate API
-		gshApi = new GeolocSharingService(getApplicationContext(), this);
-		
-		// Connect API
-		gshApi.connect();
-    }
-    
-    @Override
-    public void onDestroy() {
-    	super.onDestroy();
-
-        // Remove geoloc sharing listener
-        if (geolocSharing != null) {
-        	try {
-        		geolocSharing.removeEventListener(gshListener);
-        	} catch(Exception e) {
-        		e.printStackTrace();
-        	}
-        }
-
-        // Disconnect API
-        gshApi.disconnect();
-    }
-    
-    /**
-     * Callback called when service is connected. This method is called when the
-     * service is well connected to the RCS service (binding procedure successfull):
-     * this means the methods of the API may be used.
-     */
-    public void onServiceConnected() {
         // Disable button if no contact available
-        Spinner spinner = (Spinner)findViewById(R.id.contact);
-        Button dialBtn = (Button)findViewById(R.id.dial_btn);
-        Button selectBtn = (Button)findViewById(R.id.select_btn);
-        if (spinner.getAdapter().getCount() != 0) {
+        if (mSpinner.getAdapter().getCount() != 0) {
         	dialBtn.setEnabled(true);
         	selectBtn.setEnabled(true);
         }
+        
+        // Register to API connection manager
+		connectionManager = ApiConnectionManager.getInstance(this);
+		if (connectionManager == null || !connectionManager.isServiceConnected(RcsServiceName.GEOLOC_SHARING)) {
+			Utils.showMessageAndExit(this, getString(R.string.label_service_not_available), exitOnce);
+			return;
+		}
+		connectionManager.startMonitorServices(this, exitOnce, RcsServiceName.GEOLOC_SHARING);
+		try {
+			// Add service listener
+			connectionManager.getGeolocSharingApi().addEventListener(gshListener);
+		} catch (RcsServiceException e) {
+			if (LogUtils.isActive) {
+				Log.e(LOGTAG, "Failed to add listener", e);
+			}
+			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), exitOnce);
+		}
     }
     
-    /**
-     * Callback called when service has been disconnected. This method is called when
-     * the service is disconnected from the RCS service (e.g. service deactivated).
-     * 
-     * @param error Error
-     * @see JoynService.Error
-     */
-    public void onServiceDisconnected(int error) {
-		Utils.showMessageAndExit(InitiateGeolocSharing.this, getString(R.string.label_api_disabled));
-    }      
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		if (connectionManager == null) {
+    		return;
+    	}
+		connectionManager.stopMonitorServices(this);
+		if (connectionManager.isServiceConnected(RcsServiceName.GEOLOC_SHARING)) {
+			// Remove geoloc sharing listener
+			try {
+				connectionManager.getGeolocSharingApi().removeEventListener(gshListener);
+			} catch (Exception e) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "Failed to remove listener", e);
+				}
+			}
+		}
+	}
     
     /**
      * Dial button listener
      */
     private OnClickListener btnDialListener = new OnClickListener() {
         public void onClick(View v) {
-        	// Get the remote contact
-            Spinner spinner = (Spinner)findViewById(R.id.contact);
-            MatrixCursor cursor = (MatrixCursor)spinner.getSelectedItem();
-            String remote = cursor.getString(1);
+        	// get selected phone number
+    		ContactListAdapter adapter = (ContactListAdapter) mSpinner.getAdapter();
+    		String phoneNumber = adapter.getSelectedNumber(mSpinner.getSelectedView());
 
             // Initiate a GSM call before to be able to share content
             Intent intent = new Intent(Intent.ACTION_CALL);
-        	intent.setData(Uri.parse("tel:"+remote));
+        	intent.setData(Uri.parse("tel:"+phoneNumber));
             startActivity(intent);
         }
     };
@@ -199,9 +309,7 @@ public class InitiateGeolocSharing extends Activity implements JoynServiceListen
             // Check if the service is available
         	boolean registered = false;
         	try {
-        		if ((gshApi != null) && gshApi.isServiceRegistered()) {
-        			registered = true;
-        		}
+        		registered = connectionManager.getGeolocSharingApi().isServiceRegistered();
         	} catch(Exception e) {
         		e.printStackTrace();
         	}
@@ -210,19 +318,26 @@ public class InitiateGeolocSharing extends Activity implements JoynServiceListen
     	    	return;
             }    
             
-            // Get the remote contact
-            Spinner spinner = (Spinner)findViewById(R.id.contact);
-            MatrixCursor cursor = (MatrixCursor)spinner.getSelectedItem();
-            contact = cursor.getString(1);
-            final String remote = contact;
+            // get selected phone number
+    		ContactListAdapter adapter = (ContactListAdapter) mSpinner.getAdapter();
+    		String phoneNumber = adapter.getSelectedNumber(mSpinner.getSelectedView());
+            
+			ContactUtils contactUtils = ContactUtils.getInstance(InitiateGeolocSharing.this);
+			try {
+				contact = contactUtils.formatContact(phoneNumber);
+			} catch (RcsContactFormatException e1) {
+				Utils.showMessage(InitiateGeolocSharing.this, getString(R.string.label_invalid_contact, phoneNumber));
+				return;
+			}
 
         	try {
                 // Initiate location share
-        		geolocSharing = gshApi.shareGeoloc(remote, geoloc, gshListener);
+        		geolocSharing = connectionManager.getGeolocSharingApi().shareGeoloc(contact, geoloc);
+        		sharingId = geolocSharing.getSharingId();
         	} catch(Exception e) {
         		e.printStackTrace();
 				hideProgressDialog();
-				Utils.showMessageAndExit(InitiateGeolocSharing.this, getString(R.string.label_invitation_failed));
+				Utils.showMessageAndExit(InitiateGeolocSharing.this, getString(R.string.label_invitation_failed), exitOnce);
         	}
 
             // Display a progress dialog
@@ -235,7 +350,7 @@ public class InitiateGeolocSharing extends Activity implements JoynServiceListen
 			});
             
             // Disable UI
-            spinner.setEnabled(false);
+            mSpinner.setEnabled(false);
 
             // Hide buttons
             Button inviteBtn = (Button)findViewById(R.id.invite_btn);
@@ -293,91 +408,6 @@ public class InitiateGeolocSharing extends Activity implements JoynServiceListen
     }       
     
     /**
-     * Geoloc sharing event listener
-     */
-    private class MyGeolocSharingListener extends GeolocSharingListener {
-    	// Sharing started
-    	public void onSharingStarted() {
-			handler.post(new Runnable() { 
-				public void run() {
-					// Hide progress dialog
-					hideProgressDialog();
-					
-					// Display session status
-					TextView statusView = (TextView)findViewById(R.id.progress_status);
-					statusView.setText("started");
-				}
-			});
-    	}
-    	
-    	// Sharing aborted
-    	public void onSharingAborted() {
-			handler.post(new Runnable() { 
-				public void run() {
-					// Hide progress dialog
-					hideProgressDialog();
-					
-					// Display session status
-					Utils.showMessageAndExit(InitiateGeolocSharing.this, getString(R.string.label_sharing_aborted));
-				}
-			});
-    	}
-
-    	// Sharing error
-    	public void onSharingError(final int error) {
-			handler.post(new Runnable() { 
-				public void run() {
-					// Hide progress dialog
-					hideProgressDialog();
-					
-					// Display error
-                    if (error == GeolocSharing.Error.INVITATION_DECLINED) {
-                        Utils.showMessageAndExit(InitiateGeolocSharing.this,
-                                getString(R.string.label_sharing_declined));
-                    } else {
-                        Utils.showMessageAndExit(InitiateGeolocSharing.this,
-                                getString(R.string.label_sharing_failed, error));
-                    }
-				}
-			});
-    	}
-    	
-    	// Sharing progress
-    	public void onSharingProgress(final long currentSize, final long totalSize) {
-			handler.post(new Runnable() { 
-    			public void run() {
-					// Display sharing progress
-    				updateProgressBar(currentSize, totalSize);
-    			}
-    		});
-    	}
-
-    	// Geoloc shared
-    	public void onGeolocShared(final Geoloc geoloc) {
-			handler.post(new Runnable() { 
-				public void run() {
-					// Hide progress dialog
-					hideProgressDialog();
-
-					// Display sharing progress
-					TextView statusView = (TextView)findViewById(R.id.progress_status);
-					statusView.setText("transferred");
-					
-					// Make sure progress bar is at the end
-			        ProgressBar progressBar = (ProgressBar)findViewById(R.id.progress_bar);
-			        progressBar.setProgress(progressBar.getMax());
-					
-			        // Show the shared geoloc
-					Intent intent = new Intent(InitiateGeolocSharing.this, DisplayGeoloc.class);
-			    	intent.putExtra(DisplayGeoloc.EXTRA_CONTACT, contact);
-			    	intent.putExtra(DisplayGeoloc.EXTRA_GEOLOC, (Parcelable)geoloc);
-					startActivity(intent);
-				}
-			});
-    	}
-    };
-    
-    /**
      * Show the sharing progress
      * 
      * @param currentSize Current size transferred
@@ -409,7 +439,6 @@ public class InitiateGeolocSharing extends Activity implements JoynServiceListen
 		// Stop session
 		try {
 	        if (geolocSharing != null) {
-	        	geolocSharing.removeEventListener(gshListener);
 	        	geolocSharing.abortSharing();
 	        }
 		} catch(Exception e) {

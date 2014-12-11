@@ -31,7 +31,7 @@ import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.utils.Utils;
 
 /**
- * Contacts API
+ * CONTACTS API
  * 
  * @author Jean-Marc AUFFRET
  */
@@ -72,7 +72,7 @@ public class TestContactsApi extends ListActivity {
 	    		break;
         	
 	        case 1:
-            	startActivity(new Intent(this, JoynContactsList.class));
+            	startActivity(new Intent(this, RcsContactsList.class));
                 break;
                 
 	        case 2:

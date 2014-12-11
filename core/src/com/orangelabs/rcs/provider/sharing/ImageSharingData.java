@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 
@@ -24,71 +24,69 @@ package com.orangelabs.rcs.provider.sharing;
 
 import com.gsma.services.rcs.ish.ImageSharingLog;
 
-import android.net.Uri;
-
 /**
  * Image sharing data constants
  * 
  * @author Jean-Marc AUFFRET
  */
 public class ImageSharingData {
-	/**
-	 * Database URI
-	 */
-	protected static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.ish/ish");
-	
-	/**
-	 * Column name
-	 */
-	static final String KEY_ID = ImageSharingLog.ID;
-	
-	/**
-	 * Column name
-	 */
-	static final String KEY_SESSION_ID = ImageSharingLog.SHARING_ID;
 
 	/**
-	 * Column name
+	 * Unique sharing identifier
+	 */
+	static final String KEY_SHARING_ID = ImageSharingLog.SHARING_ID;
+
+	/**
+	 * Date of the sharing
 	 */
 	static final String KEY_TIMESTAMP = ImageSharingLog.TIMESTAMP;
 
 	/**
-	 * Column name
+	 * ContactId formatted number of the remote contact
 	 */
-	static final String KEY_CONTACT = ImageSharingLog.CONTACT_NUMBER;
+	static final String KEY_CONTACT = ImageSharingLog.CONTACT;
 	
 	/**
-	 * Column name
+	 * @see ImageSharing.State
 	 */
-	static final String KEY_STATUS = ImageSharingLog.STATE;
+	static final String KEY_STATE = ImageSharingLog.STATE;
 
 	/**
-	 * Column name
+	 * Reason code associated with the image sharing state.
+	 *
+	 * @see ImageSharing.ReasonCode
+	 */
+	static final String KEY_REASON_CODE = ImageSharingLog.REASON_CODE;
+
+	/**
+	 * Multipurpose Internet Mail Extensions (MIME) type of file
 	 */
 	static final String KEY_MIME_TYPE = ImageSharingLog.MIME_TYPE;
 	
 	/**
-	 * Column name
+	 * URI of the file
 	 */
 	static final String KEY_FILE = ImageSharingLog.FILE;
 
 	/**
-	 * Column name
+	 * Filename
 	 */
-	static final String KEY_NAME = ImageSharingLog.FILENAME;
-	
-	/**
-	 * Column name
-	 */
-	static final String KEY_SIZE = ImageSharingLog.TRANSFERRED;
-	
-	/**
-	 * Column name
-	 */
-	static final String KEY_TOTAL_SIZE = ImageSharingLog.FILESIZE;	
+	static final String KEY_FILENAME = ImageSharingLog.FILENAME;
 
 	/**
-	 * Column name
+	 * Size transferred in bytes
+	 */
+	static final String KEY_TRANSFERRED = ImageSharingLog.TRANSFERRED;
+
+	/**
+	 * File size in bytes
+	 */
+	static final String KEY_FILESIZE = ImageSharingLog.FILESIZE;
+
+	/**
+	 * Incoming sharing or outgoing sharing.
+	 *
+	 * @see com.gsma.services.rcs.RcsCommon.Direction for the list of directions
 	 */
 	static final String KEY_DIRECTION = ImageSharingLog.DIRECTION;	
 }

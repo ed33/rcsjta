@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.http;
 
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.gsma.services.rcs.chat.ParticipantInfo;
 import com.orangelabs.rcs.core.Core;
@@ -33,7 +32,6 @@ import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceError;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatUtils;
-import com.orangelabs.rcs.core.ims.service.im.chat.FileTransferMessage;
 import com.orangelabs.rcs.core.ims.service.im.chat.cpim.CpimMessage;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingError;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
@@ -59,18 +57,13 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
     /**
      * File information to send via chat
      */
-    private String fileInfo = null;
+    private String fileInfo;
 
     /**
      * Chat session used to send file info
      */
-    private ChatSession chatSession= null;
+    private ChatSession chatSession;
 
-    /**
-     * fired a boolean value updated atomically to notify only once
-     */
-	private AtomicBoolean fired = new AtomicBoolean(false);
-	
     /**
      * The logger
      */
@@ -83,31 +76,33 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
 	 *            IMS service
 	 * @param content
 	 *            The file content to share
-	 * @param fileicon
-	 *            true if the stack must try to attach fileicon
+	 * @param fileIcon
+	 *            true if the stack must try to attach file icon
 	 * @param conferenceId
 	 *            Conference ID
 	 * @param participants
-	 *            List of participants
+	 *            Set of participants
 	 * @param chatSessionId
 	 *            Chat session ID
 	 * @param chatContributionId
 	 *            Chat contribution Id
+	 * @param tId
+	 *            TID of the upload
 	 */
-	public OriginatingHttpGroupFileSharingSession(ImsService parent, MmContent content, boolean fileicon,
-			String conferenceId, Set<ParticipantInfo> participants, String chatSessionID, String chatContributionId) {
-		super(parent, content, conferenceId, null, chatSessionID, chatContributionId, IdGenerator.generateMessageID());
+	public OriginatingHttpGroupFileSharingSession(ImsService parent, MmContent content, boolean fileIcon,
+			String conferenceId, Set<ParticipantInfo> participants, String chatSessionID, String chatContributionId, String tId) {
+		super(parent, content, null, conferenceId, null, chatSessionID, chatContributionId, IdGenerator.generateMessageID());
 		// Set participants involved in the transfer
 		this.participants = participants;
 		
-		MmContent fileiconContent = null;
-		if (fileicon && MimeManager.isImageType(content.getEncoding())) {
-			// Create the fileicon
-			fileiconContent = FileTransferUtils.createFileicon(content.getUri(), getSessionID());
-			setFileicon(fileiconContent);
+		MmContent fileIconContent = null;
+		if (fileIcon && MimeManager.isImageType(content.getEncoding())) {
+			// Create the file icon
+			fileIconContent = FileTransferUtils.createFileicon(content.getUri(), getSessionID());
+			setFileicon(fileIconContent);
 		}
 		// Instantiate the upload manager
-		uploadManager = new HttpUploadManager(getContent(), fileiconContent, this);
+		uploadManager = new HttpUploadManager(getContent(), fileIconContent, this, tId);
 	}
 
 	/**
@@ -134,21 +129,11 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
 	@Override
 	public void handleError(ImsServiceError error) {
 		super.handleError(error);
-		if (fired.compareAndSet(false, true)) {
-            if (resumeFT != null) {
-                FtHttpResumeDaoImpl.getInstance().delete(resumeFT);
-            }
-		}
 	}
 
 	@Override
 	public void handleFileTransfered() {
 		super.handleFileTransfered();
-		if (fired.compareAndSet(false, true)) {
-            if (resumeFT != null) {
-                FtHttpResumeDaoImpl.getInstance().delete(resumeFT);
-            }
-		}
 	}
 
 	@Override
@@ -163,7 +148,7 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
     private void sendFileTransferInfo() {
         // Send File transfer Info
         String mime = CpimMessage.MIME_TYPE;
-        String from = ImsModule.IMS_USER_PROFILE.getPublicUri();
+        String from = ImsModule.IMS_USER_PROFILE.getPublicAddress();
         String to = ChatUtils.ANOMYNOUS_URI;
         // Note: FileTransferId is always generated to equal the associated msgId of a FileTransfer invitation message.
         String msgId = getFileTransferId();
@@ -173,9 +158,6 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
         
         // Send content
 		chatSession.sendDataChunks(IdGenerator.generateMessageID(), content, mime, TypeMsrpChunk.FileSharing);
-
-		// Update File Transfer raw with chat message ID
-		MessagingLog.getInstance().updateFileTransferChatId(msgId, chatSession.getContributionID());
     }
     
     
@@ -230,7 +212,7 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
 	public void pauseFileTransfer() {
         fileTransferPaused();
 		interruptSession();
-		uploadManager.pauseTransfer();
+		uploadManager.pauseTransferByUser();
 	}
 
 	/**
@@ -241,7 +223,7 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
 		new Thread(new Runnable() {
 			public void run() {
 				try {
-					FtHttpResumeUpload upload = FtHttpResumeDaoImpl.getInstance().queryUpload(uploadManager.getTid());
+					FtHttpResumeUpload upload = FtHttpResumeDaoImpl.getInstance().queryUpload(uploadManager.getTId());
 					if (upload != null) {
 						sendResultToContact(uploadManager.resumeUpload());
 					} else {
@@ -261,5 +243,10 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
 //        // Create upload entry in fthttp table
 //        resumeFT = new FtHttpResumeUpload(this, uploadManager.getTid(),getThumbnail(),false);
 //        FtHttpResumeDaoImpl.getInstance().insert(resumeFT);
+	}
+
+	@Override
+	public boolean isInitiatedByRemote() {
+		return false;
 	}
 }

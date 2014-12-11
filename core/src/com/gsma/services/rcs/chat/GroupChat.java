@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.chat;
@@ -25,7 +25,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.gsma.services.rcs.JoynServiceException;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Group chat
@@ -38,63 +39,104 @@ public class GroupChat {
      */
     public static class State {
     	/**
-    	 * Inactive state
-    	 */
-    	public final static int INACTIVE = 0;
-
-    	/**
     	 * Chat invitation received
     	 */
-    	public final static int INVITED = 1;
+    	public final static int INVITED = 0;
     	
     	/**
     	 * Chat invitation sent
     	 */
-    	public final static int INITIATED = 2;
+    	public final static int INITIATED = 1;
     	
     	/**
     	 * Chat is started
     	 */
-    	public final static int STARTED = 3;
-    	
-    	/**
-    	 * Chat has been terminated
-    	 */
-    	public final static int TERMINATED = 4;
+    	public final static int STARTED = 2;
     	   	
     	/**
     	 * Chat has been aborted 
     	 */
-    	public final static int ABORTED = 5;
-    	
-    	/**
-    	 * Chat has been closed by the user. A user which has closed a
-    	 * conversation voluntary can't rejoin it afterward.
-    	 */
-    	public final static int CLOSED_BY_USER = 6;
+    	public final static int ABORTED = 3;
 
     	/**
     	 * Chat has failed 
     	 */
-    	public final static int FAILED = 7;
+    	public final static int FAILED = 4;
+
+    	/**
+    	 * Chat has been accepted and is in the process of becoming started.
+    	 */
+    	public final static int ACCEPTING = 5;
+
+    	/**
+    	 * Chat invitation was rejected.
+    	 */
+    	public final static int REJECTED = 6;
     	
         private State() {
         }    	
     }
     
     /**
-     * Direction of the group chat
+     * Group chat state reason code
      */
-    public static class Direction {
+    public static class ReasonCode {
+
         /**
-         * Incoming chat
+         * No specific reason code specified.
          */
-        public static final int INCOMING = 0;
-        
+        public final static int UNSPECIFIED = 0;
+
         /**
-         * Outgoing chat
+         * Group chat is aborted by local user.
          */
-        public static final int OUTGOING = 1;
+        public final static int ABORTED_BY_USER = 1;
+
+        /**
+         * Group chat is aborted by remote user.
+         */
+
+        public final static int ABORTED_BY_REMOTE = 2;
+
+        /**
+         * Group chat is aborted by system.
+         */
+        public final static int ABORTED_BY_SYSTEM = 3;
+
+        /**
+         * Group chat is rejected because already taken by the secondary device.
+         */
+        public final static int REJECTED_BY_SECONDARY_DEVICE = 4;
+
+        /**
+         * Group chat invitation was rejected as it was detected as spam.
+         */
+        public final static int REJECTED_SPAM = 5;
+
+        /**
+         * Group chat invitation was rejected due to max number of chats open already.
+         */
+        public final static int REJECTED_MAX_CHATS = 6;
+
+        /**
+         * Group chat invitation was rejected by local user.
+         */
+        public final static int REJECTED_BY_USER = 7;
+
+        /**
+         * Group chat invitation was rejected by remote.
+         */
+        public final static int REJECTED_BY_REMOTE = 8;
+
+        /**
+         * Group chat invitation was rejected due to time out.
+         */
+        public final static int REJECTED_TIME_OUT = 9;
+
+        /**
+         * Group chat initiation failed.
+         */
+        public final static int FAILED_INITIATION = 10;
     }
     
     /**
@@ -138,13 +180,13 @@ public class GroupChat {
      * Returns the chat ID
      * 
      * @return Chat ID
-	 * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-	public String getChatId() throws JoynServiceException {
+	public String getChatId() throws RcsServiceException {
 		try {
 			return chatInf.getChatId();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
@@ -152,14 +194,14 @@ public class GroupChat {
 	 * Returns the direction of the group chat (incoming or outgoing)
 	 * 
 	 * @return Direction
-	 * @see GroupChat.Direction
-	 * @throws JoynServiceException
+	 * @see com.gsma.services.rcs.RcsCommon.Direction
+	 * @throws RcsServiceException
 	 */
-	public int getDirection() throws JoynServiceException {
+	public int getDirection() throws RcsServiceException {
 		try {
 			return chatInf.getDirection();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}	
 	
@@ -168,27 +210,43 @@ public class GroupChat {
 	 * 
 	 * @return State
 	 * @see GroupChat.State
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public int getState() throws JoynServiceException {
+	public int getState() throws RcsServiceException {
 		try {
 			return chatInf.getState();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}		
+
+	/**
+	 * Returns the reason code of the state of the group chat
+	 *
+	 * @return ReasonCode
+	 * @see GroupChat.ReasonCode
+	 * @throws RcsServiceException
+	 */
+	public int getReasonCode() throws RcsServiceException {
+		try {
+			return chatInf.getReasonCode();
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}
+	}
+
 	
 	/**
 	 * Returns the remote contact
 	 * 
 	 * @return Contact
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public String getRemoteContact() throws JoynServiceException {
+	public ContactId getRemoteContact() throws RcsServiceException {
 		try {
 			return chatInf.getRemoteContact();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
@@ -196,13 +254,13 @@ public class GroupChat {
 	 * Returns the subject of the group chat
 	 * 
 	 * @return Subject
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public String getSubject() throws JoynServiceException {
+	public String getSubject() throws RcsServiceException {
 		try {
 			return chatInf.getSubject();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
@@ -211,39 +269,39 @@ public class GroupChat {
 	 * by its MSISDN in national or international format, SIP address, SIP-URI or Tel-URI.
 	 * 
 	 * @return List of participants
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public Set<ParticipantInfo> getParticipants() throws JoynServiceException {
+	public Set<ParticipantInfo> getParticipants() throws RcsServiceException {
 		try {
 			return new HashSet<ParticipantInfo>(chatInf.getParticipants());
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}		
 	}
 	
 	/**
 	 * Accepts chat invitation
 	 *  
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void acceptInvitation() throws JoynServiceException {
+	public void acceptInvitation() throws RcsServiceException {
 		try {
 			chatInf.acceptInvitation();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
 	 * Rejects chat invitation
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void rejectInvitation() throws JoynServiceException {
+	public void rejectInvitation() throws RcsServiceException {
 		try {
 			chatInf.rejectInvitation();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
@@ -251,14 +309,14 @@ public class GroupChat {
 	 * Sends a text message to the group
 	 * 
 	 * @param text Message
-	 * @return Unique message ID or null in case of error
-	 * @throws JoynServiceException
+	 * @return ChatMessage
+	 * @throws RcsServiceException
 	 */
-	public String sendMessage(String text) throws JoynServiceException {
+	public ChatMessage sendMessage(String text) throws RcsServiceException {
 		try {
 			return chatInf.sendMessage(text);
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}		
 	}
 	
@@ -266,14 +324,14 @@ public class GroupChat {
      * Sends a geoloc message
      * 
      * @param geoloc Geoloc info
-	 * @return Unique message ID or null in case of error
-   	 * @throws JoynServiceException
+     * @return GeolocMessage
+     * @throws RcsServiceException
      */
-    public String sendGeoloc(Geoloc geoloc) throws JoynServiceException {
+    public GeolocMessage sendMessage(Geoloc geoloc) throws RcsServiceException {
 		try {
-			return chatInf.sendGeoloc(geoloc);
+			return chatInf.sendMessage2(geoloc);
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}    	
     }	
 
@@ -282,13 +340,13 @@ public class GroupChat {
 	 * a message, else it is set to false.
 	 * 
 	 * @param status Is-composing status
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void sendIsComposingEvent(boolean status) throws JoynServiceException {
+	public void sendIsComposingEvent(boolean status) throws RcsServiceException {
 		try {
 			chatInf.sendIsComposingEvent(status);
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}		
 	}
 	
@@ -296,13 +354,13 @@ public class GroupChat {
 	 * Adds participants to a group chat
 	 * 
 	 * @param participants List of participants
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void addParticipants(Set<String> participants) throws JoynServiceException {
+	public void addParticipants(Set<ContactId> participants) throws RcsServiceException {
 		try {
-			chatInf.addParticipants(new ArrayList<String>(participants));
+			chatInf.addParticipants(new ArrayList<ContactId>(participants));
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}		
 	}
 	
@@ -312,55 +370,27 @@ public class GroupChat {
 	 * parameter.
 	 * 
 	 * @return Number
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public int getMaxParticipants() throws JoynServiceException {
+	public int getMaxParticipants() throws RcsServiceException {
 		try {
 			return chatInf.getMaxParticipants();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}		
 	}
 	
 	/**
-	 * Quits a group chat conversation. The conversation will continue between
-	 * other participants if there are enough participants.
+	 * Leaves a group chat willingly and permanently. The group chat will
+	 * continue between other participants if there are enough participants.
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void quitConversation() throws JoynServiceException {
+	public void leave() throws RcsServiceException {
 		try {
-			chatInf.quitConversation();
+			chatInf.leave();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
-	}
-	
-	/**
-	 * Adds a listener on chat events
-	 * 
-	 * @param listener Group chat event listener 
-	 * @throws JoynServiceException
-	 */
-	public void addEventListener(GroupChatListener listener) throws JoynServiceException {
-		try {
-			chatInf.addEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
-		}    	    			
-	}
-	
-	/**
-	 * Removes a listener on chat events
-	 * 
-	 * @param listener Group chat event listener 
-	 * @throws JoynServiceException
-	 */
-	public void removeEventListener(GroupChatListener listener) throws JoynServiceException {
-		try {
-			chatInf.removeEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
-		}    	    			
 	}
 }

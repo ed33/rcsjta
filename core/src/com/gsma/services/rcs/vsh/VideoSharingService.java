@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.vsh;
 
@@ -28,11 +32,11 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.IInterface;
 
-import com.gsma.services.rcs.JoynContactFormatException;
-import com.gsma.services.rcs.JoynService;
-import com.gsma.services.rcs.JoynServiceException;
-import com.gsma.services.rcs.JoynServiceListener;
-import com.gsma.services.rcs.JoynServiceNotAvailableException;
+import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.RcsServiceListener;
+import com.gsma.services.rcs.RcsServiceNotAvailableException;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * This class offers the main entry point to share live video during a CS call.
@@ -43,11 +47,11 @@ import com.gsma.services.rcs.JoynServiceNotAvailableException;
  * 
  * @author Jean-Marc AUFFRET
  */
-public class VideoSharingService extends JoynService {
+public class VideoSharingService extends RcsService {
 	/**
 	 * API
 	 */
-	private IVideoSharingService api = null;
+	private IVideoSharingService api;
 
 	/**
 	 * Constructor
@@ -57,7 +61,7 @@ public class VideoSharingService extends JoynService {
 	 * @param listener
 	 *            Service listener
 	 */
-	public VideoSharingService(Context ctx, JoynServiceListener listener) {
+	public VideoSharingService(Context ctx, RcsServiceListener listener) {
 		super(ctx, listener);
 	}
 
@@ -106,7 +110,7 @@ public class VideoSharingService extends JoynService {
         	setApi(null);
 			if (serviceListener != null) {
 				serviceListener
-						.onServiceDisconnected(JoynService.Error.CONNECTION_LOST);
+						.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
 			}
 		}
 	};
@@ -115,18 +119,18 @@ public class VideoSharingService extends JoynService {
 	 * Returns the configuration of video sharing service
 	 * 
 	 * @return Configuration
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
 	public VideoSharingServiceConfiguration getConfiguration()
-			throws JoynServiceException {
+			throws RcsServiceException {
 		if (api != null) {
 			try {
 				return api.getConfiguration();
 			} catch (Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
@@ -139,32 +143,26 @@ public class VideoSharingService extends JoynService {
 	 * thrown.
 	 * 
 	 * @param contact
-	 *            Contact
+	 *            Contact identifier
 	 * @param player
 	 *            Video player
-	 * @param listener
-	 *            Video sharing event listener
 	 * @return Video sharing
-	 * @throws JoynServiceException
-	 * @throws JoynContactFormatException
+	 * @throws RcsServiceException
 	 */
-	public VideoSharing shareVideo(String contact, VideoPlayer player,
-			VideoSharingListener listener) throws JoynServiceException,
-			JoynContactFormatException {
+	public VideoSharing shareVideo(ContactId contact, VideoPlayer player) throws RcsServiceException {
 		if (api != null) {
 			try {
-				IVideoSharing sharingIntf = api.shareVideo(contact, player,
-						listener);
+				IVideoSharing sharingIntf = api.shareVideo(contact, player);
 				if (sharingIntf != null) {
 					return new VideoSharing(sharingIntf);
 				} else {
 					return null;
 				}
 			} catch (Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
@@ -172,9 +170,9 @@ public class VideoSharingService extends JoynService {
 	 * Returns the list of video sharings in progress
 	 * 
 	 * @return List of video sharings
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public Set<VideoSharing> getVideoSharings() throws JoynServiceException {
+	public Set<VideoSharing> getVideoSharings() throws RcsServiceException {
 		if (api != null) {
 			try {
 				Set<VideoSharing> result = new HashSet<VideoSharing>();
@@ -186,10 +184,10 @@ public class VideoSharingService extends JoynService {
 				}
 				return result;
 			} catch (Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
@@ -199,10 +197,10 @@ public class VideoSharingService extends JoynService {
 	 * @param sharingId
 	 *            Sharing ID
 	 * @return Video sharing or null if not found
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
 	public VideoSharing getVideoSharing(String sharingId)
-			throws JoynServiceException {
+			throws RcsServiceException {
 		if (api != null) {
 			try {
 				IVideoSharing sharingIntf = api.getVideoSharing(sharingId);
@@ -212,77 +210,46 @@ public class VideoSharingService extends JoynService {
 					return null;
 				}
 			} catch (Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
 	/**
-	 * Returns a current video sharing from its invitation Intent
+	 * Adds a listener on video sharing events
 	 * 
-	 * @param intent
-	 *            Invitation intent
-	 * @return Video sharing or null if not found
-	 * @throws JoynServiceException
+	 * @param listener Listener
+	 * @throws RcsServiceException
 	 */
-	public VideoSharing getVideoSharingFor(Intent intent)
-			throws JoynServiceException {
+	public void addEventListener(VideoSharingListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
-				String sharingId = intent
-						.getStringExtra(VideoSharingIntent.EXTRA_SHARING_ID);
-				if (sharingId != null) {
-					return getVideoSharing(sharingId);
-				} else {
-					return null;
-				}
+				api.addEventListener2(listener);
 			} catch (Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
 	/**
-	 * Registers a new video sharing invitation listener
+	 * Removes a listener on video sharing events
 	 * 
-	 * @param listener
-	 *            New video sharing listener
-	 * @throws JoynServiceException
+	 * @param listener Listener
+	 * @throws RcsServiceException
 	 */
-	public void addNewVideoSharingListener(NewVideoSharingListener listener)
-			throws JoynServiceException {
+	public void removeEventListener(VideoSharingListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
-				api.addNewVideoSharingListener(listener);
+				api.removeEventListener2(listener);
 			} catch (Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
-		}
-	}
-
-	/**
-	 * Unregisters a new video sharing invitation listener
-	 * 
-	 * @param listener
-	 *            New video sharing listener
-	 * @throws JoynServiceException
-	 */
-	public void removeNewVideoSharingListener(NewVideoSharingListener listener)
-			throws JoynServiceException {
-		if (api != null) {
-			try {
-				api.removeNewVideoSharingListener(listener);
-			} catch (Exception e) {
-				throw new JoynServiceException(e.getMessage());
-			}
-		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 }

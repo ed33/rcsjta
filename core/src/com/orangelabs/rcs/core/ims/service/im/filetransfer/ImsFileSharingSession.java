@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.im.filetransfer;
 
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpSession;
@@ -31,6 +33,8 @@ import com.orangelabs.rcs.core.ims.service.ImsServiceError;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
 import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatUtils;
+import com.orangelabs.rcs.utils.ContactUtils;
+import com.orangelabs.rcs.utils.PhoneUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 import android.net.Uri;
@@ -54,19 +58,19 @@ public abstract class ImsFileSharingSession extends FileSharingSession {
     /**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private static final Logger logger = Logger.getLogger(ImsFileSharingSession.class.getSimpleName());
 
     /**
 	 * Constructor
 	 * 
 	 * @param parent IMS service
 	 * @param content Content of file to be shared
-	 * @param contact Remote contact
-	 * @param fileicon Content of fileicon
+	 * @param contact Remote contact identifier
+	 * @param fileIcon Content of file icon
 	 * @param filetransferId File transfer Id
 	 */
-	public ImsFileSharingSession(ImsService parent, MmContent content, String contact, MmContent fileicon, String filetransferId) {
-		super(parent, content, contact, fileicon, filetransferId);
+	public ImsFileSharingSession(ImsService parent, MmContent content, ContactId contact, MmContent fileIcon, String filetransferId) {
+		super(parent, content, contact, PhoneUtils.formatContactIdToUri(contact), fileIcon, filetransferId);
 	}
 	
 	/**
@@ -101,15 +105,6 @@ public abstract class ImsFileSharingSession extends FileSharingSession {
 		} else {
 			return null;
 		}
-	}
-
-	/**
-	 * Receive BYE request 
-	 * 
-	 * @param bye BYE request
-	 */
-	public void receiveBye(SipRequest bye) {
-		super.receiveBye(bye);
 	}
 
     /**
@@ -193,9 +188,17 @@ public abstract class ImsFileSharingSession extends FileSharingSession {
             }
         }
 
-        // Request capabilities
-        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getDialogPath().getRemoteParty());
+		try {
+			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+			// Request capabilities
+	        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
 
+		} catch (RcsContactFormatException e) {
+			if (logger.isActivated()) {
+				logger.warn("Cannot request capabilities for contact "+getDialogPath().getRemoteParty() );
+			}
+		}
+        
         // Remove the current session
         getImsService().removeSession(this);
 

@@ -18,14 +18,12 @@
 
 package com.orangelabs.rcs.ri.capabilities;
 
-import java.util.Set;
-
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
-import android.database.MatrixCursor;
 import android.os.Bundle;
 import android.os.Handler;
-import android.telephony.PhoneNumberUtils;
+import android.text.format.DateUtils;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
@@ -35,13 +33,19 @@ import android.widget.CheckBox;
 import android.widget.Spinner;
 import android.widget.TextView;
 
-import com.gsma.services.rcs.JoynServiceException;
-import com.gsma.services.rcs.JoynServiceListener;
-import com.gsma.services.rcs.JoynServiceNotAvailableException;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.RcsServiceNotAvailableException;
 import com.gsma.services.rcs.capability.Capabilities;
 import com.gsma.services.rcs.capability.CapabilitiesListener;
 import com.gsma.services.rcs.capability.CapabilityService;
+import com.gsma.services.rcs.contacts.ContactId;
+import com.gsma.services.rcs.contacts.ContactUtils;
+import com.orangelabs.rcs.ri.ApiConnectionManager;
+import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;
+import com.orangelabs.rcs.ri.utils.ContactListAdapter;
+import com.orangelabs.rcs.ri.utils.LockAccess;
+import com.orangelabs.rcs.ri.utils.LogUtils;
 import com.orangelabs.rcs.ri.utils.Utils;
 
 /**
@@ -49,162 +53,160 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * 
  * @author Jean-Marc AUFFRET
  */
-public class RequestCapabilities extends Activity implements JoynServiceListener {
+public class RequestCapabilities extends Activity {
 	/**
 	 * UI handler
 	 */
 	private final Handler handler = new Handler();
-	
-    /**
-	 * Capability API
+
+	/**
+	 * A locker to exit only once
 	 */
-    private CapabilityService capabilityApi;
-    
-    /**
-     * Capabilities listener
-     */
-    private MyCapabilitiesListener capabilitiesListener = new MyCapabilitiesListener(); 
+	private LockAccess exitOnce = new LockAccess();
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        
-        // Set layout
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        setContentView(R.layout.capabilities_request);
-        
-        // Set title
-        setTitle(R.string.menu_capabilities);
-        
-        // Set the contact selector
-        Spinner spinner = (Spinner)findViewById(R.id.contact);
-        spinner.setAdapter(Utils.createContactListAdapter(this));
-        spinner.setOnItemSelectedListener(listenerContact);
-        
+	/**
+	 * API connection manager
+	 */
+	private ApiConnectionManager connectionManager;
+
+	/**
+	 * Capabilities listener
+	 */
+	private MyCapabilitiesListener capabilitiesListener = new MyCapabilitiesListener();
+
+	private static final String EXTENSION_SEPARATOR = "\n";
+
+	/**
+	 * The log tag for this class
+	 */
+	private static final String LOGTAG = LogUtils.getTag(RequestCapabilities.class.getSimpleName());
+
+	private ContactUtils mContactUtils;
+
+	/**
+	 * Spinner for contact selection
+	 */
+	private Spinner mSpinner;
+
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+
+		// Set layout
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+		setContentView(R.layout.capabilities_request);
+
+		// Set the contact selector
+		mSpinner = (Spinner) findViewById(R.id.contact);
+		mSpinner.setAdapter(ContactListAdapter.createContactListAdapter(this));
+		mSpinner.setOnItemSelectedListener(listenerContact);
+
 		// Set button callback
-        Button refreshBtn = (Button)findViewById(R.id.refresh_btn);
-        refreshBtn.setOnClickListener(btnRefreshListener);
-        
-        // Disable button until not connected to the service
-        refreshBtn.setEnabled(false);
-        
-        // Instanciate API
-        capabilityApi = new CapabilityService(getApplicationContext(), this);
-                
-        // Connect API
-        capabilityApi.connect();
-    }
+		Button refreshBtn = (Button) findViewById(R.id.refresh_btn);
+		refreshBtn.setOnClickListener(btnRefreshListener);
 
-    @Override
-    public void onDestroy() {
-    	super.onDestroy();
-    	
-    	// Unregister API listener
-        try {
-	        capabilityApi.removeCapabilitiesListener(capabilitiesListener);
-        } catch(JoynServiceException e) {
-        	e.printStackTrace();
-        }
+		// Update refresh button
+		if (mSpinner.getAdapter().getCount() == 0) {
+			// Disable button if no contact available
+			refreshBtn.setEnabled(false);
+		} else {
+			refreshBtn.setEnabled(true);
+		}
 
-        // Disconnect API
-    	capabilityApi.disconnect();
-    }
+		mContactUtils = ContactUtils.getInstance(this);
 
-    /**
-     * Callback called when service is connected. This method is called when the
-     * service is well connected to the RCS service (binding procedure successfull):
-     * this means the methods of the API may be used.
-     */
-    public void onServiceConnected() {
-        // Update refresh button
-        Spinner spinner = (Spinner)findViewById(R.id.contact);
-        Button refreshBtn = (Button)findViewById(R.id.refresh_btn);
-        if (spinner.getAdapter().getCount() == 0) {
-        	 // Disable button if no contact available
-            refreshBtn.setEnabled(false);
-        } else {
-            refreshBtn.setEnabled(true);        	
-        }
-        
-        try {
-	        // Register capabilities listener
-	        capabilityApi.addCapabilitiesListener(capabilitiesListener);
-        } catch(JoynServiceException e) {
-	    	e.printStackTrace();
-        }
-    }
-    
-    /**
-     * Callback called when service has been disconnected. This method is called when
-     * the service is disconnected from the RCS service (e.g. service deactivated).
-     * 
-     * @param error Error
-     * @see JoynService.Error
-     */
-    public void onServiceDisconnected(int error) {
-		Utils.showMessageAndExit(RequestCapabilities.this, getString(R.string.label_api_disabled));
-    }    
-    
-    /**
-     * Capabilities event listener
-     */
-    private class MyCapabilitiesListener extends CapabilitiesListener {
-	    /**
-	     * Callback called when new capabilities are received for a given contact
-	     * 
-	     * @param contact Contact
-	     * @param capabilities Capabilities
-	     */
-	    public void onCapabilitiesReceived(final String contact, final Capabilities capabilities) {
-			handler.post(new Runnable(){
-				public void run(){
-					// Check if this intent concerns the current selected contact					
-					if (PhoneNumberUtils.compare(getSelectedContact(), contact)) {
+		// Register to API connection manager
+		connectionManager = ApiConnectionManager.getInstance(this);
+		if (connectionManager == null || !connectionManager.isServiceConnected(RcsServiceName.CAPABILITY)) {
+			Utils.showMessageAndExit(this, getString(R.string.label_service_not_available), exitOnce);
+			return;
+		}
+		connectionManager.startMonitorServices(this, null, RcsServiceName.CAPABILITY);
+		try {
+			// Add service listener
+			connectionManager.getCapabilityApi().addCapabilitiesListener(capabilitiesListener);
+		} catch (RcsServiceException e) {
+			if (LogUtils.isActive) {
+				Log.e(LOGTAG, "Failed to add listener", e);
+			}
+			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), exitOnce);
+		}
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		if (connectionManager == null) {
+			return;
+		}
+		connectionManager.stopMonitorServices(this);
+		if (connectionManager.isServiceConnected(RcsServiceName.CAPABILITY)) {
+			// Remove image sharing listener
+			try {
+				connectionManager.getCapabilityApi().removeCapabilitiesListener(capabilitiesListener);
+			} catch (Exception e) {
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "Failed to remove listener", e);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Capabilities event listener
+	 */
+	private class MyCapabilitiesListener extends CapabilitiesListener {
+		/**
+		 * Callback called when new capabilities are received for a given contact
+		 * 
+		 * @param contact
+		 *            Contact
+		 * @param capabilities
+		 *            Capabilities
+		 */
+		public void onCapabilitiesReceived(final ContactId contact, final Capabilities capabilities) {
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "onCapabilitiesReceived " + contact);
+			}
+			final ContactId selectedContact = getSelectedContact();
+			if (!contact.equals(selectedContact)) {
+				// Discard capabilities if not for selected contact
+				return;
+			}
+			handler.post(new Runnable() {
+				public void run() {
+					// Check if this intent concerns the current selected
+					// contact
+					if (contact != null && contact.equals(selectedContact)) {
 						// Update UI
 						displayCapabilities(capabilities);
 					}
 				}
 			});
-	    };    
-    }
-    
-    /**
-     * Spinner contact listener
-     */
-    private OnItemSelectedListener listenerContact = new OnItemSelectedListener() {
+		};
+	}
+
+	/**
+	 * Spinner contact listener
+	 */
+	private OnItemSelectedListener listenerContact = new OnItemSelectedListener() {
 		@Override
 		public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-            try {
-		        // Get selected contact
-				String contact = getContactAtPosition(position);
-				
-				// Get current capabilities
-				Capabilities currentCapabilities = capabilityApi.getContactCapabilities(contact);
-	
-				// Display default capabilities
-		        displayCapabilities(currentCapabilities);
+			CapabilityService capabilityApi = connectionManager.getCapabilityApi();
+			try {
+				// Get selected contact
+				ContactId contactId = getSelectedContact();
 
-		        // Check if the service is available
-		    	boolean registered = false;
-		    	try {
-		    		if ((capabilityApi != null) && capabilityApi.isServiceRegistered()) {
-		    			registered = true;
-		    		}
-		    	} catch(Exception e) {
-		    		e.printStackTrace();
-		    	}
-		    	if (!registered) {
-			    	return;
-		        }      	
-		    	
-		    	// Update capabilities
-				updateCapabilities(contact);
-		    } catch(JoynServiceNotAvailableException e) {
-		    	e.printStackTrace();
-				Utils.showMessageAndExit(RequestCapabilities.this, getString(R.string.label_api_disabled));
-		    } catch(JoynServiceException e) {
-		    	e.printStackTrace();
-				Utils.showMessageAndExit(RequestCapabilities.this, getString(R.string.label_api_failed));
+				// Get current capabilities
+				Capabilities currentCapabilities = capabilityApi.getContactCapabilities(contactId);
+
+				// Display default capabilities
+				displayCapabilities(currentCapabilities);
+			} catch (RcsServiceNotAvailableException e) {
+				e.printStackTrace();
+				Utils.showMessageAndExit(RequestCapabilities.this, getString(R.string.label_api_disabled), exitOnce);
+			} catch (RcsServiceException e) {
+				Utils.showMessageAndExit(RequestCapabilities.this, getString(R.string.label_api_failed), exitOnce);
 			}
 		}
 
@@ -212,111 +214,108 @@ public class RequestCapabilities extends Activity implements JoynServiceListener
 		public void onNothingSelected(AdapterView<?> arg0) {
 		}
 	};
-	
-    /**
-     * Returns the contact at given position
-     * 
-     * @param position Position in the adapter
-     * @return Contact
-     */
-    private String getContactAtPosition(int position) {
-	    Spinner spinner = (Spinner)findViewById(R.id.contact);
-	    MatrixCursor cursor = (MatrixCursor)spinner.getItemAtPosition(position);
-	    return cursor.getString(1);
-    }
-    
-    /**
-     * Returns the selected contact
-     * 
-     * @param position Position in the adapter
-     * @return Contact
-     */
-    private String getSelectedContact() {
-	    Spinner spinner = (Spinner)findViewById(R.id.contact);
-	    MatrixCursor cursor = (MatrixCursor)spinner.getSelectedItem();
-	    return cursor.getString(1);
-    }
 
-    /**
-     * Request button callback
-     */
-    private OnClickListener btnRefreshListener = new OnClickListener() {
-        public void onClick(View v) {
-            // Check if the service is available
-        	boolean registered = false;
-        	try {
-        		if ((capabilityApi != null) && capabilityApi.isServiceRegistered()) {
-        			registered = true;
-        		}
-        	} catch(Exception e) {
-        		e.printStackTrace();
-        	}
-            if (!registered) {
-    	    	Utils.showMessage(RequestCapabilities.this, getString(R.string.label_service_not_available));
-    	    	return;
-            }  
-            
-            // Update capabilities
-    		updateCapabilities(getSelectedContact());
-        }
-    };
+	/**
+	 * Returns the selected contact
+	 * 
+	 * @return Contact
+	 */
+	private ContactId getSelectedContact() {
+		// get selected phone number
+		ContactListAdapter adapter = (ContactListAdapter) mSpinner.getAdapter();
+		return mContactUtils.formatContact(adapter.getSelectedNumber(mSpinner.getSelectedView()));
+	}
 
-    /**
-     * Update capabilities of a given contact
-     * 
-     * @param contact Contact
-     */
-    private void updateCapabilities(final String contact) {
-        // Display info
-        Utils.displayLongToast(RequestCapabilities.this, getString(R.string.label_request_in_background, contact));
+	/**
+	 * Request button callback
+	 */
+	private OnClickListener btnRefreshListener = new OnClickListener() {
+		public void onClick(View v) {
+			// Check if the service is available
+			boolean registered = false;
+			try {
+				registered = connectionManager.getCapabilityApi().isServiceRegistered();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			if (!registered) {
+				Utils.showMessage(RequestCapabilities.this, getString(R.string.label_service_not_available));
+				return;
+			}
 
-        // Request capabilities
-    	try {
-	        // Request new capabilities 
-	        capabilityApi.requestContactCapabilities(contact);
-	    } catch(JoynServiceNotAvailableException e) {
-	    	e.printStackTrace();
-			Utils.showMessageAndExit(RequestCapabilities.this, getString(R.string.label_api_disabled));
-	    } catch(JoynServiceException e) {
-	    	e.printStackTrace();
-			Utils.showMessageAndExit(RequestCapabilities.this, getString(R.string.label_api_failed));
+			ContactId contact = getSelectedContact();
+			if (contact != null) {
+				updateCapabilities(contact);
+			}
 		}
-    }
-    
-    /**
-     * Display the capabilities
-     * 
-     * @param capabilities Capabilities
-     */
-    private void displayCapabilities(Capabilities capabilities) {
-    	CheckBox imageCSh = (CheckBox)findViewById(R.id.image_sharing);
-		CheckBox videoCSh = (CheckBox)findViewById(R.id.video_sharing);
-		CheckBox ft = (CheckBox)findViewById(R.id.file_transfer);
-		CheckBox im = (CheckBox)findViewById(R.id.im);
-		CheckBox geoloc = (CheckBox)findViewById(R.id.geoloc_push);
-		CheckBox ipVoiceCall = (CheckBox)findViewById(R.id.ip_voice_call);
-		CheckBox ipVideoCall = (CheckBox)findViewById(R.id.ip_video_call);
-		TextView extensions = (TextView)findViewById(R.id.extensions);
-    	if (capabilities != null) {
-    		// Set capabilities
-    		imageCSh.setChecked(capabilities.isImageSharingSupported());
-    		videoCSh.setChecked(capabilities.isVideoSharingSupported());
-    		ft.setChecked(capabilities.isFileTransferSupported());
-    		im.setChecked(capabilities.isImSessionSupported());
-    		geoloc.setChecked(capabilities.isGeolocPushSupported());
-    		ipVoiceCall.setChecked(capabilities.isIPVoiceCallSupported());
-    		ipVideoCall.setChecked(capabilities.isIPVideoCallSupported());
+	};
 
-            // Set extensions
-    		extensions.setVisibility(View.VISIBLE);
-            String result = "";
-            Set<String> extensionList = capabilities.getSupportedExtensions();
-	        for(String value : extensionList) {
-	        	if (value.length() > 0) {
-	        		result += value + "\n";
-	        	}
-            }
-            extensions.setText(result);    		
-    	}
-    }
+	/**
+	 * Update capabilities of a given contact
+	 * 
+	 * @param contact
+	 *            Contact
+	 */
+	private void updateCapabilities(ContactId contact) {
+		// Display info
+		Utils.displayLongToast(RequestCapabilities.this, getString(R.string.label_request_in_background, contact));
+		// Request capabilities
+		try {
+			// Request new capabilities
+			connectionManager.getCapabilityApi().requestContactCapabilities(contact);
+		} catch (RcsServiceNotAvailableException e) {
+			e.printStackTrace();
+			Utils.showMessageAndExit(this, getString(R.string.label_api_disabled), exitOnce);
+		} catch (RcsServiceException e) {
+			e.printStackTrace();
+			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), exitOnce);
+		}
+	}
+
+	/**
+	 * Display the capabilities
+	 * 
+	 * @param capabilities
+	 *            Capabilities
+	 */
+	private void displayCapabilities(Capabilities capabilities) {
+		CheckBox imageCSh = (CheckBox) findViewById(R.id.image_sharing);
+		CheckBox videoCSh = (CheckBox) findViewById(R.id.video_sharing);
+		CheckBox ft = (CheckBox) findViewById(R.id.file_transfer);
+		CheckBox im = (CheckBox) findViewById(R.id.im);
+		CheckBox geoloc = (CheckBox) findViewById(R.id.geoloc_push);
+		CheckBox ipVoiceCall = (CheckBox) findViewById(R.id.ip_voice_call);
+		CheckBox ipVideoCall = (CheckBox) findViewById(R.id.ip_video_call);
+		TextView extensions = (TextView) findViewById(R.id.extensions);
+		TextView timestamp = (TextView) findViewById(R.id.last_refresh);
+		CheckBox automata = (CheckBox) findViewById(R.id.automata);
+		CheckBox valid = (CheckBox) findViewById(R.id.is_valid);
+		// Set capabilities
+		imageCSh.setChecked((capabilities != null) ? capabilities.isImageSharingSupported() : false);
+		videoCSh.setChecked((capabilities != null) ? capabilities.isVideoSharingSupported() : false);
+		ft.setChecked((capabilities != null) ? capabilities.isFileTransferSupported() : false);
+		im.setChecked((capabilities != null) ? capabilities.isImSessionSupported() : false);
+		geoloc.setChecked((capabilities != null) ? capabilities.isGeolocPushSupported() : false);
+		ipVoiceCall.setChecked((capabilities != null) ? capabilities.isIPVoiceCallSupported() : false);
+		ipVideoCall.setChecked((capabilities != null) ? capabilities.isIPVideoCallSupported() : false);
+
+		// Set extensions
+		extensions.setVisibility(View.VISIBLE);
+		extensions.setText(getExtensions(capabilities));
+		automata.setChecked((capabilities != null) ? capabilities.isAutomata() : false);
+		timestamp.setText((capabilities != null) ? DateUtils.getRelativeTimeSpanString(capabilities.getTimestamp(), System.currentTimeMillis(),
+				DateUtils.MINUTE_IN_MILLIS, DateUtils.FORMAT_ABBREV_RELATIVE) : "");
+		valid.setChecked((capabilities != null) ? capabilities.isValid() : false);
+	}
+
+	/* package private */static String getExtensions(Capabilities capabilities) {
+		if (capabilities == null || capabilities.getSupportedExtensions().isEmpty()) {
+			return "";
+		}
+		StringBuilder extensions = new StringBuilder();
+		for (String capability : capabilities.getSupportedExtensions()) {
+			extensions.append(EXTENSION_SEPARATOR).append(capability);
+		}
+		return extensions.substring(EXTENSION_SEPARATOR.length());
+	}
 }

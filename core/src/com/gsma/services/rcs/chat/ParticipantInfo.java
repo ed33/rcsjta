@@ -18,21 +18,17 @@
 
 package com.gsma.services.rcs.chat;
 
-import java.io.Serializable;
-
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import com.orangelabs.rcs.utils.PhoneUtils;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Participant information
  * 
  * @author YPLO6403
  */
-public class ParticipantInfo implements Parcelable, Serializable {
-
-	private static final long serialVersionUID = 0L;
+public class ParticipantInfo implements Parcelable {
 
 	/**
 	 * Status
@@ -42,7 +38,7 @@ public class ParticipantInfo implements Parcelable, Serializable {
 	/**
 	 * Contact
 	 */
-	private String contact = null;
+	private ContactId contact = null;
 
 	/**
 	 * Participant status The status may have the following values:
@@ -110,10 +106,10 @@ public class ParticipantInfo implements Parcelable, Serializable {
 	 * Constructor
 	 * 
 	 * @param contact
-	 *            contact
+	 *            contact identifier
 	 * @hide
 	 */
-	public ParticipantInfo(String contact) {
+	public ParticipantInfo(ContactId contact) {
 		this(contact, Status.UNKNOWN);
 	}
 
@@ -121,20 +117,15 @@ public class ParticipantInfo implements Parcelable, Serializable {
 	 * Constructor
 	 * 
 	 * @param contact
-	 *            Contact
+	 *            ContactId
 	 * @param status
 	 *            Status
 	 * @hide
 	 */
-	public ParticipantInfo(String contact,int status) {
+	public ParticipantInfo(ContactId contact,int status) {
 		super();
 		this.status = status;
-		String number = PhoneUtils.extractNumberFromUri(contact);
-		if (PhoneUtils.isGlobalPhoneNumber(number)) {
-			this.contact = number;
-		} else {
-			throw new IllegalArgumentException("Invalid contact "+contact);
-		}
+		this.contact = contact;
 	}
 
 	/**
@@ -143,7 +134,12 @@ public class ParticipantInfo implements Parcelable, Serializable {
 	 * @param in Parcelable source
 	 */
 	public ParticipantInfo(Parcel in) {
-		this.contact = in.readString();
+		boolean flag = in.readInt() != 0;
+		if (flag) {
+			this.contact = ContactId.CREATOR.createFromParcel(in);
+		} else {
+			this.contact = null;
+		}
 		this.status = in.readInt();
 	}
 
@@ -171,25 +167,13 @@ public class ParticipantInfo implements Parcelable, Serializable {
 	public int getStatus() {
 		return status;
 	}
-
-	/**
-	 * Sets the status
-	 * 
-	 * @param status
-	 *            the new status
-	 * @see Status
-	 * @hide
-	 */
-	public void setStatus(int status) {
-		this.status = status;
-	}
 	
 	/**
 	 * Returns the contact number
 	 * 
 	 * @return Contact
 	 */
-	public String getContact() {
+	public ContactId getContact() {
 		return contact;
 	}
 
@@ -213,25 +197,15 @@ public class ParticipantInfo implements Parcelable, Serializable {
 	 */
 	@Override
 	public void writeToParcel(Parcel dest, int flags) {
-		dest.writeString(contact);
+		if (contact != null) {
+			dest.writeInt(1);
+			contact.writeToParcel(dest, flags);
+		} else {
+			dest.writeInt(0);
+		}
 		dest.writeInt(status);
 	}
 
-	/**
-	 * Read parcelable object
-	 * 
-	 * @param in Parcelable source
-	 * @hide
-	 */
-	public void readFromParcel(Parcel in) {
-		this.contact = in.readString();
-		this.status = in.readInt();
-	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 * @hide
-	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -241,36 +215,30 @@ public class ParticipantInfo implements Parcelable, Serializable {
 		return result;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 * @hide
-	 */
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		ParticipantInfo other = (ParticipantInfo) obj;
 		if (contact == null) {
-			if (other.contact != null)
+			if (other.contact != null) {
 				return false;
-		} else if (!contact.equals(other.contact))
+			}
+		} else {
+			if (!contact.equals(other.contact))
+				return false;
+		}
+		if (status != other.status) {
 			return false;
-		if (status != other.status)
-			return false;
+		}
 		return true;
-	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 * @hide
-	 */
-	@Override
-	public String toString() {
-		return "ParticipantInfo [contact=" + contact+ ", status=" + status+ "]";
 	}
 	
 }

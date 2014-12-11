@@ -20,15 +20,19 @@ package com.orangelabs.rcs.ri.ipcall;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.database.MatrixCursor;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.Spinner;
 
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
+import com.gsma.services.rcs.contacts.ContactUtils;
 import com.orangelabs.rcs.ri.R;
+import com.orangelabs.rcs.ri.utils.ContactListAdapter;
 import com.orangelabs.rcs.ri.utils.Utils;
 
 /**
@@ -37,6 +41,12 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * @author Jean-Marc AUFFRET
  */
 public class InitiateIPCall extends Activity {
+
+	/**
+	 * Spinner for contact selection
+	 */
+	private Spinner mSpinner;
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -47,21 +57,21 @@ public class InitiateIPCall extends Activity {
 
 		// Set title
 		setTitle(R.string.menu_initiate_ipcall);
-		
+
 		// Set contact selector
-		Spinner spinner = (Spinner)findViewById(R.id.contact);
-		spinner.setAdapter(Utils.createContactListAdapter(this));
+		mSpinner = (Spinner) findViewById(R.id.contact);
+		mSpinner.setAdapter(ContactListAdapter.createContactListAdapter(this));
 
 		// Set buttons callback
-		Button initiateBtn = (Button)findViewById(R.id.initiate_btn);
+		Button initiateBtn = (Button) findViewById(R.id.initiate_btn);
 		initiateBtn.setOnClickListener(btnInitiateListener);
 
-        // Disable button if no contact available
-        if (spinner.getAdapter().getCount() == 0) {
-        	initiateBtn.setEnabled(false);
-        }
+		// Disable button if no contact available
+		if (mSpinner.getAdapter().getCount() == 0) {
+			initiateBtn.setEnabled(false);
+		}
 	}
-	
+
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
@@ -73,23 +83,31 @@ public class InitiateIPCall extends Activity {
 	private OnClickListener btnInitiateListener = new OnClickListener() {
 		public void onClick(View v) {
 			// Get remote contact
-			Spinner spinner = (Spinner)findViewById(R.id.contact);
-			MatrixCursor cursor = (MatrixCursor) spinner.getSelectedItem();
-            String remoteContact = cursor.getString(1);
+			ContactUtils contactUtils = ContactUtils.getInstance(InitiateIPCall.this);
+			// get selected phone number
+			ContactListAdapter adapter = (ContactListAdapter) mSpinner.getAdapter();
+			String phoneNumber = adapter.getSelectedNumber(mSpinner.getSelectedView());
+			try {
+				ContactId contact = contactUtils.formatContact(phoneNumber);
+				// Get video option
+				CheckBox videoCheck = (CheckBox) findViewById(R.id.video);
 
-            // Get video option
-	        CheckBox videoCheck = (CheckBox)findViewById(R.id.video);
-            
-			// Display session view
-			Intent intent = new Intent(InitiateIPCall.this, IPCallView.class);
-        	intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        	intent.putExtra(IPCallView.EXTRA_MODE, IPCallView.MODE_OUTGOING);
-        	intent.putExtra(IPCallView.EXTRA_CONTACT, remoteContact);
-        	intent.putExtra(IPCallView.EXTRA_VIDEO_OPTION, videoCheck.isChecked());
-			startActivity(intent);
-			
-        	// Exit activity
-        	finish();     
+				// Display session view
+				Intent intent = new Intent(InitiateIPCall.this, IPCallView.class);
+				intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+				intent.putExtra(IPCallView.EXTRA_MODE, IPCallView.MODE_OUTGOING);
+				intent.putExtra(IPCallView.EXTRA_CONTACT, (Parcelable) contact);
+				intent.putExtra(IPCallView.EXTRA_VIDEO_OPTION, videoCheck.isChecked());
+				startActivity(intent);
+
+				// Exit activity
+				finish();
+			} catch (RcsContactFormatException e) {
+				Utils.showMessage(InitiateIPCall.this, getString(R.string.label_invalid_contact, phoneNumber));
+				return;
+			}
+
 		}
 	};
+
 }

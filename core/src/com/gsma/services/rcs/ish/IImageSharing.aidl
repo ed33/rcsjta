@@ -1,6 +1,8 @@
 package com.gsma.services.rcs.ish;
 
-import com.gsma.services.rcs.ish.IImageSharingListener;
+import android.net.Uri;
+
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Image sharing interface
@@ -9,7 +11,7 @@ interface IImageSharing {
 
 	String getSharingId();
 
-	String getRemoteContact();
+	ContactId getRemoteContact();
 
 	Uri getFile();
 
@@ -17,9 +19,11 @@ interface IImageSharing {
 
 	long getFileSize();
 
-	String getFileType();
+	String getMimeType();
 
 	int getState();
+
+	int getReasonCode();
 	
 	int getDirection();
 		
@@ -28,8 +32,4 @@ interface IImageSharing {
 	void rejectInvitation();
 
 	void abortSharing();
-	
-	void addEventListener(in IImageSharingListener listener);
-
-	void removeEventListener(in IImageSharingListener listener);
 }

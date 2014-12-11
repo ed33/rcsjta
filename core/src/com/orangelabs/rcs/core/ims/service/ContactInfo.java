@@ -18,6 +18,9 @@
 
 package com.orangelabs.rcs.core.ims.service;
 
+import android.util.SparseArray;
+
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.service.capability.Capabilities;
 import com.orangelabs.rcs.core.ims.service.presence.PresenceInfo;
 
@@ -25,90 +28,135 @@ import com.orangelabs.rcs.core.ims.service.presence.PresenceInfo;
  * Contact info
  */
 public class ContactInfo {
-    /**
-     * The contact is RCS capable but there is no special presence relationship with the user
-     */
-    public final static int RCS_CAPABLE = 0;
     
-    /**
-     * The contact is not RCS
-     */
-    public final static int NOT_RCS = 1;
+	public enum RegistrationState {
+		UNKNOWN(0), ONLINE(1), OFFLINE(2);
 
-    /** 
-     * Presence relationship: contact 'rcs granted' with the user 
-     */
-    public final static int RCS_ACTIVE = 2;
-    
-    /**
-     * Presence relationship: the user has revoked the contact 
-     */
-    public final static int RCS_REVOKED = 3;
-    
-    /**
-     * Presence relationship: the user has blocked the contact 
-     */
-    public final static int RCS_BLOCKED = 4;
-    
-    /**
-     * Presence relationship: the user has sent an invitation to the contact without response for now 
-     */
-    public final static int RCS_PENDING_OUT = 5;
-    
-    /**
-     * Presence relationship: the contact has sent an invitation to the user without response for now 
-     */
-    public final static int RCS_PENDING = 6;
-    
-    /** 
-     * Presence relationship: the contact has sent an invitation to the user and cancel it
-     */
-    public final static int RCS_CANCELLED = 7;
-    
-    /** 
-     * We have never queried the contact capabilities for now
-     */
-    public final static int NO_INFO = 8;
-    
-    /** 
-     * Registration state : unknown
-     */
-    public final static int REGISTRATION_STATUS_UNKNOWN = 0;
-    
-    /** 
-     * Registration state : registered
-     */
-    public final static int REGISTRATION_STATUS_ONLINE = 1;
-    
-    /** 
-     * Registration state : not registered
-     */
-    public final static int REGISTRATION_STATUS_OFFLINE = 2;
+		private int mValue;
+
+		/**
+		 * A data array to keep mapping between value and RegistrationState
+		 */
+		private static SparseArray<RegistrationState> mValueToEnum = new SparseArray<RegistrationState>();
+		static {
+			for (RegistrationState entry : RegistrationState.values()) {
+				mValueToEnum.put(entry.toInt(), entry);
+			}
+		}
+
+		private RegistrationState(int value) {
+			mValue = value;
+		}
+
+		public final int toInt() {
+			return mValue;
+		}
+		
+		public static RegistrationState valueOf(int value) {
+			RegistrationState state = mValueToEnum.get(value);
+		    if (state != null) {
+		        return state;
+		    }
+		    return UNKNOWN;
+		}
+	};
+	
+	public enum RcsStatus {
+		/**
+		 * The contact is RCS capable but there is no special presence relationship with the user
+		 */
+		RCS_CAPABLE(0),
+		/**
+		 * The contact is not RCS
+		 */
+		NOT_RCS(1),
+		/**
+		 * Presence relationship: contact 'rcs granted' with the user
+		 */
+		ACTIVE(2),
+		/**
+		 * Presence relationship: the user has revoked the contact
+		 */
+		REVOKED(3),
+		/**
+		 * Presence relationship: the user has blocked the contact
+		 */
+		BLOCKED(4),
+		/**
+		 * Presence relationship: the user has sent an invitation to the contact without response for now
+		 */
+		PENDING_OUT(5),
+		/**
+		 * Presence relationship: the contact has sent an invitation to the user without response for now
+		 */
+		PENDING(6),
+		/**
+		 * Presence relationship: the contact has sent an invitation to the user and cancel it
+		 */
+		CANCELLED(7),
+		/**
+		 * We have never queried the contact capabilities for now
+		 */
+		NO_INFO(8);
+
+		private int mValue;
+
+		/**
+		 * A data array to keep mapping between value and PresenceSharingStatus
+		 */
+		private static SparseArray<RcsStatus> mValueToEnum = new SparseArray<RcsStatus>();
+		static {
+			for (RcsStatus entry : RcsStatus.values()) {
+				mValueToEnum.put(entry.toInt(), entry);
+			}
+		}
+
+		private RcsStatus(int value) {
+			mValue = value;
+		}
+
+		public final int toInt() {
+			return mValue;
+		}
+		
+		public static RcsStatus valueOf(int value) {
+			RcsStatus status = mValueToEnum.get(value);
+		    if (status != null) {
+		        return status;
+		    }
+		    return NO_INFO;
+		}
+	};
     
 	/**
 	 * Capabilities
 	 */
-	private Capabilities capabilities = null;
+	private Capabilities capabilities;
 	
 	/**
 	 * Presence info, relevant only if social info is activated for this contact
 	 */
-	private PresenceInfo presenceInfo = null;
+	private PresenceInfo presenceInfo;
 	
 	/**
-	 * Contact
+	 * Contact identifier
 	 */
-	private String contact = null;
+	private ContactId mContact;
+	
+	/**
+	 * Display name of RCS contact
+	 */
+	private String displayName;
 	
 	/**
 	 * Registration state
 	 */
-	private int registrationState = REGISTRATION_STATUS_UNKNOWN;
+	private RegistrationState registrationState = RegistrationState.UNKNOWN;
 	
 	/**
 	 * RCS status
 	 */
-	private int rcsStatus = ContactInfo.NOT_RCS;
+	private RcsStatus rcsStatus = RcsStatus.NOT_RCS;
 	
 	/**
 	 * RCS status timestamp
@@ -127,12 +175,13 @@ public class ContactInfo {
 	 * @param contactInfo
 	 */
 	public ContactInfo(ContactInfo info) {
-		this.contact = info.getContact();
-		this.registrationState = info.getRegistrationState();
-		this.rcsStatus = info.getRcsStatus();
-		this.rcsStatusTimestamp = info.getRcsStatusTimestamp();
-		this.capabilities = info.capabilities;
-		this.presenceInfo = info.getPresenceInfo();		
+		mContact = info.getContact();
+		registrationState = info.getRegistrationState();
+		rcsStatus = info.getRcsStatus();
+		rcsStatusTimestamp = info.getRcsStatusTimestamp();
+		capabilities = info.capabilities;
+		presenceInfo = info.getPresenceInfo();
+		displayName = info.getDisplayName();
 	}
 
     /**
@@ -159,7 +208,7 @@ public class ContactInfo {
 	 * @param info Presence info
 	 */
 	public void setPresenceInfo(PresenceInfo info) {
-		this.presenceInfo = info;
+		presenceInfo = info;
 	}
 	
 	/**
@@ -172,21 +221,21 @@ public class ContactInfo {
 	}
 
     /**
-	 * Set the contact
+	 * Set the contact identifier
 	 * 
-	 * @param contact Contact
+	 * @param contact Contact identifier
 	 */
-	public void setContact(String contact) {
-		this.contact = contact;
+	public void setContact(ContactId contact) {
+		mContact = contact;
 	}
 	
 	/**
-	 * Returns the contact
+	 * Returns the contact identifier
 	 * 
-	 * @return contact
+	 * @return contactId
 	 */
-	public String getContact(){
-		return contact;
+	public ContactId getContact(){
+		return mContact;
 	}
 	
     /**
@@ -194,7 +243,7 @@ public class ContactInfo {
 	 * 
 	 * @param rcsStatus RCS status
 	 */
-	public void setRcsStatus(int rcsStatus) {
+	public void setRcsStatus(RcsStatus rcsStatus) {
 		this.rcsStatus = rcsStatus;
 	}
 	
@@ -203,7 +252,7 @@ public class ContactInfo {
 	 * 
 	 * @return rcsStatus
 	 */
-	public int getRcsStatus(){
+	public RcsStatus getRcsStatus(){
 		return rcsStatus;
 	}
 	
@@ -212,8 +261,8 @@ public class ContactInfo {
 	 * 
 	 * @param int registrationState
 	 */
-	public void setRegistrationState(int registrationState) {
-		this.registrationState = registrationState;
+	public void setRegistrationState(RegistrationState state) {
+		registrationState = state;
 	}
 	
 	/**
@@ -221,7 +270,7 @@ public class ContactInfo {
 	 * 
 	 * @return registrationState
 	 */
-	public int getRegistrationState(){
+	public RegistrationState getRegistrationState(){
 		return registrationState;
 	}
 	
@@ -249,9 +298,25 @@ public class ContactInfo {
      * @return true if the contact is RCS
      */
     public boolean isRcsContact() {
-        return (rcsStatus != ContactInfo.NO_INFO && rcsStatus != ContactInfo.NOT_RCS);
+        return (!RcsStatus.NO_INFO.equals(rcsStatus) && !RcsStatus.NOT_RCS.equals(rcsStatus));
 
     }
+
+	/**
+	 * Returns the RCS display name
+	 * @return the RCS display name
+	 */
+	public String getDisplayName() {
+		return displayName;
+	}
+
+	/**
+	 * Sets the RCS display name
+	 * @param displayName
+	 */
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
 
 	/**
 	 * Returns a string representation of the object
@@ -259,7 +324,7 @@ public class ContactInfo {
 	 * @return String
 	 */
 	public String toString() {
-		String result =  "Contact=" + contact +
+		String result =  "Contact=" + mContact +
 			", Status=" + rcsStatus +
 			", State=" + registrationState +
 			", Timestamp=" + rcsStatusTimestamp;

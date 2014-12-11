@@ -1,18 +1,21 @@
 package com.gsma.services.rcs.extension;
 
-import com.gsma.services.rcs.extension.IMultimediaMessagingSessionListener;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Multimedia messaging session interface
  */
 interface IMultimediaMessagingSession {
+
 	String getSessionId();
 	
-	String getRemoteContact();
+	ContactId getRemoteContact();
 	
 	String getServiceId();
 	
 	int getState();
+	
+	int getReasonCode();
 	
 	int getDirection();
 	
@@ -21,11 +24,6 @@ interface IMultimediaMessagingSession {
 	void rejectInvitation();
 	
 	void abortSession();
-	
-	void addEventListener(in IMultimediaMessagingSessionListener listener);
-	
-	void removeEventListener(in IMultimediaMessagingSessionListener listener);
 
-	boolean sendMessage(in byte[] content);
+	void sendMessage(in byte[] content);
 }
-

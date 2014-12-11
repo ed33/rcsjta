@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +15,15 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.gsh;
 
-import com.gsma.services.rcs.JoynServiceException;
+import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.chat.Geoloc;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Geoloc sharing
@@ -32,58 +37,110 @@ public class GeolocSharing {
      */
     public static class State {
     	/**
-    	 * Inactive state
-    	 */
-    	public final static int INACTIVE = 0;
-
-    	/**
     	 * Sharing invitation received
     	 */
-    	public final static int INVITED = 1;
+    	public final static int INVITED = 0;
     	
     	/**
     	 * Sharing invitation sent
     	 */
-    	public final static int INITIATED = 2;
+    	public final static int INITIATED = 1;
     	
     	/**
     	 * Sharing is started
     	 */
-    	public final static int STARTED = 3;
+    	public final static int STARTED = 2;
     	
     	/**
-    	 * Geoloc has been transferred with success 
+    	 * Sharing has been aborted
     	 */
-    	public final static int TRANSFERRED = 4;
-    	
-    	/**
-    	 * Sharing has been aborted 
-    	 */
-    	public final static int ABORTED = 5;
+    	public final static int ABORTED = 3;
     	
     	/**
     	 * Sharing has failed 
     	 */
-    	public final static int FAILED = 6;
-    	
+    	public final static int FAILED = 4;
+
+    	/**
+    	 * Sharing has been transferred
+    	 */
+    	public final static int TRANSFERRED = 5;
+
+    	/**
+    	 * Sharing invitation was rejected
+    	 */
+    	public final static int REJECTED = 6;
+
+    	/**
+    	 * Call ringing
+    	 */
+    	public final static int RINGING = 7;
+
+    	/**
+    	 * Sharing has been accepted and is in the process of becoming started
+    	 */
+    	public final static int ACCEPTING = 8;
+
         private State() {
         }    	
     }
-    
-    /**
-     * Direction of the sharing
-     */
-    public static class Direction {
-        /**
-         * Incoming sharing
-         */
-        public static final int INCOMING = 0;
-        
-        /**
-         * Outgoing sharing
-         */
-        public static final int OUTGOING = 1;
-    }      
+
+    public static class ReasonCode {
+    	/**
+    	 * No specific reason code specified.
+    	 */
+    	public final static int UNSPECIFIED = 0;
+
+    	/**
+    	 * Geolocation share is aborted by local user.
+    	 */
+    	public final static int ABORTED_BY_USER = 1;
+
+    	/**
+    	 * Geolocation share is aborted by remote user.
+    	 */
+    	public final static int ABORTED_BY_REMOTE = 2;
+
+    	/**
+    	 * Geolocation share is aborted by system.
+    	 */
+    	public final static int ABORTED_BY_SYSTEM = 3;
+
+    	/**
+    	 * Geolocation share is rejected because already taken by the secondary device.
+    	 */
+    	public final static int REJECTED_BY_SECONDARY_DEVICE = 4;
+
+    	/**
+    	 * Geolocation share invitation was rejected due to to many open sharing sessions.
+    	 */
+    	public final static int REJECTED_MAX_SHARING_SESSIONS = 5;
+
+    	/**
+    	 * Geolocation share invitation was rejected by local user.
+    	 */
+    	public final static int REJECTED_BY_USER = 6;
+
+    	/**
+    	 * Geolocation share invitation was rejected by remote.
+    	 */
+    	public final static int REJECTED_BY_REMOTE = 7;
+
+    	/**
+    	 * Geolocation share invitation was rejected due to time out.
+    	 */
+    	public final static int REJECTED_TIME_OUT = 8;
+
+    	/**
+    	 * Geolocation share initiation failed.
+    	 */
+    	public final static int FAILED_INITIATION = 9;
+
+    	/**
+    	 * Sharing of the geolocation has failed.
+    	 */
+    	public final static int FAILED_SHARING = 10;
+    }
     
     /**
      * Geoloc sharing error
@@ -121,42 +178,42 @@ public class GeolocSharing {
 	 * Returns the sharing ID of the geoloc sharing
 	 * 
 	 * @return Sharing ID
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public String getSharingId() throws JoynServiceException {
+	public String getSharingId() throws RcsServiceException {
 		try {
 			return sharingInf.getSharingId();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
-	 * Returns the remote contact
+	 * Returns the remote contact identifier
 	 * 
-	 * @return Contact
-	 * @throws JoynServiceException
+	 * @return ContactId
+	 * @throws RcsServiceException
 	 */
-	public String getRemoteContact() throws JoynServiceException {
+	public ContactId getRemoteContact() throws RcsServiceException {
 		try {
 			return sharingInf.getRemoteContact();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
-     * Returns the geolocation info
-     *
-     * @return Geoloc object
-	 * @throws JoynServiceException
+	 * Returns the geolocation info
+	 * 
+	 * @return Geoloc object
+	 * @throws RcsServiceException
 	 * @see Geoloc
-     */
-	public Geoloc getGeoloc() throws JoynServiceException {
+	 */
+	public Geoloc getGeoloc() throws RcsServiceException {
 		try {
 			return sharingInf.getGeoloc();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
@@ -165,95 +222,82 @@ public class GeolocSharing {
 	 * 
 	 * @return State
 	 * @see GeolocSharing.State
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public int getState() throws JoynServiceException {
+	public int getState() throws RcsServiceException {
 		try {
 			return sharingInf.getState();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}		
-		
+
+	/**
+	 * Returns the reason code of the state of the sharing
+	 *
+	 * @return ReasonCode
+	 * @see GeolocSharing.ReasonCode
+	 * @throws RcsServiceException
+	 */
+	public int getReasonCode() throws RcsServiceException {
+		try {
+			return sharingInf.getReasonCode();
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}
+	}
+
 	/**
 	 * Returns the direction of the sharing (incoming or outgoing)
 	 * 
 	 * @return Direction
 	 * @see GeolocSharing.Direction
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public int getDirection() throws JoynServiceException {
+	public int getDirection() throws RcsServiceException {
 		try {
 			return sharingInf.getDirection();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}	
 	
 	/**
 	 * Accepts geoloc sharing invitation
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void acceptInvitation() throws JoynServiceException {
+	public void acceptInvitation() throws RcsServiceException {
 		try {
 			sharingInf.acceptInvitation();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
 	 * Rejects geoloc sharing invitation
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void rejectInvitation() throws JoynServiceException {
+	public void rejectInvitation() throws RcsServiceException {
 		try {
 			sharingInf.rejectInvitation();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
 	/**
 	 * Aborts the sharing
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void abortSharing() throws JoynServiceException {
+	public void abortSharing() throws RcsServiceException {
 		try {
 			sharingInf.abortSharing();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
-		}
-	}
-
-	/**
-	 * Adds a listener on geoloc sharing events
-	 * 
-	 * @param listener Listener
-	 * @throws JoynServiceException
-	 */
-	public void addEventListener(GeolocSharingListener listener) throws JoynServiceException {
-		try {
-			sharingInf.addEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
-		}
-	}
-	
-	/**
-	 * Removes a listener from geoloc sharing
-	 * 
-	 * @param listener Listener
-	 * @throws JoynServiceException
-	 */
-	public void removeEventListener(GeolocSharingListener listener) throws JoynServiceException {
-		try {
-			sharingInf.removeEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 }

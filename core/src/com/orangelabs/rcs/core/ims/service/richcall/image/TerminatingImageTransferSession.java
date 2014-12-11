@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.core.ims.service.richcall.image;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Vector;
 
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.content.ContentManager;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
-import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
 import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpConstants;
 import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpEventListener;
 import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpManager;
@@ -42,10 +44,12 @@ import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipTransactionContext;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
 import com.orangelabs.rcs.core.ims.service.SessionTimerManager;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.NetworkRessourceManager;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -58,7 +62,7 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
 	/**
 	 * MSRP manager
 	 */
-	private MsrpManager msrpMgr = null;
+	private MsrpManager msrpMgr;
 	
 	/**
      * The logger
@@ -70,10 +74,10 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
      * 
 	 * @param parent IMS service
 	 * @param invite Initial INVITE request
+	 * @param contact Contact ID
 	 */
-	public TerminatingImageTransferSession(ImsService parent, SipRequest invite) {
-		super(parent, ContentManager.createMmContentFromSdp(invite), SipUtils.getAssertedIdentity(invite), FileTransferUtils
-				.extractFileIcon(invite));
+	public TerminatingImageTransferSession(ImsService parent, SipRequest invite, ContactId contact) {
+		super(parent, ContentManager.createMmContentFromSdp(invite), contact, FileTransferUtils.extractFileIcon(invite));
 
 		// Create dialog path
 		createTerminatingDialogPath(invite);
@@ -88,7 +92,6 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
 	    		logger.info("Initiate a new sharing session as terminating");
 	    	}
 
-	    	// Send a 180 Ringing response
 	    	send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
 	    	// Check if the MIME type is supported
@@ -104,46 +107,68 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
 				handleError(new ContentSharingError(ContentSharingError.UNSUPPORTED_MEDIA_TYPE));
         		return;
         	}
-	    	
-			// Wait invitation answer
-	    	int answer = waitInvitationAnswer();
-			if (answer == ImsServiceSession.INVITATION_REJECTED) {
-				if (logger.isActivated()) {
-					logger.debug("Session has been rejected by user");
-				}
-				
-		    	// Remove the current session
-		    	getImsService().removeSession(this);
 
-		    	// Notify listeners
-		    	for(int i=0; i < getListeners().size(); i++) {
-		    		getListeners().get(i).handleSessionAborted(ImsServiceSession.TERMINATION_BY_USER);
-		        }
-				return;
-			} else
-			if (answer == ImsServiceSession.INVITATION_NOT_ANSWERED) {
-				if (logger.isActivated()) {
-					logger.debug("Session has been rejected on timeout");
-				}
+			Collection<ImsSessionListener> listeners = getListeners();
+			for (ImsSessionListener listener : listeners) {
+				listener.handleSessionInvited();
+			}
 
-                // Ringing period timeout
-				send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+			int answer = waitInvitationAnswer();
+			switch (answer) {
+				case ImsServiceSession.INVITATION_REJECTED:
+					if (logger.isActivated()) {
+						logger.debug("Session has been rejected by user");
+					}
 
-		    	// Remove the current session
-		    	getImsService().removeSession(this);
+					getImsService().removeSession(this);
 
-		    	// Notify listeners
-		    	for(int i=0; i < getListeners().size(); i++) {
-		    		getListeners().get(i).handleSessionAborted(ImsServiceSession.TERMINATION_BY_TIMEOUT);
-		        }
-				return;
-			} else
-            if (answer == ImsServiceSession.INVITATION_CANCELED) {
-                if (logger.isActivated()) {
-                    logger.debug("Session has been canceled");
-                }
-                return;
-            }			
+					for (ImsSessionListener listener : listeners) {
+						listener.handleSessionRejectedByUser();
+					}
+					return;
+
+				case ImsServiceSession.INVITATION_NOT_ANSWERED:
+					if (logger.isActivated()) {
+						logger.debug("Session has been rejected on timeout");
+					}
+
+					// Ringing period timeout
+					send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+
+					getImsService().removeSession(this);
+
+					for (ImsSessionListener listener : listeners) {
+						listener.handleSessionRejectedByTimeout();
+					}
+					return;
+
+				case ImsServiceSession.INVITATION_CANCELED:
+					if (logger.isActivated()) {
+						logger.debug("Session has been rejected by remote");
+					}
+
+					getImsService().removeSession(this);
+
+					for (ImsSessionListener listener : listeners) {
+						listener.handleSessionRejectedByRemote();
+					}
+					return;
+
+				case ImsServiceSession.INVITATION_ACCEPTED:
+					setSessionAccepted();
+
+					for (ImsSessionListener listener : listeners) {
+						listener.handleSessionAccepted();
+					}
+					break;
+
+				default:
+					if (logger.isActivated()) {
+						logger.debug("Unknown invitation answer in run; answer="
+									.concat(String.valueOf(answer)));
+					}
+					return;
+			}
 
 			// Auto reject if file too big or if storage capacity is too small
 			ContentSharingError error = isImageCapacityAcceptable(getContent().getSize());
@@ -277,11 +302,6 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
     				logger.info("ACK request received");
     			}
 
-                // Notify listeners
-                for(int i=0; i < getListeners().size(); i++) {
-                    getListeners().get(i).handleSessionStarted();
-                }
-
     	        // Create the MSRP client session
                 if (localSetup.equals("active")) {
                 	// Active mode: client should connect
@@ -309,6 +329,10 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
 
                 // The session is established
                 getDialogPath().sessionEstablished();
+
+                for (ImsSessionListener listener : listeners) {
+                    listener.handleSessionStarted();
+            }
 
             	// Start session timer
             	if (getSessionTimerManager().isSessionTimerActivated(resp)) {        	
@@ -482,9 +506,16 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
 	   		}
 	   	}
 
-        // Request capabilities
-        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getDialogPath().getRemoteParty());
-
+        try {
+			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+			// Request capabilities to the remote
+	        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
+		} catch (RcsContactFormatException e) {
+			if (logger.isActivated()) {
+				logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
+			}
+		}
+        
     	// Remove the current session
     	getImsService().removeSession(this);
 
@@ -549,5 +580,10 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
             }
         }
     }
+
+	@Override
+	public boolean isInitiatedByRemote() {
+		return true;
+	}
 }
 

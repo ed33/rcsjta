@@ -1,20 +1,24 @@
 package com.gsma.services.rcs.ft;
 
-import com.gsma.services.rcs.IJoynServiceRegistrationListener;
+import android.net.Uri;
+
+import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.ft.IFileTransfer;
-import com.gsma.services.rcs.ft.IFileTransferListener;
-import com.gsma.services.rcs.ft.INewFileTransferListener;
+import com.gsma.services.rcs.ft.IOneToOneFileTransferListener;
+import com.gsma.services.rcs.ft.IGroupFileTransferListener;
 import com.gsma.services.rcs.ft.FileTransferServiceConfiguration;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * File transfer service API
  */
 interface IFileTransferService {
+
 	boolean isServiceRegistered();
 
-	void addServiceRegistrationListener(IJoynServiceRegistrationListener listener);
+	void addEventListener(IRcsServiceRegistrationListener listener);
 
-	void removeServiceRegistrationListener(IJoynServiceRegistrationListener listener); 
+	void removeEventListener(IRcsServiceRegistrationListener listener);
 
 	FileTransferServiceConfiguration getConfiguration();
 
@@ -22,15 +26,19 @@ interface IFileTransferService {
 	
 	IFileTransfer getFileTransfer(in String transferId);
 
-	IFileTransfer transferFile(in String contact, in Uri file, in boolean fileicon, in IFileTransferListener listener);
+	IFileTransfer transferFile(in ContactId contact, in Uri file, in boolean fileicon);
 
-	IFileTransfer transferFileToGroupChat(in String chatId, in Uri file, in boolean fileicon, in IFileTransferListener listener);
+	IFileTransfer transferFileToGroupChat(in String chatId, in Uri file, in boolean fileicon);
 
 	void markFileTransferAsRead(in String transferId);
 	
-	void addNewFileTransferListener(in INewFileTransferListener listener);
+	void addEventListener2(in IOneToOneFileTransferListener listener);
 
-	void removeNewFileTransferListener(in INewFileTransferListener listener);
+	void removeEventListener2(in IOneToOneFileTransferListener listener);
+
+	void addEventListener3(in IGroupFileTransferListener listener);
+
+	void removeEventListener3(in IGroupFileTransferListener listener);
 	
 	int getServiceVersion();
 	

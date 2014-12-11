@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.http;
 
 import java.util.NoSuchElementException;
 import java.util.Vector;
-import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.Core;
 import com.orangelabs.rcs.core.CoreException;
 import com.orangelabs.rcs.core.content.MmContent;
@@ -39,7 +39,9 @@ import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingError;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
 import com.orangelabs.rcs.provider.fthttp.FtHttpResumeDaoImpl;
 import com.orangelabs.rcs.provider.fthttp.FtHttpResumeUpload;
+import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.utils.IdGenerator;
+import com.orangelabs.rcs.utils.MimeManager;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -52,17 +54,12 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
     /**
      * HTTP upload manager
      */
-    protected HttpUploadManager uploadManager = null;
+    protected HttpUploadManager uploadManager;
 
 	/**
      * The logger
      */
     private final static Logger logger = Logger.getLogger(OriginatingHttpFileSharingSession.class.getSimpleName());
-
-    /**
-     * fired a boolean value updated atomically to notify only once
-     */
-	private AtomicBoolean fired = new AtomicBoolean(false);
 
 	/**
 	 * Constructor
@@ -72,23 +69,28 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
 	 * @param content
 	 *            Content of file to share
 	 * @param contact
-	 *            Remote contact
-	 * @param fileicon
-	 *            true if the stack must try to attach fileicon
+	 *            Remote contact identifier
+	 * @param remoteUri
+	 *            the remote URI
+	 * @param fileIcon
+	 *            true if the stack must try to attach file icon
+	 * @param tId
+	 *            TID of the upload
 	 */
-	public OriginatingHttpFileSharingSession(ImsService parent, MmContent content, String contact, boolean fileicon) {
-		super(parent, content, contact, null, null, null, IdGenerator.generateMessageID());
+	public OriginatingHttpFileSharingSession(ImsService parent, MmContent content,
+			ContactId contact, String remoteUri, boolean fileIcon, String tId) {
+		super(parent, content, contact, remoteUri, null, null, null, IdGenerator.generateMessageID());
 		if (logger.isActivated()) {
-			logger.debug("OriginatingHttpFileSharingSession contact=" + contact);
+			logger.debug("OriginatingHttpFileSharingSession contact=" + contact+ " remoteURI= "+remoteUri);
 		}
-		MmContent fileiconContent = null;
-		if (fileicon) {
-			// Create the fileicon
-			fileiconContent = FileTransferUtils.createFileicon(content.getUri(), getSessionID());
-			setFileicon(fileiconContent);
+		MmContent fileIconContent = null;
+		if (fileIcon && MimeManager.isImageType(content.getEncoding())) {
+			// Create the file icon
+			fileIconContent = FileTransferUtils.createFileicon(content.getUri(), getFileTransferId());
+			setFileicon(fileIconContent);
 		}
 		// Instantiate the upload manager
-		uploadManager = new HttpUploadManager(getContent(), fileiconContent, this);
+		uploadManager = new HttpUploadManager(getContent(), fileIconContent, this, tId);
 	}
 	
 	/**
@@ -99,19 +101,25 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
 	 * @param content
 	 *            Content of file to share
 	 * @param contact
-	 *            Remote contact
-	 * @param fileiconContent
-	 *            Content of fileicon
+	 *            Remote contact identifier
+	 * @param remoteUri
+	 *            Remote URI
+	 * @param fileIconContent
+	 *            Content of file icon
 	 * @param fileTransferId
 	 *            File transfer Id
+	 * @param tId
+	 *            TID of the upload
 	 */
-	public OriginatingHttpFileSharingSession(ImsService parent, MmContent content, String contact, MmContent fileiconContent, String fileTransferId) {
-		super(parent, content, contact, fileiconContent, null, null, fileTransferId);
+	public OriginatingHttpFileSharingSession(ImsService parent, MmContent content,
+			ContactId contact, String remoteUri, MmContent fileIconContent, String fileTransferId,
+			String tId) {
+		super(parent, content, contact, remoteUri, fileIconContent, null, null, fileTransferId);
 		if (logger.isActivated()) {
 			logger.debug("OriginatingHttpFileSharingSession contact=" + contact );
 		}
 		// Instantiate the upload manager
-		uploadManager = new HttpUploadManager(getContent(), getFileicon(), this);
+		uploadManager = new HttpUploadManager(getContent(), getFileicon(), this, tId);
 	}
 
 	/**
@@ -152,8 +160,12 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
             	 Vector<ChatSession> chatSessions = Core.getInstance().getImService().getImSessionsWith(getRemoteContact());
             	 try {
             		 chatSession = chatSessions.lastElement();
-            		 setChatSessionID(chatSession.getSessionID());
-            		 setContributionID(chatSession.getContributionID());
+            		 if (chatSession.isMediaEstablished()) {
+            			 setChatSessionID(chatSession.getSessionID());
+            			 setContributionID(chatSession.getContributionID());
+            		 } else {
+            			 chatSession = null;
+            		 }
             	 } catch(NoSuchElementException nsee) {
                      chatSession = null;
                  }
@@ -221,21 +233,11 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
 	@Override
 	public void handleError(ImsServiceError error) {
 		super.handleError(error);
-		if (fired.compareAndSet(false, true)) {
-			if (resumeFT != null) {
-				FtHttpResumeDaoImpl.getInstance().delete(resumeFT);
-			}
-		}
 	}
 	
 	@Override
 	public void handleFileTransfered() {
 		super.handleFileTransfered();
-		if (fired.compareAndSet(false, true)) {
-			if (resumeFT != null) {
-                FtHttpResumeDaoImpl.getInstance().delete(resumeFT);
-			}
-		}
 	}
 	
 	/**
@@ -256,7 +258,7 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
 	public void pauseFileTransfer() {
 		fileTransferPaused();
 		interruptSession();
-		uploadManager.pauseTransfer();
+		uploadManager.pauseTransferByUser();
 	}
 
 	/**
@@ -268,7 +270,7 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
 		new Thread(new Runnable() {
 			public void run() {
 				try {
-					FtHttpResumeUpload upload = FtHttpResumeDaoImpl.getInstance().queryUpload(uploadManager.getTid());
+					FtHttpResumeUpload upload = FtHttpResumeDaoImpl.getInstance().queryUpload(uploadManager.getTId());
 					if (upload != null) {
 						sendResultToContact(uploadManager.resumeUpload());
 					} else {
@@ -283,20 +285,15 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
 
 	@Override
 	public void uploadStarted() {
-		// Create upload entry in fthttp table
-		String tId = uploadManager.getTid();
-		MmContent fileicon = getFileicon();
-		resumeFT = new FtHttpResumeUpload(this, tId, fileicon != null ? fileicon.getUri() : null,
-				false);
-		// Insert entry into table only if it does not exist earlier
-		// Incases when the file is uploaded from beginning as a result of
-		// resume failure, an entry would have been already present in the
-		// table and duplicate entry should not be made
-		if (FtHttpResumeDaoImpl.getInstance().queryUpload(tId) == null)
-			FtHttpResumeDaoImpl.getInstance().insert(resumeFT);
+		MessagingLog.getInstance().setFileUploadTId(getFileTransferId(), uploadManager.getTId());
 	}
 
 	public HttpUploadManager getUploadManager() {
 		return uploadManager;
+	}
+
+	@Override
+	public boolean isInitiatedByRemote() {
+		return false;
 	}
 }

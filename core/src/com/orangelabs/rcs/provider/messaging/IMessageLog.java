@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.provider.messaging;
 
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage;
 
 /**
@@ -44,10 +45,20 @@ public interface IMessageLog {
 	 * 
 	 * @param msg
 	 *            Chat message
-	 * @param direction
-	 *            Direction
 	 */
-	public void addChatMessage(InstantMessage msg, int direction);
+	public void addIncomingOneToOneChatMessage(InstantMessage msg);
+
+	/**
+	 * Add a chat message
+	 * 
+	 * @param msg
+	 *            Chat message
+	 * @param status
+	 *            Message status
+	 * @param reasonCode
+	 *            Status reason code
+	 */
+	public void addOutgoingOneToOneChatMessage(InstantMessage msg, int status, int reasonCode);
 
 	/**
 	 * Add a group chat message
@@ -58,8 +69,12 @@ public interface IMessageLog {
 	 *            Chat message
 	 * @param direction
 	 *            Direction
+	 * @param status
+	 *            Message status
+	 * @param reasonCode
+	 *            Status reason code
 	 */
-	public void addGroupChatMessage(String chatId, InstantMessage msg, int direction);
+	public void addGroupChatMessage(String chatId, InstantMessage msg, int direction, int status, int reasonCode);
 
 	/**
 	 * Add group chat system message
@@ -67,11 +82,11 @@ public interface IMessageLog {
 	 * @param chatId
 	 *            Chat ID
 	 * @param contact
-	 *            Contact
+	 *            Contact ID
 	 * @param status
 	 *            Status
 	 */
-	public void addGroupChatSystemMessage(String chatId, String contact, int status);
+	public void addGroupChatSystemMessage(String chatId, ContactId contact, int status);
 
 	/**
 	 * Update chat message read status
@@ -90,8 +105,10 @@ public interface IMessageLog {
 	 *            Message ID
 	 * @param status
 	 *            Message status
+	 * @param reasonCode
+	 *            Message status reason code
 	 */
-	public void updateChatMessageStatus(String msgId, int status);
+	public void updateChatMessageStatusAndReasonCode(String msgId, int status, int reasonCode);
 
 	/**
 	 * Mark incoming chat message status as received
@@ -102,41 +119,11 @@ public interface IMessageLog {
 	public void markIncomingChatMessageAsReceived(String msgId);
 
 	/**
-	 * Update chat message delivery status
+	 * Check if the message is already persisted in db
 	 * 
-	 * @param msgId
-	 *            Message ID
-	 * @param status
-	 *            Delivery status
-	 */
-	public void updateOutgoingChatMessageDeliveryStatus(String msgId, String status);
-
-	/**
-	 * Update chat message delivery status in cases of failure
-	 * 
-	 * @param msgId
-	 *            Message ID
-	 * @param status
-	 *            Delivery status
-	 */
-	public void updateChatMessageDeliveryStatus(String msgId, String status);
-
-	/**
-	 * Check if it's a new message
-	 * 
-	 * @param chatId
-	 *            chat ID
 	 * @param msgId
 	 *            message ID
-	 * @return true if new message
+	 * @return true if the message already exists in db
 	 */
-	public boolean isNewMessage(String chatId, String msgId);
-
-	/**
-	 * A delivery report "displayed" is requested for a given chat message
-	 * 
-	 * @param msgId
-	 *            Message ID
-	 */
-	public void setChatMessageDeliveryRequested(String msgId);
+	public boolean isMessagePersisted(String msgId);
 }

@@ -19,6 +19,7 @@ package com.orangelabs.rcs.core.ims.service.im.chat;
 
 import java.util.Date;
 
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.FileTransferHttpInfoDocument;
 
 /**
@@ -41,28 +42,26 @@ public class FileTransferMessage extends InstantMessage {
      * Constructor for outgoing message
      * 
      * @param messageId Message Id
-     * @param remote Remote user
+     * @param remote Remote user identifier
      * @param file File info
      * @param imdnDisplayedRequested Flag indicating that an IMDN "displayed" is requested
      * @param displayName the display name
 	 */
-	public FileTransferMessage(String messageId, String remote, String file, boolean imdnDisplayedRequested, String displayName) {
-		super(messageId, remote, null, imdnDisplayedRequested, displayName);
-		
-		this.file = file;
+	public FileTransferMessage(String messageId, ContactId remote, String file, boolean imdnDisplayedRequested, String displayName) {
+        this(messageId, remote, file, imdnDisplayedRequested, null, displayName);
 	}
 	
 	/**
      * Constructor for incoming message
      * 
      * @param messageId Message Id
-     * @param remote Remote user
+     * @param remote Remote user identifier
      * @param file File info
      * @param imdnDisplayedRequested Flag indicating that an IMDN "displayed" is requested
 	 * @param serverReceiptAt Receipt date of the message on the server
 	 * @param displayName the display name
 	 */
-	public FileTransferMessage(String messageId, String remote, String file, boolean imdnDisplayedRequested, Date serverReceiptAt, String displayName) {
+	public FileTransferMessage(String messageId, ContactId remote, String file, boolean imdnDisplayedRequested, Date serverReceiptAt, String displayName) {
 		super(messageId, remote, null, imdnDisplayedRequested, serverReceiptAt, displayName);
 		
 		this.file = file;
@@ -76,4 +75,11 @@ public class FileTransferMessage extends InstantMessage {
 	public String getFileInfo() {
 		return file;
 	}
+
+	@Override
+	public String toString() {
+		return "FileTransferMessage [file=" + file + ", " + super.toString() + "]";
+	}
+	
+	
 }

@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.http;
@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.gsma.services.rcs.ft.FileTransfer;
+import com.gsma.services.rcs.RcsCommon.Direction;
 import com.orangelabs.rcs.core.content.ContentManager;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
@@ -89,10 +90,11 @@ public class FtHttpResumeManager {
 			if (listFile2resume.isEmpty() == false) {
 				// Rich Messaging - set all "in progress" File transfer to "paused".
 				// This is necessary in case of the application can't update the
-				// status before device switch off.
+				// state before device switch off.
 				for (FtHttpResume ftHttpResume : listFile2resume) {
-					MessagingLog.getInstance().updateFileTransferStatus(ftHttpResume.getFileTransferId(),
-							FileTransfer.State.PAUSED);
+					MessagingLog.getInstance().updateFileTransferStateAndReasonCode(
+							ftHttpResume.getFileTransferId(), FileTransfer.State.PAUSED,
+							FileTransfer.ReasonCode.PAUSED_BY_SYSTEM);
 				}
 				listOfFtHttpResume = new LinkedList<FtHttpResume>(listFile2resume);
 				processNext();
@@ -117,9 +119,9 @@ public class FtHttpResumeManager {
 			logger.debug("Resume FT HTTP " + ftHttpResume);
 		}
 		switch (ftHttpResume.getDirection()) {
-		case INCOMING:
+		case Direction.INCOMING:
 			FtHttpResumeDownload downloadInfo = (FtHttpResumeDownload) ftHttpResume;
-			MmContent downloadContent = ContentManager.createMmContent(ftHttpResume.getFileUri(),downloadInfo.getSize(),downloadInfo.getFileName());
+			MmContent downloadContent = ContentManager.createMmContent(ftHttpResume.getFile(),downloadInfo.getSize(),downloadInfo.getFileName());
 			// Creates the Resume Download session object
 			final ResumeDownloadFileSharingSession resumeDownload = new ResumeDownloadFileSharingSession(
                     imsService, downloadContent, downloadInfo);
@@ -138,13 +140,13 @@ public class FtHttpResumeManager {
 					.handleIncomingFileTransferResuming(resumeDownload, resumeDownload.isGroup, resumeDownload.getChatSessionID(),
 							resumeDownload.getContributionID());
 			break;
-		case OUTGOING:
+		case Direction.OUTGOING:
 		    // TODO : only managed for 1-1 FToHTTP
             FtHttpResumeUpload uploadInfo = (FtHttpResumeUpload) ftHttpResume;
             if (!ftHttpResume.isGroup()) {
                 // Get upload content
                     MmContent uploadContent = ContentManager.createMmContentFromMime(
-                            uploadInfo.getFileUri(), uploadInfo.getMimetype(),
+                            uploadInfo.getFile(), uploadInfo.getMimetype(),
                             uploadInfo.getSize(), uploadInfo.getFileName());
 
                 // Create Resume Upload session 
@@ -200,6 +202,10 @@ public class FtHttpResumeManager {
 			}
 
 			@Override
+			public void handleTransferNotAllowedToSend() {
+			}
+
+			@Override
 			public void handleTransferError(FileSharingError error) {
 				if (fired.compareAndSet(false, true)) {
 					processNext();
@@ -218,7 +224,35 @@ public class FtHttpResumeManager {
 			}
 
 			@Override
-			public void handleFileTransferPaused() {
+			public void handleSessionAccepted() {
+			}
+
+			@Override
+			public void handleFileTransferPausedByUser() {
+			}
+
+			@Override
+			public void handleFileTransferPausedBySystem() {
+			}
+
+			@Override
+			public void handleSessionRejectedByUser() {
+			}
+
+			@Override
+			public void handleSessionRejectedByTimeout() {
+			}
+
+			@Override
+			public void handleSessionRejectedByRemote() {
+			}
+
+			@Override
+			public void handleSessionInvited() {
+			}
+
+			@Override
+			public void handleSessionAutoAccepted() {
 			}
 		};
 	}

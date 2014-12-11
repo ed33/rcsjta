@@ -24,8 +24,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
+import android.provider.BaseColumns;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -36,17 +36,40 @@ import android.widget.CursorAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.gsma.services.rcs.RcsCommon;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharingLog;
 import com.orangelabs.rcs.ri.R;
+import com.orangelabs.rcs.ri.utils.RcsDisplayName;
 import com.orangelabs.rcs.ri.utils.Utils;
 
 /**
- * List video sharings from the content provider 
+ * List video sharing from the content provider 
  *   
  * @author Jean-Marc AUFFRET
+ * @author YPLO6403
+ *
  */
 public class VideoSharingList extends Activity {
+	/**
+	 * SHARING_ID is the ID since it is a primary key
+	 */
+	private static final String SHARING_ID_AS_ID = new StringBuilder(VideoSharingLog.SHARING_ID).append(" AS ")
+			.append(BaseColumns._ID).toString();
+	
+	// @formatter:off
+	 private static final String[] PROJECTION = new String[] {
+		SHARING_ID_AS_ID,
+		VideoSharingLog.CONTACT,
+		VideoSharingLog.DURATION,
+		VideoSharingLog.STATE,
+		VideoSharingLog.DIRECTION,
+		VideoSharingLog.TIMESTAMP
+	 };
+	 // @formatter:on
+	 
+	private static final String SORT_ORDER = new StringBuilder(VideoSharingLog.TIMESTAMP).append(" DESC").toString();
+	
 	/**
 	 * List view
 	 */
@@ -60,9 +83,6 @@ public class VideoSharingList extends Activity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.video_sharing_list);
         
-        // Set title
-        setTitle(R.string.menu_video_sharing_log);
-
         // Set list adapter
         listView = (ListView)findViewById(android.R.id.list);
         TextView emptyView = (TextView)findViewById(android.R.id.empty);
@@ -81,17 +101,7 @@ public class VideoSharingList extends Activity {
 	 * Create list adapter
 	 */
 	private VideoSharingListAdapter createListAdapter() {
-		Uri uri = VideoSharingLog.CONTENT_URI;
-        String[] projection = new String[] {
-        	VideoSharingLog.ID,
-        	VideoSharingLog.CONTACT_NUMBER,
-        	VideoSharingLog.DURATION,
-    		VideoSharingLog.STATE,
-    		VideoSharingLog.DIRECTION,
-    		VideoSharingLog.TIMESTAMP
-    		};
-        String sortOrder = VideoSharingLog.TIMESTAMP + " DESC ";
-		Cursor cursor = getContentResolver().query(uri, projection, null, null, sortOrder);
+		Cursor cursor = getContentResolver().query(VideoSharingLog.CONTENT_URI, PROJECTION, null, null, SORT_ORDER);
 		if (cursor == null) {
 			Utils.showMessageAndExit(this, getString(R.string.label_load_log_failed));
 			return null;
@@ -117,31 +127,30 @@ public class VideoSharingList extends Activity {
         public View newView(Context context, Cursor cursor, ViewGroup parent) {
             LayoutInflater inflater = LayoutInflater.from(context);
             View view = inflater.inflate(R.layout.video_sharing_list_item, parent, false);
-            
-            VideoSharingItemCache cache = new VideoSharingItemCache();
-    		cache.number = cursor.getString(1);
-    		cache.duration = cursor.getLong(2);
-    		cache.state = cursor.getInt(3);
-    		cache.direction = cursor.getInt(4);
-    		cache.date = cursor.getLong(5);
+            VideoSharingItemCache cache = new VideoSharingItemCache(view, cursor);
             view.setTag(cache);
-            
             return view;
         }
         
     	@Override
     	public void bindView(View view, Context context, Cursor cursor) {
-    		VideoSharingItemCache cache = (VideoSharingItemCache)view.getTag();
-    		TextView numberView = (TextView)view.findViewById(R.id.number);
-    		numberView.setText(getString(R.string.label_contact, cache.number));
-    		TextView durationView = (TextView)view.findViewById(R.id.duration);
-    		durationView.setText(getString(R.string.label_video_duration, cache.duration));
-    		TextView stateView = (TextView)view.findViewById(R.id.state);
-    		stateView.setText(getString(R.string.label_session_state, decodeState(cache.state)));
-    		TextView directionView = (TextView)view.findViewById(R.id.direction);
-    		directionView.setText(getString(R.string.label_direction, decodeDirection(cache.direction)));
-    		TextView dateView = (TextView)view.findViewById(R.id.date);
-    		dateView.setText(getString(R.string.label_session_date, decodeDate(cache.date)));
+    		VideoSharingItemCache holder = (VideoSharingItemCache)view.getTag();
+    		
+    		String number = cursor.getString(holder.columnNumber);
+			String displayName = RcsDisplayName.getInstance(context).getDisplayName(number);
+			holder.numberText.setText(getString(R.string.label_contact, displayName));
+			
+			Long duration = cursor.getLong(holder.columnDuration);
+    		holder.durationText.setText(getString(R.string.label_video_duration, duration));
+    		
+    		int state = cursor.getInt(holder.columnState);
+    		holder.stateText.setText(getString(R.string.label_session_state, decodeState(state)));
+    		
+    		int direction = cursor.getInt(holder.columnDirection);
+			holder.directionText.setText(getString(R.string.label_direction, decodeDirection(direction)));
+
+			Long timestamp = cursor.getLong(holder.columnTimestamp);
+			holder.timestamptext.setText(getString(R.string.label_session_date, decodeDate(timestamp)));
     	}
     }
 
@@ -149,11 +158,30 @@ public class VideoSharingList extends Activity {
      * Video sharing item in cache
      */
 	private class VideoSharingItemCache {
-		public String number;
-		public long duration;
-		public int direction;
-		public int state;
-		public long date;
+		int columnDuration;
+		int columnDirection;
+		int columnState;
+		int columnTimestamp;
+		int columnNumber;
+
+		TextView numberText;
+		TextView durationText;
+		TextView stateText;
+		TextView directionText;
+		TextView timestamptext;
+		
+		public VideoSharingItemCache(View view, Cursor cursor) {
+			columnNumber = cursor.getColumnIndex(VideoSharingLog.CONTACT);
+			columnDuration = cursor.getColumnIndex(VideoSharingLog.DURATION);
+			columnState = cursor.getColumnIndex(VideoSharingLog.STATE);
+			columnDirection = cursor.getColumnIndex(VideoSharingLog.DIRECTION);
+			columnTimestamp = cursor.getColumnIndex(VideoSharingLog.TIMESTAMP);
+			numberText = (TextView) view.findViewById(R.id.number);
+			durationText = (TextView) view.findViewById(R.id.duration);
+			stateText = (TextView) view.findViewById(R.id.state);
+			directionText = (TextView) view.findViewById(R.id.direction);
+			timestamptext = (TextView) view.findViewById(R.id.date);
+		}
 	}    
 
 	/**
@@ -163,27 +191,24 @@ public class VideoSharingList extends Activity {
 	 * @return String
 	 */
 	private String decodeState(int state) {
-		if (state == VideoSharing.State.ABORTED) {
-			return getString(R.string.label_state_aborted);
-		} else
-		if (state == VideoSharing.State.FAILED) {
-			return getString(R.string.label_state_failed);
-		} else
-		if (state == VideoSharing.State.INITIATED) {
-			return getString(R.string.label_state_initiated);
-		} else
-		if (state == VideoSharing.State.INVITED) {
+		switch (state) {
+		case VideoSharing.State.INVITED:
 			return getString(R.string.label_state_invited);
-		} else
-		if (state == VideoSharing.State.STARTED) {
+		case VideoSharing.State.INITIATED:
+			return getString(R.string.label_state_initiated);
+		case VideoSharing.State.STARTED:
 			return getString(R.string.label_state_started);
-		} else
-		if (state == VideoSharing.State.TERMINATED) {
-			return getString(R.string.label_state_terminated);
-		} else
-		if (state == VideoSharing.State.INACTIVE) {
-			return getString(R.string.label_state_inactive);
-		} else {
+		case VideoSharing.State.ABORTED:
+			return getString(R.string.label_state_aborted);
+		case VideoSharing.State.FAILED:
+			return getString(R.string.label_state_failed);
+		case VideoSharing.State.REJECTED:
+			return getString(R.string.label_state_rejected);
+		case VideoSharing.State.RINGING:
+			return getString(R.string.label_state_ringing);
+		case VideoSharing.State.ACCEPTING:
+			return getString(R.string.label_state_accepting);
+		default:
 			return getString(R.string.label_state_unknown);
 		}
 	}
@@ -195,7 +220,7 @@ public class VideoSharingList extends Activity {
 	 * @return String
 	 */
 	private String decodeDirection(int direction) {
-		if (direction == VideoSharing.Direction.INCOMING) {
+		if (direction == RcsCommon.Direction.INCOMING) {
 			return getString(R.string.label_incoming);
 		} else {
 			return getString(R.string.label_outgoing);

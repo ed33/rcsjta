@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +15,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.ipcall;
 
-import com.gsma.services.rcs.JoynServiceException;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * IP call
@@ -31,63 +36,113 @@ public class IPCall {
      */
     public static class State {
     	/**
-    	 * Inactive state
-    	 */
-    	public final static int INACTIVE = 0;
-
-    	/**
     	 * Call invitation received
     	 */
-    	public final static int INVITED = 1;
+    	public final static int INVITED = 0;
     	
     	/**
     	 * Call invitation sent
     	 */
-    	public final static int INITIATED = 2;
+    	public final static int INITIATED = 1;
     	
     	/**
     	 * Call is started
     	 */
-    	public final static int STARTED = 3;
+    	public final static int STARTED = 2;
     	
     	/**
-    	 * call has been aborted 
+    	 * call has been aborted
     	 */
-    	public final static int ABORTED = 5;
-    	
-        /**
-         * Call has been terminated
-         */
-        public static final int TERMINATED = 6;
+    	public final static int ABORTED = 3;
 
-        /**
-    	 * Call has failed 
+    	/**
+    	 * Call has failed
     	 */
-    	public final static int FAILED = 7;
-    	
-        /**
-    	 * Call on hold 
+    	public final static int FAILED = 4;
+
+    	/**
+    	 * Call rejected
     	 */
-    	public final static int HOLD = 8;
+    	public final static int REJECTED = 5;
+
+    	/**
+    	 * Call on hold
+    	 */
+    	public final static int HOLD = 6;
+
+    	/**
+    	 * Call has been accepted and is in the process of becoming started
+    	 */
+    	public final static int ACCEPTING = 7;
+
+    	/**
+    	 * Call ringing
+    	 */
+    	public final static int RINGING = 8;
 
     	private State() {
         }    	
     }
     
     /**
-     * Direction of the call
+     * Reason code associated with the ip call state.
      */
-    public static class Direction {
+    public static class ReasonCode {
         /**
-         * Incoming call
+         * No specific reason code specified.
          */
-        public static final int INCOMING = 0;
-        
+        public static final int UNSPECIFIED = 0;
+
         /**
-         * Outgoing call
+         * IP call share is aborted by local user.
          */
-        public static final int OUTGOING = 1;
-    }    
+        public static final int ABORTED_BY_USER = 1;
+
+        /**
+         * IP call share is aborted by remote user.
+         */
+        public static final int ABORTED_BY_REMOTE = 2;
+
+        /**
+         * IP call is aborted by system.
+         */
+        public static final int ABORTED_BY_SYSTEM = 3;
+
+        /**
+         * IP call is rejected because already taken by the secondary device.
+         */
+        public static final int REJECTED_BY_SECONDARY_DEVICE = 4;
+
+        /**
+         * IP call invitation was rejected due to max number of sessions reached.
+         */
+        public static final int REJECTED_MAX_SESSIONS = 5;
+
+        /**
+         * IP call invitation was rejected by local user.
+         */
+        public static final int REJECTED_BY_USER = 6;
+
+        /**
+         * IP call invitation was rejected by remote.
+         */
+        public static final int REJECTED_BY_REMOTE = 7;
+
+        /**
+         * IP call has been rejected due to time out.
+         */
+        public static final int REJECTED_TIME_OUT = 8;
+
+        /**
+         * IP call initiation failed.
+         */
+        public static final int FAILED_INITIATION = 9;
+
+        /**
+         * IP call failed.
+         */
+        public static final int FAILED_IPCALL = 10;
+    }
     
     /**
      * Call error
@@ -125,27 +180,27 @@ public class IPCall {
 	 * Returns the call ID of call
 	 * 
 	 * @return Call ID
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public String getCallId() throws JoynServiceException {
+	public String getCallId() throws RcsServiceException {
 		try {
 			return callInf.getCallId();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
-	 * Returns the remote contact
+	 * Returns the remote contact identifier
 	 * 
-	 * @return Contact
-	 * @throws JoynServiceException
+	 * @return ContactId
+	 * @throws RcsServiceException
 	 */
-	public String getRemoteContact() throws JoynServiceException {
+	public ContactId getRemoteContact() throws RcsServiceException {
 		try {
 			return callInf.getRemoteContact();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
@@ -154,28 +209,43 @@ public class IPCall {
 	 * 
 	 * @return State
 	 * @see IPCall.State
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public int getState() throws JoynServiceException {
+	public int getState() throws RcsServiceException {
 		try {
 			return callInf.getState();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}		
-		
+
+	/**
+	 * Returns the reason code of the state of the call
+	 *
+	 * @return ReasonCode
+	 * @see IPCall.ReasonCode
+	 * @throws RcsServiceException
+	 */
+	public int getReasonCode() throws RcsServiceException {
+		try {
+			return callInf.getReasonCode();
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}
+	}
+
 	/**
 	 * Returns the direction of the call (incoming or outgoing)
 	 * 
 	 * @return Direction
-	 * @see IPCall.Direction
-	 * @throws JoynServiceException
+	 * @see com.gsma.services.rcs.RcsCommon.Direction
+	 * @throws RcsServiceException
 	 */
-	public int getDirection() throws JoynServiceException {
+	public int getDirection() throws RcsServiceException {
 		try {
 			return callInf.getDirection();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}	
 	
@@ -184,39 +254,39 @@ public class IPCall {
 	 * 
 	 * @param player IP call player
 	 * @param renderer IP call renderer
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void acceptInvitation(IPCallPlayer player, IPCallRenderer renderer) throws JoynServiceException {
+	public void acceptInvitation(IPCallPlayer player, IPCallRenderer renderer) throws RcsServiceException {
 		try {
 			callInf.acceptInvitation(player, renderer);
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
 	 * Rejects call invitation
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void rejectInvitation() throws JoynServiceException {
+	public void rejectInvitation() throws RcsServiceException {
 		try {
 			callInf.rejectInvitation();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
 	/**
 	 * Aborts the call
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void abortCall() throws JoynServiceException {
+	public void abortCall() throws RcsServiceException {
 		try {
 			callInf.abortCall();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
@@ -224,39 +294,39 @@ public class IPCall {
 	 * Is video activated
 	 * 
 	 * @return Boolean
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public boolean isVideo() throws JoynServiceException {
+	public boolean isVideo() throws RcsServiceException {
 		try {
 			return callInf.isVideo();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
 	/**
 	 * Add video stream
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void addVideo() throws JoynServiceException {
+	public void addVideo() throws RcsServiceException {
 		try {
 			callInf.addVideo();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
 	/**
 	 * Remove video stream
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void removeVideo() throws JoynServiceException {
+	public void removeVideo() throws RcsServiceException {
 		try {
 			callInf.removeVideo();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
@@ -264,67 +334,67 @@ public class IPCall {
 	 * Is call on hold
 	 * 
 	 * @return Boolean
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public boolean isOnHold() throws JoynServiceException {
+	public boolean isOnHold() throws RcsServiceException {
 		try {
 			return callInf.isOnHold();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
 	/**
 	 * Puts the call on hold
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void holdCall() throws JoynServiceException {
+	public void holdCall() throws RcsServiceException {
 		try {
 			callInf.holdCall();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
 	/**
 	 * Continues the call that hold's on
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void continueCall() throws JoynServiceException {
+	public void continueCall() throws RcsServiceException {
 		try {
 			callInf.continueCall();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
-	
+
 	/**
-	 * Adds a listener on IP call events
-	 * 
-	 * @param listener Listener
-	 * @throws JoynServiceException
+	 * Returns the video codec used during sharing
+	 *
+	 * @return VideoCodec
+	 * @throws RcsServiceException
 	 */
-	public void addEventListener(IPCallListener listener) throws JoynServiceException {
+	public VideoCodec getVideoCodec() throws RcsServiceException {
 		try {
-			callInf.addEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			return callInf.getVideoCodec();
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
-	
+
 	/**
-	 * Removes a listener from IP call events
-	 * 
-	 * @param listener Listener
-	 * @throws JoynServiceException
+	 * Returns the audio codec used during sharing
+	 *
+	 * @return AudioCodec
+	 * @throws RcsServiceException
 	 */
-	public void removeEventListener(IPCallListener listener) throws JoynServiceException {
+	public AudioCodec getAudioCodec() throws RcsServiceException {
 		try {
-			callInf.removeEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			return callInf.getAudioCodec();
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 }

@@ -18,6 +18,8 @@
 
 package com.orangelabs.rcs.ri.sharing.geoloc;
 
+import java.util.Calendar;
+
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -25,9 +27,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.media.RingtoneManager;
+import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 
+import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.gsh.GeolocSharingIntent;
 import com.orangelabs.rcs.ri.R;
+import com.orangelabs.rcs.ri.utils.LogUtils;
 import com.orangelabs.rcs.ri.utils.Utils;
 
 /**
@@ -36,6 +42,12 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * @author vfml3370
  */
 public class GeolocSharingInvitationReceiver extends BroadcastReceiver {
+	
+	/**
+	 * The log tag for this class
+	 */
+	private static final String LOGTAG = LogUtils.getTag(GeolocSharingInvitationReceiver.class.getSimpleName());
+	
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		// Display invitation notification
@@ -46,28 +58,42 @@ public class GeolocSharingInvitationReceiver extends BroadcastReceiver {
      * Add geoloc share notification
      * 
      * @param context Context
-     * @param intent Intent invitation
+     * @param invitation Intent invitation
      */
 	public static void addGeolocSharingInvitationNotification(Context context, Intent invitation) {
-    	// Get remote contact
-		String contact = invitation.getStringExtra(GeolocSharingIntent.EXTRA_CONTACT);
+		// Get remote contact
+		// TODO CR025 implement provider for geolocation sharing
+		ContactId contact = invitation.getParcelableExtra("TODO");
+		if (contact == null) {
+			if (LogUtils.isActive) {
+				Log.e(LOGTAG, "GeolocSharingInvitationReceiver failed: cannot parse contact");
+			}
+			return;
+		}
 
 		// Create notification
 		Intent intent = new Intent(invitation);
 		intent.setClass(context, ReceiveGeolocSharing.class);
 		intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);		
         PendingIntent contentIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        String notifTitle = context.getString(R.string.title_recv_geoloc_sharing, contact);
-        Notification notif = new Notification(R.drawable.ri_notif_gsh_icon, notifTitle,	System.currentTimeMillis());
-        notif.flags = Notification.FLAG_AUTO_CANCEL;
-        notif.setLatestEventInfo(context, notifTitle, notifTitle, contentIntent);
-		notif.sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-    	notif.defaults |= Notification.DEFAULT_VIBRATE;
+        String title = context.getString(R.string.title_recv_geoloc_sharing, contact.toString());
         
+    	// Create notification
+		NotificationCompat.Builder notif = new NotificationCompat.Builder(context);
+		notif.setContentIntent(contentIntent);
+		notif.setSmallIcon(R.drawable.ri_notif_gsh_icon);
+		notif.setWhen(Calendar.getInstance().getTimeInMillis());
+		notif.setAutoCancel(true);
+		notif.setOnlyAlertOnce(true);
+		notif.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
+		notif.setDefaults(Notification.DEFAULT_VIBRATE);
+		notif.setContentTitle(title);
+		notif.setContentText(title);
+    			
         // Send notification
 		String sharingId = invitation.getStringExtra(GeolocSharingIntent.EXTRA_SHARING_ID);
 		NotificationManager notificationManager = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(sharingId, Utils.NOTIF_ID_GEOLOC_SHARE, notif);
+        notificationManager.notify(sharingId, Utils.NOTIF_ID_GEOLOC_SHARE, notif.build());
 	}
 	
     /**

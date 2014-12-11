@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.provider.fthttp;
 
+import com.gsma.services.rcs.RcsCommon.Direction;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.HttpFileTransferSession;
 
@@ -50,15 +52,15 @@ public final class FtHttpResumeDownload extends FtHttpResume {
 	 *            the {@code file} value.
 	 * @param filetransferId
 	 *            the {@code filetransferId} value.
-	 * @param fileicon
-	 *            the {@code fileicon} value.
+	 * @param fileIcon
+	 *            the {@code fileIcon} value.
 	 * @param isGroup
 	 *            the {@code isGroup} value.
 	 */
-	public FtHttpResumeDownload(HttpFileTransferSession session, Uri downloadServerAddress, Uri file, String filetransferId, Uri fileicon,
+	public FtHttpResumeDownload(HttpFileTransferSession session, Uri downloadServerAddress, Uri file, String filetransferId, Uri fileIcon,
 			boolean isGroup) {
-		this(downloadServerAddress, file, fileicon, session.getContent(), session.getRemoteContact(), session.getRemoteDisplayName(),
-				session.getContributionID(), filetransferId, session.getChatSessionID(), isGroup);
+		this(downloadServerAddress, file, fileIcon, session.getContent(), session.getRemoteContact(),
+				session.getContributionID(), filetransferId, isGroup);
 	}
 
 	/**
@@ -68,26 +70,22 @@ public final class FtHttpResumeDownload extends FtHttpResume {
 	 *            the {@code downloadServerAddress} instance.
 	 * @param file
 	 *            the {@code file} value.
-	 * @param fileicon
-	 *            the {@code fileicon} value.
+	 * @param fileIcon
+	 *            the {@code fileIcon} value.
 	 * @param content
 	 *            the {@code content} content.
 	 * @param contact
-	 *            the {@code contact} value.
-	 * @param displayName
-	 *            the {@code displayName} value.
+	 *            the {@code contactId} value.
 	 * @param chatId
 	 *            the {@code chatId} value.
 	 * @param filetransferId
 	 *            the {@code filetransferId} value.
-	 * @param chatSessionId
-	 *            the {@code chatSessionId} value.
 	 * @param isGroup
 	 *            the {@code isGroup} value.
 	 */
-	public FtHttpResumeDownload(Uri downloadServerAddress, Uri file, Uri fileicon, MmContent content, String contact,
-			String displayName, String chatId, String filetransferId, String chatSessionId, boolean isGroup) {
-		super(FtHttpDirection.INCOMING, file, content.getName(), content.getEncoding(), content.getSize(), fileicon, contact, displayName, chatId, filetransferId, chatSessionId, isGroup);
+	public FtHttpResumeDownload(Uri downloadServerAddress, Uri file, Uri fileIcon, MmContent content, ContactId contact,
+			String chatId, String filetransferId, boolean isGroup) {
+		super(Direction.INCOMING, file, content.getName(), content.getEncoding(), content.getSize(), fileIcon, contact, chatId, filetransferId, isGroup);
 		this.downloadServerAddress = downloadServerAddress;
 		if (downloadServerAddress == null || filetransferId == null)
 			throw new IllegalArgumentException("Invalid argument");
@@ -99,10 +97,9 @@ public final class FtHttpResumeDownload extends FtHttpResume {
 
 	@Override
 	public String toString() {
-		return "FtHttpResumeDownload [downloadServerAddress=" + downloadServerAddress + ", file=" + getFileUri() + ",getFileName()=" + getFileName()
+		return "FtHttpResumeDownload [downloadServerAddress=" + downloadServerAddress + ", file=" + getFile() + ",getFileName()=" + getFileName()
 				+ ", getSize()=" + getSize() + ", getFileicon()=" + getFileicon() + ", getContact()=" + getContact()
-				+ ", getChatId()=" + getChatId() + ", getFileTransferId()=" + getFileTransferId() + ", getChatSessionId()="
-				+ getChatSessionId() + ", isGroup()=" + isGroup() + "]";
+				+ ", getChatId()=" + getChatId() + ", getFileTransferId()=" + getFileTransferId() + ", isGroup()=" + isGroup() + "]";
 	}
 
 }

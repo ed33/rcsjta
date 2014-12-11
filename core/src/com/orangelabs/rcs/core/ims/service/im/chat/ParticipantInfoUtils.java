@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +15,25 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.im.chat;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.xml.sax.InputSource;
 
 import com.gsma.services.rcs.chat.ParticipantInfo;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.ImsModule;
 import com.orangelabs.rcs.core.ims.service.im.chat.resourcelist.ResourceListDocument;
 import com.orangelabs.rcs.core.ims.service.im.chat.resourcelist.ResourceListParser;
-import com.orangelabs.rcs.utils.PhoneUtils;
-import com.orangelabs.rcs.utils.StringUtils;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -49,17 +54,17 @@ public class ParticipantInfoUtils {
 	 * 
 	 * @param participantInfos
 	 *            The set of ParticipantInfo
-	 * @return The set of contacts
+	 * @return The set of contact identifiers
 	 */
-	public static Set<String> getContactsFromParticipantInfo(Set<ParticipantInfo> participantInfos) {
-		Set<String> result = new HashSet<String>();
+	public static Set<ContactId> getContacts(Set<ParticipantInfo> participantInfos) {
+		Set<ContactId> contacts = new HashSet<ContactId>();
 		if (participantInfos == null) {
-			return result;
+			return contacts;
 		}
 		for (ParticipantInfo participant : participantInfos) {
-			result.add(participant.getContact());
+			contacts.add(participant.getContact());
 		}
-		return result;
+		return contacts;
 	}
 
 	/**
@@ -77,13 +82,11 @@ public class ParticipantInfoUtils {
 			ResourceListDocument resList = listParser.getResourceList();
 			if (resList != null) {
 				for (String entry : resList.getEntries()) {
-					String number = PhoneUtils.extractNumberFromUri(entry);
-					if (!PhoneUtils.compareNumbers(number, ImsModule.IMS_USER_PROFILE.getUsername())) {
-						if ((!StringUtils.isEmpty(number))) {
-							if (addParticipant(result, number)) {
-								if (logger.isActivated()) {
-									logger.debug("Add participant " + number + " to the list");
-								}
+					ContactId contact = ContactUtils.createContactId(entry);
+					if (!contact.equals(ImsModule.IMS_USER_PROFILE.getUsername())) {
+						if (addParticipant(result, contact)) {
+							if (logger.isActivated()) {
+								logger.debug("Add participant " + contact + " to the list");
 							}
 						}
 					}
@@ -106,12 +109,8 @@ public class ParticipantInfoUtils {
 	 *            the Participant
 	 * @return true if added or if the set is modified
 	 */
-	public static boolean addParticipant(Set<ParticipantInfo> set, String participant) {
-		String number = PhoneUtils.extractNumberFromUri(participant);
-		if (PhoneUtils.isGlobalPhoneNumber(number)) {
-			return addParticipant(set, new ParticipantInfo(number, ParticipantInfo.Status.UNKNOWN));
-		}
-		return false;
+	public static boolean addParticipant(Set<ParticipantInfo> set, ContactId participant) {
+		return addParticipant(set, new ParticipantInfo(participant, ParticipantInfo.Status.UNKNOWN));
 	}
 
 	/**
@@ -136,7 +135,9 @@ public class ParticipantInfoUtils {
 			// Contact already in set: only update status
 			if (participant.getStatus() != item.getStatus()) {
 				// Update status
-				item.setStatus(participant.getStatus());
+				set.remove(item);
+				ParticipantInfo updatedParticipant = new ParticipantInfo(participant.getContact(), participant.getStatus());
+				set.add(updatedParticipant);
 				return true;
 			}
 		}
@@ -149,19 +150,34 @@ public class ParticipantInfoUtils {
 	 * @param set
 	 *            the set of ParticipantInfo
 	 * @param contact
-	 *            the contact
+	 *            the contact identifier
 	 * @return the ParticipantInfo item or null if does not exist
 	 */
-	public static ParticipantInfo getItem(Set<ParticipantInfo> set, String contact) {
+	public static ParticipantInfo getItem(Set<ParticipantInfo> set, ContactId contact) {
 		if (set == null || contact == null)
 			return null;
 		// Iterate through the set to seek for item
 		for (ParticipantInfo item : set) {
-			if (item.getContact().equals(contact)) {
+			if (item != null && item.getContact().equals(contact)) {
 				return item;
 			}
 		}
 		return null;
 	}
 
+	/**
+	 * Convert List of contacts to Set of ParticipantInfo because AIDL does not
+	 * support Set type.
+	 *
+	 * @param contacts list of contact id
+	 * @return the corresponding ParticipantInfo set
+	 */
+	public static Set<ParticipantInfo> getParticipantInfos(List<ContactId> contacts) {
+		Set<ParticipantInfo> participants = new HashSet<ParticipantInfo>();
+		for (ContactId contact : contacts) {
+			ParticipantInfo participant = new ParticipantInfo(contact);
+			participants.add(participant);
+		}
+		return participants;
+	}
 }

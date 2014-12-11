@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +15,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.extension;
 
-import com.gsma.services.rcs.JoynServiceException;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * This class maintains the information related to a multimedia
@@ -32,58 +37,84 @@ public abstract class MultimediaSession {
      */
     public static class State {
     	/**
-    	 * Session is inactive
-    	 */
-    	public final static int INACTIVE = 0;
-
-    	/**
     	 * Session invitation received
     	 */
-    	public final static int INVITED = 1;
+    	public final static int INVITED = 0;
     	
     	/**
     	 * Session invitation sent
     	 */
-    	public final static int INITIATED = 2;
+    	public final static int INITIATED = 1;
     	
     	/**
     	 * Session is started
     	 */
-    	public final static int STARTED = 3;
+    	public final static int STARTED = 2;
     	
     	/**
     	 * Session has been aborted or 
     	 */
-    	public final static int ABORTED = 5;
-    	
-        /**
-         * Session has been terminated
-         */
-        public static final int TERMINATED = 6;
+    	public final static int ABORTED = 3;
 
         /**
     	 * Session has failed 
     	 */
-    	public final static int FAILED = 7;
-    	
+    	public final static int FAILED = 4;
+
+        /**
+    	 * Session has been rejected.
+    	 */
+    	public final static int REJECTED = 5;
+
+        /**
+    	 * Call ringing
+    	 */
+    	public final static int RINGING = 6;
+
+    	/**
+    	 * Session has been accepted and is in the process of becoming started
+    	 */
+    	public final static int ACCEPTING = 7;
+
         private State() {
         }    	
     }
-    
+
     /**
-     * Direction of the session
+     * Multimedia session reason code
      */
-    public static class Direction {
+    public static class ReasonCode {
+
         /**
-         * Incoming session
+         * No specific reason code specified.
          */
-        public static final int INCOMING = 0;
-        
+        public final static int UNSPECIFIED = 0;
+
         /**
-         * Outgoing session
+         * Session invitation was rejected due to time out.
          */
-        public static final int OUTGOING = 1;
-    }     
+        public final static int REJECTED_TIME_OUT = 1;
+
+        /**
+         * Session invitation was rejected by local user.
+         */
+        public final static int REJECTED_BY_USER = 2;
+
+        /**
+         * Session invitation was rejected by remote.
+         */
+        public final static int REJECTED_BY_REMOTE = 3;
+
+        /**
+         * Session failed.
+         */
+        public final static int FAILED_SESSION = 4;
+
+        /**
+         * Media failed.
+         */
+        public final static int FAILED_MEDIA = 5;
+    }
     
     /**
      * Session error
@@ -118,62 +149,62 @@ public abstract class MultimediaSession {
 	 * Returns the session ID of the multimedia session
 	 * 
 	 * @return Session ID
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public abstract String getSessionId() throws JoynServiceException;
+	public abstract String getSessionId() throws RcsServiceException;
 	
 	/**
-	 * Returns the remote contact
+	 * Returns the remote contact identifier
 	 * 
-	 * @return Contact
-	 * @throws JoynServiceException
+	 * @return ContactId
+	 * @throws RcsServiceException
 	 */
-	public abstract String getRemoteContact() throws JoynServiceException;
+	public abstract ContactId getRemoteContact() throws RcsServiceException;
 	
 	/**
 	 * Returns the service ID
 	 * 
 	 * @return Service ID
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public abstract String getServiceId() throws JoynServiceException;
+	public abstract String getServiceId() throws RcsServiceException;
 	
 	/**
 	 * Returns the state of the session
 	 * 
 	 * @return State
 	 * @see MultimediaSession.State
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public abstract int getState() throws JoynServiceException;
+	public abstract int getState() throws RcsServiceException;
 	
 	/**
 	 * Returns the direction of the session (incoming or outgoing)
 	 * 
 	 * @return Direction
 	 * @see MultimediaSession.Direction
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public abstract int getDirection() throws JoynServiceException;	
+	public abstract int getDirection() throws RcsServiceException;
 	
 	/**
 	 * Accepts session invitation.
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public abstract void acceptInvitation() throws JoynServiceException;
+	public abstract void acceptInvitation() throws RcsServiceException;
 	
 	/**
 	 * Rejects session invitation
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public abstract void rejectInvitation() throws JoynServiceException;
+	public abstract void rejectInvitation() throws RcsServiceException;
 	
 	/**
 	 * Aborts the session
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public abstract void abortSession() throws JoynServiceException;    
+	public abstract void abortSession() throws RcsServiceException;
 }

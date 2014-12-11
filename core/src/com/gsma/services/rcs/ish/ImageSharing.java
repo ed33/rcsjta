@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.gsma.services.rcs.ish;
 
-import com.gsma.services.rcs.JoynServiceException;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.contacts.ContactId;
 
 import android.net.Uri;
 
@@ -37,58 +38,129 @@ public class ImageSharing {
      */
     public static class State {
     	/**
-    	 * Inactive state
-    	 */
-    	public final static int INACTIVE = 0;
-
-    	/**
     	 * Sharing invitation received
     	 */
-    	public final static int INVITED = 1;
+    	public final static int INVITED = 0;
     	
     	/**
     	 * Sharing invitation sent
     	 */
-    	public final static int INITIATED = 2;
+    	public final static int INITIATED = 1;
     	
     	/**
     	 * Sharing is started
     	 */
-    	public final static int STARTED = 3;
+    	public final static int STARTED = 2;
     	
     	/**
-    	 * Image has been transferred with success 
+    	 * Sharing has been aborted
     	 */
-    	public final static int TRANSFERRED = 4;
+    	public final static int ABORTED = 3;
     	
     	/**
-    	 * Sharing has been aborted 
+    	 * Sharing has failed
     	 */
-    	public final static int ABORTED = 5;
+    	public final static int FAILED = 4;
     	
     	/**
-    	 * Sharing has failed 
+    	 * Image has been transferred with success
     	 */
-    	public final static int FAILED = 6;
-    	
+    	public final static int TRANSFERRED = 5;
+
+    	/**
+    	 * Sharing has been rejected
+    	 */
+    	public final static int REJECTED = 6;
+
+    	/**
+    	 * Ringing
+    	 */
+    	public final static int RINGING = 7;
+
+    	/**
+    	 * Sharing has been accepted and is in the process of becoming started
+    	 */
+    	public final static int ACCEPTING = 8;
+
         private State() {
         }    	
     }
-    
+
     /**
-     * Direction of the sharing
+     * Reason code associated with the image share state.
      */
-    public static class Direction {
+    public static class ReasonCode {
+
         /**
-         * Incoming sharing
+         * No specific reason code specified.
          */
-        public static final int INCOMING = 0;
-        
+        public static final int UNSPECIFIED = 0;
+
         /**
-         * Outgoing sharing
+         * Image share is aborted by local user.
          */
-        public static final int OUTGOING = 1;
-    }      
+        public static final int ABORTED_BY_USER = 1;
+
+        /**
+         * Image share is aborted by remote user.
+         */
+        public static final int ABORTED_BY_REMOTE = 2;
+
+        /**
+         * Image share is aborted by system.
+         */
+        public static final int ABORTED_BY_SYSTEM = 3;
+
+        /**
+         * Image share is rejected because already taken by the secondary device.
+         */
+        public static final int REJECTED_BY_SECONDARY_DEVICE = 4;
+
+        /**
+         * Incoming image was rejected due to time out.
+         */
+        public static final int REJECTED_TIME_OUT = 5;
+
+        /**
+         * Incoming image was rejected as is cannot be received due to lack of local storage space.
+         */
+        public static final int REJECTED_LOW_SPACE = 6;
+
+        /**
+         * Incoming image was rejected as it was too big to be received.
+         */
+        public static final int REJECTED_MAX_SIZE = 7;
+
+        /**
+         * Incoming image was rejected because max number of sharing sessions is achieved.
+         */
+        public static final int REJECTED_MAX_SHARING_SESSIONS = 8;
+
+        /**
+         * Incoming image was rejected by local user.
+         */
+        public static final int REJECTED_BY_USER = 9;
+
+        /**
+         * Incoming image was rejected by remote.
+         */
+        public static final int REJECTED_BY_REMOTE = 10;
+
+        /**
+         * Image share initiation failed;
+         */
+        public static final int FAILED_INITIATION = 11;
+
+        /**
+         * Sharing of the image share has failed.
+         */
+        public static final int FAILED_SHARING = 12;
+
+        /**
+         * Saving of the image share has failed.
+         */
+        public static final int FAILED_SAVING = 13;
+    }
     
     /**
      * Image sharing error
@@ -131,27 +203,27 @@ public class ImageSharing {
 	 * Returns the sharing ID of the image sharing
 	 * 
 	 * @return Sharing ID
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public String getSharingId() throws JoynServiceException {
+	public String getSharingId() throws RcsServiceException {
 		try {
 			return sharingInf.getSharingId();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
-	 * Returns the remote contact
+	 * Returns the remote contact identifier
 	 * 
-	 * @return Contact
-	 * @throws JoynServiceException
+	 * @return ContactId
+	 * @throws RcsServiceException
 	 */
-	public String getRemoteContact() throws JoynServiceException {
+	public ContactId getRemoteContact() throws RcsServiceException {
 		try {
 			return sharingInf.getRemoteContact();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
@@ -159,13 +231,13 @@ public class ImageSharing {
 	 * Returns the URI of the file to be shared
 	 *
 	 * @return Uri
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public Uri getFile() throws JoynServiceException {
+	public Uri getFile() throws RcsServiceException {
 		try {
 			return sharingInf.getFile();
 		} catch (Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
@@ -173,13 +245,13 @@ public class ImageSharing {
      * Returns the complete filename including the path of the file to be transferred
      *
      * @return Filename
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
      */
-	public String getFileName() throws JoynServiceException {
+	public String getFileName() throws RcsServiceException {
 		try {
 			return sharingInf.getFileName();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
@@ -187,13 +259,13 @@ public class ImageSharing {
      * Returns the size of the file to be transferred
      *
      * @return Size in bytes
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
      */
-	public long getFileSize() throws JoynServiceException {
+	public long getFileSize() throws RcsServiceException {
 		try {
 			return sharingInf.getFileSize();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}	
 
@@ -201,13 +273,13 @@ public class ImageSharing {
      * Returns the MIME type of the file to be transferred
      * 
      * @return Type
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
      */
-    public String getFileType() throws JoynServiceException {
+    public String getMimeType() throws RcsServiceException {
 		try {
-			return sharingInf.getFileType();
+			return sharingInf.getMimeType();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
     }
 
@@ -216,95 +288,82 @@ public class ImageSharing {
 	 * 
 	 * @return State
 	 * @see ImageSharing.State
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public int getState() throws JoynServiceException {
+	public int getState() throws RcsServiceException {
 		try {
 			return sharingInf.getState();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}		
-		
+
+	/**
+	 * Returns the reason code of the state of the sharing
+	 *
+	 * @return ReasonCode
+	 * @see ImageSharing.ReasonCode
+	 * @throws RcsServiceException
+	 */
+	public int getReasonCode() throws RcsServiceException {
+		try {
+			return sharingInf.getReasonCode();
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}
+	}
+
 	/**
 	 * Returns the direction of the sharing (incoming or outgoing)
 	 * 
 	 * @return Direction
 	 * @see ImageSharing.Direction
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public int getDirection() throws JoynServiceException {
+	public int getDirection() throws RcsServiceException {
 		try {
 			return sharingInf.getDirection();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}	
 	
 	/**
 	 * Accepts image sharing invitation
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void acceptInvitation() throws JoynServiceException {
+	public void acceptInvitation() throws RcsServiceException {
 		try {
 			sharingInf.acceptInvitation();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 	
 	/**
 	 * Rejects image sharing invitation
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void rejectInvitation() throws JoynServiceException {
+	public void rejectInvitation() throws RcsServiceException {
 		try {
 			sharingInf.rejectInvitation();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 
 	/**
 	 * Aborts the sharing
 	 * 
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void abortSharing() throws JoynServiceException {
+	public void abortSharing() throws RcsServiceException {
 		try {
 			sharingInf.abortSharing();
 		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
-		}
-	}
-
-	/**
-	 * Adds a listener on image sharing events
-	 * 
-	 * @param listener Listener
-	 * @throws JoynServiceException
-	 */
-	public void addEventListener(ImageSharingListener listener) throws JoynServiceException {
-		try {
-			sharingInf.addEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
-		}
-	}
-	
-	/**
-	 * Removes a listener from image sharing
-	 * 
-	 * @param listener Listener
-	 * @throws JoynServiceException
-	 */
-	public void removeEventListener(ImageSharingListener listener) throws JoynServiceException {
-		try {
-			sharingInf.removeEventListener(listener);
-		} catch(Exception e) {
-			throw new JoynServiceException(e.getMessage());
+			throw new RcsServiceException(e.getMessage());
 		}
 	}
 }

@@ -20,6 +20,8 @@ package com.orangelabs.rcs.core.ims.service.richcall.video;
 
 import java.util.Vector;
 
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.IVideoPlayerListener;
 import com.gsma.services.rcs.vsh.VideoCodec;
@@ -29,10 +31,13 @@ import com.orangelabs.rcs.core.ims.protocol.sdp.MediaDescription;
 import com.orangelabs.rcs.core.ims.protocol.sdp.SdpParser;
 import com.orangelabs.rcs.core.ims.protocol.sdp.SdpUtils;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
+import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -44,7 +49,7 @@ public class OriginatingVideoStreamingSession extends VideoStreamingSession {
     /**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private static final Logger logger = Logger.getLogger(OriginatingVideoStreamingSession.class.getSimpleName());
 
     /**
      * Constructor
@@ -52,10 +57,10 @@ public class OriginatingVideoStreamingSession extends VideoStreamingSession {
      * @param parent IMS service
      * @param player Media player
      * @param content Content to be shared
-     * @param contact Remote contact
+     * @param contact Remote contact Id
      */
     public OriginatingVideoStreamingSession(ImsService parent, IVideoPlayer player,
-            MmContent content, String contact) {
+            MmContent content, ContactId contact) {
         super(parent, content, contact);
 
         // Create dialog path
@@ -260,13 +265,37 @@ public class OriginatingVideoStreamingSession extends VideoStreamingSession {
             // Remove the current session
             getImsService().removeSession(session);
 
-            // Notify listeners
-            for(int i=0; i < getListeners().size(); i++) {
-                ((VideoStreamingSessionListener)getListeners().get(i)).handleSharingError(new ContentSharingError(ContentSharingError.MEDIA_STREAMING_FAILED));
-            }
+			// Notify listeners
+			for (ImsSessionListener listener : getListeners()) {
+				((VideoStreamingSessionListener) listener).handleSharingError(new ContentSharingError(
+						ContentSharingError.MEDIA_STREAMING_FAILED));
+			}
 
-            // Request capabilities to the remote
-            getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getDialogPath().getRemoteParty());
+            try {
+				ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+				// Request capabilities to the remote
+		        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
+			} catch (RcsContactFormatException e) {
+				if (logger.isActivated()) {
+					logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
+				}
+			}
     	}
     }
+
+	@Override
+	public boolean isInitiatedByRemote() {
+		return false;
+	}
+	
+	@Override
+	public void handle180Ringing(SipResponse response) {
+		if (logger.isActivated()) {
+			logger.debug("handle180Ringing");
+		}
+		// Notify listeners
+		for (ImsSessionListener listener : getListeners()) {
+			((VideoStreamingSessionListener)listener).handle180Ringing();
+		}
+	}
 }

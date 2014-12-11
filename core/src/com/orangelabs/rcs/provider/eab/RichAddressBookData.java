@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.provider.eab;
@@ -31,17 +35,17 @@ public class RichAddressBookData {
 	/**
 	 * Database URI
 	 */
-	static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.eab/eab");
+	static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.capability/capability");
+
+	/**
+	 * ContactId formatted number of contact associated to the capabilities.
+	 */
+	static final String KEY_CONTACT = CapabilitiesLog.CONTACT;
 	
 	/**
-	 * Column name
+	 * Column Name
 	 */
-	static final String KEY_ID = "_id";
-	
-	/**
-	 * Column name
-	 */
-	static final String KEY_CONTACT_NUMBER = CapabilitiesLog.CONTACT_NUMBER;
+	static final String KEY_DISPLAY_NAME = "display_name";
 	
 	/**
 	 * Column name
@@ -126,7 +130,7 @@ public class RichAddressBookData {
 	/**
 	 * Column name
 	 */
-	static final String KEY_CAPABILITY_TIMESTAMP = "capability_timestamp";	
+	static final String KEY_CAPABILITY_TIME_LAST_RQST = "capability_time_last_rqst";	
 	
 	/**
 	 * Column name
@@ -134,22 +138,22 @@ public class RichAddressBookData {
 	static final String KEY_CAPABILITY_CS_VIDEO = "capability_cs_video";
 
 	/**
-	 * Column name
+	 * Image sharing capability. Values: 1 (true), 0 (false)
 	 */
 	static final String KEY_CAPABILITY_IMAGE_SHARING = CapabilitiesLog.CAPABILITY_IMAGE_SHARE;
 	
 	/**
-	 * Column name
+	 * Video sharing capability. Values: 1 (true), 0 (false)
 	 */
 	static final String KEY_CAPABILITY_VIDEO_SHARING = CapabilitiesLog.CAPABILITY_VIDEO_SHARE;
 	
 	/**
-	 * Column name
+	 * IM/Chat capability. Values: 1 (true), 0 (false)
 	 */
 	static final String KEY_CAPABILITY_IM_SESSION = CapabilitiesLog.CAPABILITY_IM_SESSION;
 	
 	/**
-	 * Column name
+	 * File transfer capability. Values: 1 (true), 0 (false)
 	 */
 	static final String KEY_CAPABILITY_FILE_TRANSFER = CapabilitiesLog.CAPABILITY_FILE_TRANSFER;
 	
@@ -164,7 +168,7 @@ public class RichAddressBookData {
 	static final String KEY_CAPABILITY_SOCIAL_PRESENCE = "capability_social_presence";
 	
 	/**
-	 * Column name
+	 * Geolocation push capability. Values: 1 (true), 0 (false)
 	 */
 	static final String KEY_CAPABILITY_GEOLOCATION_PUSH = CapabilitiesLog.CAPABILITY_GEOLOC_PUSH;
 	
@@ -179,7 +183,8 @@ public class RichAddressBookData {
 	static final String KEY_CAPABILITY_FILE_TRANSFER_THUMBNAIL = "capability_file_transfer_thumbnail";
 	
 	/**
-	 * Column name
+	 * Supported RCS extensions. List of features tags semicolon separated (e.g.
+	 * <TAG1>;<TAG2>;…;TAGn)
 	 */
 	static final String KEY_CAPABILITY_EXTENSIONS = CapabilitiesLog.CAPABILITY_EXTENSIONS;
 	
@@ -209,6 +214,11 @@ public class RichAddressBookData {
 	static final String KEY_CAPABILITY_FILE_TRANSFER_SF = "capability_file_transfer_sf";
 	
 	/**
+	 * Is an automata. Values: 1 (true), 0 (false).
+	 */
+	static final String KEY_AUTOMATA = CapabilitiesLog.AUTOMATA;
+	
+	/**
 	 * Column name
 	 */
 	static final String KEY_CAPABILITY_IM_BLOCKED_TIMESTAMP = "im_blocked_timestamp";   
@@ -217,6 +227,16 @@ public class RichAddressBookData {
 	 * Column name
 	 */
 	static final String KEY_IM_BLOCKED = "im_blocked";
+	
+	/**
+	 * Column name
+	 */
+	static final String KEY_FT_BLOCKED = "ft_blocked";
+	
+	/**
+	 * Timestamp of the last capability refresh
+	 */
+	static final String KEY_CAPABILITY_TIME_LAST_REFRESH = CapabilitiesLog.TIMESTAMP;
 	
     /** 
      * TRUE value
@@ -227,4 +247,15 @@ public class RichAddressBookData {
      * FALSE value
      */
     public static final String FALSE_VALUE = Boolean.toString(false);
+
+    /**
+     * BLOCKED value is not set
+     */
+    static final int BLOCKED_VALUE_NOT_SET = 0;
+    
+    /**
+     * BLOCKED value is set
+     */
+    static final int BLOCKED_VALUE_SET = 1;
+
 }

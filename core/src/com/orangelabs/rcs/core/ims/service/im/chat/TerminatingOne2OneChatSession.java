@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +15,19 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.core.ims.service.im.chat;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Vector;
 
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
 import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpEventListener;
@@ -34,10 +41,13 @@ import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipTransactionContext;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
 import com.orangelabs.rcs.core.ims.service.SessionTimerManager;
 import com.orangelabs.rcs.core.ims.service.im.chat.imdn.ImdnDocument;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.utils.ContactUtils;
+import com.orangelabs.rcs.utils.PhoneUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -49,16 +59,17 @@ public class TerminatingOne2OneChatSession extends OneOneChatSession implements 
 	/**
      * The logger
      */
-    private final static Logger logger = Logger.getLogger(TerminatingOne2OneChatSession.class.getName());
+    private final static Logger logger = Logger.getLogger(TerminatingOne2OneChatSession.class.getSimpleName());
 
     /**
      * Constructor
      * 
 	 * @param parent IMS service
 	 * @param invite Initial INVITE request
+     * @param contact the remote contactId 
 	 */
-	public TerminatingOne2OneChatSession(ImsService parent, SipRequest invite) {
-		super(parent, SipUtils.getAssertedIdentity(invite));
+	public TerminatingOne2OneChatSession(ImsService parent, SipRequest invite, ContactId contact) {
+		super(parent, contact, PhoneUtils.formatContactIdToUri(contact));
 
 		// Set first message
 		InstantMessage firstMsg = ChatUtils.getFirstMessage(invite);
@@ -70,8 +81,30 @@ public class TerminatingOne2OneChatSession extends OneOneChatSession implements 
 		// Set contribution ID
 		String id = ChatUtils.getContributionId(invite);
 		setContributionID(id);		
+
+		if (shouldBeAutoAccepted()) {
+			setSessionAccepted();
+		}
 	}
-	
+
+	/**
+	 * Check is session should be auto accepted. This method should only be
+	 * called once per session
+	 *
+	 * @return true if one-to-one chat session should be auto accepted
+	 */
+	private boolean shouldBeAutoAccepted() {
+		/*
+		 * In case the invite contains a http file transfer info the chat session
+		 * should be auto-accepted so that the file transfer session can be started.
+		 */
+		if ( FileTransferUtils.getHttpFTInfo(getDialogPath().getInvite()) != null) {
+			return true;
+		}
+
+		return RcsSettings.getInstance().isChatAutoAccepted();
+	}
+
 	/**
 	 * Background processing
 	 */
@@ -87,67 +120,98 @@ public class TerminatingOne2OneChatSession extends OneOneChatSession implements 
                 // Check notification disposition
                 String msgId = ChatUtils.getMessageId(getDialogPath().getInvite());
                 if (msgId != null) {
-                    // Send message delivery status via a SIP MESSAGE
-                    getImdnManager().sendMessageDeliveryStatusImmediately(getDialogPath().getRemoteParty(),
-                            msgId, ImdnDocument.DELIVERY_STATUS_DELIVERED,
-                            SipUtils.getRemoteInstanceID(getDialogPath().getInvite()));
+                    try {
+            			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+            			// Send message delivery status via a SIP MESSAGE
+                        getImdnManager().sendMessageDeliveryStatusImmediately(remote,
+                                msgId, ImdnDocument.DELIVERY_STATUS_DELIVERED,
+                                SipUtils.getRemoteInstanceID(getDialogPath().getInvite()));
+                    } catch (RcsContactFormatException e) {
+            			if (logger.isActivated()) {
+            				logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
+            			}
+            		}
                 }
             }
 
-            // Check if Auto-accept (FT HTTP force auto-accept for the chat session)
-			if (RcsSettings.getInstance().isChatAutoAccepted()
-					|| FileTransferUtils.getHttpFTInfo(getDialogPath().getInvite()) != null) {
+			Collection<ImsSessionListener> listeners = getListeners();
+			/* Check if session should be auto-accepted once */
+			if (isSessionAccepted()) {
 				if (logger.isActivated()) {
-					logger.debug("Auto accept chat invitation");
+					logger.debug("Received one-to-one chat invitation marked for auto-accept");
+				}
+
+				for (ImsSessionListener listener : listeners) {
+					((ChatSessionListener)listener).handleSessionAutoAccepted();
 				}
 			} else {
-                if (logger.isActivated()) {
-                    logger.debug("Accept manually chat invitation");
-                }
+				if (logger.isActivated()) {
+					logger.debug("Received one-to-one chat invitation marked for manual accept");
+				}
 
-                // Send a 180 Ringing response
-                send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+				for (ImsSessionListener listener : listeners) {
+					listener.handleSessionInvited();
+				}
 
-    			// Wait invitation answer
-    	    	int answer = waitInvitationAnswer();
-    			if (answer == ImsServiceSession.INVITATION_REJECTED) {
-    				if (logger.isActivated()) {
-    					logger.debug("Session has been rejected by user");
-    				}
-    				
-    		    	// Remove the current session
-    		    	getImsService().removeSession(this);
-    
-    		    	// Notify listeners
-    		    	for(int i=0; i < getListeners().size(); i++) {
-    		    		getListeners().get(i).handleSessionAborted(ImsServiceSession.TERMINATION_BY_USER);
-    		        }
-    				return;
-    			} else
-    			if (answer == ImsServiceSession.INVITATION_NOT_ANSWERED) {
-    				if (logger.isActivated()) {
-    					logger.debug("Session has been rejected on timeout");
-    				}
-    
-    				// Ringing period timeout
-    				send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
-    				
-    		    	// Remove the current session
-    		    	getImsService().removeSession(this);
-    
-    		    	// Notify listeners
-        	    	for(int i=0; i < getListeners().size(); i++) {
-        	    		getListeners().get(i).handleSessionAborted(ImsServiceSession.TERMINATION_BY_TIMEOUT);
-    		        }
-    				return;
-                } else
-                if (answer == ImsServiceSession.INVITATION_CANCELED) {
-                    if (logger.isActivated()) {
-                        logger.debug("Session has been canceled");
-                    }
-                    return;
-                }
-            }
+				send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+
+				int answer = waitInvitationAnswer();
+				switch (answer) {
+					case ImsServiceSession.INVITATION_REJECTED:
+						if (logger.isActivated()) {
+							logger.debug("Session has been rejected by user");
+						}
+
+						getImsService().removeSession(this);
+
+						for (ImsSessionListener listener : listeners) {
+							listener.handleSessionRejectedByUser();
+						}
+						return;
+
+					case ImsServiceSession.INVITATION_NOT_ANSWERED:
+						if (logger.isActivated()) {
+							logger.debug("Session has been rejected on timeout");
+						}
+
+						// Ringing period timeout
+						send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+
+						getImsService().removeSession(this);
+
+						for (ImsSessionListener listener : listeners) {
+							listener.handleSessionRejectedByTimeout();
+						}
+						return;
+
+					case ImsServiceSession.INVITATION_CANCELED:
+						if (logger.isActivated()) {
+							logger.debug("Session has been rejected by remote");
+						}
+
+						getImsService().removeSession(this);
+
+						for (ImsSessionListener listener : listeners) {
+							listener.handleSessionRejectedByRemote();
+						}
+						return;
+
+					case ImsServiceSession.INVITATION_ACCEPTED:
+						setSessionAccepted();
+
+						for (ImsSessionListener listener : listeners) {
+							listener.handleSessionAccepted();
+						}
+						break;
+
+					default:
+						if (logger.isActivated()) {
+							logger.debug("Unknown invitation answer in run; answer="
+									.concat(String.valueOf(answer)));
+						}
+						return;
+				}
+			}
 
         	// Parse the remote SDP part
 			String remoteSdp = getDialogPath().getInvite().getSdpContent();
@@ -267,10 +331,9 @@ public class TerminatingOne2OneChatSession extends OneOneChatSession implements 
 	            	sendEmptyDataChunk();
                 }
 
-                // Notify listeners
-    	    	for(int i=0; i < getListeners().size(); i++) {
-    	    		getListeners().get(i).handleSessionStarted();
-    	        }
+                for (ImsSessionListener listener : listeners) {
+                    listener.handleSessionStarted();
+            }
 
     	    	// Start session timer
             	if (getSessionTimerManager().isSessionTimerActivated(resp)) {        	
@@ -304,4 +367,9 @@ public class TerminatingOne2OneChatSession extends OneOneChatSession implements 
     public String getDirection() {
         return SdpUtils.DIRECTION_SENDRECV;
     }
+
+	@Override
+	public boolean isInitiatedByRemote() {
+		return true;
+	}
 }

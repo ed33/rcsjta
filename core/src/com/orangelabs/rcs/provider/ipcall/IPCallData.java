@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +15,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.provider.ipcall;
 
 import com.gsma.services.rcs.ipcall.IPCallLog;
-
-import android.net.Uri;
 
 /**
 * IP call history provider data 
@@ -27,20 +29,11 @@ import android.net.Uri;
 * @author owom5460
 */
 public class IPCallData {
-	/**
-	 * Database URI
-	 */
-	protected static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.ipcall/ipcall");
-		
+
 	/**
 	 * Column name
 	 */
-	static final String KEY_ID = IPCallLog.ID;
-	
-	/**
-	 * Column name
-	 */
-	static final String KEY_CONTACT = IPCallLog.CONTACT_NUMBER;
+	static final String KEY_CONTACT = IPCallLog.CONTACT;
 
 	/**
 	 * Column name
@@ -55,10 +48,23 @@ public class IPCallData {
 	/**
 	 * Column name
 	 */
-	static final String KEY_STATUS = IPCallLog.STATE;
+	static final String KEY_STATE = IPCallLog.STATE;
 
 	/**
 	 * Column name
 	 */
-	static final String KEY_SESSION_ID = IPCallLog.CALL_ID;
+	static final String KEY_REASON_CODE = IPCallLog.REASON_CODE;
+
+	/**
+	 * Column name
+	 */
+	static final String KEY_CALL_ID = IPCallLog.CALL_ID;
+
+	static final String KEY_VIDEO_ENCODING = IPCallLog.VIDEO_ENCODING;
+
+	static final String KEY_AUDIO_ENCODING = IPCallLog.AUDIO_ENCODING;
+
+	static final String KEY_WIDTH = IPCallLog.WIDTH;
+
+	static final String KEY_HEIGHT = IPCallLog.HEIGHT;
 }

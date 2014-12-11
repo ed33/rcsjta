@@ -25,6 +25,8 @@
  */
 package gov2.nist.javax2.sip.stack;
 
+import android.os.SystemClock;
+
 import gov2.nist.core.InternalErrorHandler;
 import gov2.nist.javax2.sip.SIPConstants;
 import gov2.nist.javax2.sip.SipProviderImpl;
@@ -75,7 +77,12 @@ import javax2.sip.message.Response;
 public abstract class SIPTransaction extends MessageChannel implements
         javax2.sip.Transaction, gov2.nist.javax2.sip.TransactionExt {
 
-    protected boolean toListener; // Flag to indicate that the listener gets
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	protected boolean toListener; // Flag to indicate that the listener gets
 
     // to see the event.
 
@@ -258,6 +265,12 @@ public abstract class SIPTransaction extends MessageChannel implements
     protected String fromTag;
 
     private boolean terminatedEventDelivered;
+
+    // Timestamps by when timer tasks and retransmission tasks are considered outdated
+    // Rational: As the timer tick mechanism may not work as timely as expected if the device is sleeping
+    // timer tasks may be outdated even though ticks are still left
+    private long timerOutdatedTime;
+    private long retransmissionOutdatedTime;
 
     public String getBranchId() {
         return this.branch;
@@ -581,6 +594,10 @@ public abstract class SIPTransaction extends MessageChannel implements
                     MAXIMUM_RETRANSMISSION_TICK_COUNT);
         }
         retransmissionTimerLastTickCount = retransmissionTimerTicksLeft;
+
+        // set the timestamp by when the retransmission timer is considered outdated no matter
+        // how many ticks are still left
+        retransmissionOutdatedTime = SystemClock.elapsedRealtime() + retransmissionTimerTicksLeft * BASE_TIMER_INTERVAL;
     }
 
     /**
@@ -604,6 +621,10 @@ public abstract class SIPTransaction extends MessageChannel implements
                     + timeoutTimerTicksLeft);
 
         timeoutTimerTicksLeft = tickCount;
+
+        // set the timestamp by when the timer is considered outdated no matter how many
+        // ticks are still left
+        timerOutdatedTime = SystemClock.elapsedRealtime() + tickCount * BASE_TIMER_INTERVAL;
     }
 
     /**
@@ -622,7 +643,8 @@ public abstract class SIPTransaction extends MessageChannel implements
 
         if (timeoutTimerTicksLeft != -1) {
             // Count down the timer, and if it has run out,
-            if (--timeoutTimerTicksLeft == 0) {
+            // (or time limit has exceeded (e.g. due to timer thread was sleeping too long))
+            if (--timeoutTimerTicksLeft == 0 || SystemClock.elapsedRealtime() > timerOutdatedTime) {
                 // Fire the timeout timer
                 fireTimeoutTimer();
             }
@@ -631,7 +653,8 @@ public abstract class SIPTransaction extends MessageChannel implements
         // If the retransmission timer is enabled,
         if (retransmissionTimerTicksLeft != -1) {
             // Count down the timer, and if it has run out,
-            if (--retransmissionTimerTicksLeft == 0) {
+            // (or time limit has exceeded (e.g. due to timer thread was sleeping too long))
+            if (--retransmissionTimerTicksLeft == 0 || SystemClock.elapsedRealtime() > retransmissionOutdatedTime) {
                 // Enable this timer to fire again after
                 // twice the original time
                 enableRetransmissionTimer(retransmissionTimerLastTickCount * 2);
@@ -743,8 +766,8 @@ public abstract class SIPTransaction extends MessageChannel implements
      * and send it to the SIP peer. This is just a placeholder method -- calling
      * it will result in an IO exception.
      *
-     * @param messageBytes
-     *            Bytes of the message to send.
+     * @param message
+     *            the message to send.
      * @param receiverAddress
      *            Address of the target peer.
      * @param receiverPort
@@ -753,7 +776,7 @@ public abstract class SIPTransaction extends MessageChannel implements
      * @throws IOException
      *             If called.
      */
-    protected void sendMessage(byte[] messageBytes,
+    protected void sendMessage(SIPMessage message,
             InetAddress receiverAddress, int receiverPort, boolean retry)
             throws IOException {
         throw new IOException(

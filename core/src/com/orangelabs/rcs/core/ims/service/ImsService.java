@@ -18,20 +18,20 @@
 
 package com.orangelabs.rcs.core.ims.service;
 
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Vector;
+
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.CoreException;
 import com.orangelabs.rcs.core.ims.ImsModule;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
 import com.orangelabs.rcs.utils.IdGenerator;
-import com.orangelabs.rcs.utils.PhoneUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
-
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Vector;
 
 /**
  * Abstract IMS service
@@ -97,7 +97,7 @@ public abstract class ImsService {
 	/**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private static final Logger logger = Logger.getLogger(ImsService.class.getSimpleName());
 
     /**
      * Constructor
@@ -151,16 +151,16 @@ public abstract class ImsService {
     /**
      * Returns sessions associated to a contact
      * 
-     * @param contact Contact number
+     * @param contact Contact identifier
      * @return List of sessions
      */
-	public Enumeration<ImsServiceSession> getSessions(String contact) {
+	public Enumeration<ImsServiceSession> getSessions(ContactId contact) {
 		Vector<ImsServiceSession> result = new Vector<ImsServiceSession>();
         synchronized(sessions) {
             Enumeration<ImsServiceSession> list = Collections.enumeration(sessions.values());
             while(list.hasMoreElements()) {
                 ImsServiceSession session = list.nextElement();
-                if (PhoneUtils.compareNumbers(session.getRemoteContact(), contact)) {
+                if (contact!= null && contact.equals(session.getRemoteContact())) {
                     result.add(session);
                 }
             }
@@ -171,16 +171,16 @@ public abstract class ImsService {
     /**
      * Returns the number of sessions in progress associated to a contact
      * 
-     * @param contact Contact number
+     * @param contact Contact identifier
      * @return number of sessions
      */
-    public int getNumberOfSessions(String contact) {
+    public int getNumberOfSessions(ContactId contact) {
         int result = 0;
         synchronized(sessions) {
             Enumeration<ImsServiceSession> list = Collections.enumeration(sessions.values());
             while (list.hasMoreElements()) {
                 ImsServiceSession session = list.nextElement();
-                if (PhoneUtils.compareNumbers(session.getRemoteContact(), contact)) {
+                if (contact != null && contact.equals(session.getRemoteContact())) {
                     result++;
                 }
             }

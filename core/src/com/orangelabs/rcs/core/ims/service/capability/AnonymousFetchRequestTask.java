@@ -23,6 +23,7 @@ import java.util.Vector;
 import javax2.sip.header.AcceptHeader;
 import javax2.sip.header.EventHeader;
 
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.CoreException;
 import com.orangelabs.rcs.core.ims.ImsModule;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
@@ -32,7 +33,8 @@ import com.orangelabs.rcs.core.ims.protocol.sip.SipException;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipTransactionContext;
-import com.orangelabs.rcs.core.ims.service.ContactInfo;
+import com.orangelabs.rcs.core.ims.service.ContactInfo.RcsStatus;
+import com.orangelabs.rcs.core.ims.service.ContactInfo.RegistrationState;
 import com.orangelabs.rcs.core.ims.service.SessionAuthenticationAgent;
 import com.orangelabs.rcs.core.ims.service.presence.PresenceError;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
@@ -54,7 +56,7 @@ public class AnonymousFetchRequestTask {
     /**
      * Remote contact
      */
-    private String contact;
+    private ContactId mContact;
     
     /**
      * Dialog path
@@ -69,18 +71,18 @@ public class AnonymousFetchRequestTask {
 	/**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private static final Logger logger = Logger.getLogger(AnonymousFetchRequestTask.class.getName());
 
     /**
      * Constructor
      * 
      * @param parent IMS module
-     * @param contact Remote contact
+     * @param contact Remote contact identifier
      */
-    public AnonymousFetchRequestTask(ImsModule parent, String contact) {
-        this.imsModule = parent;
-        this.contact = contact;
-		this.authenticationAgent = new SessionAuthenticationAgent(imsModule);
+    public AnonymousFetchRequestTask(ImsModule parent, ContactId contact) {
+        imsModule = parent;
+        mContact = contact;
+		authenticationAgent = new SessionAuthenticationAgent(imsModule);
     }
     
 	/**
@@ -95,12 +97,12 @@ public class AnonymousFetchRequestTask {
 	 */
 	private void sendSubscribe() {
     	if (logger.isActivated()) {
-    		logger.info("Send SUBSCRIBE request to " + contact);
+    		logger.info("Send SUBSCRIBE request to " + mContact);
     	}
 
     	try {
 	        // Create a dialog path
-    		String contactUri = PhoneUtils.formatNumberToSipUri(contact);
+    		String contactUri = PhoneUtils.formatContactIdToUri(mContact);
 
         	// Set Call-Id
         	String callId = imsModule.getSipManager().getSipStack().generateCallId();
@@ -261,8 +263,8 @@ public class AnonymousFetchRequestTask {
     		logger.info("Subscribe has failed: " + error.getErrorCode() + ", reason=" + error.getMessage());
     	}
 
-    	// We update the database capabilities timestamp
-    	ContactsManager.getInstance().setContactCapabilitiesTimestamp(contact, System.currentTimeMillis());
+    	// We update the database capabilities time of last request
+    	ContactsManager.getInstance().updateCapabilitiesTimeLastRequest(mContact);
 	}
 
 	/**
@@ -277,6 +279,6 @@ public class AnonymousFetchRequestTask {
         
 		// We update the database with empty capabilities
     	Capabilities capabilities = new Capabilities();
-    	ContactsManager.getInstance().setContactCapabilities(contact, capabilities, ContactInfo.NOT_RCS, ContactInfo.REGISTRATION_STATUS_UNKNOWN);
+    	ContactsManager.getInstance().setContactCapabilities(mContact, capabilities, RcsStatus.NOT_RCS, RegistrationState.UNKNOWN);
 	}
 }

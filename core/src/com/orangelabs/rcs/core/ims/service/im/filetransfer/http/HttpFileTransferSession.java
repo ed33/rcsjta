@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.http;
 
+import java.util.Collection;
 import java.util.List;
 
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipException;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceError;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingError;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSessionListener;
@@ -47,7 +50,7 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
     /**
      * Chat session ID
      */
-    private String chatSessionId = null;
+    private String chatSessionId;
 
     /**
      * Session state
@@ -57,27 +60,28 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
     /**
      * Data object to access the resume FT instance in DB
      */
-    protected FtHttpResume resumeFT = null;
+    protected FtHttpResume resumeFT;
 
     /**
      * The logger
      */
-    private static final Logger logger = Logger.getLogger(HttpFileTransferSession.class.getName());
+    private static final Logger logger = Logger.getLogger(HttpFileTransferSession.class.getSimpleName());
     
     /**
 	 * Constructor
 	 *
 	 * @param parent IMS service
 	 * @param content Content to share
-	 * @param contact Remote contact
-	 * @param fileicon Content of fileicon
+	 * @param contact Remote contact identifier
+	 * @param remoteUri the remote URI
+	 * @param fileIcon Content of file icon
 	 * @param chatSessionId Chat session ID
 	 * @param chatContributionId Chat contribution Id
 	 * @param fileTransferId File transfer Id
 	 */
-	public HttpFileTransferSession(ImsService parent, MmContent content, String contact, MmContent fileicon, String chatSessionID,
+	public HttpFileTransferSession(ImsService parent, MmContent content, ContactId contact, String remoteUri, MmContent fileIcon, String chatSessionID,
 			String chatContributionId, String fileTransferId) {
-		super(parent, content, contact, fileicon, fileTransferId);
+		super(parent, content, contact, remoteUri, fileIcon, fileTransferId);
 		this.chatSessionId = chatSessionID;
 		setContributionID(chatContributionId);
 		this.sessionState = HttpTransferState.PENDING;
@@ -146,9 +150,10 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
                     // Remove the current session
                     getImsService().removeSession(this);
 
-                    // Notify listeners
-                    for(int i=0; i < getListeners().size(); i++) {
-                        ((FileSharingSessionListener)getListeners().get(i)).handleFileTransferPaused();
+                    Collection<ImsSessionListener> listeners = getListeners();
+                    for (ImsSessionListener listener : listeners) {
+                        ((FileSharingSessionListener)listener)
+                                .handleFileTransferPausedBySystem();
                     }
                     return;
                 }
@@ -156,9 +161,6 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
         }
         
         // in others case, call the normal abortSession and remove session from resumable sessions
-        if (dao != null) {
-            dao.delete(resumeFT);
-        }
         super.abortSession(reason);
     }
 
@@ -179,11 +181,10 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
 
         // Remove the current session
         getImsService().removeSession(this);
-        this.sessionState = HttpTransferState.TERMINATED;
 
-        // Notify listeners
-        for(int j=0; j < getListeners().size(); j++) {
-            ((FileSharingSessionListener)getListeners().get(j)).handleTransferError(new FileSharingError(error));
+        Collection<ImsSessionListener> listeners = getListeners();
+        for (ImsSessionListener listener : listeners) {
+            ((FileSharingSessionListener)listener).handleTransferError(new FileSharingError(error));
         }
     }
 	
@@ -224,11 +225,10 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
 
         // Remove the current session
         getImsService().removeSession(this);
-        this.sessionState = HttpTransferState.TERMINATED;
 
-		// Notify listeners
-		for (int j = 0; j < getListeners().size(); j++) {
-			((FileSharingSessionListener) getListeners().get(j)).handleFileTransfered(getContent());
+        Collection<ImsSessionListener> listeners = getListeners();
+        for (ImsSessionListener listener : listeners) {
+			((FileSharingSessionListener)listener).handleFileTransfered(getContent());
 		}
     }
     
@@ -240,9 +240,19 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
      * @param totalSize Total size in bytes
      */
     public void httpTransferProgress(long currentSize, long totalSize) {
-        // Notify listeners
-        for(int j=0; j < getListeners().size(); j++) {
-            ((FileSharingSessionListener)getListeners().get(j)).handleTransferProgress(currentSize, totalSize);
+        Collection<ImsSessionListener> listeners = getListeners();
+        for (ImsSessionListener listener : listeners) {
+            ((FileSharingSessionListener)listener).handleTransferProgress(currentSize, totalSize);
+        }
+    }
+
+    /**
+     * HTTP not allowed to send
+     */
+    public void httpTransferNotAllowedToSend() {
+        Collection<ImsSessionListener> listeners = getListeners();
+        for (ImsSessionListener listener : listeners) {
+            ((FileSharingSessionListener)listener).handleTransferNotAllowedToSend();
         }
     }
 
@@ -259,13 +269,24 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
     }
     
     /**
-     * Handle file transfer paused
+     * Handle file transfer paused by user
      */
-    public void httpTransferPaused() {
-    	// Notify listeners
-        for (int j = 0; j < getListeners().size(); j++) {
-            ((FileSharingSessionListener) getListeners().get(j))
-                    .handleFileTransferPaused();
+    public void httpTransferPausedByUser() {
+        Collection<ImsSessionListener> listeners = getListeners();
+        for (ImsSessionListener listener: listeners) {
+            ((FileSharingSessionListener)listener)
+                    .handleFileTransferPausedByUser();
+        }
+    }
+
+    /**
+     * Handle file transfer paused by system
+     */
+    public void httpTransferPausedBySystem() {
+        Collection<ImsSessionListener> listeners = getListeners();
+        for (ImsSessionListener listener: listeners) {
+            ((FileSharingSessionListener)listener)
+                    .handleFileTransferPausedBySystem();
         }
     }
     
@@ -273,13 +294,12 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
      * Handle file transfer paused
      */
     public void httpTransferResumed() {
-    	// Notify listeners
-        for (int j = 0; j < getListeners().size(); j++) {
-            ((FileSharingSessionListener) getListeners().get(j))
+        Collection<ImsSessionListener> listeners = getListeners();
+        for (ImsSessionListener listener: listeners) {
+            ((FileSharingSessionListener) listener)
                     .handleFileTransferResumed();
         }
     }
-    
     
 	/**
      * Get session state

@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.http;
@@ -232,7 +232,7 @@ public class HttpDownloadManager extends HttpTransferManager {
             if (logger.isActivated()) {
                 logger.error("Download file exception. Set in paused", e);
             }
-            pauseTransfer();
+            pauseTransferBySystem();
             return false;
         }
 
@@ -261,16 +261,16 @@ public class HttpDownloadManager extends HttpTransferManager {
 	/**
 	 * Download the thumbnail
 	 * 
-	 * @param fileicon
-	 *            fileicon info
-	 * @param fileName the fileicon filename
-	 * @return fileicon picture content or null in case of error
+	 * @param fileIcon
+	 *            file icon info
+	 * @param fileName the file icon filename
+	 * @return fileIcon picture content or null in case of error
 	 */
 	public MmContent downloadThumbnail(FileTransferHttpThumbnail thumbnailInfo, String fileName) {
-		MmContent fileicon = null;
+		MmContent fileIcon = null;
 		try {
 			if (logger.isActivated()) {
-				logger.debug("Download fileicon" + getHttpServerAddr());
+				logger.debug("Download file icon" + getHttpServerAddr());
 			}
 
 			// Send GET request
@@ -290,20 +290,20 @@ public class HttpDownloadManager extends HttpTransferManager {
 				return null;
 			}
 			// Create the content for filename
-			Uri fileiconUri = ContentManager.generateUriForReceivedContent(fileName, thumbnailInfo.getThumbnailType());
-			fileicon = ContentManager.createMmContent(fileiconUri, baos.size(), fileName);
+			Uri fileIconUri = ContentManager.generateUriForReceivedContent(fileName, thumbnailInfo.getThumbnailType());
+			fileIcon = ContentManager.createMmContent(fileIconUri, baos.size(), fileName);
 			// Save data to file
-			fileicon.writeData2File(baos.toByteArray());
-			return fileicon;
+			fileIcon.writeData2File(baos.toByteArray());
+			return fileIcon;
 		} catch (Exception e) {
 			if (logger.isActivated()) {
 				logger.error("Download thumbnail exception", e);
 			}
 			return null;
 		} finally {
-			if (fileicon != null) {
+			if (fileIcon != null) {
 				try {
-					fileicon.closeFile();
+					fileIcon.closeFile();
 				} catch (Exception e2) {
 				}
 			}

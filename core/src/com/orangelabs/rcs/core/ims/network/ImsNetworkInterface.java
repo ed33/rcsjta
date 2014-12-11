@@ -25,6 +25,7 @@ import java.net.UnknownHostException;
 
 import javax2.sip.ListeningPoint;
 
+import org.xbill.DNS.Cache;
 import org.xbill.DNS.ExtendedResolver;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.NAPTRRecord;
@@ -48,7 +49,7 @@ import com.orangelabs.rcs.core.ims.userprofile.SettingsUserProfileInterface;
 import com.orangelabs.rcs.core.ims.userprofile.UserProfile;
 import com.orangelabs.rcs.core.ims.userprofile.UserProfileInterface;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
-import com.orangelabs.rcs.provider.settings.RcsSettingsData;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -57,6 +58,11 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author Jean-Marc AUFFRET
  */
 public abstract class ImsNetworkInterface {
+	
+	/**
+	 * The maximum time in seconds that a negative response will be stored in this DNS Cache.
+	 */
+	private static int DNS_NEGATIVE_CACHING_TIME = 5;
 	
 	// Changed by Deutsche Telekom
 	private static final String REGEX_IPV4 = "\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b";
@@ -98,7 +104,7 @@ public abstract class ImsNetworkInterface {
 	/**
 	 * IMS authentication mode associated to the network interface
 	 */
-	protected String imsAuthentMode;
+	protected AuthenticationProcedure imsAuthentMode;
 
     /**
      * IMS proxy protocol
@@ -163,7 +169,7 @@ public abstract class ImsNetworkInterface {
      * @param authentMode IMS authentication mode
      */
 	public ImsNetworkInterface(ImsModule imsModule, int type, NetworkAccess access,
-            String proxyAddr, int proxyPort, String proxyProtocol, String authentMode) {
+            String proxyAddr, int proxyPort, String proxyProtocol, AuthenticationProcedure authentMode) {
 		this.imsModule = imsModule;
 		this.type = type;
 		this.access = access;
@@ -256,7 +262,7 @@ public abstract class ImsNetworkInterface {
      *
      * @return Authentication mode
      */
-	public String getAuthenticationMode() {
+	public AuthenticationProcedure getAuthenticationMode() {
 		return imsAuthentMode;
 	}
 
@@ -273,18 +279,20 @@ public abstract class ImsNetworkInterface {
      * Load the registration procedure associated to the network access
      */
 	public void loadRegistrationProcedure() {
-		if (imsAuthentMode.equals(RcsSettingsData.GIBA_AUTHENT)) {
+		switch (imsAuthentMode) {
+		case GIBA:
 			if (logger.isActivated()) {
 				logger.debug("Load GIBA authentication procedure");
 			}
 			this.registrationProcedure = new GibaRegistrationProcedure();
-		} else
-		if (imsAuthentMode.equals(RcsSettingsData.DIGEST_AUTHENT)) {
+			break;
+		case DIGEST:
 			if (logger.isActivated()) {
 				logger.debug("Load HTTP Digest authentication procedure");
 			}
 			this.registrationProcedure = new HttpDigestRegistrationProcedure();
-        }
+			break;
+		}
 	}
 
 	/**
@@ -294,17 +302,21 @@ public abstract class ImsNetworkInterface {
      */
 	public UserProfile getUserProfile() {
 		UserProfileInterface intf;
-		if (imsAuthentMode.equals(RcsSettingsData.GIBA_AUTHENT)) {
+		switch (imsAuthentMode) {
+		case GIBA:
 			if (logger.isActivated()) {
 				logger.debug("Load user profile derived from IMSI (GIBA)");
 			}
     		intf = new GibaUserProfileInterface();
-    	} else {
+			break;
+		case DIGEST:
+		default:
 			if (logger.isActivated()) {
 				logger.debug("Load user profile from RCS settings database");
 			}
             intf = new SettingsUserProfileInterface();
-    	}
+			break;
+		}
     	return intf.read();
 	}
 
@@ -372,6 +384,10 @@ public abstract class ImsNetworkInterface {
             }
             Lookup lookup = new Lookup(domain, type);
             lookup.setResolver(resolver);
+			// Default negative cache TTL value is "cache forever". We do not want that.
+			Cache cache = Lookup.getDefaultCache(type);
+			cache.setMaxNCache(DNS_NEGATIVE_CACHING_TIME);
+			lookup.setCache(cache);
             Record[] result = lookup.run();
             int code = lookup.getResult();
             if (code != Lookup.SUCCESSFUL) {

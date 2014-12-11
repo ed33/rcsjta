@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 
@@ -25,6 +25,8 @@ package com.orangelabs.rcs.core.ims.service.im.chat.standfw;
 import java.io.IOException;
 import java.util.Vector;
 
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpEventListener;
 import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpManager;
@@ -47,7 +49,9 @@ import com.orangelabs.rcs.core.ims.service.im.chat.cpim.CpimParser;
 import com.orangelabs.rcs.core.ims.service.im.chat.imdn.ImdnDocument;
 import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.NetworkRessourceManager;
+import com.orangelabs.rcs.utils.PhoneUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -64,16 +68,17 @@ public class TerminatingStoreAndForwardNotifSession extends OneOneChatSession im
 	/**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private static final Logger logger = Logger.getLogger(TerminatingStoreAndForwardNotifSession.class.getSimpleName());
 
     /**
      * Constructor
      * 
 	 * @param parent IMS service
 	 * @param invite Initial INVITE request
+	 * @param contact the remote ContactId
 	 */
-	public TerminatingStoreAndForwardNotifSession(ImsService parent, SipRequest invite) {
-		super(parent, ChatUtils.getReferredIdentity(invite));
+	public TerminatingStoreAndForwardNotifSession(ImsService parent, SipRequest invite, ContactId contact) {
+		super(parent, contact, PhoneUtils.formatContactIdToUri(contact));
 
 		// Create the MSRP manager
 		int localMsrpPort = NetworkRessourceManager.generateLocalMsrpPort();
@@ -312,10 +317,17 @@ public class TerminatingStoreAndForwardNotifSession extends OneOneChatSession im
 				if (cpimMsg != null) {
 			    	String contentType = cpimMsg.getContentType();
 			    	String from = cpimMsg.getHeader(CpimMessage.HEADER_FROM);
-			    	if (ChatUtils.isMessageImdnType(contentType)) {
-						// Receive an IMDN report
-						receiveMessageDeliveryStatus(from, cpimMsg.getMessageContent());
-			    	}
+			    	
+					if (ChatUtils.isMessageImdnType(contentType)) {
+						try {
+							ContactId contact = ContactUtils.createContactId(from);
+							// Receive an IMDN report
+							receiveMessageDeliveryStatus(contact, cpimMsg.getMessageContent());
+						} catch (RcsContactFormatException e) {
+							// Receive an IMDN report
+							receiveMessageDeliveryStatus(getRemoteContact(), cpimMsg.getMessageContent());
+						}
+					}
 				}
 	    	} catch(Exception e) {
 		   		if (logger.isActivated()) {
@@ -372,49 +384,46 @@ public class TerminatingStoreAndForwardNotifSession extends OneOneChatSession im
 		}
 	}
 	
-	/**
+    /**
      * Receive a message delivery status (XML document)
      * 
-     * @param contact Contact
+     * @param contact Contact identifier
      * @param xml XML document
      */
-    public void receiveMessageDeliveryStatus(String contact, String xml) {
-		try {
-			// Parse the IMDN document
-			ImdnDocument imdn = ChatUtils.parseDeliveryReport(xml);
-			if (imdn != null) {
-				String msgId = imdn.getMsgId();
-				String status = imdn.getStatus();
-				if ((msgId != null) && (status != null)) {
-					// Check message in RichMessagingHistory
-					// Note: FileTransferId is always generated to equal the
-					// associated msgId of a FileTransfer invitation message.
-					String fileTransferId = msgId;
-					boolean isFileTransfer = MessagingLog.getInstance().isFileTransfer(
-							fileTransferId);
-					if (isFileTransfer) {
-						// Notify the file delivery
-						((InstantMessagingService)getImsService()).receiveFileDeliveryStatus(
-								fileTransferId, status, contact);
-					} else {
-						// Notify the message delivery outside of the chat
-						// session
-						getImsService().getImsModule().getCore().getListener()
-								.handleMessageDeliveryStatus(contact, msgId, status);
-					}
-				}
-			}
-		} catch (Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Can't parse IMDN document", e);
-			}
-		}
-	}
+    public void receiveMessageDeliveryStatus(ContactId contact, String xml) {
+        try {
+            ImdnDocument imdn = ChatUtils.parseDeliveryReport(xml);
+            if (imdn == null) {
+                return;
+            }
+
+            boolean isFileTransfer = MessagingLog.getInstance().isFileTransfer(imdn.getMsgId());
+            if (isFileTransfer) {
+                ((InstantMessagingService)getImsService()).receiveFileDeliveryStatus(contact, imdn);
+
+            } else {
+                // Notify the message delivery outside of the chat
+                // session
+                getImsService().getImsModule().getCore().getListener()
+                        .handleMessageDeliveryStatus(contact, imdn);
+
+            }
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't parse IMDN document", e);
+            }
+        }
+    }
 	
     // Changed by Deutsche Telekom
     @Override
     public String getDirection() {
         return SdpUtils.DIRECTION_RECVONLY;
     }
+
+	@Override
+	public boolean isInitiatedByRemote() {
+		return true;
+	}
 
 }

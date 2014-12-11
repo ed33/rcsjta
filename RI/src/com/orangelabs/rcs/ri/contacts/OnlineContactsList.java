@@ -26,24 +26,29 @@ import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 
-import com.gsma.services.rcs.JoynService;
-import com.gsma.services.rcs.JoynServiceListener;
-import com.gsma.services.rcs.contacts.ContactsService;
-import com.gsma.services.rcs.contacts.JoynContact;
+import com.gsma.services.rcs.contacts.RcsContact;
+import com.orangelabs.rcs.ri.ApiConnectionManager;
+import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;
+import com.orangelabs.rcs.ri.utils.LockAccess;
 import com.orangelabs.rcs.ri.utils.Utils;
 
 /**
- * List of joyn contacts who are online (i.e. registered)
+ * List of RCS contacts who are online (i.e. registered)
  *  
  * @author Jean-Marc AUFFRET
  */
-public class OnlineContactsList extends ListActivity implements JoynServiceListener {
+public class OnlineContactsList extends ListActivity {
 	/**
-	 * Contacts API
+	 * API connection manager
 	 */
-	private ContactsService contactsApi;
-
+	private ApiConnectionManager connectionManager;
+	
+	/**
+   	 * A locker to exit only once
+   	 */
+   	private LockAccess exitOnce = new LockAccess();
+	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,57 +57,42 @@ public class OnlineContactsList extends ListActivity implements JoynServiceListe
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.contacts_rcs_list);
         
-        // Set title
-        setTitle(R.string.menu_list_online_contacts);
-
-        // Instanciate API
-        contactsApi = new ContactsService(getApplicationContext(), this);
-        
-        // Connect API
-        contactsApi.connect();
+		// Register to API connection manager
+		connectionManager = ApiConnectionManager.getInstance(this);
+		if (connectionManager == null || !connectionManager.isServiceConnected(RcsServiceName.CONTACTS)) {
+			Utils.showMessageAndExit(this, getString(R.string.label_service_not_available), exitOnce);
+			return;
+		}
+		connectionManager.startMonitorServices(this, null, RcsServiceName.CONTACTS);
 	}
 	
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-
-        // Disconnect API
-		contactsApi.disconnect();
+		if (connectionManager != null) {
+			connectionManager.stopMonitorServices(this);
+    	}
 	}	
 	
-    /**
-     * Callback called when service is connected. This method is called when the
-     * service is well connected to the RCS service (binding procedure successfull):
-     * this means the methods of the API may be used.
-     */
-    public void onServiceConnected() {
-    	// Display the list of sessions
+	@Override
+	protected void onResume() {
+		super.onResume();
+    	// Update the list of RCS contacts
 		updateList();
-    }
-    
-    /**
-     * Callback called when service has been disconnected. This method is called when
-     * the service is disconnected from the RCS service (e.g. service deactivated).
-     * 
-     * @param error Error
-     * @see JoynService.Error
-     */
-    public void onServiceDisconnected(int error) {
-    	// Nothing to do here
-    }    
+	}
 
     /**
      * Update the list
      */
     private void updateList() {
 		try {
-	    	// Get list of joyn contacts who are online
-	    	Set<JoynContact> onlineContacts = contactsApi.getJoynContactsOnline();
-	    	List<JoynContact> contacts = new ArrayList<JoynContact>(onlineContacts);
+	    	// Get list of RCS contacts who are online
+	    	Set<RcsContact> onlineContacts = connectionManager.getContactsApi().getRcsContactsOnline();
+	    	List<RcsContact> contacts = new ArrayList<RcsContact>(onlineContacts);
 			if (contacts.size() > 0){
 		        String[] items = new String[contacts.size()];    
 		        for (int i = 0; i < contacts.size(); i++) {
-		        	JoynContact contact = contacts.get(i);
+		        	RcsContact contact = contacts.get(i);
 		        	String status;
 		        	if (contact.isRegistered()) {
 						status = "online";
@@ -116,8 +106,7 @@ public class OnlineContactsList extends ListActivity implements JoynServiceListe
 				setListAdapter(null);
 			}
 		} catch(Exception e) {
-			e.printStackTrace();
-			Utils.showMessageAndExit(OnlineContactsList.this, getString(R.string.label_api_failed));
+			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), exitOnce);
 		}
     }
 }

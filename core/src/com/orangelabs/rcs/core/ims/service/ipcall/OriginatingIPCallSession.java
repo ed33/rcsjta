@@ -18,11 +18,13 @@
 
 package com.orangelabs.rcs.core.ims.service.ipcall;
 
+import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ipcall.IIPCallPlayer;
 import com.gsma.services.rcs.ipcall.IIPCallRenderer;
 import com.orangelabs.rcs.core.content.AudioContent;
 import com.orangelabs.rcs.core.content.VideoContent;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
+import com.orangelabs.rcs.core.ims.protocol.sip.SipException;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.utils.logger.Logger;
@@ -37,19 +39,19 @@ public class OriginatingIPCallSession extends IPCallSession {
     /**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private static final Logger logger = Logger.getLogger(OriginatingIPCallSession.class.getSimpleName());
     
     /**
      * Constructor
      *
      * @param parent IMS service
-     * @param contact Remote contact
+     * @param contact Remote contact identifier
      * @param audioContent Audio content
      * @param videoContent Video content
      * @param player IP call player
      * @param renderer IP call renderer
      */
-    public OriginatingIPCallSession(ImsService parent, String contact, AudioContent audioContent,
+    public OriginatingIPCallSession(ImsService parent, ContactId contact, AudioContent audioContent,
     		VideoContent videoContent, IIPCallPlayer player, IIPCallRenderer renderer) {
     	super(parent, contact, audioContent, videoContent);
     	
@@ -115,4 +117,21 @@ public class OriginatingIPCallSession extends IPCallSession {
             handleError(new IPCallError(IPCallError.UNEXPECTED_EXCEPTION, e.getMessage()));
         }
     }
+    
+    @Override
+	public SipRequest createInvite() throws SipException {
+		if (getVideoContent() == null) {
+			// Voice call
+			return SipMessageFactory.createInvite(getDialogPath(), IPCallService.FEATURE_TAGS_IP_VOICE_CALL, getDialogPath().getLocalContent());
+		} else {
+			// Visio call
+			return SipMessageFactory.createInvite(getDialogPath(), IPCallService.FEATURE_TAGS_IP_VIDEO_CALL, getDialogPath().getLocalContent());
+		}
+
+	}
+
+	@Override
+	public boolean isInitiatedByRemote() {
+		return false;
+	}
 }

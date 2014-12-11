@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,26 +16,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.service.api;
 
-import com.gsma.services.rcs.ish.IImageSharing;
-import com.gsma.services.rcs.ish.IImageSharingListener;
+import javax2.sip.message.Response;
 
 import android.net.Uri;
-import android.os.RemoteCallbackList;
 
+import com.gsma.services.rcs.RcsCommon.Direction;
+import com.gsma.services.rcs.contacts.ContactId;
+import com.gsma.services.rcs.ish.IImageSharing;
 import com.gsma.services.rcs.ish.ImageSharing;
+import com.gsma.services.rcs.ish.ImageSharing.ReasonCode;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipDialogPath;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
 import com.orangelabs.rcs.core.ims.service.richcall.image.ImageTransferSession;
 import com.orangelabs.rcs.core.ims.service.richcall.image.ImageTransferSessionListener;
-import com.orangelabs.rcs.core.ims.service.richcall.image.OriginatingImageTransferSession;
+import com.orangelabs.rcs.provider.sharing.ImageSharingStateAndReasonCode;
 import com.orangelabs.rcs.provider.sharing.RichCallHistory;
-import com.orangelabs.rcs.utils.PhoneUtils;
+import com.orangelabs.rcs.service.broadcaster.IImageSharingEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -49,31 +51,94 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 	 * Core session
 	 */
 	private ImageTransferSession session;
-	
-	/**
-	 * List of listeners
-	 */
-	private RemoteCallbackList<IImageSharingListener> listeners = new RemoteCallbackList<IImageSharingListener>();
+
+	private final IImageSharingEventBroadcaster mImageSharingEventBroadcaster;
 
 	/**
-	 * Lock used for synchronisation
+	 * Lock used for synchronization
 	 */
-	private Object lock = new Object();
+	private final Object lock = new Object();
 
 	/**
 	 * The logger
 	 */
-	private Logger logger = Logger.getLogger(this.getClass().getName());
+	private final static Logger logger = Logger.getLogger(ImageSharingImpl.class.getSimpleName());
 
 	/**
 	 * Constructor
-	 * 
+	 *
 	 * @param session Session
+	 * @param mImageSharingEventBroadcaster IImageSharingEventBroadcaster
 	 */
-	public ImageSharingImpl(ImageTransferSession session) {
+	public ImageSharingImpl(ImageTransferSession session,
+			IImageSharingEventBroadcaster broadcaster) {
 		this.session = session;
-		
+		mImageSharingEventBroadcaster = broadcaster;
+
 		session.addListener(this);
+	}
+
+	private ImageSharingStateAndReasonCode toStateAndReasonCode(ContentSharingError error) {
+		switch (error.getErrorCode()) {
+			case ContentSharingError.SESSION_INITIATION_FAILED:
+				return new ImageSharingStateAndReasonCode(ImageSharing.State.FAILED,
+						ReasonCode.FAILED_INITIATION);
+			case ContentSharingError.SESSION_INITIATION_CANCELLED:
+			case ContentSharingError.SESSION_INITIATION_DECLINED:
+				return new ImageSharingStateAndReasonCode(ImageSharing.State.REJECTED,
+						ReasonCode.REJECTED_BY_REMOTE);
+			case ContentSharingError.MEDIA_SAVING_FAILED:
+				return new ImageSharingStateAndReasonCode(ImageSharing.State.FAILED,
+						ReasonCode.FAILED_SAVING);
+			case ContentSharingError.MEDIA_TRANSFER_FAILED:
+			case ContentSharingError.MEDIA_STREAMING_FAILED:
+			case ContentSharingError.UNSUPPORTED_MEDIA_TYPE:
+				return new ImageSharingStateAndReasonCode(ImageSharing.State.FAILED,
+						ReasonCode.FAILED_SHARING);
+			case ContentSharingError.NOT_ENOUGH_STORAGE_SPACE:
+				return new ImageSharingStateAndReasonCode(ImageSharing.State.REJECTED,
+						ReasonCode.REJECTED_LOW_SPACE);
+			case ContentSharingError.MEDIA_SIZE_TOO_BIG:
+				return new ImageSharingStateAndReasonCode(ImageSharing.State.REJECTED,
+						ReasonCode.REJECTED_MAX_SIZE);
+			case ContentSharingError.MEDIA_RENDERER_NOT_INITIALIZED:
+				return new ImageSharingStateAndReasonCode(ImageSharing.State.ABORTED,
+						ReasonCode.ABORTED_BY_SYSTEM);
+			default:
+				throw new IllegalArgumentException(
+						"Unknown reason in ImageSharingImpl.toStateAndReasonCode; error=" + error
+								+ "!");
+		}
+	}
+
+	private int imsServiceSessionErrorToReasonCode(int imsServiceSessionErrorCode) {
+		switch (imsServiceSessionErrorCode) {
+			case ImsServiceSession.TERMINATION_BY_SYSTEM:
+			case ImsServiceSession.TERMINATION_BY_TIMEOUT:
+				return ReasonCode.ABORTED_BY_SYSTEM;
+			case ImsServiceSession.TERMINATION_BY_USER:
+				return ReasonCode.ABORTED_BY_USER;
+			default:
+				throw new IllegalArgumentException(
+						"Unknown reason in ImageSharingImpl.imsServiceSessionErrorToReasonCode; imsServiceSessionErrorCode="
+								+ imsServiceSessionErrorCode + "!");
+		}
+	}
+
+	private void handleSessionRejected(int reasonCode) {
+		if (logger.isActivated()) {
+			logger.info("Session rejected; reasonCode=" + reasonCode + ".");
+		}
+		String sharingId = getSharingId();
+		synchronized (lock) {
+			ImageSharingServiceImpl.removeImageSharingSession(sharingId);
+
+			RichCallHistory.getInstance().setImageSharingState(sharingId,
+					ImageSharing.State.REJECTED, reasonCode);
+
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
+					sharingId, ImageSharing.State.REJECTED, reasonCode);
+		}
 	}
 
 	/**
@@ -86,12 +151,12 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 	}
 	
 	/**
-	 * Returns the remote contact
+	 * Returns the remote contact identifier
 	 * 
-	 * @return Contact
+	 * @return ContactId
 	 */
-	public String getRemoteContact() {
-		return PhoneUtils.extractNumberFromUri(session.getRemoteContact());
+	public ContactId getRemoteContact() {
+		return session.getRemoteContact();
 	}
 	
 	/**
@@ -126,57 +191,52 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
      * 
      * @return Type
      */
-    public String getFileType() {
+    public String getMimeType() {
         return session.getContent().getEncoding();
     }
 
 	/**
 	 * Returns the state of the image sharing
 	 * 
-	 * @return State 
+	 * @return State
 	 */
 	public int getState() {
-		int result = ImageSharing.State.INACTIVE;
+		// TODO manage other states
 		SipDialogPath dialogPath = session.getDialogPath();
-		if (dialogPath != null) {
-			if (dialogPath.isSessionCancelled()) {
-				// Session canceled
-				result = ImageSharing.State.ABORTED;
-			} else
-			if (dialogPath.isSessionEstablished()) {
-				// Session started
-				result = ImageSharing.State.STARTED;
-			} else
-			if (dialogPath.isSessionTerminated()) {
-				// Session terminated
-				if (session.isImageTransfered()) {
-					result = ImageSharing.State.TRANSFERRED;
-				} else {
-					result = ImageSharing.State.ABORTED;
-				}
-			} else {
-				// Session pending
-				if (session instanceof OriginatingImageTransferSession) {
-					result = ImageSharing.State.INITIATED;
-				} else {
-					result = ImageSharing.State.INVITED;
-				}
+		if (dialogPath != null && dialogPath.isSessionEstablished()) {
+			return ImageSharing.State.STARTED;
+
+		} else if (session.isInitiatedByRemote()) {
+			if (session.isSessionAccepted()) {
+				return ImageSharing.State.ACCEPTING;
 			}
+
+			return ImageSharing.State.INVITED;
 		}
-		return result;
+
+		return ImageSharing.State.INITIATED;
+	}
+
+	/**
+	 * Returns the reason code of the state of the image sharing
+	 *
+	 * @return ReasonCode
+	 */
+	public int getReasonCode() {
+		return ReasonCode.UNSPECIFIED;
 	}
 	
 	/**
 	 * Returns the direction of the sharing (incoming or outgoing)
 	 * 
 	 * @return Direction
-	 * @see ImageSharing.Direction
+	 * @see Direction
 	 */
 	public int getDirection() {
-		if (session instanceof OriginatingImageTransferSession) {
-			return ImageSharing.Direction.OUTGOING;
+		if (session.isInitiatedByRemote()) {
+			return Direction.INCOMING;
 		} else {
-			return ImageSharing.Direction.INCOMING;
+			return Direction.OUTGOING;
 		}
 	}		
 		
@@ -189,12 +249,11 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 		}
 
 		// Accept invitation
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
     			session.acceptSession();
     		}
-    	};
-    	t.start();
+    	}.start();
 	}
 	
 	/**
@@ -205,16 +264,12 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 			logger.info("Reject session invitation");
 		}
 
-		// Update rich call history
-		RichCallHistory.getInstance().setImageSharingStatus(session.getSessionID(), ImageSharing.State.ABORTED);
-
 		// Reject invitation
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
-    			session.rejectSession(603);
+    			session.rejectSession(Response.DECLINE);
     		}
-    	};
-    	t.start();
+    	}.start();
     }
 
 	/**
@@ -231,191 +286,97 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 		}
 		
 		// Abort the session
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
     			session.abortSession(ImsServiceSession.TERMINATION_BY_USER);
     		}
-    	};
-    	t.start();		
+    	}.start();		
 	}
 
-	/**
-	 * Adds a listener on image sharing events
-	 * 
-	 * @param listener Listener
-	 */
-	public void addEventListener(IImageSharingListener listener) {
-		if (logger.isActivated()) {
-			logger.info("Add an event listener");
-		}
-
-    	synchronized(lock) {
-    		listeners.register(listener);
-    	}
-	}
-	
-	/**
-	 * Removes a listener on image sharing events
-	 * 
-	 * @param listener Listener
-	 */
-	public void removeEventListener(IImageSharingListener listener) {
-		if (logger.isActivated()) {
-			logger.info("Remove an event listener");
-		}
-
-    	synchronized(lock) {
-    		listeners.unregister(listener);
-    	}
-	}
-	
     /*------------------------------- SESSION EVENTS ----------------------------------*/
-	
+
 	/**
 	 * Session is started
 	 */
     public void handleSessionStarted() {
+		if (logger.isActivated()) {
+			logger.info("Session started");
+		}
     	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Session started");
-			}
-	
-			// Update rich call history
-			RichCallHistory.getInstance().setImageSharingStatus(session.getSessionID(), ImageSharing.State.STARTED);
+			RichCallHistory.getInstance().setImageSharingState(session.getSessionID(),
+					ImageSharing.State.STARTED, ReasonCode.UNSPECIFIED);
 
-			// Notify event listeners
-			final int N = listeners.beginBroadcast();
-	        for (int i=0; i < N; i++) {
-	            try {
-	            	listeners.getBroadcastItem(i).onSharingStarted();
-	            } catch(Exception e) {
-	            	if (logger.isActivated()) {
-	            		logger.error("Can't notify listener", e);
-	            	}
-	            }
-	        }
-	        listeners.finishBroadcast();
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
+					getSharingId(), ImageSharing.State.STARTED, ReasonCode.UNSPECIFIED);
 	    }
     }
     
-    /**
-     * Session has been aborted
-     * 
+	/**
+	 * * Session has been aborted
+	 *
 	 * @param reason Termination reason
 	 */
-    public void handleSessionAborted(int reason) {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Session aborted (reason " + reason + ")");
-			}
-	
-			// Update rich call history
-			RichCallHistory.getInstance().setImageSharingStatus(session.getSessionID(), ImageSharing.State.ABORTED);
-			
-	  		// Notify event listeners
-			final int N = listeners.beginBroadcast();
-	        for (int i=0; i < N; i++) {
-	            try {
-	            	listeners.getBroadcastItem(i).onSharingAborted();
-	            } catch(Exception e) {
-	            	if (logger.isActivated()) {
-	            		logger.error("Can't notify listener", e);
-	            	}
-	            }
-	        }
-	        listeners.finishBroadcast();
-	        
-	        // Remove session from the list
-	        ImageSharingServiceImpl.removeImageSharingSession(session.getSessionID());
-	    }
-    }
-    
-    /**
-     * Session has been terminated by remote
-     */
-    public void handleSessionTerminatedByRemote() {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Session terminated by remote");
-			}
-			
-			// Check if the file has been transferred or not
-	  		if (session.isImageTransfered()) {
-		        // Remove session from the list
-	  			ImageSharingServiceImpl.removeImageSharingSession(session.getSessionID());
-	  		} else {
-				// Update rich call history
-				RichCallHistory.getInstance().setImageSharingStatus(session.getSessionID(), ImageSharing.State.ABORTED);
-		
-		  		// Notify event listeners
-				final int N = listeners.beginBroadcast();
-		        for (int i=0; i < N; i++) {
-		            try {
-		            	listeners.getBroadcastItem(i).onSharingAborted();
-		            } catch(Exception e) {
-		            	if (logger.isActivated()) {
-		            		logger.error("Can't notify listener", e);
-		            	}
-		            }
-		        }
-		        listeners.finishBroadcast();
+	public void handleSessionAborted(int reason) {
+		if (logger.isActivated()) {
+			logger.info("Session aborted (reason " + reason + ")");
+		}
+		int reasonCode = imsServiceSessionErrorToReasonCode(reason);
+		String sharingId = getSharingId();
+		synchronized (lock) {
+			ImageSharingServiceImpl.removeImageSharingSession(sharingId);
 
-		        // Remove session from the list
-				ImageSharingServiceImpl.removeImageSharingSession(session.getSessionID());
-	  		}
-	    }
-    }
-    
-    /**
-     * Content sharing error
-     *
-     * @param error Error
-     */
-    public void handleSharingError(ContentSharingError error) {
-    	synchronized(lock) {
-			if (error.getErrorCode() == ContentSharingError.SESSION_INITIATION_CANCELLED) {
-				// Do nothing here, this is an aborted event
-				return;
-			}
+			RichCallHistory.getInstance().setImageSharingState(sharingId,
+					ImageSharing.State.ABORTED, reasonCode);
 
-			if (logger.isActivated()) {
-				logger.info("Sharing error " + error.getErrorCode());
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
+					sharingId, ImageSharing.State.ABORTED, reasonCode);
+		}
+	}
+
+	/**
+	 * Session has been terminated by remote
+	 */
+	public void handleSessionTerminatedByRemote() {
+		if (logger.isActivated()) {
+			logger.info("Session terminated by remote");
+		}
+
+		String sharingId = getSharingId();
+		synchronized (lock) {
+			ImageSharingServiceImpl.removeImageSharingSession(sharingId);
+
+			if (!session.isImageTransfered()) {
+				RichCallHistory.getInstance().setImageSharingState(sharingId,
+						ImageSharing.State.ABORTED, ReasonCode.ABORTED_BY_REMOTE);
+
+				mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
+						sharingId, ImageSharing.State.ABORTED, ReasonCode.ABORTED_BY_REMOTE);
 			}
-	
-			// Update rich call history
-			RichCallHistory.getInstance().setImageSharingStatus(session.getSessionID(), ImageSharing.State.FAILED);
-	
-	  		// Notify event listeners
-			final int N = listeners.beginBroadcast();
-	        for (int i=0; i < N; i++) {
-	            try {
-	            	int code;
-	            	switch(error.getErrorCode()) {
-            			case ContentSharingError.SESSION_INITIATION_DECLINED:
-	            			code = ImageSharing.Error.INVITATION_DECLINED;
-	            			break;
-	            		case ContentSharingError.MEDIA_SAVING_FAILED:
-	            			code = ImageSharing.Error.SAVING_FAILED;
-	            			break;
-	            		case ContentSharingError.MEDIA_TRANSFER_FAILED:
-	            			code = ImageSharing.Error.SHARING_FAILED;
-	            			break;
-	            		default:
-	            			code = ImageSharing.Error.SHARING_FAILED;
-	            	}
-	            	listeners.getBroadcastItem(i).onSharingError(code);
-	            } catch(Exception e) {
-	            	if (logger.isActivated()) {
-	            		logger.error("Can't notify listener", e);
-	            	}
-	            }
-	        }
-	        listeners.finishBroadcast();
-	        
-	        // Remove session from the list
-	        ImageSharingServiceImpl.removeImageSharingSession(session.getSessionID());
-	    }
-    }
+		}
+	}
+    
+	/**
+	 * Content sharing error
+	 * 
+	 * @param error Error
+	 */
+	public void handleSharingError(ContentSharingError error) {
+		if (logger.isActivated()) {
+			logger.info("Sharing error " + error.getErrorCode());
+		}
+		ImageSharingStateAndReasonCode stateAndReasonCode = toStateAndReasonCode(error);
+		int state = stateAndReasonCode.getState();
+		int reasonCode = stateAndReasonCode.getReasonCode();
+		String sharingId = getSharingId();
+		synchronized (lock) {
+			ImageSharingServiceImpl.removeImageSharingSession(sharingId);
+
+			RichCallHistory.getInstance().setImageSharingState(sharingId, state, reasonCode);
+
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
+					sharingId, state, reasonCode);
+		}
+	}
     
     /**
      * Content sharing progress
@@ -424,26 +385,13 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
      * @param totalSize Total size to be transferred
      */
     public void handleSharingProgress(long currentSize, long totalSize) {
+        String sharingId = getSharingId();
     	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.debug("Sharing progress");
-			}
-	
-			// Update rich call history
-			RichCallHistory.getInstance().setImageSharingProgress(session.getSessionID(), currentSize, totalSize);
+			RichCallHistory.getInstance().updateImageSharingProgress(sharingId,
+					currentSize);
 
-			// Notify event listeners
-			final int N = listeners.beginBroadcast();
-	        for (int i=0; i < N; i++) {
-	            try {
-	            	listeners.getBroadcastItem(i).onSharingProgress(currentSize, totalSize);
-	            } catch(Exception e) {
-	            	if (logger.isActivated()) {
-	            		logger.error("Can't notify listener", e);
-	            	}
-	            }
-	        }
-	        listeners.finishBroadcast();
+			mImageSharingEventBroadcaster.broadcastProgressUpdate(getRemoteContact(),
+					sharingId, currentSize, totalSize);
 	     }
     }
     
@@ -453,26 +401,73 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
      * @param filename Filename associated to the received content
      */
     public void handleContentTransfered(Uri file) {
-    	synchronized(lock) {
-			if (logger.isActivated()) {
-				logger.info("Image transferred");
-			}
-	
-			// Update rich call history
-			RichCallHistory.getInstance().setImageSharingStatus(session.getSessionID(), ImageSharing.State.TRANSFERRED);
-	
-	  		// Notify event listeners
-			final int N = listeners.beginBroadcast();
-	        for (int i=0; i < N; i++) {
-	            try {
-	            	listeners.getBroadcastItem(i).onImageShared(file);
-	            } catch(Exception e) {
-	            	if (logger.isActivated()) {
-	            		logger.error("Can't notify listener", e);
-	            	}
-	            }
-	        }
-	        listeners.finishBroadcast();
+		if (logger.isActivated()) {
+			logger.info("Image transferred");
+		}
+		String sharingId = getSharingId();
+		synchronized (lock) {
+			ImageSharingServiceImpl.removeImageSharingSession(sharingId);
+
+			RichCallHistory.getInstance().setImageSharingState(sharingId,
+					ImageSharing.State.TRANSFERRED, ReasonCode.UNSPECIFIED);
+
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
+					sharingId, ImageSharing.State.TRANSFERRED, ReasonCode.UNSPECIFIED);
 	    }
     }
+
+	@Override
+	public void handleSessionAccepted() {
+		if (logger.isActivated()) {
+			logger.info("Accepting sharing");
+		}
+		String sharingId = getSharingId();
+		synchronized (lock) {
+			RichCallHistory.getInstance().setImageSharingState(sharingId,
+					ImageSharing.State.ACCEPTING, ReasonCode.UNSPECIFIED);
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
+					sharingId, ImageSharing.State.ACCEPTING, ReasonCode.UNSPECIFIED);
+		}
+	}
+
+	@Override
+	public void handleSessionRejectedByUser() {
+		handleSessionRejected(ReasonCode.REJECTED_BY_USER);
+	}
+
+	@Override
+	public void handleSessionRejectedByTimeout() {
+		handleSessionRejected(ReasonCode.REJECTED_TIME_OUT);
+	}
+
+	@Override
+	public void handleSessionRejectedByRemote() {
+		handleSessionRejected(ReasonCode.REJECTED_BY_REMOTE);
+	}
+
+	@Override
+	public void handleSessionInvited() {
+		if (logger.isActivated()) {
+			logger.info("Invited to image sharing session");
+		}
+		String sharingId = getSharingId();
+		synchronized (lock) {
+			RichCallHistory.getInstance().addImageSharing(getRemoteContact(), sharingId,
+					Direction.INCOMING, session.getContent(), ImageSharing.State.INVITED,
+					ReasonCode.UNSPECIFIED);
+		}
+
+		mImageSharingEventBroadcaster.broadcastInvitation(sharingId);
+	}
+
+	@Override
+	public void handle180Ringing() {
+		String sharingId = getSharingId();
+		synchronized (lock) {
+			RichCallHistory.getInstance().setImageSharingState(sharingId,
+					ImageSharing.State.RINGING, ReasonCode.UNSPECIFIED);
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
+					sharingId, ImageSharing.State.RINGING, ReasonCode.UNSPECIFIED);
+		}
+	}
 }

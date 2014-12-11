@@ -2,7 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,43 +16,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.service;
 
+import java.util.Set;
+
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.IBinder;
 
-import com.gsma.services.rcs.Intents;
-import com.gsma.services.rcs.JoynService;
+import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.capability.ICapabilityService;
 import com.gsma.services.rcs.chat.IChatService;
+import com.gsma.services.rcs.chat.ParticipantInfo;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.IContactsService;
 import com.gsma.services.rcs.extension.IMultimediaSessionService;
 import com.gsma.services.rcs.ft.IFileTransferService;
 import com.gsma.services.rcs.gsh.IGeolocSharingService;
 import com.gsma.services.rcs.ipcall.IIPCallService;
 import com.gsma.services.rcs.ish.IImageSharingService;
+import com.gsma.services.rcs.upload.IFileUploadService;
 import com.gsma.services.rcs.vsh.IVideoSharingService;
 import com.orangelabs.rcs.R;
 import com.orangelabs.rcs.addressbook.AccountChangedReceiver;
 import com.orangelabs.rcs.core.Core;
 import com.orangelabs.rcs.core.CoreListener;
 import com.orangelabs.rcs.core.TerminalInfo;
+import com.orangelabs.rcs.core.content.AudioContent;
+import com.orangelabs.rcs.core.content.GeolocContent;
+import com.orangelabs.rcs.core.content.MmContent;
+import com.orangelabs.rcs.core.content.VideoContent;
 import com.orangelabs.rcs.core.ims.ImsError;
 import com.orangelabs.rcs.core.ims.service.capability.Capabilities;
 import com.orangelabs.rcs.core.ims.service.im.chat.OneOneChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.TerminatingAdhocGroupChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.TerminatingOne2OneChatSession;
+import com.orangelabs.rcs.core.ims.service.im.chat.imdn.ImdnDocument;
 import com.orangelabs.rcs.core.ims.service.im.chat.standfw.TerminatingStoreAndForwardMsgSession;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession;
 import com.orangelabs.rcs.core.ims.service.ipcall.IPCallSession;
@@ -64,6 +74,7 @@ import com.orangelabs.rcs.core.ims.service.sip.messaging.GenericSipMsrpSession;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.GenericSipRtpSession;
 import com.orangelabs.rcs.platform.AndroidFactory;
 import com.orangelabs.rcs.platform.file.FileFactory;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.fthttp.FtHttpResumeDaoImpl;
 import com.orangelabs.rcs.provider.ipcall.IPCallHistory;
@@ -75,13 +86,15 @@ import com.orangelabs.rcs.service.api.CapabilityServiceImpl;
 import com.orangelabs.rcs.service.api.ChatServiceImpl;
 import com.orangelabs.rcs.service.api.ContactsServiceImpl;
 import com.orangelabs.rcs.service.api.FileTransferServiceImpl;
+import com.orangelabs.rcs.service.api.FileUploadServiceImpl;
 import com.orangelabs.rcs.service.api.GeolocSharingServiceImpl;
 import com.orangelabs.rcs.service.api.IPCallServiceImpl;
 import com.orangelabs.rcs.service.api.ImageSharingServiceImpl;
 import com.orangelabs.rcs.service.api.MultimediaSessionServiceImpl;
 import com.orangelabs.rcs.service.api.VideoSharingServiceImpl;
+import com.orangelabs.rcs.settings.SettingsDisplay;
 import com.orangelabs.rcs.utils.AppUtils;
-import com.orangelabs.rcs.utils.PhoneUtils;
+import com.orangelabs.rcs.utils.IntentUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -152,11 +165,16 @@ public class RcsCoreService extends Service implements CoreListener {
 	 * Multimedia session API
 	 */
 	private MultimediaSessionServiceImpl sessionApi = null; 
-		
-	/**
+	
+    /**
+	 * File upload API
+	 */
+    private FileUploadServiceImpl uploadApi = null; 
+
+    /**
 	 * The logger
 	 */
-	private Logger logger = Logger.getLogger(this.getClass().getName());
+	private final static Logger logger = Logger.getLogger(RcsCoreService.class.getSimpleName());
 
 	@Override
     public void onCreate() {
@@ -207,10 +225,13 @@ public class RcsCoreService extends Service implements CoreListener {
     			logger.debug("Start RCS core service");
     		}
     		
-			// Instantiate the settings manager
-            RcsSettings.createInstance(getApplicationContext());
+            Context ctx = getApplicationContext();
+            RcsSettings.createInstance(ctx);
             
-        	// Instanciate API
+            // Instantiate the contactUtils instance (CountryCode is already set)
+            com.gsma.services.rcs.contacts.ContactUtils.getInstance(this);
+            
+        	// Instantiate API
             contactsApi = new ContactsServiceImpl(); 
             capabilityApi = new CapabilityServiceImpl(); 
             chatApi = new ChatServiceImpl(); 
@@ -220,6 +241,7 @@ public class RcsCoreService extends Service implements CoreListener {
             gshApi = new GeolocSharingServiceImpl(); 
             ipcallApi = new IPCallServiceImpl(); 
         	sessionApi = new MultimediaSessionServiceImpl();             
+            uploadApi = new FileUploadServiceImpl(); 
             
             // Set the logger properties
     		Logger.activationFlag = RcsSettings.getInstance().isTraceActivated();
@@ -229,21 +251,14 @@ public class RcsCoreService extends Service implements CoreListener {
             if (logger.isActivated()) {
                 logger.info("RCS stack release is " + TerminalInfo.getProductVersion());
             }
-    		
-    		// Instantiate the contacts manager
-            ContactsManager.createInstance(getApplicationContext());
 
-            // Instantiate the rich messaging history 
-            MessagingLog.createInstance(getApplicationContext());
-            
-            // Instantiate the rich call history 
-            RichCallHistory.createInstance(getApplicationContext());
-
-            // Instantiate the IP call history
-            IPCallHistory.createInstance(getApplicationContext());
-
-            // Instantiate the FT HTTP DAO interface
-            FtHttpResumeDaoImpl.createInstance(getApplicationContext());
+            ContentResolver contentResolver = ctx.getContentResolver();
+            LocalContentResolver localContentResolver = new LocalContentResolver(contentResolver);
+            ContactsManager.createInstance(ctx, contentResolver, localContentResolver);
+            MessagingLog.createInstance(ctx, localContentResolver);
+            RichCallHistory.createInstance(localContentResolver);
+            IPCallHistory.createInstance(localContentResolver);
+            FtHttpResumeDaoImpl.createInstance(ctx);
             
             // Instantiate the Security infos provider
             SecurityInfos.createInstance(getApplicationContext());
@@ -388,6 +403,12 @@ public class RcsCoreService extends Service implements CoreListener {
     			logger.debug("Multimedia session API binding");
     		}
             return sessionApi;
+        } else
+        if (IFileUploadService.class.getName().equals(intent.getAction())) {
+    		if (logger.isActivated()) {
+    			logger.debug("File upload service API binding");
+    		}
+            return uploadApi;
         } else {
         	return null;
         }
@@ -401,7 +422,7 @@ public class RcsCoreService extends Service implements CoreListener {
      */
     public static void addRcsServiceNotification(boolean state, String label) {
     	// Create notification
-    	Intent intent = new Intent(Intents.Client.ACTION_VIEW_SETTINGS);
+    	Intent intent = new Intent(AndroidFactory.getApplicationContext(), SettingsDisplay.class);
     	intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		PendingIntent contentIntent = PendingIntent.getActivity(AndroidFactory.getApplicationContext(), 0, intent, 0);
 		int iconId; 
@@ -465,10 +486,11 @@ public class RcsCoreService extends Service implements CoreListener {
 
 		// Display a notification
 		addRcsServiceNotification(false, getString(R.string.rcs_core_started));
-		
+
 		// Send service up intent
-		Intent intent = new Intent(JoynService.ACTION_SERVICE_UP);
-		getApplicationContext().sendBroadcast(intent);
+		Intent serviceUp = new Intent(RcsService.ACTION_SERVICE_UP);
+		IntentUtils.tryToSetReceiverForegroundFlag(serviceUp);
+		getApplicationContext().sendBroadcast(serviceUp);
     }
 
     /* (non-Javadoc)
@@ -535,7 +557,7 @@ public class RcsCoreService extends Service implements CoreListener {
     /* (non-Javadoc)
      * @see com.orangelabs.rcs.core.CoreListener#handlePresenceSharingNotification(java.lang.String, java.lang.String, java.lang.String)
      */
-    public void handlePresenceSharingNotification(String contact, String status, String reason) {
+    public void handlePresenceSharingNotification(ContactId contact, String status, String reason) {
 		if (logger.isActivated()) {
 			logger.debug("Handle event presence sharing notification for " + contact + " (" + status + ":" + reason + ")");
 		}
@@ -545,32 +567,23 @@ public class RcsCoreService extends Service implements CoreListener {
     /* (non-Javadoc)
      * @see com.orangelabs.rcs.core.CoreListener#handlePresenceInfoNotification(java.lang.String, com.orangelabs.rcs.core.ims.service.presence.pidf.PidfDocument)
      */
-    public void handlePresenceInfoNotification(String contact, PidfDocument presence) {
+    public void handlePresenceInfoNotification(ContactId contact, PidfDocument presence) {
     	if (logger.isActivated()) {
 			logger.debug("Handle event presence info notification for " + contact);
 		}
 		// Not used
 	}
     
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleCapabilitiesNotification(java.lang.String, com.orangelabs.rcs.core.ims.service.capability.Capabilities)
-     */
-    public void handleCapabilitiesNotification(String contact, Capabilities capabilities) {
+    public void handleCapabilitiesNotification(ContactId contact, Capabilities capabilities) {
     	if (logger.isActivated()) {
 			logger.debug("Handle capabilities update notification for " + contact + " (" + capabilities.toString() + ")");
 		}
 
-		// Extract number from contact 
-		String number = PhoneUtils.extractNumberFromUri(contact);
-
 		// Notify API
-		capabilityApi.receiveCapabilities(number, capabilities);
+		capabilityApi.receiveCapabilities(contact, capabilities);
     }
     
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handlePresenceSharingInvitation(java.lang.String)
-     */
-    public void handlePresenceSharingInvitation(String contact) {
+    public void handlePresenceSharingInvitation(ContactId contact) {
 		if (logger.isActivated()) {
 			logger.debug("Handle event presence sharing invitation");
 		}
@@ -613,40 +626,26 @@ public class RcsCoreService extends Service implements CoreListener {
 		vshApi.receiveVideoSharingInvitation(session);
     }
 	
-	/* (non-Javadoc)
-	 * @see com.orangelabs.rcs.core.CoreListener#handleFileTransferInvitation(com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession, boolean)
-	 */
-	public void handleFileTransferInvitation(FileSharingSession fileSharingSession, boolean isGroup) {
+    @Override
+	public void handleFileTransferInvitation(FileSharingSession fileSharingSession, boolean isGroup, ContactId contact,
+			String displayName) {
 		if (logger.isActivated()) {
 			logger.debug("Handle event file transfer invitation");
 		}
 
     	// Broadcast the invitation
-		ftApi.receiveFileTransferInvitation(fileSharingSession, isGroup);
+		ftApi.receiveFileTransferInvitation(fileSharingSession, isGroup, contact, displayName);
 	}
     
-	/* (non-Javadoc)
-	 * @see com.orangelabs.rcs.core.CoreListener#handle1to1FileTransferInvitation(com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession, com.orangelabs.rcs.core.ims.service.im.chat.OneOneChatSession)
-	 */
-	public void handle1to1FileTransferInvitation(FileSharingSession fileSharingSession, OneOneChatSession one2oneChatSession) {
+    @Override
+	public void handleOneToOneFileTransferInvitation(FileSharingSession fileSharingSession, OneOneChatSession oneToOneChatSession) {
 		if (logger.isActivated()) {
 			logger.debug("Handle event file transfer invitation");
 		}
 		
     	// Broadcast the invitation
-    	ftApi.receiveFileTransferInvitation(fileSharingSession, one2oneChatSession);
-	}
-	
-	/* (non-Javadoc)
-	 * @see com.orangelabs.rcs.core.CoreListener#handleGroupFileTransferInvitation(com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession, com.orangelabs.rcs.core.ims.service.im.chat.TerminatingAdhocGroupChatSession)
-	 */
-	public void handleGroupFileTransferInvitation(FileSharingSession session, TerminatingAdhocGroupChatSession groupChatSession) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event group file transfer invitation");
-		}
-		
-    	// Broadcast the invitation
-    	ftApi.receiveFileTransferInvitation(session, groupChatSession);
+		ftApi.receiveFileTransferInvitation(fileSharingSession, false, oneToOneChatSession.getRemoteContact(),
+				oneToOneChatSession.getRemoteDisplayName());
 	}
 
     /* (non-Javadoc)
@@ -709,41 +708,32 @@ public class RcsCoreService extends Service implements CoreListener {
 		chatApi.receiveOneOneChatInvitation(session);
     }
     
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleMessageDeliveryStatus(java.lang.String, java.lang.String, java.lang.String)
-     */
-    public void handleMessageDeliveryStatus(String contact, String msgId, String status) {
+    public void handleMessageDeliveryStatus(ContactId contact, ImdnDocument imdn) {
 		if (logger.isActivated()) {
 			logger.debug("Handle message delivery status");
 		}
     	
-		// Notify listeners
-		chatApi.receiveMessageDeliveryStatus(contact, msgId, status);
+		chatApi.receiveMessageDeliveryStatus(contact, imdn);
     }
     
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleFileDeliveryStatus(java.lang.String, java.lang.String, java.lang.String)
-     */
-    public void handleFileDeliveryStatus(String fileTransferId, String status, String contact) {
+    public void handleFileDeliveryStatus(ContactId contact, ImdnDocument imdn) {
     	 if (logger.isActivated()) {
-        	 logger.debug("Handle file delivery status: fileTransferId=" + fileTransferId + " status=" + status + " contact="+contact);
+        	 logger.debug("Handle file delivery status: fileTransferId=" + imdn.getMsgId()
+        			 + " notification_type=" + imdn.getNotificationType() + " status="
+        			 + imdn.getStatus() + " contact=" + contact);
          }
 
-        // Notify listeners
-        ftApi.handleFileDeliveryStatus(fileTransferId, status, contact);
+        ftApi.handleFileDeliveryStatus(imdn,  contact);
     }
 
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleFileDeliveryStatus(java.lang.String, java.lang.String, java.lang.String)
-     */
-	public void handleGroupFileDeliveryStatus(String fileTransferId, String status, String contact) {
+	public void handleGroupFileDeliveryStatus(String chatId, ContactId contact, ImdnDocument imdn) {
 		if (logger.isActivated()) {
-			logger.debug("Handle group file delivery status: fileTransferId=" + fileTransferId + " status="
-					+ status + " contact=" + contact);
+			logger.debug("Handle group file delivery status: fileTransferId=" + imdn.getMsgId()
+					+ " notification_type=" + imdn.getNotificationType() + " status="
+					+ imdn.getStatus() + " contact=" + contact);
 		}
 
-		// Notify listeners
-		ftApi.handleGroupFileDeliveryStatus(fileTransferId, status, contact);
+		ftApi.handleGroupFileDeliveryStatus(chatId, imdn, contact);
 	}
 
     /* (non-Javadoc)
@@ -773,7 +763,7 @@ public class RcsCoreService extends Service implements CoreListener {
     /* (non-Javadoc)
      * @see com.orangelabs.rcs.core.CoreListener#handleUserConfirmationRequest(java.lang.String, java.lang.String, java.lang.String, boolean, java.lang.String, java.lang.String, java.lang.String, java.lang.String, int)
      */
-    public void handleUserConfirmationRequest(String remote, String id,
+    public void handleUserConfirmationRequest(ContactId remote, String id,
     		String type, boolean pin, String subject, String text,
     		String acceptButtonLabel, String rejectButtonLabel, int timeout) {
         if (logger.isActivated()) {
@@ -786,7 +776,7 @@ public class RcsCoreService extends Service implements CoreListener {
     /* (non-Javadoc)
      * @see com.orangelabs.rcs.core.CoreListener#handleUserConfirmationAck(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
      */
-    public void handleUserConfirmationAck(String remote, String id, String status, String subject, String text) {
+    public void handleUserConfirmationAck(ContactId remote, String id, String status, String subject, String text) {
 		if (logger.isActivated()) {
 			logger.debug("Handle event user terms confirmation ack");
 		}
@@ -797,7 +787,7 @@ public class RcsCoreService extends Service implements CoreListener {
     /* (non-Javadoc)
      * @see com.orangelabs.rcs.core.CoreListener#handleUserNotification(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
      */
-    public void handleUserNotification(String remote, String id, String subject, String text, String okButtonLabel) {
+    public void handleUserNotification(ContactId remote, String id, String subject, String text, String okButtonLabel) {
         if (logger.isActivated()) {
             logger.debug("Handle event user terms notification");
         }
@@ -833,5 +823,41 @@ public class RcsCoreService extends Service implements CoreListener {
 	@Override
 	public void tryToDispatchAllPendingDisplayNotifications() {
 		chatApi.tryToDispatchAllPendingDisplayNotifications();
+	}
+
+	@Override
+	public void handleFileTransferInvitationRejected(ContactId contact, MmContent content,
+			MmContent fileicon, int reasonCode) {
+		ftApi.addAndBroadcastFileTransferInvitationRejected(contact, content, fileicon, reasonCode);
+	}
+
+	@Override
+	public void handleGroupChatInvitationRejected(String chatId, ContactId contact,
+			String subject, Set<ParticipantInfo> participants, int reasonCode) {
+		chatApi.addAndBroadcastGroupChatInvitationRejected(chatId, contact, subject, participants, reasonCode);
+	}
+
+	@Override
+	public void handleImageSharingInvitationRejected(ContactId contact, MmContent content,
+			int reasonCode) {
+		ishApi.addAndBroadcastImageSharingInvitationRejected(contact, content, reasonCode);
+	}
+
+	@Override
+	public void handleVideoSharingInvitationRejected(ContactId contact, VideoContent content,
+			int reasonCode) {
+		vshApi.addAndBroadcastVideoSharingInvitationRejected(contact, content, reasonCode);
+	}
+
+	@Override
+	public void handleGeolocSharingInvitationRejected(ContactId contact, GeolocContent content,
+			int reasonCode) {
+		gshApi.addAndbroadcastGeolocSharingInvitationRejected(contact, content, reasonCode);
+	}
+
+	@Override
+	public void handleIPCallInvitationRejected(ContactId contact, AudioContent audioContent,
+			VideoContent videoContent, int reasonCode) {
+		ipcallApi.addAndBroadcastIPCallInvitationRejected(contact, audioContent, videoContent, reasonCode);
 	}
 }

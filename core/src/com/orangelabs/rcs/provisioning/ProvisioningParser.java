@@ -22,6 +22,7 @@ import java.io.ByteArrayInputStream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+
 import javax2.sip.ListeningPoint;
 
 import org.w3c.dom.Document;
@@ -30,6 +31,11 @@ import org.w3c.dom.Node;
 import com.orangelabs.rcs.provider.security.SecurityInfos;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.FileTransferProtocol;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.MessagingMode;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -64,7 +70,23 @@ public class ProvisioningParser {
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
+    
+	/**
+	 * Enumerated type for the root node
+	 *
+	 */
+	private enum RootNodeType {
+		VERS, TOKEN, MSG, APPLICATION, IMS, PRESENCE, XDMS, IM, CAPDISCOVERY, APN, OTHER, SERVICES, SUPL, SERVICEPROVIDEREXT, UX
+	};
 
+	/**
+	 * Enumerated type for the IMS server version
+	 *
+	 */
+	enum ImsServerVersion {
+		JOYN, NON_JOYN
+	};
+	
     /**
      * Constructor
      *
@@ -86,7 +108,7 @@ public class ProvisioningParser {
 	/**
 	 * Parse the provisioning document
 	 * 
-	 * @param gsmaRelease
+	 * @param release
 	 *            The GSMA release (Albatros, Blackbird, Crane...) before parsing
 	 * @param first
 	 *            True if it is a first provisioning
@@ -97,7 +119,7 @@ public class ProvisioningParser {
 	 *         GSMA release is set to blackbird if SERVICES node is present, otherwise release is unchanged
 	 *         </p>
 	 */
-	public boolean parse(int gsmaRelease, boolean first) {
+	public boolean parse(GsmaRelease release, boolean first) {
         try {
             if (logger.isActivated()) {
                 logger.debug("Start the parsing of content first="+first);
@@ -134,54 +156,68 @@ public class ProvisioningParser {
                 if (childnode.getNodeName().equals("characteristic")) {
                     if (childnode.getAttributes().getLength() > 0) {
                         Node typenode = childnode.getAttributes().getNamedItem("type");
-                        if (typenode != null) {
+                        if (typenode != null && typenode.getNodeValue() != null) {
                             if (logger.isActivated()) {
                                 logger.debug("Node " + childnode.getNodeName() + " with type "
                                         + typenode.getNodeValue());
                             }
                             nodeNumber++;
-                            if (typenode.getNodeValue().equalsIgnoreCase("VERS")) {
-                                parseVersion(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("TOKEN")) {
-                                parseToken(childnode);
-                            } else
-                        	if (typenode.getNodeValue().equalsIgnoreCase("MSG")) {
-                                parseTermsMessage(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("APPLICATION")) {
-                                parseApplication(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("IMS")) {
-                                parseIMS(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("PRESENCE")) {
-                                parsePresence(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("XDMS")) {
-                                parseXDMS(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("IM")) {
-                                parseIM(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("CAPDISCOVERY")) {
-                                parseCapabilityDiscovery(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("APN")) {
-                                parseAPN(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("OTHER")) {
-                                parseOther(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("SERVICES")) {
-                                parseServices(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("SUPL")) {
-                                parseSupl(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("SERVICEPROVIDEREXT")) {
-                                parseServiceProviderExt(childnode);
-                            }
+							String nodeType = typenode.getNodeValue().toUpperCase();
+							try {
+								RootNodeType rootNodeType = RootNodeType.valueOf(nodeType);
+								switch (rootNodeType) {
+								case VERS:
+									parseVersion(childnode);
+									break;
+								case TOKEN:
+									parseToken(childnode);
+									break;
+								case MSG:
+									parseTermsMessage(childnode);
+									break;
+								case APPLICATION:
+									parseApplication(childnode);
+									break;
+								case IMS:
+									parseIMS(childnode);
+									break;
+								case PRESENCE:
+									parsePresence(childnode);
+									break;
+								case XDMS:
+									parseXDMS(childnode);
+									break;
+								case IM:
+									parseIM(childnode);
+									break;
+								case APN:
+									parseAPN(childnode);
+									break;
+								case OTHER:
+									parseOther(childnode);
+									break;
+								case SERVICES:
+									parseServices(childnode);
+									break;
+								case SUPL:
+									parseSupl(childnode);
+									break;
+								case SERVICEPROVIDEREXT:
+									parseServiceProviderExt(childnode);
+									break;
+								case UX:
+									parseUx(childnode, ImsServerVersion.NON_JOYN);
+									break;
+								default:
+									if (logger.isActivated()) {
+										logger.warn("unhandled node type: " + nodeType);
+									}
+								}
+							} catch (IllegalArgumentException e) {
+								if (logger.isActivated()) {
+									logger.warn("invalid node type: " + nodeType);
+								}
+							}
                         }
                     }
                 }
@@ -190,7 +226,7 @@ public class ProvisioningParser {
 				// We received a single node (the version one) !
 				// This is the case if the version number is negative or in order to extend the validity of the provisioning.
 				// In that case we restore the relevant GSMA release saved before parsing.
-				RcsSettings.getInstance().setGsmaRelease(gsmaRelease);
+				RcsSettings.getInstance().setGsmaRelease(release);
             }
             return true;
         } catch (Exception e) {
@@ -201,7 +237,7 @@ public class ProvisioningParser {
         }
     }
 
-    /**
+	/**
      * Parse the provisioning version
      *
      * @param node Node
@@ -209,9 +245,6 @@ public class ProvisioningParser {
     private void parseVersion(Node node) {
         String version = null;
         String validity = null;
-        if (node == null) {
-            return;
-        }
         Node versionchild = node.getFirstChild();
 
         if (versionchild != null) {
@@ -240,9 +273,6 @@ public class ProvisioningParser {
     private void parseToken(Node node) {
         String token = null;
         String tokenValidity = null;
-        if (node == null) {
-            return;
-        }
         Node tokenChild = node.getFirstChild();
 
         if (tokenChild != null) {
@@ -273,9 +303,6 @@ public class ProvisioningParser {
         String message = null;
         String acceptBtn = null;
         String rejectBtn = null;
-        if (node == null) {
-            return;
-        }
         Node childnode = node.getFirstChild();
 
         if (childnode != null) {
@@ -325,9 +352,6 @@ public class ProvisioningParser {
         String appId = null;
         String name = null;
         String appRef = null;
-        if (node == null) {
-            return;
-        }
         Node childnode = node.getFirstChild();
 
         if (childnode != null) {
@@ -399,9 +423,6 @@ public class ProvisioningParser {
         String noteMaxSize = null;
         String publishTimer = null;
         Node typenode = null;
-        if (node == null) {
-            return;
-        }
         Node childnode = node.getFirstChild();
 
         if (childnode != null) {
@@ -490,16 +511,13 @@ public class ProvisioningParser {
         String rcsIPVoiceCallAuth = null;
         String rcsIPVideoCallAuth = null;
         String allowExtensions = null;
-        if (node == null) {
-            return;
-        }
         Node childnode = node.getFirstChild();
 
         if (childnode != null) {
 			// Node "SERVICES" is mandatory in GSMA release Blackbird and not present in previous one Albatros.
 			// Only if the parsing result contains a SERVICE tree, Blackbird is assumed as release.
 			// This trick is used to detect the GSMA release as provisioned by the network.
-			RcsSettings.getInstance().setGsmaRelease(RcsSettingsData.VALUE_GSMA_REL_BLACKBIRD);
+			RcsSettings.getInstance().setGsmaRelease(GsmaRelease.BLACKBIRD);
             do {
 
                 if (chatAuth == null) {
@@ -595,9 +613,6 @@ public class ProvisioningParser {
         String xcapRootURI = null;
         String xcapAuthenticationUsername = null;
         String xcapAuthenticationSecret = null;
-        if (node == null) {
-            return;
-        }
         Node childnode = node.getFirstChild();
 
         if (childnode != null) {
@@ -651,9 +666,6 @@ public class ProvisioningParser {
     private void parseSupl(Node node) {
         String textMaxLength = null;
         String locInfoMaxValidTime = null;
-        if (node == null) {
-            return;
-        }
         Node childnode = node.getFirstChild();
 
         if (childnode != null) {
@@ -688,9 +700,6 @@ public class ProvisioningParser {
      */
     private void parseServiceProviderExt(Node node) {
         Node typenode = null;
-        if (node == null) {
-            return;
-        }
         Node childnode = node.getFirstChild();
         if (childnode != null) {
             do {
@@ -699,7 +708,7 @@ public class ProvisioningParser {
                         typenode = childnode.getAttributes().getNamedItem("type");
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("joyn")) {
-                                parseJoyn(childnode);
+                                parseRcs(childnode);
                             }
                         }
                     }
@@ -709,11 +718,11 @@ public class ProvisioningParser {
     }
     
     /**
-     * Parse joyn
+     * Parse rcs
      * 
      * @param node Node
      */
-    private void parseJoyn(Node node) {
+    private void parseRcs(Node node) {
         Node typenode = null;
         if (node == null) {
             return;
@@ -726,7 +735,7 @@ public class ProvisioningParser {
                         typenode = childnode.getAttributes().getNamedItem("type");
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("UX")) {
-                                parseUx(childnode);
+                                parseUx(childnode, ImsServerVersion.JOYN);
                             }
                         }
                     }
@@ -736,38 +745,40 @@ public class ProvisioningParser {
     }
     
     /**
-     * Parse joyn
+     * Parse Ux
      * 
      * @param node Node
+     * @param isJoyn 
      */
-    private void parseUx(Node node) {
-        String messagingUX = null;
-        
-        if (node == null) {
-            return;
-        }
-        Node childnode = node.getFirstChild();
+	private void parseUx(Node node, ImsServerVersion isJoyn) {
+		String messagingUX = null;
 
-        if (childnode != null) {
-            do {
+		Node childnode = node.getFirstChild();
 
-                if (messagingUX == null) {
-                    if ((messagingUX = getValueByParamName("messagingUX", childnode, TYPE_INT)) != null) {
+		if (childnode != null) {
+			do {
+
+				if (messagingUX == null) {
+					if ((messagingUX = getValueByParamName("messagingUX", childnode, TYPE_INT)) != null) {
 						if (messagingUX.equals("1")) {
-							RcsSettings.getInstance().setMessagingMode(RcsSettingsData.VALUE_MESSAGING_MODE_INTEGRATED);
+							RcsSettings.getInstance().setMessagingMode(MessagingMode.INTEGRATED);
 						} else {
-							RcsSettings.getInstance().setMessagingMode(RcsSettingsData.VALUE_MESSAGING_MODE_CONVERGED);
+							if (ImsServerVersion.JOYN.equals(isJoyn)) {
+								RcsSettings.getInstance().setMessagingMode(MessagingMode.CONVERGED);
+							} else {
+								RcsSettings.getInstance().setMessagingMode(MessagingMode.SEAMLESS);
+							}
 						}
-                        continue;
-                    }
-                }
+						continue;
+					}
+				}
 
-            } while((childnode = childnode.getNextSibling()) != null);
-        }
+			} while ((childnode = childnode.getNextSibling()) != null);
+		}
 
-        // Not used: oneButtonVoiceCall
-        // Not used: oneButtonVideoCall
-    }
+		// Not used: oneButtonVoiceCall
+		// Not used: oneButtonVideoCall
+	}
     
     /**
      * Parse IM
@@ -775,9 +786,6 @@ public class ProvisioningParser {
      * @param node Node
      */
     private void parseIM(Node node) {
-        if (node == null) {
-            return;
-        }
         String imCapAlwaysOn = null;
         String ftCapAlwaysOn = null;
         String imWarnSF = null;
@@ -814,9 +822,9 @@ public class ProvisioningParser {
 						// set default IM messaging method if first provisioning
 						if (first) {
 							if (_imCapAlwaysOn) {
-								rcsSettings.setDefaultMessagingMethod(RcsSettingsData.VALUE_DEF_MSG_METHOD_JOYN);
+								rcsSettings.setDefaultMessagingMethod(DefaultMessagingMethod.RCS);
 							} else {
-								rcsSettings.setDefaultMessagingMethod(RcsSettingsData.VALUE_DEF_MSG_METHOD_AUTOMATIC);
+								rcsSettings.setDefaultMessagingMethod(DefaultMessagingMethod.AUTOMATIC);
 							}
 						}
 						continue;
@@ -906,7 +914,8 @@ public class ProvisioningParser {
 
                 if (ftDefaultMech == null) {
                     if ((ftDefaultMech = getValueByParamName("ftDefaultMech", childnode, TYPE_TXT)) != null) {
-                        RcsSettings.getInstance().writeParameter(RcsSettingsData.FT_PROTOCOL, ftDefaultMech);
+                    	FileTransferProtocol protocol = FileTransferProtocol.valueOf(ftDefaultMech);
+                        RcsSettings.getInstance().setFtProtocol(protocol);
                         continue;
                     }
                 }
@@ -1367,9 +1376,6 @@ public class ProvisioningParser {
         String maxMsrpLengthExtensions = null;
         
         Node typenode = null;
-        if (node == null) {
-            return;
-        }
         Node childnode = node.getFirstChild();
 
         if (childnode != null) {
@@ -1497,8 +1503,7 @@ public class ProvisioningParser {
                 if (publicUserIdentity == null) {
                     if ((publicUserIdentity = getValueByParamName("Public_User_Identity", childnode, TYPE_TXT)) != null) {
                     	String username = extractUserNamePart(publicUserIdentity);
-                    	RcsSettings.getInstance().writeParameter(
-                                RcsSettingsData.USERPROFILE_IMS_USERNAME, username);
+                    	RcsSettings.getInstance().setUserProfileImsUserName(username);
                         continue;
                     }
                 }
@@ -1736,13 +1741,9 @@ public class ProvisioningParser {
                 if (authType == null) {
                     if ((authType = getValueByParamName("AuthType", childnode, TYPE_TXT)) != null) {
                         if (authType.equals("EarlyIMS")) {
-                            RcsSettings.getInstance().writeParameter(
-                                    RcsSettingsData.IMS_AUTHENT_PROCEDURE_MOBILE,
-                                    RcsSettingsData.GIBA_AUTHENT);
+                            RcsSettings.getInstance().setImsAuthenticationProcedureForMobile(AuthenticationProcedure.GIBA);
                         } else {
-                            RcsSettings.getInstance().writeParameter(
-                                    RcsSettingsData.IMS_AUTHENT_PROCEDURE_MOBILE,
-                                    RcsSettingsData.DIGEST_AUTHENT);
+                            RcsSettings.getInstance().setImsAuthenticationProcedureForMobile(AuthenticationProcedure.DIGEST);
                         }
                         continue;
                     }
@@ -1843,9 +1844,6 @@ public class ProvisioningParser {
         String regRetryBasetime = null;
         String regRetryMaxtime = null;
         Node typenode = null;
-        if (node == null) {
-            return;
-        }
         Node childnode = node.getFirstChild();
 
         if (childnode != null) {

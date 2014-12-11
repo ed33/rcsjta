@@ -28,8 +28,10 @@ import javax2.sip.header.SubscriptionStateHeader;
 
 import org.xml.sax.InputSource;
 
+import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.chat.ParticipantInfo;
 import com.gsma.services.rcs.chat.ParticipantInfo.Status;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.ImsModule;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
@@ -46,9 +48,8 @@ import com.orangelabs.rcs.core.ims.service.im.chat.ParticipantInfoUtils;
 import com.orangelabs.rcs.platform.registry.RegistryFactory;
 import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.PeriodicRefresher;
-import com.orangelabs.rcs.utils.PhoneUtils;
-import com.orangelabs.rcs.utils.StringUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -75,7 +76,7 @@ public class ConferenceEventSubscribeManager extends PeriodicRefresher {
     /**
      * Dialog path
      */
-    private SipDialogPath dialogPath = null;
+    private SipDialogPath dialogPath;
     
     /**
      * Expire period
@@ -100,7 +101,7 @@ public class ConferenceEventSubscribeManager extends PeriodicRefresher {
 	/**
      * The logger
      */
-    private final static Logger logger = Logger.getLogger(ConferenceEventSubscribeManager.class.getName());
+    private final static Logger logger = Logger.getLogger(ConferenceEventSubscribeManager.class.getSimpleName());
 
     /**
      * Constructor
@@ -181,18 +182,19 @@ public class ConferenceEventSubscribeManager extends PeriodicRefresher {
 					}
 					Vector<User> users = conference.getUsers();
 					for (User user : users) {
-						String entity = PhoneUtils.extractNumberFromUri(user.getEntity());
-						if (StringUtils.isEmpty(entity)) {
-							// Empty entity
+						ContactId contact;
+						try {
+							contact = ContactUtils.createContactId(user.getEntity());
+						} catch (RcsContactFormatException e) {
+							// Invalid entity
 							continue;
 						}
 
 						if (logger.isActivated()) {
-							logger.debug("Conference info notification for " + entity);
+							logger.debug("Conference info notification for " + contact);
 						}
 
-						String me = ImsModule.IMS_USER_PROFILE.getUsername();
-						if (user.isMe() || PhoneUtils.compareNumbers(entity, me)) {
+						if (user.isMe() || contact.equals(ImsModule.IMS_USER_PROFILE.getUsername())) {
 							// By-pass me
 							continue;
 						}
@@ -223,14 +225,14 @@ public class ConferenceEventSubscribeManager extends PeriodicRefresher {
 						if ((state.equalsIgnoreCase("dialing-out")) || (state.equalsIgnoreCase("dialing-in"))) {
 							state = User.STATE_PENDING;
 						}
-						ParticipantInfo item2add = new ParticipantInfo(entity, getStatus(state));
+						ParticipantInfo item2add = new ParticipantInfo(contact, getStatus(state));
 						// Update the set of participants
 						ParticipantInfoUtils.addParticipant(newSet, item2add);
 						// Check if original set has changed
 						if (participants.contains(item2add) == false) {
 							// Notify session listeners
 							for (int j = 0; j < session.getListeners().size(); j++) {
-								((ChatSessionListener) session.getListeners().get(j)).handleConferenceEvent(entity,
+								((ChatSessionListener) session.getListeners().get(j)).handleConferenceEvent(contact,
 										user.getDisplayName(), state);
 							}
 						}

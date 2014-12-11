@@ -1,8 +1,10 @@
 package com.gsma.services.rcs.ipcall;
 
-import com.gsma.services.rcs.ipcall.IIPCallListener;
 import com.gsma.services.rcs.ipcall.IIPCallPlayer;
 import com.gsma.services.rcs.ipcall.IIPCallRenderer;
+import com.gsma.services.rcs.contacts.ContactId;
+import com.gsma.services.rcs.ipcall.VideoCodec;
+import com.gsma.services.rcs.ipcall.AudioCodec;
 
 /**
  * IP call interface
@@ -11,9 +13,11 @@ interface IIPCall {
 
 	String getCallId();
 
-	String getRemoteContact();
+	ContactId getRemoteContact();
 
 	int getState();
+
+	int getReasonCode();
 
 	int getDirection();
 	
@@ -34,8 +38,8 @@ interface IIPCall {
 	void holdCall();
 
 	void continueCall();
-	
-	void addEventListener(in IIPCallListener listener);
 
-	void removeEventListener(in IIPCallListener listener);
+	VideoCodec getVideoCodec();
+
+	AudioCodec getAudioCodec();
 }

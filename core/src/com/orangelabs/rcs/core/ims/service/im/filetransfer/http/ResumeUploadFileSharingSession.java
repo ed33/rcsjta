@@ -2,7 +2,7 @@
 w * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
- * Copyright (C) 2014 Sony Mobile Communications AB.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@ w * Software Name : RCS IMS Stack
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * NOTE: This file has been modified by Sony Mobile Communications AB.
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.http;
@@ -26,6 +26,7 @@ import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingError;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
 import com.orangelabs.rcs.provider.fthttp.FtHttpResumeUpload;
+import com.orangelabs.rcs.utils.PhoneUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -49,9 +50,9 @@ public class ResumeUploadFileSharingSession extends OriginatingHttpFileSharingSe
      * @param resumeUpload the data object in DB
      */
 	public ResumeUploadFileSharingSession(ImsService parent, MmContent content, FtHttpResumeUpload resumeUpload) {
-		super(parent, content, resumeUpload.getContact(), resumeUpload.getFileicon() != null ? FileTransferUtils
-				.createMmContent(resumeUpload.getFileicon()) : null, resumeUpload.getFileTransferId());
-		getUploadManager().setTid(resumeUpload.getTid());
+		super(parent, content, resumeUpload.getContact(), PhoneUtils.formatContactIdToUri(resumeUpload.getContact()), resumeUpload
+				.getFileicon() != null ? FileTransferUtils.createMmContent(resumeUpload.getFileicon()) : null, resumeUpload
+				.getFileTransferId(), resumeUpload.getTId());
 		this.resumeFT = resumeUpload;
 	}
 

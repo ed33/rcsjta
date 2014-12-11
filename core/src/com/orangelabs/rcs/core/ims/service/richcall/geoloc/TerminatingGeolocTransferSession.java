@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +15,19 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.core.ims.service.richcall.geoloc;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Vector;
 
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.content.ContentManager;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
@@ -36,11 +43,13 @@ import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipTransactionContext;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
 import com.orangelabs.rcs.core.ims.service.SessionTimerManager;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatUtils;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.NetworkRessourceManager;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -53,21 +62,22 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
 	/**
 	 * MSRP manager
 	 */
-	private MsrpManager msrpMgr = null;
+	private MsrpManager msrpMgr;
 	
 	/**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private final static Logger logger = Logger.getLogger(TerminatingGeolocTransferSession.class.getSimpleName());
 
     /**
      * Constructor
      * 
 	 * @param parent IMS service
 	 * @param invite Initial INVITE request
+	 * @param contact Contact Id
 	 */
-	public TerminatingGeolocTransferSession(ImsService parent, SipRequest invite) {		
-		super(parent, ContentManager.createMmContentFromSdp(invite), SipUtils.getAssertedIdentity(invite));
+	public TerminatingGeolocTransferSession(ImsService parent, SipRequest invite, ContactId contact) {
+		super(parent, ContentManager.createMmContentFromSdp(invite), contact);
 
 		// Create dialog path
 		createTerminatingDialogPath(invite);
@@ -82,7 +92,6 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
 	    		logger.info("Initiate a new sharing session as terminating");
 	    	}
 
-	    	// Send a 180 Ringing response
 	    	send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
 	    	// Check if the MIME type is supported
@@ -99,45 +108,66 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
         		return;
         	}
 
-			// Wait invitation answer
-	    	int answer = waitInvitationAnswer();
-			if (answer == ImsServiceSession.INVITATION_REJECTED) {
-				if (logger.isActivated()) {
-					logger.debug("Session has been rejected by user");
-				}
-				
-		    	// Remove the current session
-		    	getImsService().removeSession(this);
+			Collection<ImsSessionListener> listeners = getListeners();
+			for (ImsSessionListener listener : listeners) {
+				listener.handleSessionInvited();
+			}
 
-		    	// Notify listeners
-		    	for(int i=0; i < getListeners().size(); i++) {
-		    		getListeners().get(i).handleSessionAborted(ImsServiceSession.TERMINATION_BY_USER);
-		        }
-				return;
-			} else
-			if (answer == ImsServiceSession.INVITATION_NOT_ANSWERED) {
-				if (logger.isActivated()) {
-					logger.debug("Session has been rejected on timeout");
-				}
+			int answer = waitInvitationAnswer();
+			switch (answer) {
+				case ImsServiceSession.INVITATION_REJECTED:
+					if (logger.isActivated()) {
+						logger.debug("Session has been rejected by user");
+					}
 
-                // Ringing period timeout
-				send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+					getImsService().removeSession(this);
 
-		    	// Remove the current session
-		    	getImsService().removeSession(this);
+					for (ImsSessionListener listener : listeners) {
+						listener.handleSessionRejectedByUser();
+					}
+					return;
 
-		    	// Notify listeners
-		    	for(int i=0; i < getListeners().size(); i++) {
-		    		getListeners().get(i).handleSessionAborted(ImsServiceSession.TERMINATION_BY_TIMEOUT);
-		        }
-				return;
-			} else
-            if (answer == ImsServiceSession.INVITATION_CANCELED) {
-                if (logger.isActivated()) {
-                    logger.debug("Session has been canceled");
-                }
-                return;
-            }
+				case ImsServiceSession.INVITATION_NOT_ANSWERED:
+					if (logger.isActivated()) {
+						logger.debug("Session has been rejected on timeout");
+					}
+
+					// Ringing period timeout
+					send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+
+					getImsService().removeSession(this);
+
+					for (ImsSessionListener listener : listeners) {
+						listener.handleSessionRejectedByTimeout();
+					}
+					return;
+
+				case ImsServiceSession.INVITATION_CANCELED:
+					if (logger.isActivated()) {
+						logger.debug("Session has been rejected by remote");
+					}
+
+					getImsService().removeSession(this);
+
+					for (ImsSessionListener listener : listeners) {
+						listener.handleSessionRejectedByRemote();
+					}
+					return;
+				case ImsServiceSession.INVITATION_ACCEPTED:
+					setSessionAccepted();
+
+					for (ImsSessionListener listener : listeners) {
+						listener.handleSessionAccepted();
+					}
+					break;
+
+				default:
+					if (logger.isActivated()) {
+						logger.debug("Unknown invitation answer in run; answer="
+									.concat(String.valueOf(answer)));
+					}
+					return;
+			}
 
 	    	// Parse the remote SDP part
 			String remoteSdp = getDialogPath().getInvite().getSdpContent();
@@ -238,7 +268,7 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
         		logger.info("Send 200 OK");
         	}
             SipResponse resp = SipMessageFactory.create200OkInviteResponse(getDialogPath(),
-            		RichcallService.FEATURE_TAGS_IMAGE_SHARE, sdp);
+            		RichcallService.FEATURE_TAGS_GEOLOC_SHARE, sdp);
 
             // The signalisation is established
             getDialogPath().sigEstablished();
@@ -252,11 +282,6 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
     			if (logger.isActivated()) {
     				logger.info("ACK request received");
     			}
-
-                // Notify listeners
-                for(int i=0; i < getListeners().size(); i++) {
-                    getListeners().get(i).handleSessionStarted();
-                }
 
     	        // Create the MSRP client session
                 if (localSetup.equals("active")) {
@@ -273,6 +298,10 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
 
                 // The session is established
                 getDialogPath().sessionEstablished();
+
+                for (ImsSessionListener listener : listeners) {
+                    listener.handleSessionStarted();
+            }
 
             	// Start session timer
             	if (getSessionTimerManager().isSessionTimerActivated(resp)) {        	
@@ -411,9 +440,16 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
 		// Terminate session
 		terminateSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
 
-        // Request capabilities
-        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getDialogPath().getRemoteParty());
-
+        try {
+			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+			// Request capabilities to the remote
+	        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
+		} catch (RcsContactFormatException e) {
+			if (logger.isActivated()) {
+				logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
+			}
+		}
+        
     	// Remove the current session
     	getImsService().removeSession(this);
 
@@ -453,5 +489,10 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
             logger.debug("MSRP session has been closed");
         }
     }
+
+	@Override
+	public boolean isInitiatedByRemote() {
+		return true;
+	}
 }
 

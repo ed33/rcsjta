@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +15,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 package com.orangelabs.rcs.provider.sharing;
 
 import com.gsma.services.rcs.vsh.VideoSharingLog;
-
-import android.net.Uri;
 
 /**
  * Video sharing data constants
@@ -27,43 +29,61 @@ import android.net.Uri;
  * @author Jean-Marc AUFFRET
  */
 public class VideoSharingData {
-	/**
-	 * Database URI
-	 */
-	protected static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.vsh/vsh");
-	
-	/**
-	 * Column name
-	 */
-	static final String KEY_ID = VideoSharingLog.ID;
 
 	/**
-	 * Column name
+	 * Unique sharing identifier
 	 */
-	static final String KEY_SESSION_ID = VideoSharingLog.SHARING_ID;
+	static final String KEY_SHARING_ID = VideoSharingLog.SHARING_ID;
 
 	/**
-	 * Column name
+	 * ContactId formatted number of the remote contact
 	 */
-	static final String KEY_CONTACT = VideoSharingLog.CONTACT_NUMBER;
+	static final String KEY_CONTACT = VideoSharingLog.CONTACT;
 
 	/**
-	 * Column name
+	 * Date of the sharing
 	 */
 	static final String KEY_TIMESTAMP = VideoSharingLog.TIMESTAMP;
 
 	/**
-	 * Column name
+	 * @see VideoSharing.State for the list of states
 	 */
-	static final String KEY_STATUS = VideoSharingLog.STATE;
+	static final String KEY_STATE = VideoSharingLog.STATE;
 
 	/**
-	 * Column name
+	 * Reason code associated with the video sharing state.
+	 *
+	 * @see VideoSharing.ReasonCode
+	 */
+	static final String KEY_REASON_CODE = VideoSharingLog.REASON_CODE;
+
+	/**
+	 * Incoming sharing or outgoing sharing.
+	 *
+	 * @see com.gsma.services.rcs.RcsCommon.Direction for the list of directions
 	 */
 	static final String KEY_DIRECTION = VideoSharingLog.DIRECTION;	
 
 	/**
-	 * Column name
+	 * Duration of the sharing in seconds. The value is only set at the end of
+	 * the sharing.
 	 */
 	static final String KEY_DURATION = VideoSharingLog.DURATION;	
+
+	/**
+	 * Encoding of the shared video
+	 */
+	static final String KEY_VIDEO_ENCODING = VideoSharingLog.VIDEO_ENCODING;
+
+	/**
+	 * Width of the shared video
+	 */
+	static final String KEY_WIDTH = VideoSharingLog.WIDTH;
+
+	/**
+	 * Height of the shared video
+	 */
+	static final String KEY_HEIGHT = VideoSharingLog.HEIGHT;
+
+	static final String KEY_ORIENTATION = VideoSharingLog.ORIENTATION;
 }

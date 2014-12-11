@@ -19,12 +19,16 @@
 package com.orangelabs.rcs.core.ims.service.capability;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import android.database.Cursor;
 import android.os.Build;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.addressbook.AddressBookEventListener;
 import com.orangelabs.rcs.core.CoreException;
 import com.orangelabs.rcs.core.ims.ImsModule;
@@ -34,7 +38,7 @@ import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.platform.AndroidFactory;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
-import com.orangelabs.rcs.utils.PhoneUtils;
+import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -43,10 +47,6 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author jexa7410
  */
 public class CapabilityService extends ImsService implements AddressBookEventListener {
-	/**
-	 * Capability refresh timeout in seconds
-	 */
-	private static final int CAPABILITY_REFRESH_PERIOD = RcsSettings.getInstance().getCapabilityRefreshTimeout();
 
 	/**
 	 * Options manager
@@ -77,7 +77,7 @@ public class CapabilityService extends ImsService implements AddressBookEventLis
 	/**
      * The logger
      */
-    private Logger logger = Logger.getLogger(this.getClass().getName());
+    private final static Logger logger = Logger.getLogger(CapabilityService.class.getSimpleName());
 
     /**
      * Constructor
@@ -88,13 +88,13 @@ public class CapabilityService extends ImsService implements AddressBookEventLis
 	public CapabilityService(ImsModule parent) throws CoreException {
         super(parent, true);
 
-    	// Instanciate the polling manager
+    	// Instantiate the polling manager
         pollingManager = new PollingManager(this);
 
-    	// Instanciate the options manager
+    	// Instantiate the options manager
 		optionsManager = new OptionsManager(parent);
 
-    	// Instanciate the anonymous fetch manager
+    	// Instantiate the anonymous fetch manager
     	anonymousFetchManager = new AnonymousFetchManager(parent);
 	}
 
@@ -173,29 +173,18 @@ public class CapabilityService extends ImsService implements AddressBookEventLis
 	/**
      * Request contact capabilities
      * 
-     * @param contact Contact
+     * @param contact Contact identifier
      * @return Capabilities
      */
-	public synchronized Capabilities requestContactCapabilities(String contact) {
+	public synchronized Capabilities requestContactCapabilities(ContactId contact) {
     	if (logger.isActivated()) {
     		logger.debug("Request capabilities to " + contact);
     	}
 
-    	// Extract contact phone number
-		contact = PhoneUtils.extractNumberFromUri(contact);
-
 		// Do not request capabilities for oneself
-		if (contact.equals(ImsModule.IMS_USER_PROFILE.getUsername())) {
+		if (contact == null || contact.equals(ImsModule.IMS_USER_PROFILE.getUsername())) {
 			return null;
 		}
-		
-        // Check if if it is a valid RCS number
-        if (!ContactsManager.getInstance().isRcsValidNumber(contact)) {
-            if (logger.isActivated()) {
-                logger.debug(contact + " is not a valid joyn number");
-            }
-            return null;
-        }
 
 		// Read capabilities from the database
 		Capabilities capabilities = ContactsManager.getInstance().getContactCapabilities(contact);
@@ -210,10 +199,9 @@ public class CapabilityService extends ImsService implements AddressBookEventLis
 	    	if (logger.isActivated()) {
 	    		logger.debug("Capabilities exist for " + contact);
 	    	}
-			long delta = (System.currentTimeMillis()-capabilities.getTimestamp())/1000;
-			if ((delta >= CAPABILITY_REFRESH_PERIOD) || (delta < 0)) {
+			if (isCapabilityRefreshAuthorized(capabilities.getTimestampOfLastRequest())) {
 		    	if (logger.isActivated()) {
-		    		logger.debug("Capabilities have expired for " + contact);
+		    		logger.debug("Request capabilities for " + contact);
 		    	}
 
 		    	// Capabilities are too old: request capabilities from the network
@@ -222,18 +210,36 @@ public class CapabilityService extends ImsService implements AddressBookEventLis
 		}
 		return capabilities;
     }
+	
+	/**
+	 * Check if refresh of capability is authorized
+	 * 
+	 * @param timestampOfLastRequest
+	 *            timestamp of last capability request in milliseconds
+	 * @return true if capability request is authorized
+	 */
+	private boolean isCapabilityRefreshAuthorized(long timestampOfLastRequest) {
+		// Do not request capability refresh too often
+		long now = System.currentTimeMillis();
+		// Is current time before last capability request ? (may occur if current time has been updated)
+		if (now < timestampOfLastRequest) {
+			return true;
+		}
+		// Is current time after capability refresh timeout ? 
+		return (now > (timestampOfLastRequest + RcsSettings.getInstance().getCapabilityRefreshTimeout() * 1000));
+	}
 
     /**
-     * Request capabilities for a list of contacts
+     * Request capabilities for a set of contacts
      * 
-     * @param contactList List of contacts
+     * @param contacts Set of contact identifiers
      */
-	public void requestContactCapabilities(List<String> contactList) {
-    	if ((contactList != null) && (contactList.size() > 0)) {
+	public void requestContactCapabilities(Set<ContactId> contacts) {
+    	if ((contacts != null) && (contacts.size() > 0)) {
         	if (logger.isActivated()) {
-        		logger.debug("Request capabilities for " + contactList.size() + " contacts");
+        		logger.debug("Request capabilities for " + contacts.size() + " contacts");
         	}
-    		optionsManager.requestCapabilities(contactList);
+    		optionsManager.requestCapabilities(contacts);
     	}
 	}	
 	
@@ -283,25 +289,32 @@ public class CapabilityService extends ImsService implements AddressBookEventLis
                 null);
 
 		// List of unique number that will have to be queried for capabilities
-		ArrayList<String> toBeTreatedNumbers = new ArrayList<String>();
+		Set<ContactId> toBeTreatedNumbers = new HashSet<ContactId>();
 
 		// List of unique number that have already been queried
-		ArrayList<String> alreadyInEabOrInvalidNumbers = new ArrayList<String>();
+		List<ContactId> alreadyInEabOrInvalidNumbers = new ArrayList<ContactId>();
 
 		// We add "My number" to the numbers that are already RCS, so we don't query it if it is present in the address book
-        alreadyInEabOrInvalidNumbers.add(ImsModule.IMS_USER_PROFILE.getUsername());
+		alreadyInEabOrInvalidNumbers.add( ImsModule.IMS_USER_PROFILE.getUsername());
 
 		while(phonesCursor.moveToNext()) {
 			// Keep a trace of already treated row. Key is (phone number in international format)
-			String phoneNumber = PhoneUtils.formatNumberToInternational(phonesCursor.getString(1));
+			ContactId phoneNumber;
+			try {
+				phoneNumber = ContactUtils.createContactId(phonesCursor.getString(1));
+			} catch (RcsContactFormatException e) {
+				if (logger.isActivated()) {
+					logger.warn("Cannot parse phone number " + phonesCursor.getString(1));
+				}
+				continue;
+			}
 			if (!alreadyInEabOrInvalidNumbers.contains(phoneNumber)) {
 				// If this number is not considered RCS valid or has already an entry with RCS, skip it
-                if (ContactsManager.getInstance().isRcsValidNumber(phoneNumber)
-						&& !ContactsManager.getInstance().isRcsAssociated(phoneNumber)
+                if (!ContactsManager.getInstance().isContactIdAssociatedWithContactInRichAddressBook(phoneNumber)
 						&& ( !ContactsManager.getInstance().isOnlySimAssociated(phoneNumber) || (Build.VERSION.SDK_INT > 10))) {
 					// This entry is valid and not already has a RCS raw contact, it can be treated
                     // We exclude the number that comes from SIM only contacts, as those cannot be
-                    // aggregated to RCS raw contacts only if OS version if gingebread or fewer
+                    // aggregated to RCS raw contacts only if OS version if gingerbread or fewer
 					toBeTreatedNumbers.add(phoneNumber);
 				} else {
 					// This entry is either not valid or already RCS, this number is already done
@@ -341,11 +354,11 @@ public class CapabilityService extends ImsService implements AddressBookEventLis
 	}
 
 	/**
-     * Reset the content sharing capabities for a given contact
+     * Reset the content sharing capabilities for a given contact identifier
      * 
-     * @param contact Contact
+     * @param contact Contact identifier
      */
-	public void resetContactCapabilitiesForContentSharing(String contact) {
+	public void resetContactCapabilitiesForContentSharing(ContactId contact) {
 		Capabilities capabilities = ContactsManager.getInstance().getContactCapabilities(contact);
 		if (capabilities != null) {
             // Force a reset of content sharing capabilities

@@ -21,20 +21,18 @@ package com.gsma.services.rcs.capability;
 import java.util.Iterator;
 import java.util.Set;
 
-import com.gsma.services.rcs.capability.ICapabilityService;
-
-import com.gsma.services.rcs.JoynContactFormatException;
-import com.gsma.services.rcs.JoynService;
-import com.gsma.services.rcs.JoynServiceException;
-import com.gsma.services.rcs.JoynServiceListener;
-import com.gsma.services.rcs.JoynServiceNotAvailableException;
-
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.IInterface;
+
+import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.RcsServiceListener;
+import com.gsma.services.rcs.RcsServiceNotAvailableException;
+import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Capability service offers the main entry point to read capabilities
@@ -48,7 +46,7 @@ import android.os.IInterface;
  * 
  * @author Jean-Marc AUFFRET
  */
-public class CapabilityService extends JoynService {
+public class CapabilityService extends RcsService {
     /**
      * Intent broadcasted to discover extensions
      * 
@@ -72,7 +70,7 @@ public class CapabilityService extends JoynService {
      * @param ctx Application context
      * @param listener Service listener
      */
-    public CapabilityService(Context ctx, JoynServiceListener listener) {
+    public CapabilityService(Context ctx, RcsServiceListener listener) {
     	super(ctx, listener);
     }
 
@@ -129,41 +127,40 @@ public class CapabilityService extends JoynService {
      * capabilities are fixed by the MNO and read during the provisioning.
      * 
      * @return Capabilities
-     * @throws JoynServiceException
+     * @throws RcsServiceException
      */
-    public Capabilities getMyCapabilities() throws JoynServiceException {
+    public Capabilities getMyCapabilities() throws RcsServiceException {
 		if (api != null) {
 			try {
 				return api.getMyCapabilities();
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }
     
     /**
      * Returns the capabilities of a given contact from the local database. This
-     * method doesn’t request any network update to the remote contact. The parameter
+     * method doesn't request any network update to the remote contact. The parameter
      * contact supports the following formats: MSISDN in national or international
      * format, SIP address, SIP-URI or Tel-URI. If the format of the contact is not
      * supported an exception is thrown.
      * 
-     * @param contact Contact
+     * @param contact Contact Identifier
      * @return Capabilities
-     * @throws JoynServiceException
-	 * @throws JoynContactFormatException
+     * @throws RcsServiceException
      */
-    public Capabilities getContactCapabilities(String contact) throws JoynServiceException, JoynContactFormatException {
+    public Capabilities getContactCapabilities(ContactId contact) throws RcsServiceException {
 		if (api != null) {
 			try {
 				return api.getContactCapabilities(contact);
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
     }    
 
@@ -179,19 +176,18 @@ public class CapabilityService extends JoynService {
 	 * capability refresh request is provided to all the clients that have registered
 	 * the listener for this event.
    	 * 
-	 * @param contact Contact
-	 * @throws JoynServiceException
-	 * @throws JoynContactFormatException
+	 * @param contact Contact Identifier
+	 * @throws RcsServiceException
 	 */
-	public void requestContactCapabilities(String contact) throws JoynServiceException, JoynContactFormatException {
+	public void requestContactCapabilities(ContactId contact) throws RcsServiceException {
 		if (api != null) {
 			try {
 				api.requestContactCapabilities(contact);
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
@@ -207,12 +203,11 @@ public class CapabilityService extends JoynService {
      * is thrown. The result of the capability refresh request is provided to all the
      * clients that have registered the listener for this event.
 	 * 
-	 * @param contacts List of contacts
-	 * @throws JoynServiceException
-	 * @throws JoynContactFormatException
+	 * @param contacts Set of contact identifiers
+	 * @throws RcsServiceException
 	 */
-	public void requestContactCapabilities(Set<String> contacts) throws JoynServiceException, JoynContactFormatException {
-		Iterator<String> values = contacts.iterator();
+	public void requestContactCapabilities(Set<ContactId> contacts) throws RcsServiceException {
+		Iterator<ContactId> values = contacts.iterator();
 		while(values.hasNext()) {
 			requestContactCapabilities(values.next());
 		}
@@ -228,18 +223,17 @@ public class CapabilityService extends JoynService {
 	 * refresh request is provided to all the clients that have registered the listener
 	 * for this event.
 	 * 
-	 * @param contacts List of contacts
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void requestAllContactsCapabilities() throws JoynServiceException {
+	public void requestAllContactsCapabilities() throws RcsServiceException {
 		if (api != null) {
 			try {
 				api.requestAllContactsCapabilities();
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
@@ -247,17 +241,17 @@ public class CapabilityService extends JoynService {
 	 * Registers a capabilities listener on any contact
 	 * 
 	 * @param listener Capabilities listener
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void addCapabilitiesListener(CapabilitiesListener listener) throws JoynServiceException {
+	public void addCapabilitiesListener(CapabilitiesListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
 				api.addCapabilitiesListener(listener);
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
@@ -265,65 +259,63 @@ public class CapabilityService extends JoynService {
 	 * Unregisters a capabilities listener
 	 * 
 	 * @param listener Capabilities listener
-	 * @throws JoynServiceException
+	 * @throws RcsServiceException
 	 */
-	public void removeCapabilitiesListener(CapabilitiesListener listener) throws JoynServiceException {
+	public void removeCapabilitiesListener(CapabilitiesListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
 				api.removeCapabilitiesListener(listener);
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
 	/**
 	 * Registers a capabilities listener on a list of contacts
 	 * 
-	 * @param contacts Set of contacts
+	 * @param contacts Set of contact Identifiers
 	 * @param listener Capabilities listener
-	 * @throws JoynServiceException
-	 * @throws JoynContactFormatException
+	 * @throws RcsServiceException
 	 */
-	public void addCapabilitiesListener(Set<String> contacts, CapabilitiesListener listener) throws JoynServiceException, JoynContactFormatException {
+	public void addCapabilitiesListener(Set<ContactId> contacts, CapabilitiesListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
-				Iterator<String> list = contacts.iterator();
+				Iterator<ContactId> list = contacts.iterator();
 				while(list.hasNext()) { 
-					String contact = list.next();
-					api.addContactCapabilitiesListener(contact, listener);
+					ContactId contact = list.next();
+					api.addCapabilitiesListener2(contact, listener);
 				}
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 
 	/**
 	 * Unregisters a capabilities listener on a list of contacts
 	 * 
-	 * @param contacts Set of contacts
+	 * @param contacts Set of contact identifiers
 	 * @param listener Capabilities listener
-	 * @throws JoynServiceException
-	 * @throws JoynContactFormatException
+	 * @throws RcsServiceException
 	 */
-	public void removeCapabilitiesListener(Set<String> contacts, CapabilitiesListener listener) throws JoynServiceException, JoynContactFormatException {
+	public void removeCapabilitiesListener(Set<ContactId> contacts, CapabilitiesListener listener) throws RcsServiceException {
 		if (api != null) {
 			try {
-				Iterator<String> list = contacts.iterator();
+				Iterator<ContactId> list = contacts.iterator();
 				while(list.hasNext()) { 
-					String contact = list.next();
-					api.removeContactCapabilitiesListener(contact, listener);
+					ContactId contact = list.next();
+					api.removeCapabilitiesListener2(contact, listener);
 				}
 			} catch(Exception e) {
-				throw new JoynServiceException(e.getMessage());
+				throw new RcsServiceException(e.getMessage());
 			}
 		} else {
-			throw new JoynServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException();
 		}
 	}
 }

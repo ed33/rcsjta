@@ -18,31 +18,35 @@
 
 package com.orangelabs.rcs.ri.capabilities;
 
-import java.util.Set;
-
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.widget.CheckBox;
 import android.widget.TextView;
 
-import com.gsma.services.rcs.JoynService;
-import com.gsma.services.rcs.JoynServiceException;
-import com.gsma.services.rcs.JoynServiceListener;
-import com.gsma.services.rcs.JoynServiceNotAvailableException;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.RcsServiceNotAvailableException;
 import com.gsma.services.rcs.capability.Capabilities;
-import com.gsma.services.rcs.capability.CapabilityService;
+import com.orangelabs.rcs.ri.ApiConnectionManager;
+import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;
+import com.orangelabs.rcs.ri.utils.LockAccess;
 import com.orangelabs.rcs.ri.utils.Utils;
 
 /**
  * My capabilities
  */
-public class MyCapabilities extends Activity implements JoynServiceListener {
-    /**
-	 * Capability API
+public class MyCapabilities extends Activity {
+
+  	/**
+	 * API connection manager
 	 */
-    private CapabilityService capabilityApi;
+	private ApiConnectionManager connectionManager;
+	
+	/**
+   	 * A locker to exit only once
+   	 */
+   	private LockAccess exitOnce = new LockAccess();
 	
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -52,33 +56,29 @@ public class MyCapabilities extends Activity implements JoynServiceListener {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.capabilities_mine);
         
-        // Set title
-        setTitle(R.string.menu_my_capabilities);
-        
-        // Instanciate API
-        capabilityApi = new CapabilityService(getApplicationContext(), this);
-
-        // Connect API
-        capabilityApi.connect();
+		// Register to API connection manager
+		connectionManager = ApiConnectionManager.getInstance(this);
+		if (connectionManager == null || !connectionManager.isServiceConnected(RcsServiceName.CAPABILITY)) {
+			Utils.showMessageAndExit(this, getString(R.string.label_service_not_available), exitOnce);
+			return;
+		}
+		connectionManager.startMonitorServices(this, null, RcsServiceName.CAPABILITY);
     }
     
     @Override
     public void onDestroy() {
     	super.onDestroy();
-    	
-		// Disconnect API
-    	capabilityApi.disconnect();
+    	if (connectionManager != null) {
+			connectionManager.stopMonitorServices(this);
+    	}
     }
     
-    /**
-     * Callback called when service is connected. This method is called when the
-     * service is well connected to the RCS service (binding procedure successfull):
-     * this means the methods of the API may be used.
-     */
-    public void onServiceConnected() {
+    @Override
+	protected void onResume() {
+    	super.onResume();
     	try {
     		// Get the current capabilities from the RCS contacts API
-        	Capabilities capabilities = capabilityApi.getMyCapabilities();
+        	Capabilities capabilities = connectionManager.getCapabilityApi().getMyCapabilities();
 	    	
 	    	// Set capabilities
 	        CheckBox imageCSh = (CheckBox)findViewById(R.id.image_sharing);
@@ -98,29 +98,18 @@ public class MyCapabilities extends Activity implements JoynServiceListener {
 	        
 	        // Set extensions
 	        TextView extensions = (TextView)findViewById(R.id.extensions);
-	        String result = "";
-	        Set<String> extensionList = capabilities.getSupportedExtensions();
-	        for(String value : extensionList) {
-	        	result += value + "\n";
-	        }
-	        extensions.setText(result);
-	    } catch(JoynServiceNotAvailableException e) {
-	    	e.printStackTrace();
-			Utils.showMessageAndExit(MyCapabilities.this, getString(R.string.label_api_disabled));
-	    } catch(JoynServiceException e) {
-	    	e.printStackTrace();
-			Utils.showMessageAndExit(MyCapabilities.this, getString(R.string.label_api_failed));
+	        extensions.setText(RequestCapabilities.getExtensions(capabilities));
+	        
+	        // Set automata
+	        CheckBox automata = (CheckBox)findViewById(R.id.automata);
+	        automata.setChecked(capabilities.isAutomata());
+	    } catch(RcsServiceNotAvailableException e) {
+			Utils.showMessageAndExit(this, getString(R.string.label_api_disabled), exitOnce);
+	    } catch(RcsServiceException e) {
+			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), exitOnce);
 	    }
     }
 
-    /**
-     * Callback called when service has been disconnected. This method is called when
-     * the service is disconnected from the RCS service (e.g. service deactivated).
-     * 
-     * @param error Error
-     * @see JoynService.Error
-     */
-    public void onServiceDisconnected(int error) {
-		Utils.showMessageAndExit(MyCapabilities.this, getString(R.string.label_api_disabled));
-    }
+    
+    
 }
