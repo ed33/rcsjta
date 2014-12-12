@@ -18,172 +18,215 @@
 package com.orangelabs.rcs.provider.security;
 
 import android.content.ContentProvider;
-import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.UriMatcher;
 import android.database.Cursor;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.text.TextUtils;
+
+import com.orangelabs.rcs.utils.DatabaseUtils;
 
 /**
  * Security info provider
  * 
  * @author jexa7410
+ * @author yplo6403
+ *
  */
 public class SecurityInfoProvider extends ContentProvider {
 	// Database table
-	public static final String TABLE = "authorizations";
-		
-	// Create the constants used to differentiate between the different
-	// URI requests
-	private static final int ROWS = 1;
-	private static final int ROW_ID = 2;
-		
-	// Allocate the UriMatcher object, where a URI ending in 'security'
-	// will correspond to a request for all security, and 'security'
-	// with a trailing '/[rowID]' will represent a single security row.
-	private static final UriMatcher uriMatcher;
+	private static final String TABLE = "certificates";
+
+	private static final String SELECTION_WITH_IARI_ONLY = SecurityInfoData.KEY_IARI.concat("=?");
+
+	public static final String DATABASE_NAME = "security.db";
+
+	private static final UriMatcher sUriMatcher;
 	static {
-		uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-		uriMatcher.addURI("com.orangelabs.rcs.security", "security", ROWS);
-		uriMatcher.addURI("com.orangelabs.rcs.security", "security/#", ROW_ID);
+		sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
+		sUriMatcher.addURI(SecurityInfoData.CONTENT_URI.getAuthority(), SecurityInfoData.CONTENT_URI.getPath().substring(1),
+				UriType.IARI);
+		sUriMatcher.addURI(SecurityInfoData.CONTENT_URI.getAuthority(),
+				SecurityInfoData.CONTENT_URI.getPath().substring(1).concat("/*"), UriType.IARI_WITH_ID);
 	}
-			
+
+	// Class used to differentiate between the different URI requests
+	private static final class UriType {
+
+		private static final int IARI = 1;
+
+		private static final int IARI_WITH_ID = 2;
+	}
+
+	private static final class CursorType {
+
+		private static final String TYPE_DIRECTORY = "vnd.android.cursor.dir/certificate";
+
+		private static final String TYPE_ITEM = "vnd.android.cursor.item/certificate";
+	}
+
 	/**
-	 * Database helper class
+	 * Helper class for opening, creating and managing database version control
 	 */
-	private SQLiteOpenHelper openHelper;	
-	 
-    /**
-     * Database name
-     */
-    public static final String DATABASE_NAME = "security.db";
+	private static class DatabaseHelper extends SQLiteOpenHelper {
+		private static final int DATABASE_VERSION = 3;
 
-    /**
-     * Helper class for opening, creating and managing database version control
-     */
-    private static class DatabaseHelper extends SQLiteOpenHelper {
-        private static final int DATABASE_VERSION = 2;
+		public DatabaseHelper(Context ctx) {
+			super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
+		}
 
-        public DatabaseHelper(Context ctx) {
-            super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
-        }
+		@Override
+		public void onCreate(SQLiteDatabase db) {
+			// @formatter:off
+			db.execSQL(new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(TABLE).append("(")
+					.append(SecurityInfoData.KEY_ID).append(" INTEGER PRIMARY KEY AUTOINCREMENT,")
+					.append(SecurityInfoData.KEY_IARI).append(" TEXT NOT NULL,")
+                    .append(SecurityInfoData.KEY_CERT).append(" TEXT NOT NULL,")
+                    .append("UNIQUE(").append(SecurityInfoData.KEY_ID).append(",").append(SecurityInfoData.KEY_CERT).append("))").toString());
+			 db.execSQL(new StringBuilder("CREATE INDEX ").append(SecurityInfoData.KEY_IARI)
+	                    .append("_idx").append(" ON ").append(TABLE).append("(")
+	                    .append(SecurityInfoData.KEY_IARI).append(")").toString());
+			 db.execSQL(new StringBuilder("CREATE INDEX ").append(SecurityInfoData.KEY_IARI)
+	                    .append("_").append(SecurityInfoData.KEY_CERT).append("_idx").append(" ON ").append(TABLE).append("(")
+	                    .append(SecurityInfoData.KEY_IARI).append(",")
+	                    .append(SecurityInfoData.KEY_CERT).append(")").toString());
+			// @formatter:on
+		}
 
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-        	db.execSQL("CREATE TABLE " + TABLE + " ("
-        			+ SecurityInfoData.KEY_ID + " integer primary key autoincrement,"
-        			+ SecurityInfoData.KEY_IARI + " TEXT,"
-        			+ SecurityInfoData.KEY_CERT + " TEXT);");
-        }
-
-        @Override
-        public void onUpgrade(SQLiteDatabase db, int oldVersion, int currentVersion) {
-            db.execSQL("DROP TABLE IF EXISTS " + TABLE);
-            onCreate(db);
-        }
-    }
-
-    @Override
-    public boolean onCreate() {
-        openHelper = new DatabaseHelper(getContext());
-        return true;
-    }
-	
-	@Override
-	public String getType(Uri uri) {
-		switch(uriMatcher.match(uri)){
-			case ROWS:
-				return "vnd.android.cursor.dir/security";
-			case ROW_ID:
-				return "vnd.android.cursor.item/security";
-			default:
-				throw new IllegalArgumentException("Unsupported URI " + uri);
+		@Override
+		public void onUpgrade(SQLiteDatabase db, int oldVersion, int currentVersion) {
+			db.execSQL("DROP TABLE IF EXISTS ".concat(TABLE));
+			onCreate(db);
 		}
 	}
-	
-	@Override
-    public Cursor query(Uri uri, String[] projectionIn, String selection, String[] selectionArgs, String sort) {
-		SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
-        qb.setTables(TABLE);
 
-        // Generate the body of the query
-        int match = uriMatcher.match(uri);
-        switch(match) {
-            case ROWS:
-                break;
-            case ROW_ID:
-                qb.appendWhere(SecurityInfoData.KEY_ID + "=" + uri.getPathSegments().get(1));
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown URI " + uri);
-        }
+	private SQLiteOpenHelper mOpenHelper;
 
-        SQLiteDatabase db = openHelper.getReadableDatabase();
-        Cursor c = qb.query(db, projectionIn, selection, selectionArgs, null, null, sort);
-        return c;
+	private String getSelectionWithSharingId(String selection) {
+		if (TextUtils.isEmpty(selection)) {
+			return SELECTION_WITH_IARI_ONLY;
+			
+		}
+		return new StringBuilder("(").append(SELECTION_WITH_IARI_ONLY).append(") AND (").append(selection).append(")").toString();
 	}
-	
-	@Override
-    public int update(Uri uri, ContentValues values, String where, String[] whereArgs) {
-        int count = 0;
-        SQLiteDatabase db = openHelper.getWritableDatabase();
 
-        int match = uriMatcher.match(uri);
-        switch (match) {
-	        case ROWS:
-	            count = db.update(TABLE, values, where, null);
-	            break;
-            case ROW_ID:
-                String segment = uri.getPathSegments().get(1);
-                int id = Integer.parseInt(segment);
-                count = db.update(TABLE, values, SecurityInfoData.KEY_ID + "=" + id, null);
-                break;
-            default:
-                throw new UnsupportedOperationException("Cannot update URI " + uri);
-        }
-        return count;
+	private String[] getSelectionArgsWithSharingId(String[] selectionArgs, String sharingId) {
+		String[] sharingSelectionArg = new String[] { sharingId };
+		if (selectionArgs == null) {
+			return sharingSelectionArg;
+			
+		}
+		return DatabaseUtils.appendSelectionArgs(sharingSelectionArg, selectionArgs);
+	}
+
+	@Override
+	public boolean onCreate() {
+		mOpenHelper = new DatabaseHelper(getContext());
+		return true;
+	}
+
+	@Override
+	public String getType(Uri uri) {
+		switch (sUriMatcher.match(uri)) {
+		case UriType.IARI:
+			return CursorType.TYPE_DIRECTORY;
+			
+		case UriType.IARI_WITH_ID:
+			return CursorType.TYPE_ITEM;
+			
+		default:
+			throw new IllegalArgumentException(new StringBuilder("Unsupported URI ").append(uri).append("!").toString());
+		}
+	}
+
+	@Override
+	public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sort) {
+		Cursor cursor = null;
+		try {
+			switch (sUriMatcher.match(uri)) {
+			case UriType.IARI_WITH_ID:
+				String iariId = uri.getLastPathSegment();
+				selection = getSelectionWithSharingId(selection);
+				selectionArgs = getSelectionArgsWithSharingId(selectionArgs, iariId);
+				/* Intentional fall through */
+			case UriType.IARI:
+				SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+				cursor = db.query(TABLE, projection, selection, selectionArgs, null, null, sort);
+				cursor.setNotificationUri(getContext().getContentResolver(), uri);
+				return cursor;
+
+			default:
+				throw new IllegalArgumentException(new StringBuilder("Unsupported URI ").append(uri).append("!").toString());
+				
+			}
+		} catch (RuntimeException e) {
+			if (cursor != null) {
+				cursor.close();
+			}
+			throw e;
+		}
+	}
+
+	@Override
+	public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
+		switch (sUriMatcher.match(uri)) {
+		case UriType.IARI_WITH_ID:
+			String sharingId = uri.getLastPathSegment();
+			selection = getSelectionWithSharingId(selection);
+			selectionArgs = getSelectionArgsWithSharingId(selectionArgs, sharingId);
+			/* Intentional fall through */
+		case UriType.IARI:
+			SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+			int count = db.update(TABLE, values, selection, selectionArgs);
+			if (count > 0) {
+				getContext().getContentResolver().notifyChange(uri, null);
+			}
+			return count;
+
+		default:
+			throw new IllegalArgumentException(new StringBuilder("Unsupported URI ").append(uri).append("!").toString());
+		}
 	}
 
 	@Override
 	public Uri insert(Uri uri, ContentValues initialValues) {
-        SQLiteDatabase db = openHelper.getWritableDatabase();
-        switch(uriMatcher.match(uri)){
-	        case ROWS:
-	        case ROW_ID:
-	    		long rowId = db.insert(TABLE, null, initialValues);
-	    		uri = ContentUris.withAppendedId(SecurityInfoData.CONTENT_URI, rowId);
-	        	break;
-	        default:
-	    		throw new SQLException("Failed to insert row into " + uri);
-        }
-        return uri;
+		switch (sUriMatcher.match(uri)) {
+		case UriType.IARI:
+			/* Intentional fall through */
+		case UriType.IARI_WITH_ID:
+			SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+			String iariId = initialValues.getAsString(SecurityInfoData.KEY_IARI);
+			db.insert(TABLE, null, initialValues);
+			Uri notificationUri = Uri.withAppendedPath(SecurityInfoData.CONTENT_URI, iariId);
+			getContext().getContentResolver().notifyChange(notificationUri, null);
+			return notificationUri;
+
+		default:
+			throw new IllegalArgumentException(new StringBuilder("Unsupported URI ").append(uri).append("!").toString());
+		}
 	}
 
 	@Override
-	public int delete(Uri uri, String where, String[] whereArgs) {
-        SQLiteDatabase db = openHelper.getWritableDatabase();
-        int count = 0;
-        switch(uriMatcher.match(uri)){
-	        case ROWS:
-	        	count = db.delete(TABLE, where, whereArgs);
-	        	break;
-	        case ROW_ID:
-	        	String segment = uri.getPathSegments().get(1);
-				count = db.delete(TABLE, SecurityInfoData.KEY_ID + "="
-						+ segment
-						+ (!TextUtils.isEmpty(where) ? " AND ("	+ where + ')' : ""),
-						whereArgs);
-				
-				break;
-	        default:
-	    		throw new SQLException("Failed to delete row " + uri);
-        }
-        return count;    
+	public int delete(Uri uri, String selection, String[] selectionArgs) {
+		switch (sUriMatcher.match(uri)) {
+		case UriType.IARI_WITH_ID:
+			String sharingId = uri.getLastPathSegment();
+			selection = getSelectionWithSharingId(selection);
+			selectionArgs = getSelectionArgsWithSharingId(selectionArgs, sharingId);
+			/* Intentional fall through */
+		case UriType.IARI:
+			SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+			int count = db.delete(TABLE, selection, selectionArgs);
+			if (count > 0) {
+				getContext().getContentResolver().notifyChange(uri, null);
+			}
+			return count;
+
+		default:
+			throw new IllegalArgumentException(new StringBuilder("Unsupported URI ").append(uri).append("!").toString());
+		}
 	}
 }

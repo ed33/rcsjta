@@ -7,14 +7,13 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.Vector;
 
-import com.android.org.bouncycastle.asn1.ASN1OctetString;
-import com.android.org.bouncycastle.asn1.ASN1Primitive;
-import com.android.org.bouncycastle.asn1.ASN1String;
-import com.android.org.bouncycastle.asn1.DERObjectIdentifier;
-import com.android.org.bouncycastle.asn1.DERSequence;
-import com.android.org.bouncycastle.asn1.x509.GeneralName;
+import local.org.bouncycastle.asn1.ASN1OctetString;
+import local.org.bouncycastle.asn1.ASN1Primitive;
+import local.org.bouncycastle.asn1.ASN1String;
+import local.org.bouncycastle.asn1.DERSequence;
+import local.org.bouncycastle.asn1.x509.GeneralName;
+
 import com.gsma.iariauth.validator.dsig.CertificateInfo;
 
 /**

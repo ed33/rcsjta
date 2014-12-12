@@ -1105,7 +1105,7 @@ public class ProvisioningParser {
                 if (cert == null) {
                     if ((cert = getValueByParamName("X509Certificate"+index, childnode, TYPE_TXT)) != null) {
                     	found = true;
-                		SecurityInfos.getInstance().addIARI(iari, cert);
+                		SecurityInfos.getInstance().addCertificateForIARI(iari, cert);
                         continue;
                     }
                 }                
@@ -1200,7 +1200,7 @@ public class ProvisioningParser {
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("iariRangeAuthorizations")) {
                             	// Reset IARI authorizations
-                            	SecurityInfos.getInstance().removeAllIARI();
+                            	SecurityInfos.getInstance().removeIARIs();
                             	
                             	// Parse new IARI authorizations
                             	parseIariRangeAuthorizations(childnode);

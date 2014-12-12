@@ -20,28 +20,36 @@ package com.orangelabs.rcs.provider.security;
 import android.net.Uri;
 
 /**
-* Security info provider data 
-* 
-* @author jexa7410
-*/
+ * Security info provider data
+ * 
+ * @author jexa7410
+ * @author yplo6403
+ *
+ */
 public class SecurityInfoData {
 	/**
 	 * Database URI
 	 */
-	protected static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.security/security");
-		
-	/**
-	 * Column name
-	 */
-	static final String KEY_ID = "_id";
-	
-	/**
-	 * Column name
-	 */
-	static final String KEY_IARI = "iari";
+	/* package private */static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.security/certificate");
 
 	/**
-	 * Column name
+	 * Column name primary key
 	 */
-	static final String KEY_CERT = "cert";
+	/* package private */static final String KEY_ID = "_id";
+	
+	/**
+	 * The name of the column containing the IARI tag as the unique ID of certificate
+	 * <P>
+	 * Type: TEXT
+	 * </P>
+	 */
+	/* package private */static final String KEY_IARI = "iari";
+
+	/**
+	 * The name of the column containing the certificate for the IARI document validation.
+	 * <P>
+	 * Type: TEXT
+	 * </P>
+	 */
+	/* package private */static final String KEY_CERT = "cert";
 }

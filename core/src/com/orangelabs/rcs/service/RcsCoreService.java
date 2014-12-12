@@ -260,8 +260,8 @@ public class RcsCoreService extends Service implements CoreListener {
             IPCallHistory.createInstance(localContentResolver);
             FtHttpResumeDaoImpl.createInstance(ctx);
             
-            // Instantiate the Security infos provider
-            SecurityInfos.createInstance(getApplicationContext());
+			// Instantiate the Security infos provider
+			SecurityInfos.createInstance(contentResolver);
 
             // Create the core
 			Core.createCore(this);

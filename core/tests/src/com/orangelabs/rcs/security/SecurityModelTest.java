@@ -18,8 +18,9 @@
 package com.orangelabs.rcs.security;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
+import java.util.Set;
 
 import android.test.AndroidTestCase;
 
@@ -34,11 +35,17 @@ import com.orangelabs.rcs.provisioning.ProvisioningParser;
  * @author JEXA7410
  */
 public class SecurityModelTest extends AndroidTestCase {
+
+	private SecurityInfos mSecurityInfos;
+	private RcsSettings mRcsSettings;
+
 	protected void setUp() throws Exception {
 		super.setUp();
-		
+
 		RcsSettings.createInstance(getContext());
-		SecurityInfos.createInstance(getContext());
+		SecurityInfos.createInstance(getContext().getContentResolver());
+		mSecurityInfos = SecurityInfos.getInstance();
+		mRcsSettings = RcsSettings.getInstance();
 	}
 
 	protected void tearDown() throws Exception {
@@ -46,70 +53,77 @@ public class SecurityModelTest extends AndroidTestCase {
 	}
 
 	private String loadConfigFile(String file) {
-	    try {
-		    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-	    	InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(file);
-		    int i;
-	        i = inputStream.read();
-	        while (i != -1) {
-	            outputStream.write(i);
-	            i = inputStream.read();
-	        }
-	        inputStream.close();
-		    return outputStream.toString();
-	    } catch(Exception e) {
-	    	return null;
-	    }
+		InputStream inputStream = null;
+		try {
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			inputStream = this.getClass().getClassLoader().getResourceAsStream(file);
+			int i;
+			i = inputStream.read();
+			while (i != -1) {
+				outputStream.write(i);
+				i = inputStream.read();
+			}
+			return outputStream.toString();
+		} catch (Exception e) {
+			return null;
+		} finally {
+			if (inputStream != null) {
+				try {
+					inputStream.close();
+				} catch (IOException e) {
+				}
+			}
+		}
 	}
-	
+
 	public void testAuthorized() {
 		String content = loadConfigFile("assets/template-ota_config-allowed.xml");
 		ProvisioningParser parser = new ProvisioningParser(content);
-		GsmaRelease gsmaRelease = RcsSettings.getInstance().getGsmaRelease();
+		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
-		assertTrue(RcsSettings.getInstance().isExtensionsAllowed());
-		
-		
-		List<String> list = SecurityInfos.getInstance().getIARICert("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo1");
+		assertTrue(mRcsSettings.isExtensionsAllowed());
+
+		Set<String> list = mSecurityInfos
+				.getCertificatesForIARI("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo1");
 		assertEquals(list.size(), 2);
-		assertEquals(list.get(0), "MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1A");
-		assertEquals(list.get(1), "MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1B");
+		assertTrue(list.contains("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1A"));
+		assertTrue(list.contains("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1B"));
 	}
 
 	public void testNotAllowed() {
 		String content = loadConfigFile("assets/template-ota_config-not-allowed.xml");
 		ProvisioningParser parser = new ProvisioningParser(content);
-		GsmaRelease gsmaRelease = RcsSettings.getInstance().getGsmaRelease();
+		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
-		assertFalse(RcsSettings.getInstance().isExtensionsAllowed());
+		assertFalse(mRcsSettings.isExtensionsAllowed());
 	}
 
 	public void testIariAllowed() {
 		String content = loadConfigFile("assets/template-ota_config-allowed.xml");
 		ProvisioningParser parser = new ProvisioningParser(content);
-		GsmaRelease gsmaRelease = RcsSettings.getInstance().getGsmaRelease();
+		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
-		assertTrue(RcsSettings.getInstance().isExtensionsAllowed());
+		assertTrue(mRcsSettings.isExtensionsAllowed());
 	}
 
 	public void testMnoApp() {
 		String content = loadConfigFile("assets/template-ota_config-allowed-mno.xml");
 		ProvisioningParser parser = new ProvisioningParser(content);
-		GsmaRelease gsmaRelease = RcsSettings.getInstance().getGsmaRelease();
+		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
-		assertEquals(RcsSettings.getInstance().getExtensionspolicy(), 0);
+		assertEquals(mRcsSettings.getExtensionspolicy(), 0);
 	}
 
 	public void test3ppApp() {
 		String content = loadConfigFile("assets/template-ota_config-allowed-3pp.xml");
 		ProvisioningParser parser = new ProvisioningParser(content);
-		GsmaRelease gsmaRelease = RcsSettings.getInstance().getGsmaRelease();
+		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
-		assertEquals(RcsSettings.getInstance().getExtensionspolicy(), 1);
+		assertEquals(mRcsSettings.getExtensionspolicy(), 1);
 	}
 }

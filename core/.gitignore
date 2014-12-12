@@ -1,7 +1,5 @@
-/libs
 /bin
 /gen
-
 .classpath
 .settings
 assets
