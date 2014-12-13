@@ -40,7 +40,7 @@ public class SecurityInfoProvider extends ContentProvider {
 	// Database table
 	private static final String TABLE = "certificates";
 
-	private static final String SELECTION_WITH_IARI_ONLY = SecurityInfoData.KEY_IARI.concat("=?");
+	private static final String SELECTION_WITH_ID_ONLY = SecurityInfoData.KEY_ID.concat("=?");
 
 	public static final String DATABASE_NAME = "security.db";
 
@@ -85,7 +85,7 @@ public class SecurityInfoProvider extends ContentProvider {
 					.append(SecurityInfoData.KEY_ID).append(" INTEGER PRIMARY KEY AUTOINCREMENT,")
 					.append(SecurityInfoData.KEY_IARI).append(" TEXT NOT NULL,")
                     .append(SecurityInfoData.KEY_CERT).append(" TEXT NOT NULL,")
-                    .append("UNIQUE(").append(SecurityInfoData.KEY_ID).append(",").append(SecurityInfoData.KEY_CERT).append("))").toString());
+                    .append("UNIQUE(").append(SecurityInfoData.KEY_IARI).append(",").append(SecurityInfoData.KEY_CERT).append("))").toString());
 			 db.execSQL(new StringBuilder("CREATE INDEX ").append(SecurityInfoData.KEY_IARI)
 	                    .append("_idx").append(" ON ").append(TABLE).append("(")
 	                    .append(SecurityInfoData.KEY_IARI).append(")").toString());
@@ -105,16 +105,16 @@ public class SecurityInfoProvider extends ContentProvider {
 
 	private SQLiteOpenHelper mOpenHelper;
 
-	private String getSelectionWithSharingId(String selection) {
+	private String getSelectionWithId(String selection) {
 		if (TextUtils.isEmpty(selection)) {
-			return SELECTION_WITH_IARI_ONLY;
+			return SELECTION_WITH_ID_ONLY;
 			
 		}
-		return new StringBuilder("(").append(SELECTION_WITH_IARI_ONLY).append(") AND (").append(selection).append(")").toString();
+		return new StringBuilder("(").append(SELECTION_WITH_ID_ONLY).append(") AND (").append(selection).append(")").toString();
 	}
 
-	private String[] getSelectionArgsWithSharingId(String[] selectionArgs, String sharingId) {
-		String[] sharingSelectionArg = new String[] { sharingId };
+	private String[] getSelectionArgsWithId(String[] selectionArgs, String id) {
+		String[] sharingSelectionArg = new String[] { id };
 		if (selectionArgs == null) {
 			return sharingSelectionArg;
 			
@@ -149,8 +149,8 @@ public class SecurityInfoProvider extends ContentProvider {
 			switch (sUriMatcher.match(uri)) {
 			case UriType.IARI_WITH_ID:
 				String iariId = uri.getLastPathSegment();
-				selection = getSelectionWithSharingId(selection);
-				selectionArgs = getSelectionArgsWithSharingId(selectionArgs, iariId);
+				selection = getSelectionWithId(selection);
+				selectionArgs = getSelectionArgsWithId(selectionArgs, iariId);
 				/* Intentional fall through */
 			case UriType.IARI:
 				SQLiteDatabase db = mOpenHelper.getReadableDatabase();
@@ -174,9 +174,9 @@ public class SecurityInfoProvider extends ContentProvider {
 	public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
 		switch (sUriMatcher.match(uri)) {
 		case UriType.IARI_WITH_ID:
-			String sharingId = uri.getLastPathSegment();
-			selection = getSelectionWithSharingId(selection);
-			selectionArgs = getSelectionArgsWithSharingId(selectionArgs, sharingId);
+			String Id = uri.getLastPathSegment();
+			selection = getSelectionWithId(selection);
+			selectionArgs = getSelectionArgsWithId(selectionArgs, Id);
 			/* Intentional fall through */
 		case UriType.IARI:
 			SQLiteDatabase db = mOpenHelper.getWritableDatabase();
@@ -213,9 +213,9 @@ public class SecurityInfoProvider extends ContentProvider {
 	public int delete(Uri uri, String selection, String[] selectionArgs) {
 		switch (sUriMatcher.match(uri)) {
 		case UriType.IARI_WITH_ID:
-			String sharingId = uri.getLastPathSegment();
-			selection = getSelectionWithSharingId(selection);
-			selectionArgs = getSelectionArgsWithSharingId(selectionArgs, sharingId);
+			String id = uri.getLastPathSegment();
+			selection = getSelectionWithId(selection);
+			selectionArgs = getSelectionArgsWithId(selectionArgs, id);
 			/* Intentional fall through */
 		case UriType.IARI:
 			SQLiteDatabase db = mOpenHelper.getWritableDatabase();

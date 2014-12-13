@@ -17,17 +17,15 @@
  ******************************************************************************/
 package com.orangelabs.rcs.provider.security;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
-//import android.net.Uri;
+import android.net.Uri;
 
-
-
-
+import com.orangelabs.rcs.core.ims.service.extension.IARICertificate;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -48,23 +46,17 @@ public class SecurityInfos {
 	 */
 	private final ContentResolver mContentResolver;
 
-	private final String WHERE_IARI_CLAUSE = SecurityInfoData.KEY_IARI.concat("=?");
-	@SuppressWarnings("unused")
 	private final String WHERE_IARI_CERTIFICATE_CLAUSE = new StringBuilder(SecurityInfoData.KEY_IARI).append("=? AND ")
 			.append(SecurityInfoData.KEY_CERT).append("=?").toString();
 
-	private final String[] PROJECTION_CERTIFICATE = new String[] { SecurityInfoData.KEY_CERT };
-
-	@SuppressWarnings("unused")
 	private final String[] PROJECTION_ID = new String[] { SecurityInfoData.KEY_ID };
+
+	public static final int INVALID_ID = -1;
 
 	/**
 	 * The logger
 	 */
 	private static final Logger logger = Logger.getLogger(SecurityInfos.class.getSimpleName());
-
-	@SuppressWarnings("unused")
-	private static final int INVALID_ID = -1;
 
 	/**
 	 * Create instance
@@ -114,71 +106,43 @@ public class SecurityInfos {
 	/**
 	 * Add a certificate for IARI
 	 * 
-	 * @param iari
-	 *            IARI
-	 * @param cert
-	 *            Certificate
+	 * @param iariCertificate
 	 */
-	public void addCertificateForIARI(String iari, String cert) {
+	public void addCertificateForIARI(IARICertificate iariCertificate) {
+		String iari = iariCertificate.getIARI();
 		if (logger.isActivated()) {
 			logger.debug("Add certificate for IARI ".concat(iari));
 		}
 		ContentValues values = new ContentValues();
 		values.put(SecurityInfoData.KEY_IARI, iari);
-		values.put(SecurityInfoData.KEY_CERT, cert);
+		values.put(SecurityInfoData.KEY_CERT, iariCertificate.getCertificate());
 		mContentResolver.insert(SecurityInfoData.CONTENT_URI, values);
 	}
 
 	/**
 	 * Remove a certificate for IARI
 	 * 
-	 * @param iari
-	 *            IARI
-	 * @param cert
-	 *            Certificate
+	 * @param id
+	 *            the row ID
 	 * @return The number of rows deleted.
 	 */
-	/*
-	public int removeCertificateForIARI(String iari, String cert) {
-		if (logger.isActivated()) {
-			logger.debug("Remove certificate for IARI ".concat(iari));
-		}
-		// Check if certificate exists
-		Integer id = getIdForIariAndCertificate(iari, cert);
-		if (id == INVALID_ID) {
-			return 0;
-
-		}
-		Uri uri = Uri.withAppendedPath(SecurityInfoData.CONTENT_URI, id.toString());
+	public int removeCertificate(int id) {
+		Uri uri = Uri.withAppendedPath(SecurityInfoData.CONTENT_URI, Integer.toString(id));
 		return mContentResolver.delete(uri, null, null);
 	}
-	*/
-	
-	/**
-	 * Remove all IARI authorizations
-	 * 
-	 * @return The number of rows deleted.
-	 */
-	public int removeIARIs() {
-		if (logger.isActivated()) {
-			logger.debug("Remove all IARIs");
-		}
-		return mContentResolver.delete(SecurityInfoData.CONTENT_URI, null, null);
-	}
 
 	/**
-	 * get Id for IARI and certificate
+	 * Get row ID for certificate and IARI
 	 * 
-	 * @param iari
-	 * @param cert
-	 * @return id or INVALID_ID if it does not exists
+	 * @param iariCertificate
+	 *            the IARI and associated certificate
+	 * @return id or INVALID_ID if not found
 	 */
-	/*
-	private int getIdForIariAndCertificate(String iari, String cert) {
+	public int getIdForIariAndCertificate(IARICertificate iariCertificate) {
 		Cursor cursor = null;
 		try {
 			cursor = mContentResolver.query(SecurityInfoData.CONTENT_URI, PROJECTION_ID, WHERE_IARI_CERTIFICATE_CLAUSE,
-					new String[] { iari, cert }, null);
+					new String[] { iariCertificate.getIARI(), iariCertificate.getCertificate() }, null);
 			if (cursor.moveToFirst()) {
 				return cursor.getInt(cursor.getColumnIndexOrThrow(SecurityInfoData.KEY_ID));
 			}
@@ -193,52 +157,36 @@ public class SecurityInfos {
 		}
 		return INVALID_ID;
 	}
-	*/
 
-	
 	/**
-	 * Remove a IARI authorization
+	 * Get all IARI authorizations
 	 * 
-	 * @param iari
-	 *            IARI
-	 * @return The number of certificates deleted for this IARI
+	 * @return a map which key set is the IARI / Certificate pairs and the value set is the row IDs
 	 */
-	public int removeIARI(String iari) {
-		if (logger.isActivated()) {
-			logger.debug("Remove IARI ".concat(iari));
-		}
-		return mContentResolver.delete(SecurityInfoData.CONTENT_URI, WHERE_IARI_CLAUSE, new String[] { iari });
-	}
-	
-	/**
-	 * Returns a set of certificates associated to a IARI
-	 * 
-	 * @param iari
-	 *            IARI
-	 * @return Set of certificates
-	 */
-	public Set<String> getCertificatesForIARI(String iari) {
-		boolean isLogAtive = logger.isActivated();
-		if (isLogAtive) {
-			logger.debug("Get certificates for IARI ".concat(iari));
-		}
-
-		Set<String> result = new HashSet<String>();
+	public Map<IARICertificate, Integer> getAll() {
+		Map<IARICertificate, Integer> result = new HashMap<IARICertificate, Integer>();
 		Cursor cursor = null;
 		try {
-			cursor = mContentResolver.query(SecurityInfoData.CONTENT_URI, PROJECTION_CERTIFICATE, WHERE_IARI_CLAUSE,
-					new String[] { iari }, null);
+			cursor = mContentResolver.query(SecurityInfoData.CONTENT_URI, null, null, null, null);
 			if (!cursor.moveToFirst()) {
 				return result;
 
 			}
-			int columnIdx = cursor.getColumnIndexOrThrow(SecurityInfoData.KEY_CERT);
+			int certColumnIdx = cursor.getColumnIndexOrThrow(SecurityInfoData.KEY_CERT);
+			int idColumnIdx = cursor.getColumnIndexOrThrow(SecurityInfoData.KEY_ID);
+			int iariColumnIdx = cursor.getColumnIndexOrThrow(SecurityInfoData.KEY_IARI);
+			String cert = null;
+			Integer id = null;
+			String iari = null;
 			do {
-				String cert = cursor.getString(columnIdx);
-				result.add(cert);
+				cert = cursor.getString(certColumnIdx);
+				id = cursor.getInt(idColumnIdx);
+				iari = cursor.getString(iariColumnIdx);
+				IARICertificate ic = new IARICertificate(iari, cert);
+				result.put(ic, id);
 			} while (cursor.moveToNext());
 		} catch (Exception e) {
-			if (isLogAtive) {
+			if (logger.isActivated()) {
 				logger.error("Exception occurred", e);
 			}
 		} finally {
@@ -248,4 +196,5 @@ public class SecurityInfos {
 		}
 		return result;
 	}
+
 }

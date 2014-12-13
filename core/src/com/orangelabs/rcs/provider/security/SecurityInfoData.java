@@ -30,7 +30,7 @@ public class SecurityInfoData {
 	/**
 	 * Database URI
 	 */
-	/* package private */static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.security/certificate");
+	public static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.security/certificate");
 
 	/**
 	 * Column name primary key

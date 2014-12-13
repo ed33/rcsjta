@@ -22,13 +22,12 @@ import java.io.ByteArrayInputStream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-
 import javax2.sip.ListeningPoint;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
-import com.orangelabs.rcs.provider.security.SecurityInfos;
+import com.orangelabs.rcs.core.ims.service.extension.ICertificateProvisioning;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
@@ -62,9 +61,11 @@ public class ProvisioningParser {
     /**
      * Content
      */
-    private String content;
+    private String mContent;
     
     private boolean first = false;
+    
+    private ICertificateProvisioning mICertificateProvisioning;
 
     /**
      * The logger
@@ -91,9 +92,11 @@ public class ProvisioningParser {
      * Constructor
      *
      * @param content Content
+     * @param certificateProvisioning the interface to handle certificate parsing events
      */
-    public ProvisioningParser(String content) {
-        this.content = content;
+    public ProvisioningParser(String content, ICertificateProvisioning certificateProvisioning) {
+        mContent = content;
+        mICertificateProvisioning = certificateProvisioning;
     }
 
     /**
@@ -125,7 +128,7 @@ public class ProvisioningParser {
                 logger.debug("Start the parsing of content first="+first);
             }
             this.first = first;
-            ByteArrayInputStream mInputStream = new ByteArrayInputStream(content.getBytes());
+            ByteArrayInputStream mInputStream = new ByteArrayInputStream(mContent.getBytes());
             DocumentBuilderFactory dfactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder dbuilder = dfactory.newDocumentBuilder();
             Document doc = dbuilder.parse(mInputStream);
@@ -228,6 +231,9 @@ public class ProvisioningParser {
 				// In that case we restore the relevant GSMA release saved before parsing.
 				RcsSettings.getInstance().setGsmaRelease(release);
             }
+            if (mICertificateProvisioning != null) {
+        		mICertificateProvisioning.stop();
+        	}
             return true;
         } catch (Exception e) {
             if (logger.isActivated()) {
@@ -1105,7 +1111,9 @@ public class ProvisioningParser {
                 if (cert == null) {
                     if ((cert = getValueByParamName("X509Certificate"+index, childnode, TYPE_TXT)) != null) {
                     	found = true;
-                		SecurityInfos.getInstance().addCertificateForIARI(iari, cert);
+                		if (mICertificateProvisioning != null) {
+                    		mICertificateProvisioning.addNewCertificate(iari, cert);
+                    	}
                         continue;
                     }
                 }                
@@ -1199,8 +1207,9 @@ public class ProvisioningParser {
                         Node typenode = childnode.getAttributes().getNamedItem("type");
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("iariRangeAuthorizations")) {
-                            	// Reset IARI authorizations
-                            	SecurityInfos.getInstance().removeIARIs();
+                            	if (mICertificateProvisioning != null) {
+                            		mICertificateProvisioning.start();
+                            	}
                             	
                             	// Parse new IARI authorizations
                             	parseIariRangeAuthorizations(childnode);

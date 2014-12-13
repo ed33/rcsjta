@@ -70,6 +70,7 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 import com.gsma.services.rcs.RcsService;
+import com.orangelabs.rcs.core.ims.service.extension.CertificateProvisioning;
 import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
@@ -705,7 +706,7 @@ public class HttpsProvisioningManager {
 				}
 
 				// Parse the received content
-				ProvisioningParser parser = new ProvisioningParser(result.content);
+				ProvisioningParser parser = new ProvisioningParser(result.content, new CertificateProvisioning());
 				
 				// Save GSMA release set into the provider
 				GsmaRelease gsmaRelease = RcsSettings.getInstance().getGsmaRelease();

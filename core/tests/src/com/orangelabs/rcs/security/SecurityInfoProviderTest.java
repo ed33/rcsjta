@@ -17,10 +17,13 @@
  ******************************************************************************/
 package com.orangelabs.rcs.security;
 
-import java.util.Set;
+import java.util.Map;
 
+import android.content.ContentResolver;
 import android.test.AndroidTestCase;
 
+import com.orangelabs.rcs.core.ims.service.extension.IARICertificate;
+import com.orangelabs.rcs.provider.security.SecurityInfoData;
 import com.orangelabs.rcs.provider.security.SecurityInfos;
 
 public class SecurityInfoProviderTest extends AndroidTestCase {
@@ -39,7 +42,8 @@ public class SecurityInfoProviderTest extends AndroidTestCase {
 			+ "XLEiSXFZ9Y3zcjYnAGMdE6sgKVcrHlnSk+pGiAwJRapppT5hSuAjzdopUuQ7sbmG"
 			+ "yAG5b2mPVtPr3EMCYZJVzkMLR1k3XPed0X0TiF+vg11wZjlx8pfe1Z49UTtwWYeI"
 			+ "qSHjr41kg6dFWwIzT61p0rOmVXX7kd0YSB1xSmIjfkrb7u5s+P090UE2eaWQGKOD"
-			+ "ELnBHhj4m9we8GHTwcumej0PzBEGUjdTD/Ou/Kl95xg+n6sPE9CLhh27TUNL4Qb5" + "EXrnr3X5o6f/OaiWNkOMkQ2hQOsr69E=";
+			+ "ELnBHhj4m9we8GHTwcumej0PzBEGUjdTD/Ou/Kl95xg+n6sPE9CLhh27TUNL4Qb5"
+			+ "EXrnr3X5o6f/OaiWNkOMkQ2hQOsr69E=";
 
 	private String cert2 = "MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t"
 			+ "Y2MwOTkubW5jMDk5MB4XDTE0MDUxNTA5MTA1NVoXDTE1MDUxMDA5MTA1NVowGDEW"
@@ -57,51 +61,97 @@ public class SecurityInfoProviderTest extends AndroidTestCase {
 
 	private SecurityInfos mSecurityInfos;
 
+	private ContentResolver mContentResolver;
+
+	private IARICertificate mIari1Cert1;
+	private IARICertificate mIari1Cert2;
+	private IARICertificate mIari2Cert1;
+	private IARICertificate mIari2Cert2;
+
 	protected void setUp() throws Exception {
 		super.setUp();
 
-		SecurityInfos.createInstance(getContext().getContentResolver());
+		mContentResolver = getContext().getContentResolver();
+		SecurityInfos.createInstance(mContentResolver);
 		mSecurityInfos = SecurityInfos.getInstance();
+		mIari1Cert1 = new IARICertificate(iari1, cert1);
+		mIari1Cert2 = new IARICertificate(iari1, cert2);
+		mIari2Cert1 = new IARICertificate(iari2, cert1);
+		mIari2Cert2 = new IARICertificate(iari2, cert2);
+		removeAll();
 	}
 
 	protected void tearDown() throws Exception {
 		super.tearDown();
+		removeAll();
 	}
 
-	public void testAddRemoveAuthorizations() {
-		mSecurityInfos.removeIARIs();
+	/**
+	 * Remove all IARI authorizations
+	 * 
+	 * @return The number of rows deleted.
+	 */
+	public int removeAll() {
+		return mContentResolver
+				.delete(SecurityInfoData.CONTENT_URI, null, null);
+	}
 
-		Set<String> result = mSecurityInfos.getCertificatesForIARI(iari1);
-		assertEquals(result.size(), 0);
-		result = mSecurityInfos.getCertificatesForIARI(iari2);
-		assertEquals(result.size(), 0);
+	public void testAddAuthorizations() {
+		Map<IARICertificate, Integer> map = mSecurityInfos.getAll();
+		assertEquals(0, map.size());
 
-		mSecurityInfos.addCertificateForIARI(iari1, cert1);
-		result = mSecurityInfos.getCertificatesForIARI(iari1);
-		assertEquals(result.size(), 1);
-		assertTrue(result.contains(cert1));
-		
-		mSecurityInfos.addCertificateForIARI(iari1, cert1);
-		result = mSecurityInfos.getCertificatesForIARI(iari1);
-		assertEquals(result.size(), 1);
+		mSecurityInfos.addCertificateForIARI(mIari1Cert1);
+		Integer id = mSecurityInfos.getIdForIariAndCertificate(mIari1Cert1);
+		assertNotSame(id, SecurityInfos.INVALID_ID);
+		map = mSecurityInfos.getAll();
+		assertEquals(1, map.size());
+		assertTrue(map.containsKey(mIari1Cert1));
+		assertTrue(map.get(mIari1Cert1).equals(id));
 
-		mSecurityInfos.addCertificateForIARI(iari1, cert2);
-		result = mSecurityInfos.getCertificatesForIARI(iari1);
-		assertEquals(result.size(), 2);
-		assertTrue(result.contains(cert1));
-		assertTrue(result.contains(cert2));
+		mSecurityInfos.addCertificateForIARI(mIari1Cert1);
+		Integer new_id = mSecurityInfos.getIdForIariAndCertificate(mIari1Cert1);
+		assertEquals(id, new_id);
+		assertNotSame(id, SecurityInfos.INVALID_ID);
+		map = mSecurityInfos.getAll();
+		assertEquals(1, map.size());
+		assertTrue(map.containsKey(mIari1Cert1));
+		assertEquals(map.get(mIari1Cert1), id);
+	}
 
-		mSecurityInfos.addCertificateForIARI(iari2, cert1);
-		result = mSecurityInfos.getCertificatesForIARI(iari2);
-		assertEquals(result.size(), 1);
-		assertTrue(result.contains(cert1));
+	public void testRemoveAuthorizations() {
+		mSecurityInfos.addCertificateForIARI(mIari1Cert1);
+		int id = mSecurityInfos.getIdForIariAndCertificate(mIari1Cert1);
+		assertNotSame(id, SecurityInfos.INVALID_ID);
+		int count = mSecurityInfos.removeCertificate(id);
+		assertEquals(1, count);
+		Map<IARICertificate, Integer> map = mSecurityInfos.getAll();
+		assertEquals(0, map.size());
+	}
 
-		mSecurityInfos.removeIARI(iari2);
-		result = mSecurityInfos.getCertificatesForIARI(iari2);
-		assertEquals(result.size(), 0);
+	public void testGetAllAuthorizations() {
+		mSecurityInfos.addCertificateForIARI(mIari1Cert1);
+		Map<IARICertificate, Integer> map = mSecurityInfos.getAll();
+		assertEquals(1, map.size());
 
-		mSecurityInfos.removeIARI(iari1);
-		result = mSecurityInfos.getCertificatesForIARI(iari1);
-		assertEquals(result.size(), 0);
+		mSecurityInfos.addCertificateForIARI(mIari1Cert2);
+		map = mSecurityInfos.getAll();
+		assertEquals(2, map.size());
+		assertTrue(map.containsKey(mIari1Cert1));
+		assertTrue(map.containsKey(mIari1Cert2));
+
+		mSecurityInfos.addCertificateForIARI(mIari2Cert1);
+		map = mSecurityInfos.getAll();
+		assertEquals(3, map.size());
+		assertTrue(map.containsKey(mIari1Cert1));
+		assertTrue(map.containsKey(mIari1Cert2));
+		assertTrue(map.containsKey(mIari2Cert1));
+
+		mSecurityInfos.addCertificateForIARI(mIari2Cert2);
+		map = mSecurityInfos.getAll();
+		assertEquals(4, map.size());
+		assertTrue(map.containsKey(mIari1Cert1));
+		assertTrue(map.containsKey(mIari1Cert2));
+		assertTrue(map.containsKey(mIari2Cert1));
+		assertTrue(map.containsKey(mIari2Cert2));
 	}
 }

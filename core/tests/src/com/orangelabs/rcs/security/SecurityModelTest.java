@@ -20,10 +20,13 @@ package com.orangelabs.rcs.security;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.Set;
 
 import android.test.AndroidTestCase;
 
+import com.orangelabs.rcs.core.ims.service.extension.IARICertificate;
+import com.orangelabs.rcs.core.ims.service.extension.ICertificateProvisioning;
 import com.orangelabs.rcs.provider.security.SecurityInfos;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
@@ -36,15 +39,14 @@ import com.orangelabs.rcs.provisioning.ProvisioningParser;
  */
 public class SecurityModelTest extends AndroidTestCase {
 
-	private SecurityInfos mSecurityInfos;
 	private RcsSettings mRcsSettings;
+	private Set<IARICertificate> mMemoryData;
 
 	protected void setUp() throws Exception {
 		super.setUp();
 
 		RcsSettings.createInstance(getContext());
 		SecurityInfos.createInstance(getContext().getContentResolver());
-		mSecurityInfos = SecurityInfos.getInstance();
 		mRcsSettings = RcsSettings.getInstance();
 	}
 
@@ -78,22 +80,53 @@ public class SecurityModelTest extends AndroidTestCase {
 
 	public void testAuthorized() {
 		String content = loadConfigFile("assets/template-ota_config-allowed.xml");
-		ProvisioningParser parser = new ProvisioningParser(content);
+		mMemoryData = null;
+		ProvisioningParser parser = new ProvisioningParser(content, new ICertificateProvisioning() {
+			
+			@Override
+			public void stop() {
+				
+			}
+			
+			@Override
+			public void start() {
+				mMemoryData = new HashSet<IARICertificate>();
+			}
+			
+			@Override
+			public void addNewCertificate(String iari, String certificate) {
+				IARICertificate iariCertificate = new IARICertificate(iari, certificate);
+				mMemoryData.add(iariCertificate);
+			}
+		});
 		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
 		assertTrue(mRcsSettings.isExtensionsAllowed());
 
-		Set<String> list = mSecurityInfos
-				.getCertificatesForIARI("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo1");
-		assertEquals(list.size(), 2);
-		assertTrue(list.contains("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1A"));
-		assertTrue(list.contains("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1B"));
+		assertNotNull(mMemoryData);
+		for (IARICertificate iariCertificate : mMemoryData) {
+			String iari = iariCertificate.getIARI();
+			String cert = iariCertificate.getCertificate();
+			if (!iari.equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo1")) {
+				if (!iari.equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo2")) {
+					fail("IARI not found ".concat(iari));
+				} else {
+					assertEquals("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_2A", cert);
+				}
+			} else {
+				if (!cert.equals("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1A")) {
+					if (!cert.equals("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1B")) {
+						fail("Certificate not found ".concat(cert));
+					}
+				}
+			}
+		}
 	}
 
 	public void testNotAllowed() {
 		String content = loadConfigFile("assets/template-ota_config-not-allowed.xml");
-		ProvisioningParser parser = new ProvisioningParser(content);
+		ProvisioningParser parser = new ProvisioningParser(content, null);
 		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
@@ -102,7 +135,7 @@ public class SecurityModelTest extends AndroidTestCase {
 
 	public void testIariAllowed() {
 		String content = loadConfigFile("assets/template-ota_config-allowed.xml");
-		ProvisioningParser parser = new ProvisioningParser(content);
+		ProvisioningParser parser = new ProvisioningParser(content, null);
 		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
@@ -111,7 +144,7 @@ public class SecurityModelTest extends AndroidTestCase {
 
 	public void testMnoApp() {
 		String content = loadConfigFile("assets/template-ota_config-allowed-mno.xml");
-		ProvisioningParser parser = new ProvisioningParser(content);
+		ProvisioningParser parser = new ProvisioningParser(content, null);
 		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
@@ -120,7 +153,7 @@ public class SecurityModelTest extends AndroidTestCase {
 
 	public void test3ppApp() {
 		String content = loadConfigFile("assets/template-ota_config-allowed-3pp.xml");
-		ProvisioningParser parser = new ProvisioningParser(content);
+		ProvisioningParser parser = new ProvisioningParser(content, null);
 		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
