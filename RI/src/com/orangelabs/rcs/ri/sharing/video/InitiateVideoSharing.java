@@ -315,6 +315,8 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 	
     @Override
 	public void onResume() {
+    	super.onResume();
+    	
         if (sharingId != null) {
 		    // Open camera
 			openCamera();

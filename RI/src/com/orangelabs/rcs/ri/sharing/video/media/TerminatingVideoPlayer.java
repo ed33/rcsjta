@@ -26,6 +26,7 @@ import android.os.SystemClock;
 import com.gsma.services.rcs.vsh.VideoCodec;
 import com.gsma.services.rcs.vsh.VideoPlayer;
 import com.orangelabs.rcs.core.ims.protocol.rtp.DummyPacketGenerator;
+import com.orangelabs.rcs.core.ims.protocol.rtp.RtpUtils;
 import com.orangelabs.rcs.core.ims.protocol.rtp.VideoRtpReceiver;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.JavaPacketizer;
@@ -101,7 +102,7 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
     /**
      * Orientation header id.
      */
-    private int orientationHeaderId = -1;
+    private int orientationHeaderId = RtpUtils.RTP_DEFAULT_EXTENSION_ID;
 
     /**
      * Video player event listener
