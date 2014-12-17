@@ -233,7 +233,7 @@
         
         <activity android:name=".sharing.video.TestVideoSharingApi"/>
 
-        <activity android:name=".sharing.video.InitiateVideoSharing" android:screenOrientation="landscape"/>
+        <activity android:name=".sharing.video.InitiateVideoSharing"/>
         
 		<receiver android:name=".sharing.video.VideoSharingInvitationReceiver">
             <intent-filter>
