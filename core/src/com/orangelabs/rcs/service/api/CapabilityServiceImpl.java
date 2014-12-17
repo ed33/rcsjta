@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +15,12 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.service.api;
-
-import java.util.Set;
 
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsService;
@@ -27,11 +29,14 @@ import com.gsma.services.rcs.capability.ICapabilitiesListener;
 import com.gsma.services.rcs.capability.ICapabilityService;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.Core;
+import com.orangelabs.rcs.core.ims.service.capability.CapabilityService;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.service.broadcaster.CapabilitiesBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.os.Handler;
 
 /**
  * Capability service API implementation
@@ -55,6 +60,46 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	 */
 	private final Logger logger = Logger.getLogger(getClass().getName());
 
+	/*
+	 * This purpose of this handler is to make the request asynchronous with the
+	 * mechanisms provider by android by placing the request in the main thread
+	 * message queue.
+	 */
+
+	private final Handler mOptionsExchangeRequestHandler;
+
+	private class CapabilitiesRequester implements Runnable {
+
+		private final ContactId mContact;
+
+		private final CapabilityService mCapabilityService;
+
+		public CapabilitiesRequester(CapabilityService capabilityService, ContactId contact) {
+			mContact = contact;
+			mCapabilityService = capabilityService;
+		}
+
+		public void run() {
+			mCapabilityService.requestContactCapabilities(mContact);
+		}
+	}
+
+	private class AllCapabilitiesRequester implements Runnable {
+
+		private final ContactsManager mContactManager;
+
+		private final CapabilityService mCapabilityService;
+
+		public AllCapabilitiesRequester(ContactsManager contactManager, CapabilityService capabilityService) {
+			mContactManager = contactManager;
+			mCapabilityService = capabilityService;
+		}
+
+		public void run() {
+			mCapabilityService.requestContactCapabilities(mContactManager.getAllContacts());
+		}
+	}
+
 	/**
 	 * Constructor
 	 */
@@ -62,6 +107,7 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 		if (logger.isActivated()) {
 			logger.info("Capability service API is loaded");
 		}
+		mOptionsExchangeRequestHandler = new Handler();
 	}
 
 	/**
@@ -87,12 +133,12 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	 *
 	 * @param listener Service registration listener
 	 */
-	public void addServiceRegistrationListener(IRcsServiceRegistrationListener listener) {
+	public void addEventListener(IRcsServiceRegistrationListener listener) {
 		if (logger.isActivated()) {
 			logger.info("Add a service listener");
 		}
 		synchronized (lock) {
-			mRcsServiceRegistrationEventBroadcaster.addServiceRegistrationListener(listener);
+			mRcsServiceRegistrationEventBroadcaster.addEventListener(listener);
 		}
 	}
 
@@ -101,12 +147,12 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	 *
 	 * @param listener Service registration listener
 	 */
-	public void removeServiceRegistrationListener(IRcsServiceRegistrationListener listener) {
+	public void removeEventListener(IRcsServiceRegistrationListener listener) {
 		if (logger.isActivated()) {
 			logger.info("Remove a service listener");
 		}
 		synchronized (lock) {
-			mRcsServiceRegistrationEventBroadcaster.removeServiceRegistrationListener(listener);
+			mRcsServiceRegistrationEventBroadcaster.removeEventListener(listener);
 		}
 	}
 
@@ -176,14 +222,8 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 
 		// Test IMS connection
 		ServerApiUtils.testIms();
-
-		// Request contact capabilities
 		try {
-	        new Thread() {
-	    		public void run() {
-					Core.getInstance().getCapabilityService().requestContactCapabilities(contact);
-	    		}
-	    	}.start();
+			mOptionsExchangeRequestHandler.post(new CapabilitiesRequester(Core.getInstance().getCapabilityService(), contact));
 		} catch(Exception e) {
 			if (logger.isActivated()) {
 				logger.error("Unexpected error", e);
@@ -239,18 +279,12 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 		if (logger.isActivated()) {
 			logger.info("Request all contacts capabilities");
 		}
-
 		// Test IMS connection
 		ServerApiUtils.testIms();
 
-		// Request all contacts capabilities
 		try {
-	        new Thread() {
-	    		public void run() {
-	    			Set<ContactId> contactSet = ContactsManager.getInstance().getAllContacts();
-	    			Core.getInstance().getCapabilityService().requestContactCapabilities(contactSet);
-	    		}
-	    	}.start();
+			mOptionsExchangeRequestHandler.post(new AllCapabilitiesRequester(ContactsManager.getInstance(), Core
+					.getInstance().getCapabilityService()));
 		} catch(Exception e) {
 			if (logger.isActivated()) {
 				logger.error("Unexpected error", e);
@@ -293,7 +327,7 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	 * @param contact ContactId
 	 * @param listener Capabilities listener
 	 */
-	public void addContactCapabilitiesListener(ContactId contact, ICapabilitiesListener listener) {
+	public void addCapabilitiesListener2(ContactId contact, ICapabilitiesListener listener) {
 		if (logger.isActivated()) {
 			logger.info("Add a listener for contact " + contact);
 		}
@@ -308,7 +342,7 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	 * @param contact ContactId
 	 * @param listener Capabilities listener
 	 */
-	public void removeContactCapabilitiesListener(ContactId contact, ICapabilitiesListener listener) {
+	public void removeCapabilitiesListener2(ContactId contact, ICapabilitiesListener listener) {
 		if (logger.isActivated()) {
 			logger.info("Remove a listener for contact " + contact);
 		}

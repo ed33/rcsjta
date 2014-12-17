@@ -6,5 +6,6 @@ import com.gsma.services.rcs.contacts.ContactId;
  * Callback methods for video sharing events
  */
 interface IVideoSharingListener {
-	void onVideoSharingStateChanged(in ContactId contact, in String sharingId, in int state, in int reasonCode);
+
+	void onStateChanged(in ContactId contact, in String sharingId, in int state, in int reasonCode);
 }

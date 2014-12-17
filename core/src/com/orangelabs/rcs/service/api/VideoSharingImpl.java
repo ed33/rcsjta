@@ -22,6 +22,8 @@
 
 package com.orangelabs.rcs.service.api;
 
+import javax2.sip.message.Response;
+
 import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
@@ -73,7 +75,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	/**
 	 * The logger
 	 */
-	private final Logger logger = Logger.getLogger(getClass().getName());
+	private static final Logger logger = Logger.getLogger(VideoSharingImpl.class.getSimpleName());
 
 	/**
 	 * Constructor
@@ -136,7 +138,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 			RichCallHistory.getInstance().setVideoSharingState(sharingId,
 					VideoSharing.State.REJECTED, reasonCode);
 
-			mVideoSharingEventBroadcaster.broadcastVideoSharingStateChanged(getRemoteContact(),
+			mVideoSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 					sharingId, VideoSharing.State.ABORTED, reasonCode);
 		}
 	}
@@ -219,12 +221,11 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 		session.setVideoPlayer(player);
 		
 		// Accept invitation
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
     			session.acceptSession();
     		}
-    	};
-    	t.start();
+    	}.start();
 	}
 	
 	/**
@@ -236,12 +237,11 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 		}
 		
 		// Reject invitation
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
-    			session.rejectSession(603);
+    			session.rejectSession(Response.DECLINE);
     		}
-    	};	
-    	t.start();
+    	}.start();
 	}
 
 	/**
@@ -253,12 +253,11 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 		}
 
 		// Abort the session
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
     			session.abortSession(ImsServiceSession.TERMINATION_BY_USER);
     		}
-    	};
-    	t.start();	
+    	}.start();	
 	}
 	
 	/**
@@ -348,7 +347,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 			RichCallHistory.getInstance().setVideoSharingState(sharingId,
 					VideoSharing.State.STARTED, ReasonCode.UNSPECIFIED);
 
-			mVideoSharingEventBroadcaster.broadcastVideoSharingStateChanged(getRemoteContact(),
+			mVideoSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 					sharingId, VideoSharing.State.STARTED, ReasonCode.UNSPECIFIED);
 		}
 	}
@@ -372,7 +371,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 				RichCallHistory.getInstance().setVideoSharingState(sharingId,
 						VideoSharing.State.ABORTED, ReasonCode.ABORTED_BY_REMOTE);
 
-				mVideoSharingEventBroadcaster.broadcastVideoSharingStateChanged(getRemoteContact(),
+				mVideoSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 						sharingId, VideoSharing.State.ABORTED, ReasonCode.ABORTED_BY_REMOTE);
 			} else {
 				RichCallHistory.getInstance().setVideoSharingDuration(sharingId, getDuration());
@@ -381,7 +380,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 				RichCallHistory.getInstance().setVideoSharingState(sharingId,
 						VideoSharing.State.ABORTED, reasonCode);
 
-				mVideoSharingEventBroadcaster.broadcastVideoSharingStateChanged(getRemoteContact(),
+				mVideoSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 						sharingId, VideoSharing.State.ABORTED, reasonCode);
 			}
 		}
@@ -405,7 +404,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 			
 			RichCallHistory.getInstance().setVideoSharingDuration(sharingId, getDuration());
 
-			mVideoSharingEventBroadcaster.broadcastVideoSharingStateChanged(getRemoteContact(),
+			mVideoSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 					getSharingId(), VideoSharing.State.ABORTED, ReasonCode.ABORTED_BY_REMOTE);
 		}
 	}
@@ -431,8 +430,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 			RichCallHistory.getInstance().setVideoSharingState(sharingId, state, reasonCode);
 
 			RichCallHistory.getInstance().setVideoSharingDuration(sharingId, getDuration());
-
-			mVideoSharingEventBroadcaster.broadcastVideoSharingStateChanged(getRemoteContact(),
+			mVideoSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 					sharingId, state, reasonCode);
 		}
 	}
@@ -446,8 +444,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 		synchronized (lock) {
 			RichCallHistory.getInstance().setVideoSharingState(sharingId,
 					VideoSharing.State.ACCEPTING, ReasonCode.UNSPECIFIED);
-			
-			mVideoSharingEventBroadcaster.broadcastVideoSharingStateChanged(getRemoteContact(),
+			mVideoSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 					sharingId, VideoSharing.State.ACCEPTING, ReasonCode.UNSPECIFIED);
 		}
 	}
@@ -489,6 +486,17 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 					.addVideoSharing(getRemoteContact(), sharingId, Direction.INCOMING, content,
 							VideoSharing.State.INVITED, ReasonCode.UNSPECIFIED);
 		}
-		mVideoSharingEventBroadcaster.broadcastVideoSharingInvitation(sharingId);
+		mVideoSharingEventBroadcaster.broadcastInvitation(sharingId);
+	}
+
+	@Override
+	public void handle180Ringing() {
+		String sharingId = getSharingId();
+		synchronized (lock) {
+			RichCallHistory.getInstance().setVideoSharingState(sharingId,
+					VideoSharing.State.RINGING, ReasonCode.UNSPECIFIED);
+			mVideoSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
+					sharingId, VideoSharing.State.RINGING, ReasonCode.UNSPECIFIED);
+		}
 	}
 }

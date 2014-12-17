@@ -28,25 +28,25 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.IBinder;
 
-import com.gsma.services.rcs.Intents;
 import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.capability.ICapabilityService;
 import com.gsma.services.rcs.chat.IChatService;
 import com.gsma.services.rcs.chat.ParticipantInfo;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.IContactsService;
-import com.gsma.services.rcs.upload.IFileUploadService;
 import com.gsma.services.rcs.extension.IMultimediaSessionService;
 import com.gsma.services.rcs.ft.IFileTransferService;
 import com.gsma.services.rcs.gsh.IGeolocSharingService;
 import com.gsma.services.rcs.ipcall.IIPCallService;
 import com.gsma.services.rcs.ish.IImageSharingService;
+import com.gsma.services.rcs.upload.IFileUploadService;
 import com.gsma.services.rcs.vsh.IVideoSharingService;
 import com.orangelabs.rcs.R;
 import com.orangelabs.rcs.addressbook.AccountChangedReceiver;
@@ -74,6 +74,7 @@ import com.orangelabs.rcs.core.ims.service.sip.messaging.GenericSipMsrpSession;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.GenericSipRtpSession;
 import com.orangelabs.rcs.platform.AndroidFactory;
 import com.orangelabs.rcs.platform.file.FileFactory;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.fthttp.FtHttpResumeDaoImpl;
 import com.orangelabs.rcs.provider.ipcall.IPCallHistory;
@@ -83,13 +84,14 @@ import com.orangelabs.rcs.provider.sharing.RichCallHistory;
 import com.orangelabs.rcs.service.api.CapabilityServiceImpl;
 import com.orangelabs.rcs.service.api.ChatServiceImpl;
 import com.orangelabs.rcs.service.api.ContactsServiceImpl;
-import com.orangelabs.rcs.service.api.FileUploadServiceImpl;
 import com.orangelabs.rcs.service.api.FileTransferServiceImpl;
+import com.orangelabs.rcs.service.api.FileUploadServiceImpl;
 import com.orangelabs.rcs.service.api.GeolocSharingServiceImpl;
 import com.orangelabs.rcs.service.api.IPCallServiceImpl;
 import com.orangelabs.rcs.service.api.ImageSharingServiceImpl;
 import com.orangelabs.rcs.service.api.MultimediaSessionServiceImpl;
 import com.orangelabs.rcs.service.api.VideoSharingServiceImpl;
+import com.orangelabs.rcs.settings.SettingsDisplay;
 import com.orangelabs.rcs.utils.AppUtils;
 import com.orangelabs.rcs.utils.IntentUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
@@ -222,8 +224,8 @@ public class RcsCoreService extends Service implements CoreListener {
     			logger.debug("Start RCS core service");
     		}
     		
-			// Instantiate the settings manager
-            RcsSettings.createInstance(getApplicationContext());
+            Context ctx = getApplicationContext();
+            RcsSettings.createInstance(ctx);
             
             // Instantiate the contactUtils instance (CountryCode is already set)
             com.gsma.services.rcs.contacts.ContactUtils.getInstance(this);
@@ -248,21 +250,14 @@ public class RcsCoreService extends Service implements CoreListener {
             if (logger.isActivated()) {
                 logger.info("RCS stack release is " + TerminalInfo.getProductVersion());
             }
-    		
-    		// Instantiate the contacts manager
-            ContactsManager.createInstance(getApplicationContext());
 
-            // Instantiate the rich messaging history 
-            MessagingLog.createInstance(getApplicationContext());
-            
-            // Instantiate the rich call history 
-            RichCallHistory.createInstance(getApplicationContext());
-
-            // Instantiate the IP call history 
-            IPCallHistory.createInstance(getApplicationContext());
-
-            // Instantiate the FT HTTP DAO interface
-            FtHttpResumeDaoImpl.createInstance(getApplicationContext());
+            ContentResolver contentResolver = ctx.getContentResolver();
+            LocalContentResolver localContentResolver = new LocalContentResolver(contentResolver);
+            ContactsManager.createInstance(ctx, contentResolver, localContentResolver);
+            MessagingLog.createInstance(ctx, localContentResolver);
+            RichCallHistory.createInstance(localContentResolver);
+            IPCallHistory.createInstance(localContentResolver);
+            FtHttpResumeDaoImpl.createInstance(ctx);
             
             // Create the core
 			Core.createCore(this);
@@ -423,7 +418,7 @@ public class RcsCoreService extends Service implements CoreListener {
      */
     public static void addRcsServiceNotification(boolean state, String label) {
     	// Create notification
-    	Intent intent = new Intent(Intents.Client.ACTION_VIEW_SETTINGS);
+    	Intent intent = new Intent(AndroidFactory.getApplicationContext(), SettingsDisplay.class);
     	intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		PendingIntent contentIntent = PendingIntent.getActivity(AndroidFactory.getApplicationContext(), 0, intent, 0);
 		int iconId; 
@@ -628,25 +623,25 @@ public class RcsCoreService extends Service implements CoreListener {
     }
 	
     @Override
-	public void handleFileTransferInvitation(FileSharingSession fileSharingSession, boolean isGroup, ContactId contact) {
+	public void handleFileTransferInvitation(FileSharingSession fileSharingSession, boolean isGroup, ContactId contact,
+			String displayName) {
 		if (logger.isActivated()) {
 			logger.debug("Handle event file transfer invitation");
 		}
 
     	// Broadcast the invitation
-		ftApi.receiveFileTransferInvitation(fileSharingSession, isGroup, contact);
+		ftApi.receiveFileTransferInvitation(fileSharingSession, isGroup, contact, displayName);
 	}
     
-	/* (non-Javadoc)
-	 * @see com.orangelabs.rcs.core.CoreListener#handle1to1FileTransferInvitation(com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession, com.orangelabs.rcs.core.ims.service.im.chat.OneOneChatSession)
-	 */
+    @Override
 	public void handleOneToOneFileTransferInvitation(FileSharingSession fileSharingSession, OneOneChatSession oneToOneChatSession) {
 		if (logger.isActivated()) {
 			logger.debug("Handle event file transfer invitation");
 		}
 		
     	// Broadcast the invitation
-    	ftApi.receiveFileTransferInvitation(fileSharingSession, false, oneToOneChatSession.getRemoteContact());
+		ftApi.receiveFileTransferInvitation(fileSharingSession, false, oneToOneChatSession.getRemoteContact(),
+				oneToOneChatSession.getRemoteDisplayName());
 	}
 
     /* (non-Javadoc)
@@ -833,9 +828,9 @@ public class RcsCoreService extends Service implements CoreListener {
 	}
 
 	@Override
-	public void handleGroupChatInvitationRejected(String chatId, String subject,
-			Set<ParticipantInfo> participants, int reasonCode) {
-		chatApi.addAndBroadcastGroupChatInvitationRejected(chatId, subject, participants, reasonCode);
+	public void handleGroupChatInvitationRejected(String chatId, ContactId contact,
+			String subject, Set<ParticipantInfo> participants, int reasonCode) {
+		chatApi.addAndBroadcastGroupChatInvitationRejected(chatId, contact, subject, participants, reasonCode);
 	}
 
 	@Override

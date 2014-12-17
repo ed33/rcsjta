@@ -26,16 +26,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.gsma.services.rcs.DeliveryInfo;
-import com.gsma.services.rcs.DeliveryInfo.ReasonCode;
+import javax2.sip.message.Response;
+
+import com.gsma.services.rcs.GroupDeliveryInfoLog;
 import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.chat.ChatLog;
 import com.gsma.services.rcs.chat.ChatLog.Message;
+import com.gsma.services.rcs.chat.ChatMessage;
 import com.gsma.services.rcs.chat.Geoloc;
 import com.gsma.services.rcs.chat.GroupChat;
 import com.gsma.services.rcs.chat.IGroupChat;
 import com.gsma.services.rcs.chat.ParticipantInfo;
-import com.gsma.services.rcs.chat.ParticipantInfo.Status;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipDialogPath;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
@@ -113,6 +114,19 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 		}
 	}
 
+    private int imdnToMessageFailedReasonCode(ImdnDocument imdn) {
+        String notificationType = imdn.getNotificationType();
+        if (ImdnDocument.DELIVERY_NOTIFICATION.equals(notificationType)) {
+            return ChatLog.Message.ReasonCode.FAILED_DELIVERY;
+
+        } else if (ImdnDocument.DISPLAY_NOTIFICATION.equals(notificationType)) {
+            return ChatLog.Message.ReasonCode.FAILED_DISPLAY;
+        }
+        throw new IllegalArgumentException(new StringBuilder(
+                "Received invalid imdn notification type:'").append(notificationType).append("'")
+                .toString());
+    }
+
 	private int sessionAbortedReasonToReasonCode(int reason) {
 		switch (reason) {
 			case ImsServiceSession.TERMINATION_BY_SYSTEM:
@@ -135,10 +149,74 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			MessagingLog.getInstance().updateGroupChatStateAndReasonCode(chatId,
 					GroupChat.State.REJECTED, reasonCode);
 
-			mGroupChatEventBroadcaster.broadcastGroupChatStateChanged(chatId,
+			mGroupChatEventBroadcaster.broadcastStateChanged(chatId,
 					GroupChat.State.REJECTED, reasonCode);
 		}
 	}
+
+    private void handleMessageDeliveryStatusDelivered(ContactId contact, String msgId) {
+        String chatId = getChatId();
+        MessagingLog messagingLog = MessagingLog.getInstance();
+        synchronized (lock) {
+            messagingLog.updateGroupChatDeliveryInfoStatusAndReasonCode(msgId, contact,
+                    GroupDeliveryInfoLog.Status.DELIVERED,
+                    GroupDeliveryInfoLog.ReasonCode.UNSPECIFIED);
+            mGroupChatEventBroadcaster.broadcastMessageGroupDeliveryInfoChanged(chatId, contact,
+                    msgId, GroupDeliveryInfoLog.Status.DELIVERED,
+                    GroupDeliveryInfoLog.ReasonCode.UNSPECIFIED);
+            if (messagingLog.isDeliveredToAllRecipients(msgId)) {
+                messagingLog.updateChatMessageStatusAndReasonCode(msgId,
+                        ChatLog.Message.Status.Content.DELIVERED,
+                        ChatLog.Message.ReasonCode.UNSPECIFIED);
+                mGroupChatEventBroadcaster.broadcastMessageStatusChanged(chatId, msgId,
+                        ChatLog.Message.Status.Content.DELIVERED,
+                        ChatLog.Message.ReasonCode.UNSPECIFIED);
+            }
+        }
+    }
+
+    private void handleMessageDeliveryStatusDisplayed(ContactId contact, String msgId) {
+        String chatId = getChatId();
+        MessagingLog messagingLog = MessagingLog.getInstance();
+        synchronized (lock) {
+            messagingLog.updateGroupChatDeliveryInfoStatusAndReasonCode(msgId, contact,
+                    GroupDeliveryInfoLog.Status.DISPLAYED,
+                    GroupDeliveryInfoLog.ReasonCode.UNSPECIFIED);
+            mGroupChatEventBroadcaster.broadcastMessageGroupDeliveryInfoChanged(chatId, contact,
+                    msgId, GroupDeliveryInfoLog.Status.DISPLAYED,
+                    GroupDeliveryInfoLog.ReasonCode.UNSPECIFIED);
+            if (messagingLog.isDisplayedByAllRecipients(msgId)) {
+                messagingLog.updateChatMessageStatusAndReasonCode(msgId,
+                        ChatLog.Message.Status.Content.DISPLAYED,
+                        ChatLog.Message.ReasonCode.UNSPECIFIED);
+                mGroupChatEventBroadcaster.broadcastMessageStatusChanged(chatId, msgId,
+                        ChatLog.Message.Status.Content.DISPLAYED,
+                        ChatLog.Message.ReasonCode.UNSPECIFIED);
+            }
+        }
+    }
+
+    private void handleMessageDeliveryStatusFailed(ContactId contact, String msgId, int reasonCode) {
+        String chatId = getChatId();
+        MessagingLog messagingLog = MessagingLog.getInstance();
+        synchronized (lock) {
+            if (ChatLog.Message.ReasonCode.FAILED_DELIVERY == reasonCode) {
+                messagingLog.updateGroupChatDeliveryInfoStatusAndReasonCode(msgId, contact,
+                        GroupDeliveryInfoLog.Status.FAILED,
+                        GroupDeliveryInfoLog.ReasonCode.FAILED_DELIVERY);
+                mGroupChatEventBroadcaster.broadcastMessageGroupDeliveryInfoChanged(chatId,
+                        contact, msgId, GroupDeliveryInfoLog.Status.FAILED,
+                        GroupDeliveryInfoLog.ReasonCode.FAILED_DELIVERY);
+            } else {
+                messagingLog.updateGroupChatDeliveryInfoStatusAndReasonCode(msgId, contact,
+                        GroupDeliveryInfoLog.Status.FAILED,
+                        GroupDeliveryInfoLog.ReasonCode.FAILED_DISPLAY);
+                mGroupChatEventBroadcaster.broadcastMessageGroupDeliveryInfoChanged(chatId,
+                        contact, msgId, GroupDeliveryInfoLog.Status.FAILED,
+                        GroupDeliveryInfoLog.ReasonCode.FAILED_DISPLAY);
+            }
+        }
+    }
 
 	/**
 	 * Get chat ID
@@ -198,7 +276,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * @return ReasonCode
 	 */
 	public int getReasonCode() {
-		return ReasonCode.UNSPECIFIED;
+		return GroupChat.ReasonCode.UNSPECIFIED;
 	}
 	
 	/**
@@ -246,7 +324,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
         // Reject invitation
         new Thread() {
     		public void run() {
-    			session.rejectSession(603);
+    			session.rejectSession(Response.DECLINE);
     		}
     	}.start();
 	}
@@ -255,7 +333,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * Quits a group chat conversation. The conversation will continue between
 	 * other participants if there are enough participants.
 	 */
-	public void quitConversation() {
+	public void leave() {
 		if (logger.isActivated()) {
 			logger.info("Cancel session");
 		}
@@ -302,8 +380,8 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 		int result = 0;
 		for (ParticipantInfo participant : participants) {
 			switch (participant.getStatus()) {
-			case Status.DEPARTED:
-			case Status.DECLINED:
+			case ParticipantInfo.Status.DEPARTED:
+			case ParticipantInfo.Status.DECLINED:
 				break;
 			default:
 				result++;
@@ -351,10 +429,9 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * Sends a text message to the group
 	 * 
 	 * @param text Message
-	 * @return Message ID
+	 * @return Chat message
 	 */
-	public String sendMessage(final String text) {
-		// Generate a message Id
+	public ChatMessage sendMessage(final String text) {
 		final String msgId = IdGenerator.generateMessageID();
 
 		// Send text message
@@ -363,17 +440,17 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
     			session.sendTextMessage(msgId, text);
     		}
     	}.start();
-		return msgId;
+    	/* TODO: Return a ChatMessage with correct time-stamps in CR018. */
+    	return new ChatMessage(msgId, null, text, 0, 0);
 	}
 	
 	/**
      * Sends a geoloc message
      * 
      * @param geoloc Geoloc
-     * @return Unique message ID or null in case of error
+     * @return Geoloc message
      */
-    public String sendGeoloc(Geoloc geoloc) {
-		// Generate a message Id
+    public com.gsma.services.rcs.chat.GeolocMessage sendMessage2(Geoloc geoloc) {
 		final String msgId = IdGenerator.generateMessageID();
 
 		// Send geoloc message
@@ -385,7 +462,8 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
     			session.sendGeolocMessage(msgId, geolocPush);
     		}
     	}.start();
-		return msgId;
+    	/* TODO: Return a GeolocMessage with correct time-stamps in CR018. */
+    	return new com.gsma.services.rcs.chat.GeolocMessage(msgId, null, geoloc, 0, 0);
     }	
 
     /**
@@ -416,7 +494,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			MessagingLog.getInstance().updateGroupChatRejoinIdOnSessionStart(chatId,
 					session.getImSessionIdentity());
 
-			mGroupChatEventBroadcaster.broadcastGroupChatStateChanged(chatId, GroupChat.State.STARTED,
+			mGroupChatEventBroadcaster.broadcastStateChanged(chatId, GroupChat.State.STARTED,
 					GroupChat.ReasonCode.UNSPECIFIED);
 		}
     }
@@ -439,7 +517,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			MessagingLog.getInstance().updateGroupChatStateAndReasonCode(chatId,
 					GroupChat.State.ABORTED, reasonCode);
 
-			mGroupChatEventBroadcaster.broadcastGroupChatStateChanged(chatId,
+			mGroupChatEventBroadcaster.broadcastStateChanged(chatId,
 					GroupChat.State.ABORTED, reasonCode);
 		}
 	}
@@ -458,7 +536,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			MessagingLog.getInstance().updateGroupChatStateAndReasonCode(chatId,
 					GroupChat.State.ABORTED, GroupChat.ReasonCode.ABORTED_BY_REMOTE);
 
-				mGroupChatEventBroadcaster.broadcastGroupChatStateChanged(chatId,
+				mGroupChatEventBroadcaster.broadcastStateChanged(chatId,
 						GroupChat.State.ABORTED, GroupChat.ReasonCode.ABORTED_BY_REMOTE);
 		}
 	}
@@ -504,7 +582,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 				MessagingLog.getInstance().updateGroupChatStateAndReasonCode(getChatId(), state,
 						reasonCode);
 
-				mGroupChatEventBroadcaster.broadcastGroupChatStateChanged(chatId, state,
+				mGroupChatEventBroadcaster.broadcastStateChanged(chatId, state,
 						reasonCode);
 			}
 		}
@@ -538,9 +616,9 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 		String chatId = getChatId();
 		synchronized (lock) {
 			MessagingLog.getInstance().addGroupChatMessage(chatId, msg, Direction.OUTGOING,
-					ChatLog.Message.Status.Content.SENDING, ReasonCode.UNSPECIFIED);
+					ChatLog.Message.Status.Content.SENDING, ChatLog.Message.ReasonCode.UNSPECIFIED);
 			mGroupChatEventBroadcaster.broadcastMessageStatusChanged(chatId, msgId,
-					ChatLog.Message.Status.Content.SENDING, ReasonCode.UNSPECIFIED);
+					ChatLog.Message.Status.Content.SENDING, ChatLog.Message.ReasonCode.UNSPECIFIED);
 		}
 	}
 
@@ -612,67 +690,27 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	    }
     }
 
-	@Override
-	public void handleMessageDeliveryStatus(ContactId contact, ImdnDocument imdn) {
-		String msgId = imdn.getMsgId();
-		String status = imdn.getStatus();
-		String notificationType = imdn.getNotificationType();
-		if (logger.isActivated()) {
-			logger.info("New message delivery status for message " + msgId + ", status "
-					+ status + "notificationType " + notificationType);
-		};
-		synchronized (lock) {
-			MessagingLog messagingLog = MessagingLog.getInstance();
-			if (ImdnDocument.DELIVERY_STATUS_DELIVERED.equals(status)) {
-				messagingLog.updateGroupChatDeliveryInfoStatusAndReasonCode(msgId,
-						DeliveryInfo.Status.DELIVERED, ReasonCode.UNSPECIFIED, contact);
-
-				mGroupChatEventBroadcaster.broadcastDeliveryInfoStatusChanged(getChatId(), contact,
-						msgId, DeliveryInfo.Status.DELIVERED, ReasonCode.UNSPECIFIED);
-			} else if (ImdnDocument.DELIVERY_STATUS_DISPLAYED.equals(status)) {
-				messagingLog.updateGroupChatDeliveryInfoStatusAndReasonCode(msgId,
-						DeliveryInfo.Status.DISPLAYED, ReasonCode.UNSPECIFIED, contact);
-
-				mGroupChatEventBroadcaster.broadcastDeliveryInfoStatusChanged(getChatId(), contact,
-						msgId, DeliveryInfo.Status.DISPLAYED, ReasonCode.UNSPECIFIED);
-			} else if (ImdnDocument.DELIVERY_STATUS_ERROR.equals(status)
-					|| ImdnDocument.DELIVERY_STATUS_FAILED.equals(status)
-					|| ImdnDocument.DELIVERY_STATUS_FORBIDDEN.equals(status)) {
-				int reasonCode;
-
-				if (notificationType == ImdnDocument.DELIVERY_NOTIFICATION) {
-					reasonCode = ReasonCode.FAILED_DELIVERY;
-				} else {
-					reasonCode = ReasonCode.FAILED_DISPLAY;
-				}
-				messagingLog.updateGroupChatDeliveryInfoStatusAndReasonCode(msgId,
-						DeliveryInfo.Status.FAILED, reasonCode, contact);
-
-				mGroupChatEventBroadcaster.broadcastMessageStatusChanged(getChatId(), msgId,
-						DeliveryInfo.Status.FAILED, reasonCode);
-			}
-			if (ImdnDocument.DELIVERY_STATUS_DELIVERED.equals(status)
-					&& messagingLog.isDeliveredToAllRecipients(msgId)) {
-				messagingLog.updateChatMessageStatusAndReasonCode(msgId,
-						ChatLog.Message.Status.Content.DELIVERED,
-						ChatLog.Message.ReasonCode.UNSPECIFIED);
-
-				mGroupChatEventBroadcaster.broadcastMessageStatusChanged(getChatId(), msgId,
-						ChatLog.Message.Status.Content.DELIVERED,
-						ChatLog.Message.ReasonCode.UNSPECIFIED);
-
-			} else if (ImdnDocument.DELIVERY_STATUS_DISPLAYED.equals(status)
-					&& messagingLog.isDisplayedByAllRecipients(msgId)) {
-				messagingLog.updateChatMessageStatusAndReasonCode(msgId,
-						ChatLog.Message.Status.Content.DISPLAYED,
-						ChatLog.Message.ReasonCode.UNSPECIFIED);
-
-				mGroupChatEventBroadcaster.broadcastMessageStatusChanged(getChatId(), msgId,
-						ChatLog.Message.Status.Content.DISPLAYED,
-						ChatLog.Message.ReasonCode.UNSPECIFIED);
-			}
-		}
-	}
+    @Override
+    public void handleMessageDeliveryStatus(ContactId contact, ImdnDocument imdn) {
+        String status = imdn.getStatus();
+        String msgId = imdn.getMsgId();
+        if (logger.isActivated()) {
+            logger.info(new StringBuilder("Handling message delivery status; contact=")
+                    .append(contact).append(", msgId=").append(msgId).append(", status=")
+                    .append(status).append(", notificationType=")
+                    .append(imdn.getNotificationType()).toString());
+        }
+        if (ImdnDocument.DELIVERY_STATUS_DELIVERED.equals(status)) {
+            handleMessageDeliveryStatusDelivered(contact, msgId);
+        } else if (ImdnDocument.DELIVERY_STATUS_DISPLAYED.equals(status)) {
+            handleMessageDeliveryStatusDisplayed(contact, msgId);
+        } else if (ImdnDocument.DELIVERY_STATUS_ERROR.equals(status)
+                || ImdnDocument.DELIVERY_STATUS_FAILED.equals(status)
+                || ImdnDocument.DELIVERY_STATUS_FORBIDDEN.equals(status)) {
+            int reasonCode = imdnToMessageFailedReasonCode(imdn);
+            handleMessageDeliveryStatusFailed(contact, msgId, reasonCode);
+        }
+    }
     
     /* (non-Javadoc)
      * @see com.orangelabs.rcs.core.ims.service.im.chat.ChatSessionListener#handleAddParticipantSuccessful(com.gsma.services.rcs.contact.ContactId)
@@ -748,7 +786,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			MessagingLog.getInstance().updateGroupChatStateAndReasonCode(chatId,
 					GroupChat.State.ACCEPTING, GroupChat.ReasonCode.UNSPECIFIED);
 
-			mGroupChatEventBroadcaster.broadcastGroupChatStateChanged(chatId,
+			mGroupChatEventBroadcaster.broadcastStateChanged(chatId,
 					GroupChat.State.ACCEPTING, GroupChat.ReasonCode.UNSPECIFIED);
 		}
 	}
@@ -784,12 +822,12 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 		}
 		String chatId = getChatId();
 		synchronized (lock) {
-			MessagingLog.getInstance().addGroupChat(chatId, getSubject(),
-					session.getParticipants(), GroupChat.State.INVITED, ReasonCode.UNSPECIFIED,
-					Direction.INCOMING);
+			MessagingLog.getInstance().addGroupChat(chatId, session.getRemoteContact(),
+					getSubject(), session.getParticipants(), GroupChat.State.INVITED,
+					GroupChat.ReasonCode.UNSPECIFIED, Direction.INCOMING);
 		}
 
-		mGroupChatEventBroadcaster.broadcastGroupChatInvitation(chatId);
+		mGroupChatEventBroadcaster.broadcastInvitation(chatId);
 	}
 
 	@Override
@@ -799,11 +837,11 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 		}
 		String chatId = getChatId();
 		synchronized (lock) {
-			MessagingLog.getInstance().addGroupChat(chatId, getSubject(),
-					session.getParticipants(), GroupChat.State.ACCEPTING, ReasonCode.UNSPECIFIED,
-					Direction.INCOMING);
+			MessagingLog.getInstance().addGroupChat(chatId, session.getRemoteContact(),
+					getSubject(), session.getParticipants(), GroupChat.State.ACCEPTING,
+					GroupChat.ReasonCode.UNSPECIFIED, Direction.INCOMING);
 		}
 
-		mGroupChatEventBroadcaster.broadcastGroupChatInvitation(chatId);
+		mGroupChatEventBroadcaster.broadcastInvitation(chatId);
 	}
 }

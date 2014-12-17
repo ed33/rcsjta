@@ -21,6 +21,8 @@
  ******************************************************************************/
 package com.orangelabs.rcs.service.api;
 
+import javax2.sip.message.Response;
+
 import android.net.Uri;
 
 import com.gsma.services.rcs.RcsCommon.Direction;
@@ -60,7 +62,7 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 	/**
 	 * The logger
 	 */
-	private final Logger logger = Logger.getLogger(getClass().getName());
+	private final static Logger logger = Logger.getLogger(ImageSharingImpl.class.getSimpleName());
 
 	/**
 	 * Constructor
@@ -131,7 +133,7 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 			RichCallHistory.getInstance().setImageSharingState(sharingId,
 					ImageSharing.State.REJECTED, reasonCode);
 
-			mImageSharingEventBroadcaster.broadcastImageSharingStateChanged(getRemoteContact(),
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 					sharingId, ImageSharing.State.REJECTED, reasonCode);
 		}
 	}
@@ -186,7 +188,7 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
      * 
      * @return Type
      */
-    public String getFileType() {
+    public String getMimeType() {
         return session.getContent().getEncoding();
     }
 
@@ -196,6 +198,7 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 	 * @return State
 	 */
 	public int getState() {
+		// TODO manage other states
 		SipDialogPath dialogPath = session.getDialogPath();
 		if (dialogPath != null && dialogPath.isSessionEstablished()) {
 			return ImageSharing.State.STARTED;
@@ -243,12 +246,11 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 		}
 
 		// Accept invitation
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
     			session.acceptSession();
     		}
-    	};
-    	t.start();
+    	}.start();
 	}
 	
 	/**
@@ -260,12 +262,11 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 		}
 
 		// Reject invitation
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
-    			session.rejectSession(603);
+    			session.rejectSession(Response.DECLINE);
     		}
-    	};
-    	t.start();
+    	}.start();
     }
 
 	/**
@@ -282,12 +283,11 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 		}
 		
 		// Abort the session
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
     			session.abortSession(ImsServiceSession.TERMINATION_BY_USER);
     		}
-    	};
-    	t.start();		
+    	}.start();		
 	}
 
     /*------------------------------- SESSION EVENTS ----------------------------------*/
@@ -303,7 +303,7 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 			RichCallHistory.getInstance().setImageSharingState(session.getSessionID(),
 					ImageSharing.State.STARTED, ReasonCode.UNSPECIFIED);
 
-			mImageSharingEventBroadcaster.broadcastImageSharingStateChanged(getRemoteContact(),
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 					getSharingId(), ImageSharing.State.STARTED, ReasonCode.UNSPECIFIED);
 	    }
     }
@@ -325,7 +325,7 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 			RichCallHistory.getInstance().setImageSharingState(sharingId,
 					ImageSharing.State.ABORTED, reasonCode);
 
-			mImageSharingEventBroadcaster.broadcastImageSharingStateChanged(getRemoteContact(),
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 					sharingId, ImageSharing.State.ABORTED, reasonCode);
 		}
 	}
@@ -346,7 +346,7 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 				RichCallHistory.getInstance().setImageSharingState(sharingId,
 						ImageSharing.State.ABORTED, ReasonCode.ABORTED_BY_REMOTE);
 
-				mImageSharingEventBroadcaster.broadcastImageSharingStateChanged(getRemoteContact(),
+				mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 						sharingId, ImageSharing.State.ABORTED, ReasonCode.ABORTED_BY_REMOTE);
 			}
 		}
@@ -370,7 +370,7 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 
 			RichCallHistory.getInstance().setImageSharingState(sharingId, state, reasonCode);
 
-			mImageSharingEventBroadcaster.broadcastImageSharingStateChanged(getRemoteContact(),
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 					sharingId, state, reasonCode);
 		}
 	}
@@ -382,12 +382,13 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
      * @param totalSize Total size to be transferred
      */
     public void handleSharingProgress(long currentSize, long totalSize) {
+        String sharingId = getSharingId();
     	synchronized(lock) {
-			RichCallHistory.getInstance().setImageSharingProgress(session.getSessionID(),
-					currentSize, totalSize);
+			RichCallHistory.getInstance().updateImageSharingProgress(sharingId,
+					currentSize);
 
-			mImageSharingEventBroadcaster.broadcastImageSharingProgress(getRemoteContact(),
-					getSharingId(), currentSize, totalSize);
+			mImageSharingEventBroadcaster.broadcastProgressUpdate(getRemoteContact(),
+					sharingId, currentSize, totalSize);
 	     }
     }
     
@@ -407,7 +408,7 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 			RichCallHistory.getInstance().setImageSharingState(sharingId,
 					ImageSharing.State.TRANSFERRED, ReasonCode.UNSPECIFIED);
 
-			mImageSharingEventBroadcaster.broadcastImageSharingStateChanged(getRemoteContact(),
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 					sharingId, ImageSharing.State.TRANSFERRED, ReasonCode.UNSPECIFIED);
 	    }
     }
@@ -421,7 +422,7 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 		synchronized (lock) {
 			RichCallHistory.getInstance().setImageSharingState(sharingId,
 					ImageSharing.State.ACCEPTING, ReasonCode.UNSPECIFIED);
-			mImageSharingEventBroadcaster.broadcastImageSharingStateChanged(getRemoteContact(),
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
 					sharingId, ImageSharing.State.ACCEPTING, ReasonCode.UNSPECIFIED);
 		}
 	}
@@ -453,6 +454,17 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 					ReasonCode.UNSPECIFIED);
 		}
 
-		mImageSharingEventBroadcaster.broadcastImageSharingInvitation(sharingId);
+		mImageSharingEventBroadcaster.broadcastInvitation(sharingId);
+	}
+
+	@Override
+	public void handle180Ringing() {
+		String sharingId = getSharingId();
+		synchronized (lock) {
+			RichCallHistory.getInstance().setImageSharingState(sharingId,
+					ImageSharing.State.RINGING, ReasonCode.UNSPECIFIED);
+			mImageSharingEventBroadcaster.broadcastStateChanged(getRemoteContact(),
+					sharingId, ImageSharing.State.RINGING, ReasonCode.UNSPECIFIED);
+		}
 	}
 }

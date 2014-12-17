@@ -5,7 +5,7 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * You may obtain a copy of the License ats
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -33,10 +33,10 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 
-import com.gsma.services.rcs.RcsCommon;
 import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.RcsServiceNotAvailableException;
 import com.gsma.services.rcs.contacts.ContactId;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharingListener;
 import com.gsma.services.rcs.vsh.VideoSharingService;
@@ -109,7 +109,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
    	/**
 	 * API connection manager
 	 */
-	private ApiConnectionManager connectionManager;
+	private ApiConnectionManager mCnxManager;
     
     /**
 	 * The log tag for this class
@@ -128,9 +128,6 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
         // Set layout
         setContentView(R.layout.video_sharing_receive);
 
-        // Set title
-        setTitle(R.string.menu_video_sharing);
-
         // Get invitation info
         vshDao = (VideoSharingDAO) (getIntent().getExtras().getParcelable(VideoSharingIntentService.BUNDLE_VSHDAO_ID));
 		if (vshDao == null) {
@@ -139,6 +136,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 			}
 			finish();
 			return;
+			
 		}
 
 		if (LogUtils.isActive) {
@@ -156,11 +154,11 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
         videoRenderer = new TerminatingVideoPlayer(videoView, this);
 
 		// Register to API connection manager
-		connectionManager = ApiConnectionManager.getInstance(this);
-		if (connectionManager == null || !connectionManager.isServiceConnected(RcsServiceName.VIDEO_SHARING, RcsServiceName.CONTACTS)) {
+		mCnxManager = ApiConnectionManager.getInstance(this);
+		if (mCnxManager == null || !mCnxManager.isServiceConnected(RcsServiceName.VIDEO_SHARING, RcsServiceName.CONTACTS)) {
 			Utils.showMessageAndExit(this, getString(R.string.label_service_not_available), exitOnce);
 		} else {
-			connectionManager.startMonitorServices(this, exitOnce, RcsServiceName.VIDEO_SHARING, RcsServiceName.CONTACTS);
+			mCnxManager.startMonitorServices(this, exitOnce, RcsServiceName.VIDEO_SHARING, RcsServiceName.CONTACTS);
 			videoSharingInvitation();
 		}
     }
@@ -168,25 +166,28 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
     @Override
 	public void onDestroy() {
 		super.onDestroy();
-		if (connectionManager == null) {
+		if (mCnxManager == null) {
 			return;
+			
 		}
-		connectionManager.stopMonitorServices(this);
-		if (connectionManager.isServiceConnected(RcsServiceName.VIDEO_SHARING)) {
+		mCnxManager.stopMonitorServices(this);
+		if (mCnxManager.isServiceConnected(RcsServiceName.VIDEO_SHARING)) {
 			// Remove video sharing listener
 			try {
 				if (LogUtils.isActive) {
 					Log.d(LOGTAG, "onDestroy Remove listener");
 				}
-				connectionManager.getVideoSharingApi().removeEventListener(vshListener);
+				mCnxManager.getVideoSharingApi().removeEventListener(vshListener);
 			} catch (Exception e) {
-				e.printStackTrace();
+				if (LogUtils.isActive) {
+					Log.e(LOGTAG, "Failed to remove listener", e);
+				}
 			}
 		}
 	}
 
     public void videoSharingInvitation() {
-    	VideoSharingService vshApi = connectionManager.getVideoSharingApi();
+    	VideoSharingService vshApi = mCnxManager.getVideoSharingApi();
 		try {
 			// Add service listener
 			vshApi.addEventListener(vshListener);
@@ -197,11 +198,11 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 				// Session not found or expired
 				Utils.showMessageAndExit(this, getString(R.string.label_session_not_found), exitOnce);
 				return;
+				
 			}
 			
 			ContactId remote = vshDao.getContact();
-			String displayName = RcsDisplayName.get(this, remote);
-			String from = RcsDisplayName.convert(this, RcsCommon.Direction.INCOMING, remote, displayName);
+			String from = RcsDisplayName.getInstance(this).getDisplayName(remote);
 			
 	    	// Display sharing infos
     		TextView fromTextView = (TextView)findViewById(R.id.from);
@@ -217,10 +218,14 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 			builder.setNegativeButton(getString(R.string.label_decline), declineBtnListener);
 			builder.show();
 	    } catch(RcsServiceNotAvailableException e) {
-	    	e.printStackTrace();
+	    	if (LogUtils.isActive) {
+				Log.e(LOGTAG, e.getMessage(), e);
+			}
 			Utils.showMessageAndExit(this, getString(R.string.label_api_disabled), exitOnce);
 	    } catch(RcsServiceException e) {
-	    	e.printStackTrace();
+	    	if (LogUtils.isActive) {
+				Log.e(LOGTAG, e.getMessage(), e);
+			}
 			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), exitOnce);
 		}
     }
@@ -246,6 +251,9 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 	 */
 	private void rejectInvitation() {
     	try {
+    		if (LogUtils.isActive) {
+				Log.d(LOGTAG, "rejectInvitation");
+			}
     		// Reject the invitation
     		videoSharing.rejectInvitation();
     	} catch(Exception e) {
@@ -301,6 +309,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
             	// Quit the session
             	quitSession();
                 return true;
+                
         }
 
         return super.onKeyDown(keyCode, event);
@@ -332,7 +341,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
     private VideoSharingListener vshListener = new VideoSharingListener() {
 
 		@Override
-		public void onVideoSharingStateChanged(ContactId contact, String sharingId, final int state, int reasonCode) {
+		public void onStateChanged(ContactId contact, String sharingId, final int state, int reasonCode) {
 			if (LogUtils.isActive) {
 				Log.d(LOGTAG, "onVideoSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state
 						+ " reason=" + reasonCode);
@@ -350,7 +359,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 				return;
 			}
 			// Discard event if not for current sharingId
-			if (ReceiveVideoSharing.this.vshDao == null || !ReceiveVideoSharing.this.vshDao.getSharingId().equals(sharingId)) {
+			if (vshDao == null || !vshDao.getSharingId().equals(sharingId)) {
 				return;
 			}
 			final String _reasonCode = RiApplication.VSH_REASON_CODES[reasonCode];
@@ -360,8 +369,9 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 					case VideoSharing.State.STARTED:
 						// Display video format
 						try {
+							VideoDescriptor videoDescriptor = videoSharing.getVideoDescriptor();
 							String format = videoSharing.getVideoEncoding() + " " +
-									videoSharing.getVideoDescriptor().getVideoWidth() + "x" + videoSharing.getVideoDescriptor().getVideoHeight();
+									videoDescriptor.getVideoWidth() + "x" + videoDescriptor.getVideoHeight();
 							TextView fmtView = (TextView)findViewById(R.id.video_format);
 							fmtView.setVisibility(View.VISIBLE);
 							fmtView.setText(getString(R.string.label_video_format, format));

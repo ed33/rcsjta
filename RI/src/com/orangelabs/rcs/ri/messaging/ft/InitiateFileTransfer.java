@@ -25,7 +25,6 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -50,11 +49,12 @@ import com.gsma.services.rcs.RcsServiceNotAvailableException;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
 import com.gsma.services.rcs.ft.FileTransfer;
-import com.gsma.services.rcs.ft.FileTransferListener;
+import com.gsma.services.rcs.ft.OneToOneFileTransferListener;
 import com.orangelabs.rcs.ri.ApiConnectionManager;
 import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.RiApplication;
+import com.orangelabs.rcs.ri.utils.ContactListAdapter;
 import com.orangelabs.rcs.ri.utils.FileUtils;
 import com.orangelabs.rcs.ri.utils.LockAccess;
 import com.orangelabs.rcs.ri.utils.LogUtils;
@@ -127,14 +127,19 @@ public class InitiateFileTransfer extends Activity {
      * File transfer identifier
      */
     private String ftId;
+    
+    /**
+     * Spinner for contact selection
+     */
+    private Spinner mSpinner;
    
 	/**
 	 * File transfer listener
 	 */
-	private FileTransferListener ftListener = new FileTransferListener() {
+	private OneToOneFileTransferListener ftListener = new OneToOneFileTransferListener() {
 
 		@Override
-		public void onTransferProgress(ContactId contact, String transferId, final long currentSize, final long totalSize) {
+		public void onProgressUpdate(ContactId contact, String transferId, final long currentSize, final long totalSize) {
 			// Discard event if not for current transferId
 			if (InitiateFileTransfer.this.ftId == null || !InitiateFileTransfer.this.ftId.equals(transferId)) {
 				return;
@@ -148,7 +153,7 @@ public class InitiateFileTransfer extends Activity {
 		}
 
 		@Override
-		public void onTransferStateChanged(ContactId contact, String transferId, final int state, final int reasonCode) {
+		public void onStateChanged(ContactId contact, String transferId, final int state, final int reasonCode) {
 			if (LogUtils.isActive) {
 				Log.d(LOGTAG, "onTransferStateChanged contact=" + contact + " transferId=" + transferId + " state=" + state+ " reason="+reasonCode);
 			}
@@ -236,11 +241,8 @@ public class InitiateFileTransfer extends Activity {
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 		setContentView(R.layout.filetransfer_initiate);
 
-		// Set title
-		setTitle(R.string.menu_transfer_file);
-
 		// Set contact selector
-		Spinner spinner = (Spinner) findViewById(R.id.contact);
+		mSpinner = (Spinner) findViewById(R.id.contact);
 		
 		// Set buttons callback
 		Button inviteBtn = (Button) findViewById(R.id.invite_btn);
@@ -267,7 +269,7 @@ public class InitiateFileTransfer extends Activity {
 		connectionManager.startMonitorServices(this, exitOnce, RcsServiceName.FILE_TRANSFER);
 		try {
 			// Add service listener
-			connectionManager.getFileTransferApi().addOneToOneFileTransferListener(ftListener);
+			connectionManager.getFileTransferApi().addEventListener(ftListener);
 			if (resuming) {
 				// Get resuming info
 				FileTransferDAO ftdao = (FileTransferDAO) (getIntent().getExtras()
@@ -285,7 +287,7 @@ public class InitiateFileTransfer extends Activity {
 				filesize = ftdao.getSize();
 				ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item,
 						new String[] { remoteContact.toString() });
-				spinner.setAdapter(adapter);
+				mSpinner.setAdapter(adapter);
 				TextView uriEdit = (TextView) findViewById(R.id.uri);
 				TextView sizeEdit = (TextView) findViewById(R.id.size);
 				sizeEdit.setText((filesize / 1024) + " KB");
@@ -302,9 +304,9 @@ public class InitiateFileTransfer extends Activity {
 					Log.d(LOGTAG, "onCreate (file=" + filename + ") (size=" + filesize + ") (contact=" + remoteContact + ")");
 				}
 			} else {
-				spinner.setAdapter(Utils.createRcsContactListAdapter(this));
+				mSpinner.setAdapter(ContactListAdapter.createRcsContactListAdapter(this));
 				// Enable button if contact available
-				if (spinner.getAdapter().getCount() != 0) {
+				if (mSpinner.getAdapter().getCount() != 0) {
 					selectBtn.setEnabled(true);
 				}
 				if (LogUtils.isActive) {
@@ -333,7 +335,7 @@ public class InitiateFileTransfer extends Activity {
 		if (connectionManager.isServiceConnected(RcsServiceName.FILE_TRANSFER)) {
 			// Remove file transfer listener
 			try {
-				connectionManager.getFileTransferApi().removeOneToOneFileTransferListener(ftListener);
+				connectionManager.getFileTransferApi().removeEventListener(ftListener);
 			} catch (Exception e) {
 				if (LogUtils.isActive) {
 					Log.e(LOGTAG, "Failed to remove listener", e);
@@ -389,16 +391,16 @@ public class InitiateFileTransfer extends Activity {
 			return;
 		}    	    	
     	
-    	// Get remote contact
-        Spinner spinner = (Spinner)findViewById(R.id.contact);
-        MatrixCursor cursor = (MatrixCursor)spinner.getSelectedItem();
+		// get selected phone number
+		ContactListAdapter adapter = (ContactListAdapter) mSpinner.getAdapter();
+		String phoneNumber = adapter.getSelectedNumber(mSpinner.getSelectedView());
         ContactUtils contactUtils = ContactUtils.getInstance(this);
         ContactId remote;
 		try {
-			remote = contactUtils.formatContactId(cursor.getString(1));
+			remote = contactUtils.formatContact(phoneNumber);
 		} catch (RcsContactFormatException e1) {
-			Utils.showMessage(this, getString(R.string.label_invalid_contact,cursor.getString(1)));
-	    	return;
+			Utils.showMessage(this, getString(R.string.label_invalid_contact, phoneNumber));
+			return;
 		}
 
         // Get thumbnail option
@@ -427,7 +429,7 @@ public class InitiateFileTransfer extends Activity {
     		});
             
             // Disable UI
-            spinner.setEnabled(false);
+            mSpinner.setEnabled(false);
 
             // Hide buttons
             Button inviteBtn = (Button)findViewById(R.id.invite_btn);

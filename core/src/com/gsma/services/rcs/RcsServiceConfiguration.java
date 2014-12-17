@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.gsma.services.rcs;
@@ -41,24 +45,6 @@ public class RcsServiceConfiguration {
 
 	private static final String WHERE_CLAUSE = new StringBuilder(Settings.KEY).append("=?")
 			.toString();
-
-	// TODO make public with API 1.5.1
-	private static final String SERVICE_ACTIVATED = "ServiceActivated";
-	
-	/**
-	 * Checks the RCS service is activated.
-	 * 
-	 * @param ctx
-	 *            Context
-	 * @return Boolean True if the RCS service is activated.
-	 */
-	public static boolean isServiceActivated(Context ctx) {
-		try {
-			return Boolean.parseBoolean(getStringValueSetting(ctx, SERVICE_ACTIVATED));
-		} catch (Exception e) {
-			return false;
-		}
-	}
 
 	/**
 	 * Checks the RCS configuration validity.
@@ -103,26 +89,6 @@ public class RcsServiceConfiguration {
 	}
 
 	/**
-	 * Returns the user country code.
-	 * 
-	 * @param ctx the context
-	 * @return the country code or null if not provisioned
-	 */
-	public static String getMyCountryCode(Context ctx) {
-		return getStringValueSetting(ctx, Settings.MY_COUNTRY_CODE);
-	}
-
-	/**
-	 * Returns the user country area code.
-	 * 
-	 * @param ctx the context
-	 * @return the country area code or null if not provisioned
-	 */
-	public static String getMyCountryAreaCode(Context ctx) {
-		return getStringValueSetting(ctx, Settings.MY_COUNTRY_AREA_CODE);
-	}
-
-	/**
 	 * Returns the user contact Identifier (i.e. username part of the IMPU).
 	 * 
 	 * @param ctx the context
@@ -134,7 +100,7 @@ public class RcsServiceConfiguration {
 			throw new IllegalStateException("Cannot instantiate ContactUtils");
 		}
 		String contact = getStringValueSetting(ctx, Settings.MY_CONTACT_ID);
-		return contactUtilsInstance.formatContactId(contact);
+		return contactUtilsInstance.formatContact(contact);
 	}
 
 	/**
@@ -180,7 +146,7 @@ public class RcsServiceConfiguration {
 			throw new IllegalArgumentException("Invalid default messaging method");
 		}
 		ContentValues values = new ContentValues();
-		values.put(Settings.VALUE, method);
+		values.put(Settings.VALUE, Integer.toString(method));
 		updateSettings(ctx, values, Settings.DEFAULT_MESSAGING_METHOD);
 	}
 
@@ -235,7 +201,7 @@ public class RcsServiceConfiguration {
 		 * Content provider URI for RCS settings
 		 */
 		public static final Uri CONTENT_URI = Uri
-				.parse("content://com.gsma.services.rcs.provider.settings/settings");
+				.parse("content://com.gsma.services.rcs.provider.setting/setting");
 
 		/**
 		 * The name of the column containing the key setting for a row.
@@ -256,16 +222,6 @@ public class RcsServiceConfiguration {
 		 * Key to get MyContactId setting
 		 */
 		public static final String MY_CONTACT_ID = "MyContactId";
-
-		/**
-		 * Key to get MyCountryCode setting
-		 */
-		public static final String MY_COUNTRY_CODE = "MyCountryCode";
-
-		/**
-		 * Key to get MyCountryAreaCode setting
-		 */
-		public static final String MY_COUNTRY_AREA_CODE = "CountryAreaCode";
 
 		/**
 		 * Key to get MessagingMode setting

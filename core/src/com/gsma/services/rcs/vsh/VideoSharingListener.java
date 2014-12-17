@@ -29,8 +29,9 @@ import com.gsma.services.rcs.contacts.ContactId;
  * @author Jean-Marc AUFFRET
  */
 public abstract class VideoSharingListener extends IVideoSharingListener.Stub {
+
 	/**
-	 * Callback called when the sharing state is changed
+	 * Callback called when the sharing state/reasonCode is changed.
 	 *
 	 * @param contact Contact ID
 	 * @param sharingId ID of video sharing
@@ -39,5 +40,6 @@ public abstract class VideoSharingListener extends IVideoSharingListener.Stub {
 	 * @see VideoSharing.State
 	 * @see VideoSharing.ReasonCode
 	 */
-	public abstract void onVideoSharingStateChanged(ContactId contact, String sharingId, int state, int reasonCode);
+	public abstract void onStateChanged(ContactId contact, String sharingId, int state,
+			int reasonCode);
 }

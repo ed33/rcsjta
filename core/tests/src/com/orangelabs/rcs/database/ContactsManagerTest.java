@@ -19,6 +19,7 @@ package com.orangelabs.rcs.database;
 
 import java.util.Set;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.test.AndroidTestCase;
 
@@ -26,11 +27,14 @@ import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
 //import com.gsma.services.rcs.capability.Capabilities;
 import com.orangelabs.rcs.core.ims.service.ContactInfo;
+import com.orangelabs.rcs.core.ims.service.ContactInfo.RcsStatus;
+import com.orangelabs.rcs.core.ims.service.ContactInfo.RegistrationState;
 import com.orangelabs.rcs.core.ims.service.capability.Capabilities;
 import com.orangelabs.rcs.core.ims.service.presence.FavoriteLink;
 import com.orangelabs.rcs.core.ims.service.presence.Geoloc;
 //import com.orangelabs.rcs.core.ims.service.presence.PhotoIcon;
 import com.orangelabs.rcs.core.ims.service.presence.PresenceInfo;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.eab.ContactsManagerException;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
@@ -38,25 +42,28 @@ import com.orangelabs.rcs.utils.logger.Logger;
 
 public class ContactsManagerTest extends AndroidTestCase {
 
-	private Logger logger = Logger.getLogger(this.getClass().getName());
+	private static final Logger logger = Logger.getLogger(ContactsManagerTest.class.getName());
 	private ContactsManager cm = null;
-	private String contact = "+33987654321";
-	// private String contacto = "+33633139785";
+	private String mNumber = "+33987654321";
 	private ContactUtils contactUtils;
-	// info.setContact(contact);
-	private ContactId contactIdo;
+	private ContactId mContact;
 	private long timestamp = 1354874203;
-	Context ctx;
-
+	private Context mContext;
+	private ContentResolver mContentResolver;
+	private LocalContentResolver mLocalContentResolver;
+	
 	protected void setUp() throws Exception {
 		super.setUp();
-		ContactsManager.createInstance(getContext());
+		mContext = getContext();
+		mContentResolver = mContext.getContentResolver();
+		mLocalContentResolver = new LocalContentResolver(mContentResolver);
+		ContactsManager.createInstance(mContext, mContentResolver,mLocalContentResolver);
 		RcsSettings.createInstance(getContext());
-		ctx = getContext();
+		
 		cm = ContactsManager.getInstance();
-		contactUtils = ContactUtils.getInstance(ctx);
+		contactUtils = ContactUtils.getInstance(mContext);
 		// info.setContact(contact);
-		contactIdo = contactUtils.formatContactId("+33633139785");
+		mContact = contactUtils.formatContact("+33633139785");
 	}
 
 	protected void tearDown() throws Exception {
@@ -76,14 +83,14 @@ public class ContactsManagerTest extends AndroidTestCase {
 	public void testSetRcsContact() {
 		// Init ContactInfo
 		ContactInfo info = new ContactInfo();
-		info.setRcsStatus(ContactInfo.RCS_ACTIVE);
+		info.setRcsStatus(RcsStatus.ACTIVE);
 
 		info.setRcsStatusTimestamp(timestamp);
 
-		info.setRegistrationState(ContactInfo.REGISTRATION_STATUS_ONLINE);
+		info.setRegistrationState(RegistrationState.ONLINE);
 
 		// info.setContact(contact);
-		ContactId contactId = contactUtils.formatContactId(contact);
+		ContactId contactId = contactUtils.formatContact(mNumber);
 		info.setContact(contactId);
 		Capabilities capa = new Capabilities();
 		capa.setCsVideoSupport(false);
@@ -124,7 +131,7 @@ public class ContactsManagerTest extends AndroidTestCase {
 	public void testGetRcsContactInfo() {
 		// Get contact info
 		contactoCreate();
-		ContactInfo getInfo = cm.getContactInfo(contactIdo);
+		ContactInfo getInfo = cm.getContactInfo(mContact);
 
 		// Compare getContactInfo informations and initial informations
 		if (getInfo == null) {
@@ -179,17 +186,17 @@ public class ContactsManagerTest extends AndroidTestCase {
 			assertEquals(PresenceInfo.ONLINE, getPres.getPresenceStatus());
 			assertEquals(timestamp, getPres.getTimestamp());
 		}
-		assertEquals(ContactInfo.RCS_ACTIVE, getInfo.getRcsStatus());
+		assertEquals(RcsStatus.ACTIVE, getInfo.getRcsStatus());
 		assertEquals(timestamp, getInfo.getRcsStatusTimestamp());
-		assertEquals(ContactInfo.REGISTRATION_STATUS_ONLINE, getInfo.getRegistrationState());
+		assertEquals(RegistrationState.ONLINE, getInfo.getRegistrationState());
 	}
 
 	public void contactoCreate() {
 		ContactInfo info = new ContactInfo();
-		info.setContact(contactIdo);
-		info.setRcsStatus(ContactInfo.RCS_ACTIVE);
+		info.setContact(mContact);
+		info.setRcsStatus(RcsStatus.ACTIVE);
 		info.setRcsStatusTimestamp(timestamp);
-		info.setRegistrationState(ContactInfo.REGISTRATION_STATUS_ONLINE);
+		info.setRegistrationState(RegistrationState.ONLINE);
 
 		Capabilities capa = new Capabilities();
 		capa.setCsVideoSupport(false);
@@ -238,7 +245,7 @@ public class ContactsManagerTest extends AndroidTestCase {
 		if (rcscontacts.isEmpty())
 			contactoCreate();
 
-		ContactInfo oldinfo = cm.getContactInfo(contactIdo);
+		ContactInfo oldinfo = cm.getContactInfo(mContact);
 
 		ContactInfo newInfo = new ContactInfo();
 
@@ -255,7 +262,7 @@ public class ContactsManagerTest extends AndroidTestCase {
 		capa.setTimestampOfLastRequest(timestamp);
 		newInfo.setCapabilities(capa);
 
-		newInfo.setContact(contactIdo);
+		newInfo.setContact(mContact);
 		
 		capa.setTimestampOfLastRefresh(timestamp);
 
@@ -264,9 +271,9 @@ public class ContactsManagerTest extends AndroidTestCase {
 		PresenceInfo prese = new PresenceInfo();
 		prese.setFavoriteLink(new FavoriteLink("fav_link_name", "http://fav_link_url"));
 		newInfo.setPresenceInfo(prese);
-		newInfo.setRcsStatus(ContactInfo.NOT_RCS);
+		newInfo.setRcsStatus(RcsStatus.NOT_RCS);
 		newInfo.setRcsStatusTimestamp(timestamp);
-		newInfo.setRegistrationState(ContactInfo.REGISTRATION_STATUS_UNKNOWN);
+		newInfo.setRegistrationState(RegistrationState.UNKNOWN);
 		// Set not RCS contact info and test
 		try {
 			cm.setContactInfo(newInfo, oldinfo);
@@ -278,7 +285,7 @@ public class ContactsManagerTest extends AndroidTestCase {
 
 		rcscontacts = cm.getRcsContacts();
 		Set<ContactId> contacts = cm.getAllContacts();
-		boolean contactChange = (contacts.contains(contactIdo) && (!(rcscontacts.contains(contactIdo))));
+		boolean contactChange = (contacts.contains(mContact) && (!(rcscontacts.contains(mContact))));
 		assertEquals(contactChange, true);
 
 		/*
@@ -288,11 +295,11 @@ public class ContactsManagerTest extends AndroidTestCase {
 		 * for(String av : avails) { logger.debug("available contact : " + av); } } }
 		 */
 
-		oldinfo = cm.getContactInfo(contactIdo);
-		newInfo.setRcsStatus(ContactInfo.RCS_ACTIVE);
+		oldinfo = cm.getContactInfo(mContact);
+		newInfo.setRcsStatus(RcsStatus.ACTIVE);
 		timestamp = 1354874212;
 		newInfo.setRcsStatusTimestamp(timestamp);
-		newInfo.setRegistrationState(ContactInfo.REGISTRATION_STATUS_ONLINE);
+		newInfo.setRegistrationState(RegistrationState.ONLINE);
 		capa.setImSessionSupport(true);
 		capa.setPresenceDiscoverySupport(true);
 		capa.setSocialPresenceSupport(true);
@@ -321,7 +328,7 @@ public class ContactsManagerTest extends AndroidTestCase {
 		rcscontacts = cm.getRcsContacts();
 		// avails = cm.getRcsContacts();
 		contacts = cm.getAllContacts();
-		boolean contactToRCS = (rcscontacts.contains(contactIdo) && contacts.contains(contactIdo));
+		boolean contactToRCS = (rcscontacts.contains(mContact) && contacts.contains(mContact));
 		/*
 		 * if (logger.isActivated()){ if(rcscontacts.isEmpty()) { logger.debug("no RCS contact "); } else { for(String rcs :
 		 * rcscontacts) { logger.debug("RCS contact : " + rcs); } } for(String av : avails) { logger.debug("available contact : " +

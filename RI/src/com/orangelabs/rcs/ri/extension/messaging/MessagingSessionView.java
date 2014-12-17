@@ -37,7 +37,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.gsma.services.rcs.RcsServiceException;
-import com.gsma.services.rcs.RcsCommon;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.extension.MultimediaMessagingSession;
 import com.gsma.services.rcs.extension.MultimediaMessagingSessionIntent;
@@ -124,7 +123,7 @@ public class MessagingSessionView extends Activity {
 	private MultimediaMessagingSessionListener serviceListener = new MultimediaMessagingSessionListener() {
 
 		@Override
-		public void onMultimediaMessagingStateChanged(ContactId contact, String sessionId, final int state, int reasonCode) {
+		public void onStateChanged(ContactId contact, String sessionId, final int state, int reasonCode) {
 			if (LogUtils.isActive) {
 				Log.d(LOGTAG, "onMultimediaMessagingStateChanged contact=" + contact + " sessionId=" + sessionId + " state="
 						+ state + " reason=" + reasonCode);
@@ -188,7 +187,7 @@ public class MessagingSessionView extends Activity {
 		}
 
 		@Override
-		public void onNewMessage(ContactId contact, String sessionId, byte[] content) {
+		public void onMessageReceived(ContactId contact, String sessionId, byte[] content) {
 			if (LogUtils.isActive) {
 				Log.d(LOGTAG, "onNewMessage contact=" + contact + " sessionId=" + sessionId);
 			}
@@ -215,9 +214,6 @@ public class MessagingSessionView extends Activity {
         // Set layout
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.extension_session_view);
-
-        // Set title
-        setTitle(R.string.title_messaging_session);
     	
         // Set buttons callback
 		Button sendBtn = (Button)findViewById(R.id.send_btn);
@@ -233,7 +229,7 @@ public class MessagingSessionView extends Activity {
 		connectionManager.startMonitorServices(this, exitOnce, RcsServiceName.MULTIMEDIA, RcsServiceName.CONTACTS);
 		try {
 			// Add service listener
-			connectionManager.getMultimediaSessionApi().addMessagingEventListener(serviceListener);
+			connectionManager.getMultimediaSessionApi().addEventListener(serviceListener);
 			initialiseMessagingSession();
 		} catch (RcsServiceException e) {
 			if (LogUtils.isActive) {
@@ -253,7 +249,7 @@ public class MessagingSessionView extends Activity {
 		if (connectionManager.isServiceConnected(RcsServiceName.MULTIMEDIA)) {
 			// Remove listener
 			try {
-				connectionManager.getMultimediaSessionApi().removeMessagingEventListener(serviceListener);
+				connectionManager.getMultimediaSessionApi().removeEventListener(serviceListener);
 			} catch (Exception e) {
 				if (LogUtils.isActive) {
 					Log.e(LOGTAG, "Failed to remove listener", e);
@@ -336,9 +332,7 @@ public class MessagingSessionView extends Activity {
 
 					// Get remote contact
 					contact = session.getRemoteContact();
-					
-					String displayName = RcsDisplayName.get(this, contact);
-					String from = RcsDisplayName.convert(this, RcsCommon.Direction.INCOMING, contact, displayName);
+					String from = RcsDisplayName.getInstance(this).getDisplayName(contact);
 					
 					// Manual accept
 					AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -354,8 +348,7 @@ public class MessagingSessionView extends Activity {
 			// Display session info
 	    	TextView featureTagEdit = (TextView)findViewById(R.id.feature_tag);
 	    	featureTagEdit.setText(serviceId);
-	    	String displayName = RcsDisplayName.get(this, contact);
-			String from = RcsDisplayName.convert(this, RcsCommon.Direction.INCOMING, contact, displayName);
+	    	String from = RcsDisplayName.getInstance(this).getDisplayName(contact);
 	    	TextView contactEdit = (TextView)findViewById(R.id.contact);
 	    	contactEdit.setText(from);
 			Button sendBtn = (Button)findViewById(R.id.send_btn);

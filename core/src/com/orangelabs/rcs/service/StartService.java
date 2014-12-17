@@ -22,24 +22,18 @@
 
 package com.orangelabs.rcs.service;
 
-import java.io.IOException;
-
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
-
 import android.accounts.Account;
 import android.app.Activity;
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.res.XmlResourceParser;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.IBinder;
-import android.telephony.TelephonyManager;
 
 import com.gsma.services.rcs.RcsService;
 import com.orangelabs.rcs.R;
@@ -48,9 +42,10 @@ import com.orangelabs.rcs.addressbook.AuthenticationService;
 import com.orangelabs.rcs.platform.AndroidFactory;
 import com.orangelabs.rcs.platform.registry.AndroidRegistryFactory;
 import com.orangelabs.rcs.provider.BackupRestoreDb;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
-import com.orangelabs.rcs.provider.settings.RcsSettingsData;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.ConfigurationMode;
 import com.orangelabs.rcs.provisioning.ProvisioningInfo;
 import com.orangelabs.rcs.provisioning.https.HttpsProvisioningService;
 import com.orangelabs.rcs.utils.IntentUtils;
@@ -67,6 +62,8 @@ public class StartService extends Service {
      * RCS new user account
      */
     public static final String REGISTRY_NEW_USER_ACCOUNT = "NewUserAccount";
+
+    private LocalContentResolver mLocalContentResolver;
 
     /**
      * Connection manager
@@ -110,13 +107,15 @@ public class StartService extends Service {
     @Override
     public void onCreate() {
         // Instantiate RcsSettings
+        Context ctx = getApplicationContext();
+        mLocalContentResolver = new LocalContentResolver(ctx.getContentResolver());
         RcsSettings.createInstance(getApplicationContext());
-        int autoConfigMode = RcsSettings.getInstance().getAutoConfigMode();
+        ConfigurationMode mode = RcsSettings.getInstance().getConfigurationMode();
     	if (logger.isActivated()) {
-            logger.debug("onCreate AutoConfigMode="+autoConfigMode);
+    		logger.debug("onCreate ConfigurationMode="+mode);
         }
         // In manual configuration, use a network listener to start RCS core when the data will be ON 
-        if (autoConfigMode == RcsSettingsData.NO_AUTO_CONFIG) {
+    	if (ConfigurationMode.MANUAL.equals(mode)) {
         	registerNetworkStateListener();
         }
     }
@@ -151,7 +150,7 @@ public class StartService extends Service {
 					boot = intent.getBooleanExtra(INTENT_KEY_BOOT, false);
 					user = intent.getBooleanExtra(INTENT_KEY_USER, false);
 				}
-				if (checkAccount()) {
+				if (checkAccount(mLocalContentResolver)) {
 					launchRcsService(boot, user);
 				} else {
 					// User account can't be initialized (no radio to read IMSI, .etc)
@@ -228,72 +227,6 @@ public class StartService extends Service {
         }
     }
 
-    /**
-     * Set the country code
-     * 
-     * @return Boolean
-     */
-    private boolean setCountryCode() {
-        // Get country code 
-        TelephonyManager mgr = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
-        String countryCodeIso = mgr.getSimCountryIso();
-        if (countryCodeIso == null) {
-        	if (logger.isActivated()) {
-        		logger.error("Can't read country code from SIM");
-        	}
-            return false;
-        }
-
-        // Parse country table to resolve the area code and country code
-        try {
-            XmlResourceParser parser = getResources().getXml(R.xml.country_table);
-            parser.next();
-            int eventType = parser.getEventType();
-            while (eventType != XmlPullParser.END_DOCUMENT) {
-                if (eventType == XmlPullParser.START_TAG) {
-                    if (parser.getName().equals("Data")) {
-                        if (parser.getAttributeValue(null, "code").equalsIgnoreCase(countryCodeIso)) {
-                        	String countryCode = parser.getAttributeValue(null, "cc");
-                        	String areaCode = parser.getAttributeValue(null, "tc");
-                            if (countryCode != null) {
-                                if (!countryCode.startsWith("+")) {
-                                    countryCode = "+" + countryCode;
-                                }
-                                if (logger.isActivated()) {
-                                    logger.info("Set country code to " + countryCode);
-                                }
-                                RcsSettings.getInstance().setCountryCode(countryCode);
-
-                                if (logger.isActivated()) {
-                                    logger.info("Set area code to " + areaCode);
-                                }
-                                RcsSettings.getInstance().setCountryAreaCode(areaCode);
-                                
-                                return true;
-                            }
-                        }
-                    }
-                }
-                eventType = parser.next();
-            }
-
-            if (logger.isActivated()) {
-        		logger.error("Country code not found");
-        	}
-        	return false;
-        } catch (XmlPullParserException e) {
-        	if (logger.isActivated()) {
-        		logger.error("Can't parse country code from XML file", e);
-        	}
-        	return false;
-        } catch (IOException e) {
-        	if (logger.isActivated()) {
-        		logger.error("Can't read country code from XML file", e);
-        	}
-        	return false;
-        }
-    }
-
 	private void broadcastServiceProvisioned() {
 		Intent serviceProvisioned = new Intent(RcsService.ACTION_SERVICE_PROVISIONED);
 		IntentUtils.tryToSetReceiverForegroundFlag(serviceProvisioned);
@@ -305,12 +238,13 @@ public class StartService extends Service {
      *
      * @return true if an account is available
      */
-    private boolean checkAccount() {
-        AndroidFactory.setApplicationContext(getApplicationContext());
+    private boolean checkAccount(LocalContentResolver localContentResolver) {
+    	Context ctx = getApplicationContext();
+        AndroidFactory.setApplicationContext(ctx);
         
         // Read the current and last end user account
-        currentUserAccount = LauncherUtils.getCurrentUserAccount(getApplicationContext());
-        lastUserAccount = LauncherUtils.getLastUserAccount(getApplicationContext());
+        currentUserAccount = LauncherUtils.getCurrentUserAccount(ctx);
+        lastUserAccount = LauncherUtils.getLastUserAccount(ctx);
         if (logger.isActivated()) {
             logger.info("Last user account is " + lastUserAccount);
             logger.info("Current user account is " + currentUserAccount);
@@ -329,13 +263,6 @@ public class StartService extends Service {
 
         // On the first launch and if SIM card has changed
         if (isFirstLaunch()) {
-            // Set the country code
-            boolean result = setCountryCode();
-            if (!result) {
-            	// Can't set the country code
-            	return false;
-            }
-
             // Set new user flag
             setNewUserAccount(true);
         } else
@@ -350,15 +277,8 @@ public class StartService extends Service {
         		BackupRestoreDb.backupAccount(lastUserAccount);
         	}
         	
-            // Set the country code
-            boolean result = setCountryCode();
-            if (!result) {
-            	// Can't set the country code
-            	return false;
-            }
-
             // Reset RCS account 
-            LauncherUtils.resetRcsConfig(getApplicationContext());
+            LauncherUtils.resetRcsConfig(ctx, mLocalContentResolver);
 
             // Restore current account settings
     		if (logger.isActivated()) {
@@ -381,7 +301,7 @@ public class StartService extends Service {
         }
         
         // Check if the RCS account exists
-        Account account = AuthenticationService.getAccount(getApplicationContext(),
+        Account account = AuthenticationService.getAccount(ctx,
                 getString(R.string.rcs_core_account_username));
         if (account == null) {
             // No account exists 
@@ -398,7 +318,7 @@ public class StartService extends Service {
                 if (logger.isActivated()) {
                     logger.debug("Recreate a new RCS account");
                 }
-                AuthenticationService.createRcsAccount(getApplicationContext(),
+                AuthenticationService.createRcsAccount(ctx, localContentResolver,
                         getString(R.string.rcs_core_account_username), true);
             }
         } else {
@@ -408,20 +328,21 @@ public class StartService extends Service {
                 if (logger.isActivated()) {
                     logger.debug("Deleting the old RCS account for " + lastUserAccount);
                 }
-                ContactsManager.createInstance(getApplicationContext());
+                ContentResolver contentResolver = ctx.getContentResolver();
+                ContactsManager.createInstance(ctx, contentResolver, localContentResolver);
                 ContactsManager.getInstance().deleteRCSEntries();
-                AuthenticationService.removeRcsAccount(getApplicationContext(), null);
+                AuthenticationService.removeRcsAccount(ctx, null);
     
                 if (logger.isActivated()) {
                     logger.debug("Creating a new RCS account for " + currentUserAccount);
                 }
-                AuthenticationService.createRcsAccount(getApplicationContext(),
+                AuthenticationService.createRcsAccount(ctx, localContentResolver,
                         getString(R.string.rcs_core_account_username), true);
             }
         }
 
         // Save the current end user account
-        LauncherUtils.setLastUserAccount(getApplicationContext(), currentUserAccount);
+        LauncherUtils.setLastUserAccount(ctx, currentUserAccount);
 
         return true;
     }
@@ -433,12 +354,12 @@ public class StartService extends Service {
      * @param user indicates if RCS is launched from the user interface
      */
 	private void launchRcsService(boolean boot, boolean user) {
-		int mode = RcsSettings.getInstance().getAutoConfigMode();
+		ConfigurationMode mode = RcsSettings.getInstance().getConfigurationMode();
 
 		if (logger.isActivated())
-			logger.debug("Launch RCS service: HTTPS=" + (mode == RcsSettingsData.HTTPS_AUTO_CONFIG) + ", boot=" + boot + ", user=" + user);
+			logger.debug("Launch RCS service: HTTPS=" + mode + ", boot=" + boot + ", user=" + user);
 
-		if (mode == RcsSettingsData.HTTPS_AUTO_CONFIG) {
+		if (ConfigurationMode.AUTO.equals(mode)) {
 			// HTTPS auto config
 			String version = RcsSettings.getInstance().getProvisioningVersion();
 			// Check the last provisioning version

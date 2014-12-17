@@ -23,14 +23,14 @@ package com.orangelabs.rcs.provider.ipcall;
 
 import java.util.Calendar;
 
-import android.content.ContentResolver;
 import android.content.ContentValues;
-import android.content.Context;
 import android.net.Uri;
 
 import com.gsma.services.rcs.contacts.ContactId;
+import com.gsma.services.rcs.ipcall.IPCallLog;
 import com.orangelabs.rcs.core.content.AudioContent;
 import com.orangelabs.rcs.core.content.VideoContent;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -44,35 +44,21 @@ public class IPCallHistory {
 	 */
 	private static IPCallHistory instance;
 
-	/**
-	 * Content resolver
-	 */
-	private ContentResolver cr;
-	
-	/**
-	 * Database URI
-	 */
-	private Uri databaseUri = IPCallData.CONTENT_URI;
+	private final LocalContentResolver mLocalContentResolver;
 
 	/**
 	 * The logger
 	 */
 	private static final Logger logger = Logger.getLogger(IPCallHistory.class.getSimpleName());
-	
-	/**
-	 * Empty constructor : prevent caller from creating multiple instances
-	 */
-	private IPCallHistory() {
-	}
-	
+
 	/**
 	 * Create instance
 	 * 
-	 * @param ctx Context
+	 * @param localContentResolver Local content resolver
 	 */
-	public static synchronized void createInstance(Context ctx) {
+	public static synchronized void createInstance(LocalContentResolver localContentResolver) {
 		if (instance == null) {
-			instance = new IPCallHistory(ctx);
+			instance = new IPCallHistory(localContentResolver);
 		}
 	}
 	
@@ -88,35 +74,34 @@ public class IPCallHistory {
 	/**
      * Constructor
      * 
-     * @param ctx Application context
+     * @param localContentResolver Local content resolver
      */
-	private IPCallHistory(Context ctx) {
+	private IPCallHistory(LocalContentResolver localContentResolver) {
 		super();
-		
-        this.cr = ctx.getContentResolver();
-    }
+		mLocalContentResolver = localContentResolver;
+	}
 	
 	/**
 	 * Add a new entry in the call history 
 	 * 
 	 * @param contact Remote contact Id
-	 * @param sessionId Session ID
+	 * @param callId Call ID
 	 * @param direction Direction 
 	 * @param audiocontent Audio content
 	 * @param videocontent Video content
 	 * @param state Call state
 	 * @param  Reason code
 	 */
-	public Uri addCall(ContactId contact, String sessionId, int direction, AudioContent audiocontent,
+	public Uri addCall(ContactId contact, String callId, int direction, AudioContent audiocontent,
 			VideoContent videocontent, int state, int reasonCode) {
 		if(logger.isActivated()){
 			logger.debug(new StringBuilder("Add new call entry for contact ").append(contact)
-					.append(": session=").append(sessionId).append(", state=").append(state)
+					.append(": call=").append(callId).append(", state=").append(state)
 					.append(", reasonCode =").append(reasonCode).toString());
 		}
 
 		ContentValues values = new ContentValues();
-		values.put(IPCallData.KEY_SESSION_ID, sessionId);
+		values.put(IPCallData.KEY_CALL_ID, callId );
 		values.put(IPCallData.KEY_CONTACT, contact.toString());
 		values.put(IPCallData.KEY_DIRECTION, direction);
 		values.put(IPCallData.KEY_TIMESTAMP, Calendar.getInstance().getTimeInMillis());
@@ -130,19 +115,19 @@ public class IPCallHistory {
 		if (audiocontent != null) {
 			values.put(IPCallData.KEY_AUDIO_ENCODING, audiocontent.getEncoding());
 		}
-		return cr.insert(databaseUri, values);
+		return mLocalContentResolver.insert(IPCallLog.CONTENT_URI, values);
 	}
 
 	/**
 	 * Update the call state
 	 * 
-	 * @param sessionId Session ID
+	 * @param callId Call ID
 	 * @param state New state
 	 * @param reasonCode Reason code
 	 */
-	public void setCallState(String sessionId, int state, int reasonCode) {
+	public void setCallState(String callId, int state, int reasonCode) {
 		if (logger.isActivated()) {
-			logger.debug(new StringBuilder("Update call state of session ").append(sessionId)
+			logger.debug(new StringBuilder("Update call state of call ").append(callId)
 					.append(" state=").append(state).append(", reasonCode=").append(reasonCode)
 					.toString());
 		}
@@ -150,13 +135,14 @@ public class IPCallHistory {
 		ContentValues values = new ContentValues();
 		values.put(IPCallData.KEY_STATE, state);
 		values.put(IPCallData.KEY_REASON_CODE, reasonCode);
-		cr.update(databaseUri, values, IPCallData.KEY_SESSION_ID + " = '" + sessionId + "'", null);
+		mLocalContentResolver.update(Uri.withAppendedPath(IPCallLog.CONTENT_URI, callId),
+				values, null, null);
 	}
 
 	/**
 	 * Delete all entries in IP call history
 	 */
 	public void deleteAllEntries() {
-		cr.delete(IPCallData.CONTENT_URI, null, null);
+		mLocalContentResolver.delete(IPCallLog.CONTENT_URI, null, null);
 	}
 }

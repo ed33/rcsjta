@@ -24,7 +24,6 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -51,6 +50,7 @@ import com.orangelabs.rcs.ri.ApiConnectionManager;
 import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.RiApplication;
+import com.orangelabs.rcs.ri.utils.ContactListAdapter;
 import com.orangelabs.rcs.ri.utils.FileUtils;
 import com.orangelabs.rcs.ri.utils.LockAccess;
 import com.orangelabs.rcs.ri.utils.LogUtils;
@@ -76,42 +76,47 @@ public class InitiateImageSharing extends Activity {
 	/**
 	 * Selected filename
 	 */
-	private String filename;
+	private String mFilename;
 	
 	/**
 	 * Selected fileUri
 	 */
-	private Uri file;
+	private Uri mFile;
 	
 	/**
 	 * Selected filesize (kB)
 	 */
-	private long filesize = -1;	
+	private long mFilesize = -1;	
 	   
 	/**
      * Image sharing
      */
-    private ImageSharing imageSharing;
+    private ImageSharing mImageSharing;
     
     /**
      * Image sharing Id
      */
-    private String sharingId;
+    private String mSharingId;
     
 	/**
      * Progress dialog
      */
-    private Dialog progressDialog;
+    private Dialog mProgressDialog;
     
     /**
    	 * A locker to exit only once
    	 */
-   	private LockAccess exitOnce = new LockAccess();
+   	private LockAccess mExitOnce = new LockAccess();
    	
   	/**
 	 * API connection manager
 	 */
-	private ApiConnectionManager connectionManager;
+	private ApiConnectionManager mCnxManager;
+    
+    /**
+     * Spinner for contact selection
+     */
+    private Spinner mSpinner;
     
     /**
    	 * The log tag for this class
@@ -124,10 +129,11 @@ public class InitiateImageSharing extends Activity {
 	private ImageSharingListener ishListener = new ImageSharingListener() {
 
 		@Override
-		public void onImageSharingProgress(ContactId contact, String sharingId, final long currentSize, final long totalSize) {
+		public void onProgressUpdate(ContactId contact, String sharingId, final long currentSize, final long totalSize) {
 			// Discard event if not for current sharingId
-			if (InitiateImageSharing.this.sharingId == null || !InitiateImageSharing.this.sharingId.equals(sharingId)) {
+			if (mSharingId == null || !mSharingId.equals(sharingId)) {
 				return;
+				
 			}
 			handler.post(new Runnable() {
 				public void run() {
@@ -138,7 +144,7 @@ public class InitiateImageSharing extends Activity {
 		}
 
 		@Override
-		public void onImageSharingStateChanged(ContactId contact, String sharingId, final int state, int reasonCode) {
+		public void onStateChanged(ContactId contact, String sharingId, final int state, int reasonCode) {
 			if (LogUtils.isActive) {
 				Log.d(LOGTAG, "onImageSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state
 						+ " reason=" + reasonCode);
@@ -148,16 +154,19 @@ public class InitiateImageSharing extends Activity {
 					Log.e(LOGTAG, "onImageSharingStateChanged unhandled state=" + state);
 				}
 				return;
+				
 			}
 			if (reasonCode > RiApplication.ISH_REASON_CODES.length) {
 				if (LogUtils.isActive) {
 					Log.e(LOGTAG, "onImageSharingStateChanged unhandled reason=" + reasonCode);
 				}
 				return;
+				
 			}
 			// Discard event if not for current sharingId
-			if (InitiateImageSharing.this.sharingId == null || !InitiateImageSharing.this.sharingId.equals(sharingId)) {
+			if (mSharingId == null || !mSharingId.equals(sharingId)) {
 				return;
+				
 			}
 			final String _reasonCode = RiApplication.ISH_REASON_CODES[reasonCode];
 			final String _state = RiApplication.ISH_STATES[state];
@@ -175,20 +184,20 @@ public class InitiateImageSharing extends Activity {
 					case ImageSharing.State.ABORTED:
 						// Session is aborted: hide progress dialog then exit
 						hideProgressDialog();
-						Utils.showMessageAndExit(InitiateImageSharing.this, getString(R.string.label_sharing_aborted, _reasonCode), exitOnce);
+						Utils.showMessageAndExit(InitiateImageSharing.this, getString(R.string.label_sharing_aborted, _reasonCode), mExitOnce);
 						break;
 
 					case ImageSharing.State.REJECTED:
 						//  Session is rejected: hide progress dialog then exit
 						hideProgressDialog();
 						Utils.showMessageAndExit(InitiateImageSharing.this,
-								getString(R.string.label_sharing_rejected, _reasonCode), exitOnce);
+								getString(R.string.label_sharing_rejected, _reasonCode), mExitOnce);
 						break;
 
 					case ImageSharing.State.FAILED:
 						//  Session failed: hide progress dialog then exit
 						hideProgressDialog();
-						Utils.showMessageAndExit(InitiateImageSharing.this, getString(R.string.label_sharing_failed, _reasonCode), exitOnce);
+						Utils.showMessageAndExit(InitiateImageSharing.this, getString(R.string.label_sharing_failed, _reasonCode), mExitOnce);
 						break;
 
 					case ImageSharing.State.TRANSFERRED:
@@ -220,12 +229,9 @@ public class InitiateImageSharing extends Activity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.image_sharing_initiate);
         
-        // Set title
-        setTitle(R.string.menu_initiate_image_sharing);
-        
         // Set contact selector
-        Spinner spinner = (Spinner)findViewById(R.id.contact);
-        spinner.setAdapter(Utils.createRcsContactListAdapter(this));
+        mSpinner = (Spinner)findViewById(R.id.contact);
+        mSpinner.setAdapter(ContactListAdapter.createRcsContactListAdapter(this));
 
         // Set buttons callback
         Button inviteBtn = (Button)findViewById(R.id.invite_btn);
@@ -238,44 +244,47 @@ public class InitiateImageSharing extends Activity {
         dialBtn.setOnClickListener(btnDialListener);
         dialBtn.setEnabled(false);
         // Disable button if no contact available
-        if (spinner.getAdapter().getCount() != 0) {
+        if (mSpinner.getAdapter().getCount() != 0) {
         	dialBtn.setEnabled(true);
         	selectBtn.setEnabled(true);
         }
         
         // Register to API connection manager
-		connectionManager = ApiConnectionManager.getInstance(this);
-		if (connectionManager == null || !connectionManager.isServiceConnected(RcsServiceName.IMAGE_SHARING)) {
-			Utils.showMessageAndExit(this, getString(R.string.label_service_not_available), exitOnce);
+		mCnxManager = ApiConnectionManager.getInstance(this);
+		if (mCnxManager == null || !mCnxManager.isServiceConnected(RcsServiceName.IMAGE_SHARING)) {
+			Utils.showMessageAndExit(this, getString(R.string.label_service_not_available), mExitOnce);
 			return;
 		}
-		connectionManager.startMonitorServices(this, exitOnce, RcsServiceName.IMAGE_SHARING);
+		mCnxManager.startMonitorServices(this, mExitOnce, RcsServiceName.IMAGE_SHARING);
 		try {
 			// Add service listener
-			connectionManager.getImageSharingApi().addEventListener(ishListener);
+			mCnxManager.getImageSharingApi().addEventListener(ishListener);
 		} catch (RcsServiceException e) {
 			if (LogUtils.isActive) {
 				Log.e(LOGTAG, "Failed to add listener", e);
 			}
-			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), exitOnce);
+			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), mExitOnce);
 		}
     }
     
     @Override
     public void onDestroy() {
     	super.onDestroy();
-    	if (connectionManager == null) {
+    	if (mCnxManager == null) {
     		return;
+    		
     	}
-		connectionManager.stopMonitorServices(this);
-		if (connectionManager.isServiceConnected(RcsServiceName.IMAGE_SHARING)) {
-			// Remove image sharing listener
-			try {
-				connectionManager.getImageSharingApi().removeEventListener(ishListener);
-			} catch (Exception e) {
-				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "Failed to remove listener", e);
-				}
+		mCnxManager.stopMonitorServices(this);
+		if (!mCnxManager.isServiceConnected(RcsServiceName.IMAGE_SHARING)) {
+			return;
+			
+		}
+		// Remove image sharing listener
+		try {
+			mCnxManager.getImageSharingApi().removeEventListener(ishListener);
+		} catch (Exception e) {
+			if (LogUtils.isActive) {
+				Log.e(LOGTAG, "Failed to remove listener", e);
 			}
 		}
     }
@@ -285,14 +294,13 @@ public class InitiateImageSharing extends Activity {
      */
     private OnClickListener btnDialListener = new OnClickListener() {
         public void onClick(View v) {
-        	// Get the remote contact
-            Spinner spinner = (Spinner)findViewById(R.id.contact);
-            MatrixCursor cursor = (MatrixCursor)spinner.getSelectedItem();
-            String remote = cursor.getString(1);
+        	// get selected phone number
+    		ContactListAdapter adapter = (ContactListAdapter) mSpinner.getAdapter();
+    		String phoneNumber = adapter.getSelectedNumber(mSpinner.getSelectedView());
 
             // Initiate a GSM call before to be able to share content
             Intent intent = new Intent(Intent.ACTION_CALL);
-        	intent.setData(Uri.parse("tel:"+remote));
+        	intent.setData(Uri.parse("tel:".concat(phoneNumber)));
             startActivity(intent);
         }
     };
@@ -305,7 +313,7 @@ public class InitiateImageSharing extends Activity {
             // Check if the service is available
         	boolean registered = false;
         	try {
-        		registered = connectionManager.getImageSharingApi().isServiceRegistered();
+        		registered = mCnxManager.getImageSharingApi().isServiceRegistered();
         	} catch(Exception e) {
         		e.printStackTrace();
         	}
@@ -315,28 +323,28 @@ public class InitiateImageSharing extends Activity {
             }    
             
             // Get the remote contact
-            Spinner spinner = (Spinner)findViewById(R.id.contact);
-            MatrixCursor cursor = (MatrixCursor)spinner.getSelectedItem();
-
+            ContactListAdapter adapter = (ContactListAdapter) mSpinner.getAdapter();
+    		String phoneNumber = adapter.getSelectedNumber(mSpinner.getSelectedView());
             ContactUtils contactUtils = ContactUtils.getInstance(InitiateImageSharing.this);
-            final ContactId remote;
-    		try {
-    			remote = contactUtils.formatContactId(cursor.getString(1));
-    		} catch (RcsContactFormatException e1) {
-    			Utils.showMessage(InitiateImageSharing.this, getString(R.string.label_invalid_contact,cursor.getString(1)));
-    	    	return;
-    		}
+			final ContactId remote;
+			try {
+				remote = contactUtils.formatContact(phoneNumber);
+			} catch (RcsContactFormatException e1) {
+				Utils.showMessage(InitiateImageSharing.this, getString(R.string.label_invalid_contact, phoneNumber));
+				return;
+			}
+
             if (LogUtils.isActive) {
-				Log.d(LOGTAG, "shareImage image="+filename+" size="+filesize);
+				Log.d(LOGTAG, "shareImage image="+mFilename+" size="+mFilesize);
 			}    		
 			try {
 				// Initiate sharing
-				imageSharing = connectionManager.getImageSharingApi().shareImage(remote, file);
-				sharingId = imageSharing.getSharingId();
+				mImageSharing = mCnxManager.getImageSharingApi().shareImage(remote, mFile);
+				mSharingId = mImageSharing.getSharingId();
 				
 				// Display a progress dialog
-				progressDialog = Utils.showProgressDialog(InitiateImageSharing.this, getString(R.string.label_command_in_progress));
-				progressDialog.setOnCancelListener(new OnCancelListener() {
+				mProgressDialog = Utils.showProgressDialog(InitiateImageSharing.this, getString(R.string.label_command_in_progress));
+				mProgressDialog.setOnCancelListener(new OnCancelListener() {
 					public void onCancel(DialogInterface dialog) {
 						Toast.makeText(InitiateImageSharing.this, getString(R.string.label_sharing_cancelled), Toast.LENGTH_SHORT)
 								.show();
@@ -345,7 +353,7 @@ public class InitiateImageSharing extends Activity {
 				});
 
 				// Disable UI
-				spinner.setEnabled(false);
+				mSpinner.setEnabled(false);
 
 				// Hide buttons
 				Button inviteBtn = (Button) findViewById(R.id.invite_btn);
@@ -359,7 +367,7 @@ public class InitiateImageSharing extends Activity {
 					Log.e(LOGTAG, "Failed to share image", e);
 				}
 				hideProgressDialog();
-				Utils.showMessageAndExit(InitiateImageSharing.this, getString(R.string.label_invitation_failed), exitOnce);
+				Utils.showMessageAndExit(InitiateImageSharing.this, getString(R.string.label_invitation_failed), mExitOnce);
 			}
         }
     };
@@ -383,21 +391,22 @@ public class InitiateImageSharing extends Activity {
 	public void onActivityResult(int requestCode, int resultCode, Intent data) {
 		if (resultCode != RESULT_OK) {
 			return;
+			
 		}
 
 		switch (requestCode) {
 		case SELECT_IMAGE:
 			if ((data != null) && (data.getData() != null)) {
 				// Get selected photo URI
-				file = data.getData();
+				mFile = data.getData();
 				// Display the selected filename attribute
 				TextView uriEdit = (TextView) findViewById(R.id.uri);
 				try {
-					filename = FileUtils.getFileName(this, file);
-					filesize = FileUtils.getFileSize(this, file) / 1024;
-					uriEdit.setText(filesize + " KB");
+					mFilename = FileUtils.getFileName(this, mFile);
+					mFilesize = FileUtils.getFileSize(this, mFile) / 1024;
+					uriEdit.setText(mFilesize + " KB");
 				} catch (Exception e) {
-					filesize = -1;
+					mFilesize = -1;
 					uriEdit.setText("Unknown");
 				}
 				// Enable invite button
@@ -412,10 +421,13 @@ public class InitiateImageSharing extends Activity {
 	 * Hide progress dialog
 	 */
     public void hideProgressDialog() {
-		if (progressDialog != null && progressDialog.isShowing()) {
-			progressDialog.dismiss();
-			progressDialog = null;
+    	if (mProgressDialog == null) {
+    		return;
+    	}
+		if (mProgressDialog.isShowing()) {
+			mProgressDialog.dismiss();
 		}
+		mProgressDialog = null;
     }       
     
     /**
@@ -449,13 +461,13 @@ public class InitiateImageSharing extends Activity {
     private void quitSession() {
 		// Stop session
     	try {
-            if (imageSharing != null) {
-            	imageSharing.abortSharing();
+            if (mImageSharing != null) {
+            	mImageSharing.abortSharing();
             }
     	} catch(Exception e) {
     		e.printStackTrace();
     	}
-    	imageSharing = null;
+    	mImageSharing = null;
 		
 	    // Exit activity
 		finish();

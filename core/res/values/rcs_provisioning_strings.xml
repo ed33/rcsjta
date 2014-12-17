@@ -41,8 +41,6 @@
     <string name="IM_conference_URI">IM conference URI:</string>
     <string name="End_user_confirmation_URI">End user confirmation URI:</string>
     <string name="APN">APN:</string>
-    <string name="Country_code">Country code:</string>
-    <string name="Country_area_code">Country area code:</string>
     <string name="Capabilities">Capabilities:</string>
     <string name="Image_sharing">Image sharing</string>
     <string name="Video_sharing">Video sharing</string>
@@ -89,7 +87,7 @@
     <string name="Auto_accept_chat_invitation">Auto-accept chat invitation</string>
     <string name="Auto_accept_group_chat_invitation">Auto-accept group chat invitation</string>
     <!-- rcs_provisioning_stack.xml -->
-    <string name="Auto_config_mode">Auto config mode:</string>
+    <string name="config_mode">Configuration mode:</string>
     <string name="Vendor">Vendor:</string>
     <string name="Secondary_provisioning_server">Secondary provisioning server:</string>
     <string name="Use_only_the_secondary_provisioning_server">Use only the secondary provisioning server</string>

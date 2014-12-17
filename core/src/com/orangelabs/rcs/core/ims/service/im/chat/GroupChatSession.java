@@ -223,7 +223,8 @@ public abstract class GroupChatSession extends ChatSession {
 
 	@Override
 	public void sendTextMessage(String msgId, String txt) {
-		boolean useImdn = getImdnManager().isImdnActivated();
+		boolean useImdn = getImdnManager().isImdnActivated()
+				&& !RcsSettings.getInstance().isAlbatrosRelease();
 		String from = ImsModule.IMS_USER_PROFILE.getPublicAddress();
 		String to = ChatUtils.ANOMYNOUS_URI;
 		String networkContent;
@@ -691,7 +692,7 @@ public abstract class GroupChatSession extends ChatSession {
 			FileTransferHttpInfoDocument fileInfo = FileTransferUtils.parseFileTransferHttpDocument(cpimMsg.getMessageContent()
 					.getBytes());
 			if (fileInfo != null) {
-				receiveHttpFileTransfer(remoteId, fileInfo, cpimMsgId);
+				receiveHttpFileTransfer(remoteId, pseudo, fileInfo, cpimMsgId);
 			} else {
 				// TODO : else return error to Originating side
 			}

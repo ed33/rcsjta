@@ -25,7 +25,6 @@ package com.orangelabs.rcs.provider.messaging;
 import java.util.Calendar;
 import java.util.Set;
 
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
@@ -40,6 +39,9 @@ import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocMessage;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
 import com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage;
+import com.orangelabs.rcs.provider.LocalContentResolver;
+import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.utils.IdGenerator;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -48,36 +50,28 @@ import com.orangelabs.rcs.utils.logger.Logger;
  */
 public class MessageLog implements IMessageLog {
 
-	/**
-	 * Message database URI
-	 */
-	private Uri msgDatabaseUri = MessageData.CONTENT_URI;
-
-	private static final String SELECTION_MSG_BY_MSG_ID = new StringBuilder(MessageData.KEY_MSG_ID).append("=?").toString();
-
-	/**
-	 * Content resolver
-	 */
-	private ContentResolver cr;
+	private LocalContentResolver mLocalContentResolver;
 
 	private GroupChatLog groupChatLog;
 
-	private GroupChatDeliveryInfoLog groupChatDeliveryInfoLog;
+	private GroupDeliveryInfoLog groupChatDeliveryInfoLog;
 	/**
 	 * The logger
 	 */
 	private static final Logger logger = Logger.getLogger(MessageLog.class.getSimpleName());
+	
+	private static final String[] PROJECTION_MESSAGE_ID = new String[] { MessageData.KEY_MESSAGE_ID };
 
 	/**
 	 * Constructor
 	 * 
-	 * @param cr
-	 *            Content resolver
+	 * @param localContentResolver
+	 *            Local content resolver
 	 * @param groupChatLog
 	 * @param groupChatDeliveryInfoLog
 	 */
-	/* package private */MessageLog(ContentResolver cr, GroupChatLog groupChatLog, GroupChatDeliveryInfoLog groupChatDeliveryInfoLog) {
-		this.cr = cr;
+	/* package private */MessageLog(LocalContentResolver localContentResolver, GroupChatLog groupChatLog, GroupDeliveryInfoLog groupChatDeliveryInfoLog) {
+		mLocalContentResolver = localContentResolver;
 		this.groupChatLog = groupChatLog;
 		this.groupChatDeliveryInfoLog = groupChatDeliveryInfoLog;
 	}
@@ -117,19 +111,19 @@ public class MessageLog implements IMessageLog {
 
 		ContentValues values = new ContentValues();
 		values.put(MessageData.KEY_CHAT_ID, contact.toString());
-		values.put(MessageData.KEY_MSG_ID, msgId);
+		values.put(MessageData.KEY_MESSAGE_ID, msgId);
 		values.put(MessageData.KEY_CONTACT, contact.toString());
 		values.put(MessageData.KEY_DIRECTION, Direction.INCOMING);
 		values.put(MessageData.KEY_READ_STATUS, ReadStatus.UNREAD);
 
 		if (msg instanceof GeolocMessage) {
-			values.put(MessageData.KEY_CONTENT_TYPE, MimeType.GEOLOC_MESSAGE);
+			values.put(MessageData.KEY_MIME_TYPE, MimeType.GEOLOC_MESSAGE);
 			GeolocPush geoloc = ((GeolocMessage)msg).getGeoloc();
 			Geoloc geolocData = new Geoloc(geoloc.getLabel(), geoloc.getLatitude(),
 					geoloc.getLongitude(), geoloc.getExpiration(), geoloc.getAccuracy());
 			values.put(MessageData.KEY_CONTENT, geolocToString(geolocData));
 		} else {
-			values.put(MessageData.KEY_CONTENT_TYPE, MimeType.TEXT_MESSAGE);
+			values.put(MessageData.KEY_MIME_TYPE, MimeType.TEXT_MESSAGE);
 			values.put(MessageData.KEY_CONTENT, msg.getTextMessage());
 		}
 
@@ -140,7 +134,7 @@ public class MessageLog implements IMessageLog {
 
 		values.put(MessageData.KEY_STATUS, status);
 		values.put(MessageData.KEY_REASON_CODE, reasonCode);
-		cr.insert(msgDatabaseUri, values);
+		mLocalContentResolver.insert(ChatLog.Message.CONTENT_URI, values);
 	}
 
 	/**
@@ -161,19 +155,19 @@ public class MessageLog implements IMessageLog {
 		}
 		ContentValues values = new ContentValues();
 		values.put(MessageData.KEY_CHAT_ID, contact.toString());
-		values.put(MessageData.KEY_MSG_ID, msgId);
+		values.put(MessageData.KEY_MESSAGE_ID, msgId);
 		values.put(MessageData.KEY_CONTACT, contact.toString());
 		values.put(MessageData.KEY_DIRECTION, Direction.OUTGOING);
 		values.put(MessageData.KEY_READ_STATUS, ReadStatus.UNREAD);
 
 		if (msg instanceof GeolocMessage) {
-			values.put(MessageData.KEY_CONTENT_TYPE, MimeType.GEOLOC_MESSAGE);
+			values.put(MessageData.KEY_MIME_TYPE, MimeType.GEOLOC_MESSAGE);
 			GeolocPush geoloc = ((GeolocMessage)msg).getGeoloc();
 			Geoloc geolocData = new Geoloc(geoloc.getLabel(), geoloc.getLatitude(),
 					geoloc.getLongitude(), geoloc.getExpiration(), geoloc.getAccuracy());
 			values.put(MessageData.KEY_CONTENT, geolocToString(geolocData));
 		} else {
-			values.put(MessageData.KEY_CONTENT_TYPE, MimeType.TEXT_MESSAGE);
+			values.put(MessageData.KEY_MIME_TYPE, MimeType.TEXT_MESSAGE);
 			values.put(MessageData.KEY_CONTENT, msg.getTextMessage());
 		}
 
@@ -184,28 +178,15 @@ public class MessageLog implements IMessageLog {
 
 		values.put(MessageData.KEY_STATUS, status);
 		values.put(MessageData.KEY_REASON_CODE, reasonCode);
-		cr.insert(msgDatabaseUri, values);
+		mLocalContentResolver.insert(ChatLog.Message.CONTENT_URI, values);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * com.orangelabs.rcs.provider.messaging.IMessageLog#addSpamMessage(com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage)
-	 */
 	@Override
 	public void addSpamMessage(InstantMessage msg) {
 		addIncomingOneToOneMessage(msg, ChatLog.Message.Status.Content.REJECTED,
 				ChatLog.Message.ReasonCode.REJECTED_SPAM);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * com.orangelabs.rcs.provider.messaging.IMessageLog#addChatMessage(com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage,
-	 * int)
-	 */
 	@Override
 	public void addIncomingOneToOneChatMessage(InstantMessage msg) {
 			if (msg.isImdnDisplayedRequested()) {
@@ -220,13 +201,6 @@ public class MessageLog implements IMessageLog {
 
 	}
 
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.orangelabs.rcs.provider.messaging.IMessageLog#addGroupChatMessage(java.lang.String,
-	 * com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage, int, int, int)
-	 */
 	@Override
 	public void addGroupChatMessage(String chatId, InstantMessage msg, int direction, int status, int reasonCode) {
 		String msgId = msg.getMessageId();
@@ -237,7 +211,7 @@ public class MessageLog implements IMessageLog {
 
 		ContentValues values = new ContentValues();
 		values.put(MessageData.KEY_CHAT_ID, chatId);
-		values.put(MessageData.KEY_MSG_ID, msgId);
+		values.put(MessageData.KEY_MESSAGE_ID, msgId);
 		if (msg.getRemote() != null) {
 			values.put(MessageData.KEY_CONTACT, msg.getRemote().toString());
 		}
@@ -248,13 +222,13 @@ public class MessageLog implements IMessageLog {
 
 		//file transfer are not handled here but in FileTransferLog; therefore FileTransferMessages are not to be processed here
 		if (msg instanceof GeolocMessage) {
-			values.put(MessageData.KEY_CONTENT_TYPE, MimeType.GEOLOC_MESSAGE);
+			values.put(MessageData.KEY_MIME_TYPE, MimeType.GEOLOC_MESSAGE);
 			GeolocPush geoloc = ((GeolocMessage) msg).getGeoloc();
 			Geoloc geolocData = new Geoloc(geoloc.getLabel(), geoloc.getLatitude(), geoloc.getLongitude(), geoloc.getExpiration(),
 					geoloc.getAccuracy());
 			values.put(MessageData.KEY_CONTENT, geolocToString(geolocData));
 		} else {
-			values.put(MessageData.KEY_CONTENT_TYPE, MimeType.TEXT_MESSAGE);
+			values.put(MessageData.KEY_MIME_TYPE, MimeType.TEXT_MESSAGE);
 			values.put(MessageData.KEY_CONTENT, msg.getTextMessage());
 		}
 
@@ -271,17 +245,23 @@ public class MessageLog implements IMessageLog {
 			values.put(MessageData.KEY_TIMESTAMP_DELIVERED, 0);
 			values.put(MessageData.KEY_TIMESTAMP_DISPLAYED, 0);
 		}
-		cr.insert(msgDatabaseUri, values);
+		mLocalContentResolver.insert(ChatLog.Message.CONTENT_URI, values);
 
 		if (direction == Direction.OUTGOING) {
 			try {
+				int deliveryStatus = com.gsma.services.rcs.GroupDeliveryInfoLog.Status.NOT_DELIVERED;
+				if (RcsSettings.getInstance().isAlbatrosRelease()) {
+					deliveryStatus = com.gsma.services.rcs.GroupDeliveryInfoLog.Status.UNSUPPORTED;
+				}
 				Set<ParticipantInfo> participants = groupChatLog.getGroupChatConnectedParticipants(chatId);
 				for (ParticipantInfo participant : participants) {
-					groupChatDeliveryInfoLog.addGroupChatDeliveryInfoEntry(chatId, msgId, participant.getContact());
+					groupChatDeliveryInfoLog.addGroupChatDeliveryInfoEntry(chatId,
+							participant.getContact(), msgId, deliveryStatus,
+							com.gsma.services.rcs.GroupDeliveryInfoLog.ReasonCode.UNSPECIFIED);
 				}
 			} catch (Exception e) {
-				cr.delete(msgDatabaseUri, MessageData.KEY_MSG_ID + "='" + msgId + "'", null);
-				cr.delete(Uri.withAppendedPath(GroupChatDeliveryInfoData.CONTENT_MSG_URI, msgId), null, null);
+				mLocalContentResolver.delete(Uri.withAppendedPath(ChatLog.Message.CONTENT_URI, msgId), null, null);
+				mLocalContentResolver.delete(Uri.withAppendedPath(GroupDeliveryInfoData.CONTENT_URI, msgId), null, null);
 				/* TODO: Throw exception */
 				if (logger.isActivated()) {
 					logger.warn("Group chat message with msgId '" + msgId + "' could not be added to database!");
@@ -300,19 +280,19 @@ public class MessageLog implements IMessageLog {
 		if (contact != null) {
 			values.put(MessageData.KEY_CONTACT, contact.toString());
 		}
-		values.put(MessageData.KEY_CONTENT_TYPE, MimeType.GROUPCHAT_EVENT);
+		values.put(MessageData.KEY_MESSAGE_ID, IdGenerator.generateMessageID());
+		values.put(MessageData.KEY_MIME_TYPE, MimeType.GROUPCHAT_EVENT);
 		values.put(MessageData.KEY_STATUS, status);
 		values.put(MessageData.KEY_REASON_CODE, ChatLog.Message.ReasonCode.UNSPECIFIED);
 		values.put(MessageData.KEY_DIRECTION, Direction.IRRELEVANT);
 		values.put(ChatData.KEY_TIMESTAMP, Calendar.getInstance().getTimeInMillis());
-		cr.insert(msgDatabaseUri, values);
+		values.put(MessageData.KEY_READ_STATUS, ReadStatus.UNREAD);
+		values.put(MessageData.KEY_TIMESTAMP_SENT, 0);
+		values.put(MessageData.KEY_TIMESTAMP_DELIVERED, 0);
+		values.put(MessageData.KEY_TIMESTAMP_DISPLAYED, 0);
+		mLocalContentResolver.insert(ChatLog.Message.CONTENT_URI, values);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.orangelabs.rcs.provider.messaging.IMessageLog#markMessageAsRead(java.lang.String)
-	 */
 	@Override
 	public void markMessageAsRead(String msgId) {
 		if (logger.isActivated()) {
@@ -322,7 +302,7 @@ public class MessageLog implements IMessageLog {
 		values.put(MessageData.KEY_READ_STATUS, ReadStatus.READ);
 		values.put(MessageData.KEY_TIMESTAMP_DISPLAYED, Calendar.getInstance().getTimeInMillis());
 
-		if (cr.update(msgDatabaseUri, values, SELECTION_MSG_BY_MSG_ID, new String[] { msgId }) < 1) {
+		if (mLocalContentResolver.update(Uri.withAppendedPath(ChatLog.Message.CONTENT_URI, msgId), values, null, null) < 1) {
 			/* TODO: Throw exception */
 			if (logger.isActivated()) {
 				logger.warn("There was no message with msgId '" + msgId + "' to mark as read.");
@@ -330,11 +310,6 @@ public class MessageLog implements IMessageLog {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * @see com.orangelabs.rcs.provider.messaging.IMessageLog#
-	 * updateChatMessageStatusAndReasonCode(java.lang.String, int, int)
-	 */
 	@Override
 	public void updateChatMessageStatusAndReasonCode(String msgId, int status, int reasonCode) {
 		if (logger.isActivated()) {
@@ -350,9 +325,7 @@ public class MessageLog implements IMessageLog {
 					.getTimeInMillis());
 		}
 
-		if (cr.update(msgDatabaseUri, values, SELECTION_MSG_BY_MSG_ID, new String[] {
-			msgId
-		}) < 1) {
+		if (mLocalContentResolver.update(Uri.withAppendedPath(ChatLog.Message.CONTENT_URI, msgId), values, null, null) < 1) {
 			/* TODO: Throw exception */
 			if (logger.isActivated()) {
 				logger.warn("There was no message with msgId '" + msgId + "' to update status for.");
@@ -360,11 +333,6 @@ public class MessageLog implements IMessageLog {
 		}
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.orangelabs.rcs.provider.messaging.IMessageLog#markIncomingChatMessageAsReceived(java.lang.String)
-	 */
 	@Override
 	public void markIncomingChatMessageAsReceived(String msgId) {
 		if (logger.isActivated()) {
@@ -373,27 +341,16 @@ public class MessageLog implements IMessageLog {
 		updateChatMessageStatusAndReasonCode(msgId, ChatLog.Message.Status.Content.RECEIVED, ChatLog.Message.ReasonCode.UNSPECIFIED);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.orangelabs.rcs.provider.messaging.IMessageLog#isNewMessage(java.lang.String, java.lang.String)
-	 */
 	@Override
-	public boolean isNewMessage(String chatId, String msgId) {
+	public boolean isMessagePersisted(String msgId) {
 		Cursor cursor = null;
 		try {
-			cursor = cr.query(msgDatabaseUri, new String[] { MessageData.KEY_MSG_ID }, "(" + MessageData.KEY_CHAT_ID + " = '"
-					+ chatId + "') AND (" + MessageData.KEY_MSG_ID + " = '" + msgId + "')", null, null);
-			return cursor.getCount() == 0;
-		} catch (Exception e) {
-			return false;
+			cursor = mLocalContentResolver.query(Uri.withAppendedPath(ChatLog.Message.CONTENT_URI, msgId), PROJECTION_MESSAGE_ID, null, null, null);
+			return cursor.moveToFirst();
 		} finally {
-			if (cursor != null)
+			if (cursor != null) {
 				cursor.close();
+			}
 		}
-	}
-	
-	public boolean isNewMessage(ContactId contact, String msgId) {
-		return isNewMessage(contact.toString(), msgId);
 	}
 }

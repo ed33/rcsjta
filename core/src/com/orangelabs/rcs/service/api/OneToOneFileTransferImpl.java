@@ -21,6 +21,8 @@
  ******************************************************************************/
 package com.orangelabs.rcs.service.api;
 
+import javax2.sip.message.Response;
+
 import android.net.Uri;
 
 import com.gsma.services.rcs.RcsCommon.Direction;
@@ -138,7 +140,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
      * 
      * @return Type
      */
-    public String getFileType() {
+    public String getMimeType() {
         return session.getContent().getEncoding();
     }
 
@@ -227,12 +229,11 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 		}
 		
 		// Accept invitation
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
     			session.acceptSession();
     		}
-    	};
-    	t.start();
+    	}.start();
 	}
 	
 	/**
@@ -244,12 +245,11 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 		}
 
   		// Reject invitation
-        Thread t = new Thread() {
+        new Thread() {
     		public void run() {
-    			session.rejectSession(603);
+    			session.rejectSession(Response.DECLINE);
     		}
-    	};
-    	t.start();
+    	}.start();
 	}
 
 	/**
@@ -266,12 +266,11 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 		}
 
 		// Abort the session
-        Thread t = new Thread() {
+         new Thread() {
     		public void run() {
     			session.abortSession(ImsServiceSession.TERMINATION_BY_USER);
     		}
-    	};
-    	t.start();
+    	}.start();
 	}
 
     /**
@@ -389,7 +388,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 			MessagingLog.getInstance().updateFileTransferStateAndReasonCode(fileTransferId,
 					FileTransfer.State.REJECTED, reasonCode);
 
-			mOneToOneFileTransferBroadcaster.broadcastTransferStateChanged(getRemoteContact(),
+			mOneToOneFileTransferBroadcaster.broadcastStateChanged(getRemoteContact(),
 					fileTransferId, FileTransfer.State.REJECTED, reasonCode);
 		}
 	}
@@ -406,7 +405,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 			MessagingLog.getInstance().updateFileTransferStateAndReasonCode(fileTransferId,
 					FileTransfer.State.STARTED, ReasonCode.UNSPECIFIED);
 
-			mOneToOneFileTransferBroadcaster.broadcastTransferStateChanged(getRemoteContact(),
+			mOneToOneFileTransferBroadcaster.broadcastStateChanged(getRemoteContact(),
 					fileTransferId, FileTransfer.State.STARTED, ReasonCode.UNSPECIFIED);
 		}
 	}
@@ -428,7 +427,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 			MessagingLog.getInstance().updateFileTransferStateAndReasonCode(fileTransferId,
 					FileTransfer.State.ABORTED, reasonCode);
 
-			mOneToOneFileTransferBroadcaster.broadcastTransferStateChanged(getRemoteContact(),
+			mOneToOneFileTransferBroadcaster.broadcastStateChanged(getRemoteContact(),
 					fileTransferId, FileTransfer.State.ABORTED, reasonCode);
 		}
 	}
@@ -448,7 +447,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 				MessagingLog.getInstance().updateFileTransferStateAndReasonCode(fileTransferId,
 						FileTransfer.State.ABORTED, ReasonCode.ABORTED_BY_REMOTE);
 
-				mOneToOneFileTransferBroadcaster.broadcastTransferStateChanged(getRemoteContact(),
+				mOneToOneFileTransferBroadcaster.broadcastStateChanged(getRemoteContact(),
 						fileTransferId, FileTransfer.State.ABORTED, ReasonCode.ABORTED_BY_REMOTE);
 			}
 		}
@@ -474,7 +473,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 			MessagingLog.getInstance().updateFileTransferStateAndReasonCode(fileTransferId, state,
 					reasonCode);
 
-			mOneToOneFileTransferBroadcaster.broadcastTransferStateChanged(getRemoteContact(),
+			mOneToOneFileTransferBroadcaster.broadcastStateChanged(getRemoteContact(),
 					fileTransferId, state, reasonCode);
 		}
 	}
@@ -488,11 +487,10 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 	public void handleTransferProgress(long currentSize, long totalSize) {
 		String fileTransferId = getTransferId();
 		synchronized (lock) {
-			MessagingLog.getInstance().updateFileTransferProgress(fileTransferId, currentSize,
-					totalSize);
+			MessagingLog.getInstance().updateFileTransferProgress(fileTransferId, currentSize);
 
 			// Notify event listeners
-			mOneToOneFileTransferBroadcaster.broadcastTransferprogress(getRemoteContact(),
+			mOneToOneFileTransferBroadcaster.broadcastProgressUpdate(getRemoteContact(),
 					fileTransferId, currentSize, totalSize);
 		}
 	}
@@ -509,7 +507,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 			MessagingLog.getInstance().updateFileTransferStateAndReasonCode(fileTransferId,
 					FileTransfer.State.FAILED, ReasonCode.FAILED_NOT_ALLOWED_TO_SEND);
 
-			mOneToOneFileTransferBroadcaster.broadcastTransferStateChanged(getRemoteContact(),
+			mOneToOneFileTransferBroadcaster.broadcastStateChanged(getRemoteContact(),
 					fileTransferId, FileTransfer.State.FAILED,
 					ReasonCode.FAILED_NOT_ALLOWED_TO_SEND);
 		}
@@ -531,7 +529,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 
 			MessagingLog.getInstance().updateFileTransferred(fileTransferId, content);
 
-			mOneToOneFileTransferBroadcaster.broadcastTransferStateChanged(getRemoteContact(),
+			mOneToOneFileTransferBroadcaster.broadcastStateChanged(getRemoteContact(),
 					fileTransferId, FileTransfer.State.TRANSFERRED, ReasonCode.UNSPECIFIED);
 		}
 	}
@@ -548,7 +546,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 			MessagingLog.getInstance().updateFileTransferStateAndReasonCode(fileTransferId,
 					FileTransfer.State.PAUSED, ReasonCode.PAUSED_BY_USER);
 
-			mOneToOneFileTransferBroadcaster.broadcastTransferStateChanged(getRemoteContact(),
+			mOneToOneFileTransferBroadcaster.broadcastStateChanged(getRemoteContact(),
 					fileTransferId, FileTransfer.State.PAUSED, ReasonCode.PAUSED_BY_USER);
 		}
 	}
@@ -567,7 +565,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 			MessagingLog.getInstance().updateFileTransferStateAndReasonCode(fileTransferId,
 					FileTransfer.State.PAUSED, ReasonCode.PAUSED_BY_SYSTEM);
 
-			mOneToOneFileTransferBroadcaster.broadcastTransferStateChanged(getRemoteContact(),
+			mOneToOneFileTransferBroadcaster.broadcastStateChanged(getRemoteContact(),
 					fileTransferId, FileTransfer.State.PAUSED, ReasonCode.PAUSED_BY_SYSTEM);
 		}
 	}
@@ -584,7 +582,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 			MessagingLog.getInstance().updateFileTransferStateAndReasonCode(fileTransferId,
 					FileTransfer.State.STARTED, ReasonCode.UNSPECIFIED);
 
-			mOneToOneFileTransferBroadcaster.broadcastTransferStateChanged(getRemoteContact(),
+			mOneToOneFileTransferBroadcaster.broadcastStateChanged(getRemoteContact(),
 					fileTransferId, FileTransfer.State.STARTED, ReasonCode.UNSPECIFIED);
 		}
 	}
@@ -599,7 +597,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 			MessagingLog.getInstance().updateFileTransferStateAndReasonCode(fileTransferId,
 					FileTransfer.State.ACCEPTING, ReasonCode.UNSPECIFIED);
 
-			mOneToOneFileTransferBroadcaster.broadcastTransferStateChanged(getRemoteContact(),
+			mOneToOneFileTransferBroadcaster.broadcastStateChanged(getRemoteContact(),
 					fileTransferId, FileTransfer.State.ACCEPTING, ReasonCode.UNSPECIFIED);
 		}
 	}
@@ -631,7 +629,7 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 					FileTransfer.State.INVITED, ReasonCode.UNSPECIFIED);
 		}
 
-		mOneToOneFileTransferBroadcaster.broadcastFileTransferInvitation(fileTransferId);
+		mOneToOneFileTransferBroadcaster.broadcastInvitation(fileTransferId);
 	}
 
 	@Override
@@ -646,6 +644,6 @@ public class OneToOneFileTransferImpl extends IFileTransfer.Stub implements File
 					FileTransfer.State.ACCEPTING, ReasonCode.UNSPECIFIED);
 		}
 
-		mOneToOneFileTransferBroadcaster.broadcastFileTransferInvitation(fileTransferId);
+		mOneToOneFileTransferBroadcaster.broadcastInvitation(fileTransferId);
 	}
 }

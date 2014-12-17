@@ -147,8 +147,10 @@ public interface CoreListener {
 	 * @param fileSharingSession File transfer session
 	 * @param isGroup is Group file transfer
 	 * @param contact Contact ID
+	 * @param displayName the display name of the remote contact
 	 */
-	public void handleFileTransferInvitation(FileSharingSession fileSharingSession, boolean isGroup, ContactId contact);
+	public void handleFileTransferInvitation(FileSharingSession fileSharingSession, boolean isGroup, ContactId contact,
+			String displayName);
 
 	/**
 	 * A new file transfer invitation has been received
@@ -291,23 +293,24 @@ public interface CoreListener {
      *
      * @param contact Remote contact
      * @param content File content
-     * @param fileicon Fileicon content
+     * @param fileIcon Fileicon content
      * @param reasonCode Rejected reason code
      */
 
     public void handleFileTransferInvitationRejected(ContactId contact, MmContent content,
-            MmContent fileicon, int reasonCode);
+            MmContent fileIcon, int reasonCode);
 
     /**
      * Handle the case of rejected group chat
      *
-     * @param chatId Chat Id
+     * @param chatId Chat ID
+     * @param contact Contact ID
      * @param subject Subject
      * @param participants Participants
      * @param reasonCode Rejected reason code
      */
-    public void handleGroupChatInvitationRejected(String chatId, String subject,
-            Set<ParticipantInfo> participants, int reasonCode);
+    public void handleGroupChatInvitationRejected(String chatId, ContactId contact,
+            String subject, Set<ParticipantInfo> participants, int reasonCode);
 
     /**
      * Handles image sharing rejection
