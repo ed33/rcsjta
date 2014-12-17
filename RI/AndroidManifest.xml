@@ -241,7 +241,7 @@
             </intent-filter>
         </receiver>
 
-        <activity android:name=".sharing.video.ReceiveVideoSharing" android:screenOrientation="landscape"/>
+        <activity android:name=".sharing.video.ReceiveVideoSharing"/>
         
         <activity android:name=".sharing.video.VideoSharingList"/>
         

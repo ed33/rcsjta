@@ -19,7 +19,6 @@
 package com.orangelabs.rcs.ri.sharing.video;
 
 import java.lang.reflect.Method;
-import java.util.List;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -30,7 +29,6 @@ import android.content.res.Configuration;
 import android.database.MatrixCursor;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
-import android.hardware.Camera.Parameters;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -58,8 +56,8 @@ import com.gsma.services.rcs.contacts.ContactUtils;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharingListener;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
-import com.orangelabs.rcs.core.ims.protocol.rtp.format.video.Orientation;
 import com.orangelabs.rcs.core.ims.protocol.rtp.format.video.CameraOptions;
+import com.orangelabs.rcs.core.ims.protocol.rtp.format.video.Orientation;
 import com.orangelabs.rcs.ri.ApiConnectionManager;
 import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;

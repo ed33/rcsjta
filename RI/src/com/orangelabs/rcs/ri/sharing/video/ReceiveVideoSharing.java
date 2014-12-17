@@ -32,6 +32,8 @@ import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.gsma.services.rcs.RcsCommon;
@@ -474,10 +476,13 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 	 * Callback called when the player has been resized
 	 */
 	public void onPlayerResized(int width, int height) {
-		// TODO
 		if (LogUtils.isActive) {
-			Log.d(LOGTAG, "onPlayerResized");
+			Log.d(LOGTAG, "onPlayerResized " + width + "x" + height);
 		}
+		videoView.setAspectRatio(width, height);
+		
+    	LinearLayout l = (LinearLayout)videoView.getParent();
+    	l.setLayoutParams(new FrameLayout.LayoutParams(width, height));
 	}	
 }
 
