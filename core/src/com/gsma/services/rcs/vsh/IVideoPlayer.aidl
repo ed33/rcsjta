@@ -6,11 +6,11 @@ import com.gsma.services.rcs.vsh.VideoCodec;
  * Video player interface
  */
 interface IVideoPlayer {
-	void setRemoteInfo(in VideoCodec codec, in String remoteHost, in int remotePort);
+	void setRemoteInfo(in VideoCodec codec, in String remoteHost, in int remotePort, in int orientationHeaderId);
 	
 	int getLocalRtpPort();
 
-	VideoCodec getCodec();
-
 	VideoCodec[] getSupportedCodecs();
+
+	VideoCodec getCodec();
 }

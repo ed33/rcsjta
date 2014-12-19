@@ -44,8 +44,10 @@ public abstract class VideoPlayer extends IVideoPlayer.Stub {
 	 * @param codec Video codec
 	 * @param remoteHost Remote RTP host
 	 * @param remotePort Remote RTP port
+	 * @param orientationHeaderId Orientation header extension ID. The extension ID is
+	 *  a value between 1 and 15 arbitrarily chosen by the sender, as defined in RFC5285
 	 */
-	public abstract void setRemoteInfo(VideoCodec codec, String remoteHost, int remotePort);
+	public abstract void setRemoteInfo(VideoCodec codec, String remoteHost, int remotePort, int orientationHeaderId);
 	
 	/**
 	 * Returns the local RTP port used to stream video

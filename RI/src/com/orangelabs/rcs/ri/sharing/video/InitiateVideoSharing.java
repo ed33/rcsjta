@@ -19,6 +19,7 @@
 package com.orangelabs.rcs.ri.sharing.video;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -29,6 +30,7 @@ import android.content.res.Configuration;
 import android.database.MatrixCursor;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
+import android.hardware.Camera.Parameters;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -578,7 +580,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
      * @return false if the camera don't have the good preview size for the encoder
      */
     private boolean checkCameraSize(CameraOptions cameraId) {
-  /*      boolean sizeAvailable = false;
+        boolean sizeAvailable = false;
 
         // Open the camera
         openCamera(cameraId);
@@ -598,8 +600,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
         // Release camera
         closeCamera();
 
-        return sizeAvailable;*/
-        return true;
+        return sizeAvailable;
     }
 
     /**

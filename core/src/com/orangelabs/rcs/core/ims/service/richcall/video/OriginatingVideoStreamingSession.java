@@ -150,7 +150,7 @@ public class OriginatingVideoStreamingSession extends VideoStreamingSession {
         }
         
         // Set the video player remote info
-        getVideoPlayer().setRemoteInfo(selectedVideoCodec, remoteHost, remotePort);
+        getVideoPlayer().setRemoteInfo(selectedVideoCodec, remoteHost, remotePort, getVideoOrientationId());
     }
 
     /**
