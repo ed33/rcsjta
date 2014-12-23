@@ -19,7 +19,7 @@ package com.orangelabs.rcs.security;
 
 import android.test.AndroidTestCase;
 
-import com.orangelabs.rcs.core.ims.service.extension.IARICertificate;
+import com.orangelabs.rcs.core.ims.service.extension.IARIRangeCertificate;
 
 public class IariCertificateTest extends AndroidTestCase {
 
@@ -34,36 +34,36 @@ public class IariCertificateTest extends AndroidTestCase {
 	}
 
 	public void testFormatCertificateCanFormatTwice() {
-		assertEquals(formattedCertif, IARICertificate.format(formattedCertif));
+		assertEquals(formattedCertif, IARIRangeCertificate.format(formattedCertif));
 	}
 
 	public void testFormatCertificateAddHeader() {
 		assertEquals(
 				formattedCertif,
-				IARICertificate.format("MIIDEzCCAfugAwIBAgIEcSw+/jANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t\r\n9VKv43N29kYEpKjmx1x1X8NPftPHGqI=\r\n-----END CERTIFICATE-----\r\n"));
+				IARIRangeCertificate.format("MIIDEzCCAfugAwIBAgIEcSw+/jANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t\r\n9VKv43N29kYEpKjmx1x1X8NPftPHGqI=\r\n-----END CERTIFICATE-----\r\n"));
 	}
 
 	public void testFormatCertificateAddFooter() {
 		assertEquals(
 				formattedCertif,
-				IARICertificate.format("-----BEGIN CERTIFICATE-----\r\nMIIDEzCCAfugAwIBAgIEcSw+/jANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t\r\n9VKv43N29kYEpKjmx1x1X8NPftPHGqI=\r\n"));
+				IARIRangeCertificate.format("-----BEGIN CERTIFICATE-----\r\nMIIDEzCCAfugAwIBAgIEcSw+/jANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t\r\n9VKv43N29kYEpKjmx1x1X8NPftPHGqI=\r\n"));
 	}
 
 	public void testFormatCertificateRemoveTabs() {
 		assertEquals(
 				formattedCertif,
-				IARICertificate.format("-----BEGIN CERTIFICATE-----\r\nMIIDEzCCAfugAwIBAgIEcSw+/jANBgkqhkiG9w0BA\tQsFADAYMRYwFAYDVQQDEw1t\r\n9VKv43N29kYEpKjmx1x\t1X8NPftPHGqI=\r\n-----END CERTIFICATE-----\r\n"));
+				IARIRangeCertificate.format("-----BEGIN CERTIFICATE-----\r\nMIIDEzCCAfugAwIBAgIEcSw+/jANBgkqhkiG9w0BA\tQsFADAYMRYwFAYDVQQDEw1t\r\n9VKv43N29kYEpKjmx1x\t1X8NPftPHGqI=\r\n-----END CERTIFICATE-----\r\n"));
 	}
 	
 	public void testFormatCertificateRemoveSpaces() {
 		assertEquals(
 				formattedCertif,
-				IARICertificate.format("-----BEGIN CERTIFICATE-----\r\nMIIDEzCCAfugAwIBA  gIEcSw+/jANBgkqhkiG9w0BA\tQsFADAYM  RYwFAYDVQQDEw1t\r\n9VKv43N29k  YEpKjmx1x\t1X8NPftP  HGqI=\r\n-----END CERTIFICATE-----\r\n"));
+				IARIRangeCertificate.format("-----BEGIN CERTIFICATE-----\r\nMIIDEzCCAfugAwIBA  gIEcSw+/jANBgkqhkiG9w0BA\tQsFADAYM  RYwFAYDVQQDEw1t\r\n9VKv43N29k  YEpKjmx1x\t1X8NPftP  HGqI=\r\n-----END CERTIFICATE-----\r\n"));
 	}
 
 	public void testFormatCertificateRemoveCRLF() {
 		assertEquals(
 				formattedCertif,
-				IARICertificate.format("-----BEGIN CERTIFICATE-----\r\nMIIDEzCCAfugAwIBA  gIEcSw+/jANBg\r\nkqhkiG9w0BA\tQsFADAYM  RYwFA\rYDVQQDEw1t\r\n9VKv43N29k  YEpKjmx1x\t1X8NPftP  HGqI=\r\n-----END CERTIFICATE-----\r\n"));
+				IARIRangeCertificate.format("-----BEGIN CERTIFICATE-----\r\nMIIDEzCCAfugAwIBA  gIEcSw+/jANBg\r\nkqhkiG9w0BA\tQsFADAYM  RYwFA\rYDVQQDEw1t\r\n9VKv43N29k  YEpKjmx1x\t1X8NPftP  HGqI=\r\n-----END CERTIFICATE-----\r\n"));
 	}
 }

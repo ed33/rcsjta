@@ -28,7 +28,7 @@ import android.os.Bundle;
 import com.gsma.services.rcs.capability.CapabilityService;
 import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.platform.AndroidFactory;
-import com.orangelabs.rcs.provider.security.SecurityInfos;
+import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -60,8 +60,8 @@ public class ExternalCapabilityMonitoring extends BroadcastReceiver {
 	    	RcsSettings rcsSettings = RcsSettings.getInstance();
 	    	
 	    	// Instantiate the security info manager
-			SecurityInfos.createInstance(context.getContentResolver());
-			SecurityInfos securityInfos = SecurityInfos.getInstance();
+			SecurityLog.createInstance(context.getContentResolver());
+			SecurityLog securityInfos = SecurityLog.getInstance();
 			
 			// Instantiate the service extension manager
 			ExtensionManager.createInstance(rcsSettings, securityInfos);

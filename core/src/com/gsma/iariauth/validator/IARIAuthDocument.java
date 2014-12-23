@@ -28,6 +28,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import android.util.SparseArray;
+
 import com.gsma.contrib.javax.xml.crypto.dsig.XMLSignature;
 import com.gsma.iariauth.validator.dsig.SignatureInfo;
 
@@ -39,7 +41,34 @@ public class IARIAuthDocument {
 	/**
 	 * The type of this IARI Authorization
 	 */
-	public static enum AuthType { STANDALONE, RANGE }
+	public static enum AuthType {
+		STANDALONE(0), RANGE(1);
+		private int mValue;
+
+		private static SparseArray<AuthType> mValueToEnum = new SparseArray<AuthType>();
+		static {
+			for (AuthType entry : AuthType.values()) {
+				mValueToEnum.put(entry.toInt(), entry);
+			}
+		}
+
+		private AuthType(int value) {
+			mValue = value;
+		}
+
+		public final int toInt() {
+			return mValue;
+		}
+
+		public static AuthType valueOf(int value) {
+			AuthType entry = mValueToEnum.get(value);
+			if (entry != null) {
+				return entry;
+			}
+			throw new IllegalArgumentException("No enum const class " + AuthType.class.getName() + "." + value);
+
+		}
+	}
 
 	/**
 	 * Public members

@@ -25,9 +25,9 @@ import java.util.Set;
 
 import android.test.AndroidTestCase;
 
-import com.orangelabs.rcs.core.ims.service.extension.IARICertificate;
+import com.orangelabs.rcs.core.ims.service.extension.IARIRangeCertificate;
 import com.orangelabs.rcs.core.ims.service.extension.ICertificateProvisioningListener;
-import com.orangelabs.rcs.provider.security.SecurityInfos;
+import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
 import com.orangelabs.rcs.provisioning.ProvisioningParser;
@@ -37,16 +37,16 @@ import com.orangelabs.rcs.provisioning.ProvisioningParser;
  * 
  * @author JEXA7410
  */
-public class SecurityModelTest extends AndroidTestCase {
+public class SecurityCertificateProvisioningTest extends AndroidTestCase {
 
 	private RcsSettings mRcsSettings;
-	private Set<IARICertificate> mMemoryData;
+	private Set<IARIRangeCertificate> mMemoryData;
 
 	protected void setUp() throws Exception {
 		super.setUp();
 
 		RcsSettings.createInstance(getContext());
-		SecurityInfos.createInstance(getContext().getContentResolver());
+		SecurityLog.createInstance(getContext().getContentResolver());
 		mRcsSettings = RcsSettings.getInstance();
 	}
 
@@ -90,12 +90,12 @@ public class SecurityModelTest extends AndroidTestCase {
 			
 			@Override
 			public void start() {
-				mMemoryData = new HashSet<IARICertificate>();
+				mMemoryData = new HashSet<IARIRangeCertificate>();
 			}
 			
 			@Override
 			public void addNewCertificate(String iari, String certificate) {
-				IARICertificate iariCertificate = new IARICertificate(iari, certificate);
+				IARIRangeCertificate iariCertificate = new IARIRangeCertificate(iari, certificate);
 				mMemoryData.add(iariCertificate);
 			}
 		});
@@ -105,12 +105,12 @@ public class SecurityModelTest extends AndroidTestCase {
 		assertTrue(mRcsSettings.isExtensionsAllowed());
 
 		assertNotNull(mMemoryData);
-		for (IARICertificate iariCertificate : mMemoryData) {
-			String iari = iariCertificate.getIARI();
+		for (IARIRangeCertificate iariCertificate : mMemoryData) {
+			String iariRange = iariCertificate.getIARIRange();
 			String cert = iariCertificate.getCertificate();
-			if (!iari.equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo1")) {
-				if (!iari.equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo2")) {
-					fail("IARI not found ".concat(iari));
+			if (!iariRange.equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo1")) {
+				if (!iariRange.equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo2")) {
+					fail("IARI not found ".concat(iariRange));
 				} else {
 					assertEquals("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_2A", cert);
 				}

@@ -18,23 +18,23 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.orangelabs.rcs.provider.security.SecurityInfos;
+import com.orangelabs.rcs.provider.security.SecurityLog;
 
 /**
  * A Class to update security provider only once provisioning is fully parsed
  * 
- * @author Oh. LEMORDANT
+ * @author P.LEMORDANT
  *
  */
 public class CertificateProvisioning implements ICertificateProvisioningListener {
 
-	private SecurityInfos mSecurityInfos;
+	private SecurityLog mSecurityInfos;
 
-	private Map<IARICertificate, Integer> mCertiticatesBeforeProvisioning;
+	private Map<IARIRangeCertificate, Integer> mCertiticatesBeforeProvisioning;
 
-	private Set<IARICertificate> mCertificatesAfterProvisioning;
+	private Set<IARIRangeCertificate> mCertificatesAfterProvisioning;
 
-	public CertificateProvisioning(SecurityInfos securityInfos) {
+	public CertificateProvisioning(SecurityLog securityInfos) {
 		mSecurityInfos = securityInfos;
 	}
 
@@ -46,9 +46,9 @@ public class CertificateProvisioning implements ICertificateProvisioningListener
 
 		}
 		// Save certificates before provisioning
-		mCertiticatesBeforeProvisioning = mSecurityInfos.getAll();
+		mCertiticatesBeforeProvisioning = mSecurityInfos.getAllCertificates();
 		// No certificates yet newly provisioned
-		mCertificatesAfterProvisioning = new HashSet<IARICertificate>();
+		mCertificatesAfterProvisioning = new HashSet<IARIRangeCertificate>();
 	}
 
 	@Override
@@ -59,15 +59,15 @@ public class CertificateProvisioning implements ICertificateProvisioningListener
 
 		}
 		// Check for new Certificates
-		for (IARICertificate iariCertificate : mCertificatesAfterProvisioning) {
+		for (IARIRangeCertificate iariCertificate : mCertificatesAfterProvisioning) {
 			if (!mCertiticatesBeforeProvisioning.containsKey(iariCertificate)) {
 				// new certificate: add to provider
-				mSecurityInfos.addCertificateForIARI(iariCertificate);
+				mSecurityInfos.addCertificateForIARIRange(iariCertificate);
 			}
 		}
 
 		// Check for revoked certificates
-		for (IARICertificate iariCertificate : mCertiticatesBeforeProvisioning.keySet()) {
+		for (IARIRangeCertificate iariCertificate : mCertiticatesBeforeProvisioning.keySet()) {
 			if (!mCertificatesAfterProvisioning.contains(iariCertificate)) {
 				// revoked certificate: remove from provider
 				mSecurityInfos.removeCertificate(mCertiticatesBeforeProvisioning.get(iariCertificate));
@@ -82,7 +82,7 @@ public class CertificateProvisioning implements ICertificateProvisioningListener
 	public void addNewCertificate(String iari, String certificate) {
 		// Add IARI / Certificate in memory
 		// Format certificate
-		mCertificatesAfterProvisioning.add(new IARICertificate(iari, IARICertificate.format(certificate)));
+		mCertificatesAfterProvisioning.add(new IARIRangeCertificate(iari, IARIRangeCertificate.format(certificate)));
 	}
 
 }

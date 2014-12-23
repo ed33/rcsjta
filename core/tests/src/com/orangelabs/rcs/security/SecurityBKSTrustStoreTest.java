@@ -24,8 +24,8 @@ import android.util.Log;
 import com.gsma.iariauth.validator.PackageProcessor;
 import com.gsma.iariauth.validator.ProcessingResult;
 import com.orangelabs.rcs.core.ims.service.extension.BKSTrustStore;
-import com.orangelabs.rcs.core.ims.service.extension.IARICertificate;
-import com.orangelabs.rcs.provider.security.SecurityInfos;
+import com.orangelabs.rcs.core.ims.service.extension.IARIRangeCertificate;
+import com.orangelabs.rcs.provider.security.SecurityLog;
 
 /**
  * Test the security model
@@ -35,21 +35,21 @@ import com.orangelabs.rcs.provider.security.SecurityInfos;
 public class SecurityBKSTrustStoreTest extends AndroidTestCase {
 
 	private ContentResolver mContentResolver;
-	private SecurityInfos mSecurityInfos;
-	private SecurityInfosTest mSecurityInfosTest;
+	private SecurityLog mSecurityInfos;
+	private SecurityLibTest mSecurityInfosTest;
 	
 	protected void setUp() throws Exception {
 		super.setUp();
 		mContentResolver = getContext().getContentResolver();
-		SecurityInfos.createInstance(mContentResolver);
-		mSecurityInfos = SecurityInfos.getInstance();
-		mSecurityInfosTest = new SecurityInfosTest();
-		mSecurityInfosTest.removeAll(mContentResolver);
+		SecurityLog.createInstance(mContentResolver);
+		mSecurityInfos = SecurityLog.getInstance();
+		mSecurityInfosTest = new SecurityLibTest();
+		mSecurityInfosTest.removeAllCertificates(mContentResolver);
 	}
 
 	protected void tearDown() throws Exception {
 		super.tearDown();
-		mSecurityInfosTest.removeAll(mContentResolver);
+		mSecurityInfosTest.removeAllCertificates(mContentResolver);
 	}
 
 	private final static String PKG_NAME = "com.gsma.iariauth.sample";
@@ -81,7 +81,7 @@ public class SecurityBKSTrustStoreTest extends AndroidTestCase {
 			    certif.append((char)ch);
 			}
 			// insert into provider
-			mSecurityInfos.addCertificateForIARI(new IARICertificate("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.*", certif.toString()));
+			mSecurityInfos.addCertificateForIARIRange(new IARIRangeCertificate("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.*", certif.toString()));
 		
 			// Check validity of iari authorization doc
 			PackageProcessor processor = new PackageProcessor(mTrustore, PKG_NAME, FINGER_PRINT);

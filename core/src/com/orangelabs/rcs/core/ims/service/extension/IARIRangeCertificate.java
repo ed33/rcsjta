@@ -15,13 +15,13 @@
 package com.orangelabs.rcs.core.ims.service.extension;
 
 /**
- * A class to hold IARI and associated certificate.
+ * A class to hold IARI range and associated certificate.
  * 
- * @author P. LEMORDANT
- * @author F. ABOT
+ * @author P.LEMORDANT
+ * @author F.ABOT
  *
  */
-public class IARICertificate {
+public class IARIRangeCertificate {
 
 	private final static int CHUNK_SIZE = 64;
 	private final static String CRLF = "\r\n";
@@ -29,12 +29,12 @@ public class IARICertificate {
 	private final static StringBuilder CERT_HEADER = new StringBuilder("-----BEGIN CERTIFICATE-----").append(CRLF);
 	private final static StringBuilder CERT_FOOTER = new StringBuilder("-----END CERTIFICATE-----");
 	
-	private String mIARI;
+	private String mIARIRange;
 
 	private String mCertificate;
 
-	public IARICertificate(String iari, String certificate) {
-		mIARI = iari;
+	public IARIRangeCertificate(String iariRange, String certificate) {
+		mIARIRange = iariRange;
 		mCertificate = certificate;
 	}
 
@@ -43,7 +43,7 @@ public class IARICertificate {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((mCertificate == null) ? 0 : mCertificate.hashCode());
-		result = prime * result + ((mIARI == null) ? 0 : mIARI.hashCode());
+		result = prime * result + ((mIARIRange == null) ? 0 : mIARIRange.hashCode());
 		return result;
 	}
 
@@ -55,22 +55,22 @@ public class IARICertificate {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		IARICertificate other = (IARICertificate) obj;
+		IARIRangeCertificate other = (IARIRangeCertificate) obj;
 		if (mCertificate == null) {
 			if (other.mCertificate != null)
 				return false;
 		} else if (!mCertificate.equals(other.mCertificate))
 			return false;
-		if (mIARI == null) {
-			if (other.mIARI != null)
+		if (mIARIRange == null) {
+			if (other.mIARIRange != null)
 				return false;
-		} else if (!mIARI.equals(other.mIARI))
+		} else if (!mIARIRange.equals(other.mIARIRange))
 			return false;
 		return true;
 	}
 
-	public String getIARI() {
-		return mIARI;
+	public String getIARIRange() {
+		return mIARIRange;
 	}
 
 	public String getCertificate() {
@@ -79,7 +79,7 @@ public class IARICertificate {
 
 	@Override
 	public String toString() {
-		return "IARICertificate [IARI=" + mIARI + ", Certificate=" + mCertificate + "]";
+		return "IARICertificate [IARI range=" + mIARIRange + ", Certificate=" + mCertificate + "]";
 	}
 
 	/**

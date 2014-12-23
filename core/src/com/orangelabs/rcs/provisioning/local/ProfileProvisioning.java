@@ -48,7 +48,7 @@ import android.widget.Toast;
 
 import com.orangelabs.rcs.R;
 import com.orangelabs.rcs.core.ims.service.extension.CertificateProvisioning;
-import com.orangelabs.rcs.provider.security.SecurityInfos;
+import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
@@ -377,8 +377,8 @@ public class ProfileProvisioning extends Activity {
 		 * @return true if loading the provisioning is successful
 		 */
 		private boolean createProvisioning(String mXMLFileContent, String userPhoneNumber) {
-			SecurityInfos.createInstance(getContentResolver());
-			SecurityInfos securityInfos = SecurityInfos.getInstance();
+			SecurityLog.createInstance(getContentResolver());
+			SecurityLog securityInfos = SecurityLog.getInstance();
 			ProvisioningParser parser = new ProvisioningParser(mXMLFileContent, new CertificateProvisioning(securityInfos));
 			RcsSettings rcsSettings = RcsSettings.getInstance();
 			// Save GSMA release set into the provider

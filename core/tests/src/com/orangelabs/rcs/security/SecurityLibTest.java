@@ -21,15 +21,16 @@ import android.content.ContentResolver;
 import android.database.Cursor;
 import android.test.AndroidTestCase;
 
-import com.orangelabs.rcs.core.ims.service.extension.IARICertificate;
-import com.orangelabs.rcs.provider.security.SecurityInfoData;
+import com.orangelabs.rcs.core.ims.service.extension.IARIRangeCertificate;
+import com.orangelabs.rcs.provider.security.AuthorizationData;
+import com.orangelabs.rcs.provider.security.CertificateData;
 
-public class SecurityInfosTest extends AndroidTestCase {
+public class SecurityLibTest extends AndroidTestCase {
 
-	private final String WHERE_IARI_CERTIFICATE_CLAUSE = new StringBuilder(SecurityInfoData.KEY_IARI).append("=? AND ")
-			.append(SecurityInfoData.KEY_CERT).append("=?").toString();
+	private final String WHERE_IARI_RANGE_CERT_CLAUSE = new StringBuilder(CertificateData.KEY_IARI_RANGE).append("=? AND ")
+			.append(CertificateData.KEY_CERT).append("=?").toString();
 
-	private final String[] PROJECTION_ID = new String[] { SecurityInfoData.KEY_ID };
+	private final String[] PROJECTION_ID = new String[] { CertificateData.KEY_ID };
 
 	public static final int INVALID_ID = -1;
 
@@ -41,14 +42,14 @@ public class SecurityInfosTest extends AndroidTestCase {
 	 *            the IARI and associated certificate
 	 * @return id or INVALID_ID if not found
 	 */
-	int getIdForIariAndCertificate(ContentResolver contentResolver, IARICertificate iariCertificate) {
+	int getIdForIariAndCertificate(ContentResolver contentResolver, IARIRangeCertificate iariCertificate) {
 		Cursor cursor = null;
 		try {
-			cursor = contentResolver.query(SecurityInfoData.CONTENT_URI, PROJECTION_ID,
-					WHERE_IARI_CERTIFICATE_CLAUSE, new String[] { iariCertificate.getIARI(), iariCertificate.getCertificate() },
+			cursor = contentResolver.query(CertificateData.CONTENT_URI, PROJECTION_ID,
+					WHERE_IARI_RANGE_CERT_CLAUSE, new String[] { iariCertificate.getIARIRange(), iariCertificate.getCertificate() },
 					null);
 			if (cursor.moveToFirst()) {
-				return cursor.getInt(cursor.getColumnIndexOrThrow(SecurityInfoData.KEY_ID));
+				return cursor.getInt(cursor.getColumnIndexOrThrow(CertificateData.KEY_ID));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -62,12 +63,22 @@ public class SecurityInfosTest extends AndroidTestCase {
 	}
 
 	/**
-	 * Remove all IARI authorizations
+	 * Remove all IARI certificates
 	 * 
 	 * @param contentResolver
 	 * @return The number of rows deleted.
 	 */
-	int removeAll(ContentResolver contentResolver) {
-		return contentResolver.delete(SecurityInfoData.CONTENT_URI, null, null);
+	int removeAllCertificates(ContentResolver contentResolver) {
+		return contentResolver.delete(CertificateData.CONTENT_URI, null, null);
+	}
+	
+	/**
+	 * Remove all IARI certificates
+	 * 
+	 * @param contentResolver
+	 * @return The number of rows deleted.
+	 */
+	int removeAllAuthorizations(ContentResolver contentResolver) {
+		return contentResolver.delete(AuthorizationData.CONTENT_URI, null, null);
 	}
 }

@@ -25,23 +25,23 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.gsma.iariauth.validator.dsig.TrustStore;
-import com.orangelabs.rcs.provider.security.SecurityInfos;
+import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
- * @author P. LEMORDANT 
- * @author F. ABOT 
+ * @author P.LEMORDANT 
+ * @author F.ABOT 
  *
  */
 public class BKSTrustStore implements TrustStore {
 	
 	private CertificateFactory mFactory;
 	
-	private SecurityInfos mSecurityInfos;
+	private SecurityLog mSecurityInfos;
 
 	private final static Logger logger = Logger.getLogger(BKSTrustStore.class.getSimpleName());
 
-	public BKSTrustStore(SecurityInfos securityInfos) throws CertificateException, NoSuchProviderException {
+	public BKSTrustStore(SecurityLog securityInfos) throws CertificateException, NoSuchProviderException {
 		mFactory = CertificateFactory.getInstance("X.509", "BC");
 		mSecurityInfos = securityInfos;
 	}

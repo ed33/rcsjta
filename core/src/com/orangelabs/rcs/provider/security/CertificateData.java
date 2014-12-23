@@ -20,13 +20,13 @@ package com.orangelabs.rcs.provider.security;
 import android.net.Uri;
 
 /**
- * Security info provider data
+ * Definition of data for security certificate table
  * 
  * @author jexa7410
  * @author yplo6403
  *
  */
-public class SecurityInfoData {
+public class CertificateData {
 	/**
 	 * Database URI
 	 */
@@ -38,12 +38,13 @@ public class SecurityInfoData {
 	public static final String KEY_ID = "_id";
 	
 	/**
-	 * The name of the column containing the IARI tag as the unique ID of certificate
+	 * The name of the column containing the IARI range tag.<br>
+	 * A IARI range may be associated with several certificates.
 	 * <P>
 	 * Type: TEXT
 	 * </P>
 	 */
-	public static final String KEY_IARI = "iari";
+	public static final String KEY_IARI_RANGE = "iari_range";
 
 	/**
 	 * The name of the column containing the certificate for the IARI document validation.

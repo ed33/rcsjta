@@ -221,7 +221,7 @@
 
 		<provider android:authorities="com.orangelabs.rcs.security"
 			android:exported="false"
-			android:name="com.orangelabs.rcs.provider.security.SecurityInfoProvider"/>
+			android:name="com.orangelabs.rcs.provider.security.SecurityProvider"/>
 		
 		<!-- Device events receiver -->	
 

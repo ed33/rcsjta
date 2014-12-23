@@ -37,11 +37,13 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.text.TextUtils;
 
+import com.gsma.iariauth.validator.IARIAuthDocument;
 import com.gsma.iariauth.validator.PackageProcessor;
 import com.gsma.iariauth.validator.ProcessingResult;
 import com.gsma.services.rcs.capability.CapabilityService;
 import com.orangelabs.rcs.platform.AndroidFactory;
-import com.orangelabs.rcs.provider.security.SecurityInfos;
+import com.orangelabs.rcs.provider.security.AuthorizationData;
+import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.service.api.ServerApiException;
 import com.orangelabs.rcs.utils.logger.Logger;
@@ -50,8 +52,8 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * Service extension manager which adds supported extension after having verified some authorization rules.
  * 
  * @author Jean-Marc AUFFRET
- * @author Ph. LEMORDANT
- * @author F. ABOT
+ * @author P.LEMORDANT
+ * @author F.ABOT
  */
 public class ExtensionManager {
 
@@ -70,14 +72,19 @@ public class ExtensionManager {
 
 	private final static Logger logger = Logger.getLogger(ExtensionManager.class.getSimpleName());
 
-	private BKSTrustStore mTrustStore;
+	final private BKSTrustStore mTrustStore;
 	
-	private RcsSettings mRcsSettings;
+	final private RcsSettings mRcsSettings;
+	
+	final private SecurityLog mSecurityLog;
 	
 	/**
 	 * Empty constructor to prevent default instantiation
 	 */
 	private ExtensionManager() {
+		mTrustStore = null;
+		mRcsSettings = null;
+		mSecurityLog = null;
 	}
 
 	/**
@@ -88,11 +95,12 @@ public class ExtensionManager {
 	 * @throws CertificateException 
 	 * @throws NoSuchProviderException
 	 */
-	private ExtensionManager(RcsSettings rcsSettings, SecurityInfos securityInfos) throws NoSuchProviderException,
+	private ExtensionManager(RcsSettings rcsSettings, SecurityLog securityLog) throws NoSuchProviderException,
 			CertificateException {
 		try {
-			mTrustStore = new BKSTrustStore(securityInfos);
+			mTrustStore = new BKSTrustStore(securityLog);
 			mRcsSettings = rcsSettings;
+			mSecurityLog = securityLog;
 		} catch (NoSuchProviderException e1) {
 			if (logger.isActivated()) {
 				logger.error("Failed to instantiate ServiceExtensionManager", e1);
@@ -115,7 +123,7 @@ public class ExtensionManager {
 	 * @throws CertificateException 
 	 * @throws NoSuchProviderException
 	 */
-	public static ExtensionManager createInstance(RcsSettings rcsSettings, SecurityInfos securityInfos) throws NoSuchProviderException, CertificateException {
+	public static ExtensionManager createInstance(RcsSettings rcsSettings, SecurityLog securityInfos) throws NoSuchProviderException, CertificateException {
 		if (sInstance != null) {
 			return sInstance;
 			// ---
@@ -140,31 +148,40 @@ public class ExtensionManager {
 	/**
 	 * Save supported extensions in database
 	 *
-	 * @param supportedExts
-	 *            List of supported extensions
+	 * @param authorizationDatast
+	 *            Set of authorization data
 	 */
-	private void saveSupportedExtensions(Set<String> supportedExts) {
+	private void saveSupportedExtensions(Set<AuthorizationData> authorizationDatas) {
+		Set<String> extensions = new HashSet<String>();
+		for (AuthorizationData authorizationData : authorizationDatas) {
+			extensions.add(authorizationData.getExtension());
+		}
 		// Update supported extensions in database
-		mRcsSettings.setSupportedRcsExtensions(supportedExts);
+		mRcsSettings.setSupportedRcsExtensions(extensions);
 	}
 
 	/**
-	 * Check if the extensions are valid. Each valid extension is saved in the cache.
+	 * Check if the extensions are valid.
 	 *
 	 * @param packageManager
 	 * @param resolvedInfos
-	 * @return Set of new extensions
+	 * @param extensions set of extensions to validate
+	 * @return Set of authorization data
 	 */
-	private Set<String> checkExtensions(PackageManager packageManager, List<ResolveInfo> resolveInfos, Set<String> extensions) {
-		Set<String> result = new HashSet<String>();
+	private Set<AuthorizationData> checkExtensions(PackageManager packageManager, List<ResolveInfo> resolveInfos,
+			Set<String> extensions) {
+		Set<AuthorizationData> result = new HashSet<AuthorizationData>();
 		boolean isLogActivated = logger.isActivated();
 		// Check each new extension
 		for (String extension : extensions) {
 			for (ResolveInfo resolveInfo : resolveInfos) {
 				String packageName = resolveInfo.activityInfo.packageName;
-				if (isExtensionAuthorizedBySecurity(packageManager, packageName, extension)) {
+				IARIAuthDocument authDocument = getExtensionAuthorizedBySecurity(packageManager, packageName, extension);
+				if (authDocument != null) {
 					// Add the extension in the supported list if authorized and not yet in the list
-					result.add(extension);
+					AuthorizationData authData = new AuthorizationData(authDocument.iari, authDocument.authType,
+							authDocument.range, authDocument.packageName, authDocument.packageSigner, extension);
+					result.add(authData);
 					if (isLogActivated) {
 						logger.debug("Extension '" + extension + "' is added to the list");
 					}
@@ -209,9 +226,15 @@ public class ExtensionManager {
 							logger.debug("Update supported extensions ".concat(extensions));
 						}
 						// Check extensions
-						Set<String> supportedExts = checkExtensions(packageManager, resolveInfos, getExtensions(extensions));
-						// Update supported extensions in database
-						saveSupportedExtensions(supportedExts);
+						Set<AuthorizationData> supportedExts = checkExtensions(packageManager, resolveInfos,
+								getExtensions(extensions));
+						if (!supportedExts.isEmpty()) {
+							// Update supported extensions in database
+							saveSupportedExtensions(supportedExts);
+							// Save IARI Authorization document in cache to avoid having to re-process the signature each time the
+							// application is loaded
+							saveAuthorizations(supportedExts);
+						}
 					}
 				}
 			}
@@ -219,6 +242,17 @@ public class ExtensionManager {
 			if (isLogActivated) {
 				logger.error("Unexpected error", e);
 			}
+		}
+	}
+
+	/**
+	 * Save authorization in provider to avoid having to re-process the signature each time the application is loaded
+	 * 
+	 * @param authorizationDatas
+	 */
+	private void saveAuthorizations(Set<AuthorizationData> authorizationDatas) {
+		for (AuthorizationData authData : authorizationDatas) {
+			mSecurityLog.setAuthorizationForIARI(authData);
 		}
 	}
 
@@ -294,7 +328,7 @@ public class ExtensionManager {
 	}
 
 	/**
-	 * Is extension authorized. 
+	 * Get authorized extensions. 
 	 * NB: there can be at most one IARI for a given extension by app
 	 * 
 	 * @param pm
@@ -303,25 +337,26 @@ public class ExtensionManager {
 	 *            Application info
 	 * @param extension
 	 *            Extension ID
-	 * @return Boolean
+	 * @return IARIAuthDocument or null if not authorized
 	 */
-	public boolean isExtensionAuthorizedBySecurity(PackageManager pm, String packageName, String extension) {
+	private IARIAuthDocument getExtensionAuthorizedBySecurity(PackageManager pm, String packageName, String extension) {
 		boolean islogActivated = logger.isActivated();
 		try {
 			if (!mRcsSettings.isExtensionsAllowed()) {
 				if (islogActivated) {
 					logger.debug("Extensions are NOT allowed");
 				}
-				return false;
+				return null;
 				// ---
 			}
-			if (!mRcsSettings.isExtensionsControlled()) {
-				if (islogActivated) {
-					logger.debug("No control on extensions");
-				}
-				return true;
-				// ---
-			}
+// TODO
+//			if (!mRcsSettings.isExtensionsControlled()) {
+//				if (islogActivated) {
+//					logger.debug("No control on extensions");
+//				}
+//				return true;
+//				// ---
+//			}
 			if (islogActivated) {
 				logger.debug("Check extension " + extension + " for package " + packageName);
 			}
@@ -337,7 +372,7 @@ public class ExtensionManager {
 				if (islogActivated) {
 					logger.debug("Third party extensions are not allowed");
 				}
-				return false;
+				return null;
 				// ---
 			}
 
@@ -348,12 +383,12 @@ public class ExtensionManager {
 				if (islogActivated) {
 					logger.debug("Extension is not authorized: no signature found");
 				}
-				return false;
+				return null;
 				
 			}
 			String sha1Sign = getFingerprint(signs[0].toByteArray());
 			if (islogActivated) {
-				logger.debug("Check application fingerprint: " .concat(sha1Sign));
+				logger.debug("Check application fingerprint: ".concat(sha1Sign));
 			}
 
 			PackageProcessor processor = new PackageProcessor(mTrustStore, packageName, sha1Sign);
@@ -367,11 +402,11 @@ public class ExtensionManager {
 				if (islogActivated) {
 					logger.warn("Failed to find IARI document for ".concat(extension));
 				}
-				return false;
+				return null;
 
 			}
 			if (islogActivated) {
-				logger.info("IARI document found for ".concat(extension));
+				logger.debug("IARI document found for ".concat(extension));
 			}
 
 			try {
@@ -380,7 +415,7 @@ public class ExtensionManager {
 					if (islogActivated) {
 						logger.debug("Extension is authorized: ".concat(extension));
 					}
-					return true;
+					return result.getAuthDocument();
 					// ---
 				}
 				if (islogActivated) {
@@ -400,7 +435,7 @@ public class ExtensionManager {
 				logger.error("Internal exception", e);
 			}
 		}
-		return false;
+		return null;
 	}
 
 	/**
@@ -436,7 +471,7 @@ public class ExtensionManager {
 	 *            hash algorithm to be used
 	 * @return String as xx:yy:zz
 	 */
-	public String getFingerprint(byte[] cert) throws Exception {
+	private String getFingerprint(byte[] cert) throws Exception {
 		
 		MessageDigest md = MessageDigest.getInstance("SHA-1");
 		md.update(cert);
@@ -468,7 +503,7 @@ public class ExtensionManager {
 		intent.addCategory(Intent.CATEGORY_LAUNCHER);
 		for (ResolveInfo info : pm.queryIntentActivities(intent, 0)) {
 			if (processInfo.processName.equals(info.activityInfo.packageName)) {
-				if (isExtensionAuthorizedBySecurity(pm, info.activityInfo.packageName, extension)) {
+				if (getExtensionAuthorizedBySecurity(pm, info.activityInfo.packageName, extension) != null) {
 					return;
 					
 				}

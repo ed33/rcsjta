@@ -72,7 +72,7 @@ import android.text.TextUtils;
 import com.gsma.services.rcs.RcsService;
 import com.orangelabs.rcs.core.ims.service.extension.CertificateProvisioning;
 import com.orangelabs.rcs.provider.LocalContentResolver;
-import com.orangelabs.rcs.provider.security.SecurityInfos;
+import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.MessagingMode;
@@ -707,8 +707,8 @@ public class HttpsProvisioningManager {
 				}
 
 				// Parse the received content
-				SecurityInfos.createInstance(mCtx.getContentResolver());
-				SecurityInfos securityInfos = SecurityInfos.getInstance();
+				SecurityLog.createInstance(mCtx.getContentResolver());
+				SecurityLog securityInfos = SecurityLog.getInstance();
 				ProvisioningParser parser = new ProvisioningParser(result.content, new CertificateProvisioning(securityInfos));
 				
 				// Save GSMA release set into the provider
