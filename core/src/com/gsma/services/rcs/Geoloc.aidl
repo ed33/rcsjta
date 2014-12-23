@@ -1,4 +1,4 @@
-package com.gsma.services.rcs.chat;
+package com.gsma.services.rcs;
 
 /**
  * Geoloc object

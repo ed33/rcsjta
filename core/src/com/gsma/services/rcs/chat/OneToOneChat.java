@@ -22,6 +22,7 @@
 
 package com.gsma.services.rcs.chat;
 
+import com.gsma.services.rcs.Geoloc;
 import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.contacts.ContactId;
 
@@ -35,15 +36,15 @@ public class OneToOneChat {
 	/**
 	 * Chat interface
 	 */
-	private IOneToOneChat chatInf;
+	private final IOneToOneChat mOneToOneChatInf;
 
 	/**
 	 * Constructor
 	 * 
 	 * @param chatIntf Chat interface
 	 */
-	OneToOneChat(IOneToOneChat chatIntf) {
-		this.chatInf = chatIntf;
+	public OneToOneChat(IOneToOneChat chatIntf) {
+		mOneToOneChatInf = chatIntf;
 	}
 
 	/**
@@ -54,7 +55,7 @@ public class OneToOneChat {
 	 */
 	public ContactId getRemoteContact() throws RcsServiceException {
 		try {
-			return chatInf.getRemoteContact();
+			return mOneToOneChatInf.getRemoteContact();
 		} catch (Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -69,7 +70,7 @@ public class OneToOneChat {
 	 */
 	public ChatMessage sendMessage(String message) throws RcsServiceException {
 		try {
-			return chatInf.sendMessage(message);
+			return new ChatMessage(mOneToOneChatInf.sendMessage(message));
 		} catch (Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -79,12 +80,12 @@ public class OneToOneChat {
 	 * Sends a geoloc message
 	 * 
 	 * @param geoloc Geoloc info
-	 * @return Geoloc message
+	 * @return Chat message
 	 * @throws RcsServiceException
 	 */
-	public GeolocMessage sendMessage(Geoloc geoloc) throws RcsServiceException {
+	public ChatMessage sendMessage(Geoloc geoloc) throws RcsServiceException {
 		try {
-			return chatInf.sendMessage2(geoloc);
+			return new ChatMessage(mOneToOneChatInf.sendMessage2(geoloc));
 		} catch (Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -99,7 +100,20 @@ public class OneToOneChat {
 	 */
 	public void sendIsComposingEvent(boolean status) throws RcsServiceException {
 		try {
-			chatInf.sendIsComposingEvent(status);
+			mOneToOneChatInf.sendIsComposingEvent(status);
+		} catch (Exception e) {
+			throw new RcsServiceException(e.getMessage());
+		}
+	}
+
+	/**
+	 * open the chat conversation. Note: if it’s an incoming pending chat
+	 * session and the parameter IM SESSION START is 0 then the session is
+	 * accepted now.
+	 */
+	public void openChat() throws RcsServiceException {
+		try {
+			mOneToOneChatInf.openChat();
 		} catch (Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}

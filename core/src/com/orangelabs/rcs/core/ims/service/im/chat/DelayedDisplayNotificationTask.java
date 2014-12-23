@@ -11,9 +11,9 @@ import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
  * Delayed Display Notification Manager tries to dispatch all pending display
  * notifications
  */
-public class DelayedDisplayNotificationManager {
+public class DelayedDisplayNotificationTask {
 
-	public DelayedDisplayNotificationManager(InstantMessagingService instantMessagingService) {
+	public DelayedDisplayNotificationTask(InstantMessagingService instantMessagingService) {
 		instantMessagingService.getImsModule().getCore().getListener()
 				.tryToDispatchAllPendingDisplayNotifications();
 	}

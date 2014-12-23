@@ -23,5 +23,5 @@ package android.tests.sigtest;
  * @author Jean-Marc AUFFRET
  */
 public class ToTest {
-	public static int VERSION = R.xml.blackbird;
+	public static int VERSION = R.xml.blackbird_1_5;
 }

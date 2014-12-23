@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +15,12 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.core.ims;
-
-import java.util.Enumeration;
 
 import com.orangelabs.rcs.core.Core;
 import com.orangelabs.rcs.core.CoreException;
@@ -47,6 +49,8 @@ import com.orangelabs.rcs.core.ims.service.sip.SipService;
 import com.orangelabs.rcs.core.ims.service.terms.TermsConditionsService;
 import com.orangelabs.rcs.core.ims.userprofile.UserProfile;
 import com.orangelabs.rcs.platform.AndroidFactory;
+import com.orangelabs.rcs.provider.eab.ContactsManager;
+import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -135,7 +139,11 @@ public class ImsModule implements SipEventListener {
 	    	}
 	    	throw new CoreException("Keystore manager exception");			
 		}
-		
+
+		ContactsManager contactsManager = ContactsManager.getInstance();
+
+		MessagingLog messagingLog = MessagingLog.getInstance();
+
 		// Get capability extensions
 		ExtensionManager extensionManager = ExtensionManager.getInstance();
 		extensionManager.updateSupportedExtensions(AndroidFactory.getApplicationContext(), true);
@@ -144,22 +152,22 @@ public class ImsModule implements SipEventListener {
         services = new ImsService[7];
         
         // Create terms & conditions service
-        services[ImsService.TERMS_SERVICE] = new TermsConditionsService(this);
+        services[ImsService.TERMS_SERVICE] = new TermsConditionsService(this,rcsSettings);
 
         // Create capability discovery service
-        services[ImsService.CAPABILITY_SERVICE] = new CapabilityService(this);
+        services[ImsService.CAPABILITY_SERVICE] = new CapabilityService(this, rcsSettings, contactsManager);
         
         // Create IM service (mandatory)
-        services[ImsService.IM_SERVICE] = new InstantMessagingService(this);
+        services[ImsService.IM_SERVICE] = new InstantMessagingService(this, core, rcsSettings, contactsManager, messagingLog);
         
         // Create IP call service (optional)
-        services[ImsService.IPCALL_SERVICE] = new IPCallService(this);
+        services[ImsService.IPCALL_SERVICE] = new IPCallService(this, rcsSettings);
         
         // Create richcall service (optional)
         services[ImsService.RICHCALL_SERVICE] = new RichcallService(this);
 
         // Create presence service (optional)
-        services[ImsService.PRESENCE_SERVICE] = new PresenceService(this);
+        services[ImsService.PRESENCE_SERVICE] = new PresenceService(this, rcsSettings, contactsManager);
 
         // Create generic SIP service
         services[ImsService.SIP_SERVICE] = new SipService(this);
@@ -439,28 +447,12 @@ public class ImsModule implements SipEventListener {
 	 * Abort all sessions
 	 */
 	public void abortAllSessions() {
-        try {
-            if (logger.isActivated()) {
-                logger.debug("Abort all pending sessions");
-            }
-            ImsService[] services = getImsServices();
-            for (int i = 0; i < services.length; i++) {
-                ImsService service = services[i];
-                for (Enumeration<ImsServiceSession> e = service.getSessions(); e.hasMoreElements();) {
-                    ImsServiceSession session = (ImsServiceSession) e.nextElement();
-                    if (logger.isActivated()) {
-                        logger.debug("Abort session " + session.getSessionID());
-                    }
-                    session.abortSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
-                }
-            }
-        } catch (Exception e) {
-            // Aborting sessions may fail (e.g. due to ConcurrentModificationException)
-            // we don't want the whole shutdown to be interrupted just because of this
-            if (logger.isActivated()) {
-                logger.error("Aborting all sessions failed", e);
-            }
-        }
+		if (logger.isActivated()) {
+			logger.debug("Abort all pending sessions");
+		}
+		for (ImsService service : getImsServices()) {
+			service.abortAllSessions(ImsServiceSession.TERMINATION_BY_SYSTEM);
+		}
 	}
 	
     /**

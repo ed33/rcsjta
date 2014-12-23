@@ -1,6 +1,7 @@
 package com.gsma.services.rcs.chat;
 
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
+import com.gsma.services.rcs.chat.IChatMessage;
 import com.gsma.services.rcs.chat.IOneToOneChatListener;
 import com.gsma.services.rcs.chat.IOneToOneChat;
 import com.gsma.services.rcs.chat.IGroupChatListener;
@@ -21,16 +22,10 @@ interface IChatService {
 
 	ChatServiceConfiguration getConfiguration();
     
-	IOneToOneChat openSingleChat(in ContactId contact);
-
 	IGroupChat initiateGroupChat(in List<ContactId> contacts, in String subject);
-    
-	IGroupChat rejoinGroupChat(in String chatId);
-    
-	IGroupChat restartGroupChat(in String chatId);
-    
-	IOneToOneChat getChat(in ContactId contact);
-    
+
+	IOneToOneChat getOneToOneChat(in ContactId contact);
+
 	IGroupChat getGroupChat(in String chatId);
 	
 	void markMessageAsRead(in String msgId);
@@ -46,4 +41,6 @@ interface IChatService {
 	int getServiceVersion();
 	
 	void setRespondToDisplayReports(in boolean enable);
+
+	IChatMessage getChatMessage(in String msgId);
 }

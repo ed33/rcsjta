@@ -34,9 +34,9 @@ import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.content.VideoContent;
 import com.orangelabs.rcs.core.ims.ImsError;
 import com.orangelabs.rcs.core.ims.service.capability.Capabilities;
-import com.orangelabs.rcs.core.ims.service.im.chat.OneOneChatSession;
+import com.orangelabs.rcs.core.ims.service.im.chat.OneToOneChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.TerminatingAdhocGroupChatSession;
-import com.orangelabs.rcs.core.ims.service.im.chat.TerminatingOne2OneChatSession;
+import com.orangelabs.rcs.core.ims.service.im.chat.TerminatingOneToOneChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.imdn.ImdnDocument;
 import com.orangelabs.rcs.core.ims.service.im.chat.standfw.TerminatingStoreAndForwardMsgSession;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession;
@@ -47,6 +47,7 @@ import com.orangelabs.rcs.core.ims.service.richcall.image.ImageTransferSession;
 import com.orangelabs.rcs.core.ims.service.richcall.video.VideoStreamingSession;
 import com.orangelabs.rcs.core.ims.service.sip.messaging.GenericSipMsrpSession;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.GenericSipRtpSession;
+import com.orangelabs.rcs.service.api.ServerApiException;
 
 /**
  * Observer of core events
@@ -158,7 +159,7 @@ public interface CoreListener {
 	 * @param fileSharingSession File transfer session
 	 * @param oneToOneChatSession Chat session
 	 */
-	public void handleOneToOneFileTransferInvitation(FileSharingSession fileSharingSession, OneOneChatSession oneToOneChatSession);
+	public void handleOneToOneFileTransferInvitation(FileSharingSession fileSharingSession, OneToOneChatSession oneToOneChatSession);
 
     /**
      * An incoming file transfer has been resumed
@@ -183,7 +184,7 @@ public interface CoreListener {
      * 
      * @param session Chat session
      */
-    public void handleOneOneChatSessionInvitation(TerminatingOne2OneChatSession session);
+    public void handleOneOneChatSessionInvitation(TerminatingOneToOneChatSession session);
     
     /**
      * New ad-hoc group chat session invitation
@@ -352,4 +353,27 @@ public interface CoreListener {
      */
     public void handleIPCallInvitationRejected(ContactId contact, AudioContent audioContent,
             VideoContent videoContent, int reasonCode);
+
+    /**
+     * Handle one-to-one chat session initiation
+     * 
+     * @param session Chat session
+     */
+    public void handleOneOneChatSessionInitiation(OneToOneChatSession session);
+
+	/**
+     * Handle rejoin group chat as part of send operation
+     * 
+     * @param chatId
+     * @throws ServerApiException
+     */
+    public void handleRejoinGroupChatAsPartOfSendOperation(String chatId) throws ServerApiException;
+
+    /**
+     * Handle auto rejoin group chat
+     * 
+     * @param chatId
+     * @throws ServerApiException
+     */
+    public void handleAutoRejoinGroupChat(String chatId) throws ServerApiException;
 }

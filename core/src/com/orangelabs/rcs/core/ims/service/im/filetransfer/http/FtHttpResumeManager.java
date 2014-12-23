@@ -92,7 +92,7 @@ public class FtHttpResumeManager {
 				// This is necessary in case of the application can't update the
 				// state before device switch off.
 				for (FtHttpResume ftHttpResume : listFile2resume) {
-					MessagingLog.getInstance().updateFileTransferStateAndReasonCode(
+					MessagingLog.getInstance().setFileTransferStateAndReasonCode(
 							ftHttpResume.getFileTransferId(), FileTransfer.State.PAUSED,
 							FileTransfer.ReasonCode.PAUSED_BY_SYSTEM);
 				}
@@ -137,7 +137,7 @@ public class FtHttpResumeManager {
 					.getImsModule()
 					.getCore()
 					.getListener()
-					.handleIncomingFileTransferResuming(resumeDownload, resumeDownload.isGroup, resumeDownload.getChatSessionID(),
+					.handleIncomingFileTransferResuming(resumeDownload, resumeDownload.isGroupFileTransfer(), resumeDownload.getChatSessionID(),
 							resumeDownload.getContributionID());
 			break;
 		case Direction.OUTGOING:
@@ -260,5 +260,4 @@ public class FtHttpResumeManager {
 	public void terminate() {
 		this.terminate = true;
 	}
-
 }

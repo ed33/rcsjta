@@ -22,9 +22,9 @@
 package com.orangelabs.rcs.service.api;
 
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import android.net.Uri;
 import android.os.IBinder;
@@ -37,11 +37,11 @@ import com.gsma.services.rcs.upload.IFileUploadListener;
 import com.gsma.services.rcs.upload.IFileUploadService;
 import com.orangelabs.rcs.core.content.ContentManager;
 import com.orangelabs.rcs.core.content.MmContent;
+import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession;
 import com.orangelabs.rcs.core.ims.service.upload.FileUploadSession;
 import com.orangelabs.rcs.platform.file.FileDescription;
 import com.orangelabs.rcs.platform.file.FileFactory;
-import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.service.broadcaster.FileUploadEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -52,21 +52,12 @@ import com.orangelabs.rcs.utils.logger.Logger;
  */
 public class FileUploadServiceImpl extends IFileUploadService.Stub {
 
-	/**
-	 * List of file upload sessions
-	 */
-	private static Hashtable<String, IFileUpload> uploadSessions = new Hashtable<String, IFileUpload>();
+	private final FileUploadEventBroadcaster mBroadcaster = new FileUploadEventBroadcaster();
 
-	/***
-	 * Event broadcaster
-	 */
-	private final FileUploadEventBroadcaster mFileUploadEventBroadcaster = new FileUploadEventBroadcaster();
+	private final InstantMessagingService mImService;
 
-	/**
-	 * Max file upload sessions
-	 */
-	private int maxUploadSessions;
-	
+	private final Map<String, IFileUpload> mFileUploadCache = new HashMap<String, IFileUpload>();
+
 	/**
 	 * Max file upload size
 	 */
@@ -84,23 +75,24 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
 
 	/**
 	 * Constructor
+	 * 
+	 * @param imService InstantMessagingService
 	 */
-	public FileUploadServiceImpl() {
+	public FileUploadServiceImpl(InstantMessagingService imService) {
 		if (logger.isActivated()) {
 			logger.info("File upload service API is loaded");
 		}
-		
+
 		// Get configuration
-		maxUploadSessions = RcsSettings.getInstance().getMaxFileTransferSessions();
 		maxUploadSize = FileSharingSession.getMaxFileSharingSize();
+		mImService = imService;
 	}
 
 	/**
 	 * Close API
 	 */
 	public void close() {
-		// Clear list of sessions
-		uploadSessions.clear();
+		mFileUploadCache.clear();
 		
 		if (logger.isActivated()) {
 			logger.info("File upload service API is closed");
@@ -108,29 +100,29 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
 	}
 
 	/**
-	 * Add a file upload session in the list
+	 * Add a file upload in the list
 	 * 
-	 * @param session File upload session
+	 * @param filUpload File upload
 	 */
-	protected static void addFileUploadSession(FileUploadImpl session) {
+	protected void addFileUpload(FileUploadImpl filUpload) {
 		if (logger.isActivated()) {
-			logger.debug("Add a file upload session in the list (size=" + uploadSessions.size() + ")");
+			logger.debug("Add a file upload in the list (size=" + mFileUploadCache.size() + ")");
 		}
 		
-		uploadSessions.put(session.getUploadId(), session);
+		mFileUploadCache.put(filUpload.getUploadId(), filUpload);
 	}
 
 	/**
-	 * Remove a file upload session from the list
+	 * Remove a file upload from the list
 	 * 
-	 * @param sessionId Session ID
+	 * @param uploadId Upload ID
 	 */
-	protected static void removeFileUploadSession(String sessionId) {
+	protected void removeFileUpload(String sessionId) {
 		if (logger.isActivated()) {
-			logger.debug("Remove a file upload session from the list (size=" + uploadSessions.size() + ")");
+			logger.debug("Remove a file upload from the list (size=" + mFileUploadCache.size() + ")");
 		}
 		
-		uploadSessions.remove(sessionId);
+		mFileUploadCache.remove(sessionId);
 	}
 
     /**
@@ -161,40 +153,26 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
 		ServerApiUtils.testCore();
 
 		try {
-			// Test number of sessions
-			if ((maxUploadSessions != 0) && (uploadSessions.size() >= maxUploadSessions)) {
-				if (logger.isActivated()) {
-					logger.debug("The max number of file upload sessions is achieved: cancel the initiation");
-				}
-				throw new ServerApiException("Max file transfer sessions achieved");
-			}
+			mImService.assertAvailableFileTransferSession("Max file transfer sessions achieved.");
 
-			// Create a file content
 			FileDescription desc = FileFactory.getFactory().getFileDescription(file);
 			MmContent content = ContentManager.createMmContent(file, desc.getSize(), desc.getName());
 
-			// Test max size
-	        if (maxUploadSize > 0 && content.getSize() > maxUploadSize) {
-	            if (logger.isActivated()) {
-	                logger.debug("File exceeds max size: cancel the initiation");
-	            }
-	            throw new ServerApiException("File exceeds max size");
-	        }
+			mImService.assertFileSizeNotExceedingMaxLimit(content.getSize(), "File exceeds max size.");
 
-			// Initiate an upload session
 			final FileUploadSession session = new FileUploadSession(content, fileicon);
 
-			// Add session listener
-			FileUploadImpl sessionApi = new FileUploadImpl(session, mFileUploadEventBroadcaster);
+			FileUploadImpl fileUpload = new FileUploadImpl(session.getUploadID(),
+					mBroadcaster, mImService, this);
+			session.addListener(fileUpload);
 
-			// Start the session
-			session.start();
+			session.startSession();
 			
-			// Add session in the list
-			addFileUploadSession(sessionApi);
-			return sessionApi;
+			addFileUpload(fileUpload);
+			return fileUpload;
+
 		} catch(Exception e) {
-			// TODO:Handle Security exception in CR026
+			// TODO:Handle Security exception in CR037
 			if (logger.isActivated()) {
 				logger.error("Unexpected error", e);
 			}
@@ -216,12 +194,7 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
 		// Test IMS connection
 		ServerApiUtils.testCore();
 
-		// Test number of ongoing sessions
-		if ((maxUploadSessions != 0) && (uploadSessions.size() >= maxUploadSessions)) {
-			return false;
-		} else {
-			return true;
-		}
+		return mImService.isFileTransferSessionAvailable();
     }
     
     /**
@@ -236,19 +209,19 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
 		}
 
 		try {
-			ArrayList<IBinder> result = new ArrayList<IBinder>(uploadSessions.size());
-			for (Enumeration<IFileUpload> e = uploadSessions.elements() ; e.hasMoreElements() ;) {
-				IFileUpload sessionApi = e.nextElement() ;
-				result.add(sessionApi.asBinder());
+			List<IBinder> fileUploads = new ArrayList<IBinder>(mFileUploadCache.size());
+			for (IFileUpload fileUpload : mFileUploadCache.values()) {
+				fileUploads.add(fileUpload.asBinder());
 			}
-			return result;
+			return fileUploads;
+
 		} catch(Exception e) {
 			if (logger.isActivated()) {
 				logger.error("Unexpected error", e);
 			}
 			throw new ServerApiException(e.getMessage());
 		}
-    }    
+    }
 
     /**
      * Returns a current file upload from its unique ID
@@ -256,13 +229,17 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
      * @return File upload
      * @throws ServerApiException
      */
-    public IFileUpload getFileUpload(String uploadId) throws ServerApiException {
+	public IFileUpload getFileUpload(String uploadId) throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Get file upload session " + uploadId);
+			logger.info("Get file upload " + uploadId);
 		}
 
-		return uploadSessions.get(uploadId);
-    }    
+		IFileUpload fileUpload = mFileUploadCache.get(uploadId);
+		if (fileUpload != null) {
+			return fileUpload;
+		}
+		return new FileUploadImpl(uploadId, mBroadcaster, mImService, this);
+	}
 
 	/**
 	 * Adds a listener on file upload events
@@ -274,7 +251,7 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
 			logger.info("Add a file upload event listener");
 		}
 		synchronized (lock) {
-			mFileUploadEventBroadcaster.addEventListener(listener);
+			mBroadcaster.addEventListener(listener);
 		}
 	}
 
@@ -288,7 +265,7 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
 			logger.info("Remove a file upload event listener");
 		}
 		synchronized (lock) {
-			mFileUploadEventBroadcaster.removeEventListener(listener);
+			mBroadcaster.removeEventListener(listener);
 		}
 	}
 

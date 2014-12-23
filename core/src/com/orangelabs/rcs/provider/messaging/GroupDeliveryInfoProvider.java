@@ -5,6 +5,9 @@
 
 package com.orangelabs.rcs.provider.messaging;
 
+import com.gsma.services.rcs.GroupDeliveryInfoLog;
+import com.orangelabs.rcs.utils.DatabaseUtils;
+
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
