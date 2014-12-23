@@ -17,10 +17,10 @@ package com.orangelabs.rcs.core.ims.service.extension;
 /**
  * An interface to handle events when parsing X509 certificates from the provisioning
  * 
- * @author LEMORDANT Philippe
+ * @author Ph. LEMORDANT
  *
  */
-public interface ICertificateProvisioning {
+public interface ICertificateProvisioningListener {
 
 	/**
 	 * Method called once first iariAuthorizationInfo node is detected

@@ -18,15 +18,17 @@
 package com.orangelabs.rcs.security;
 
 import java.util.Map;
+import java.util.Set;
 
 import android.content.ContentResolver;
 import android.test.AndroidTestCase;
+import android.util.Log;
 
 import com.orangelabs.rcs.core.ims.service.extension.IARICertificate;
-import com.orangelabs.rcs.provider.security.SecurityInfoData;
 import com.orangelabs.rcs.provider.security.SecurityInfos;
 
 public class SecurityInfoProviderTest extends AndroidTestCase {
+	
 	private String cert1 = "MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t"
 			+ "Y2MwOTkubW5jMDk5MB4XDTE0MDUxNTA5MTA1NVoXDTE1MDUxMDA5MTA1NVowGDEW"
 			+ "MBQGA1UEAxMNbWNjMDk5Lm1uYzA5OTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCC"
@@ -54,7 +56,8 @@ public class SecurityInfoProviderTest extends AndroidTestCase {
 			+ "F9IkvpOyugvGALhRQ4YYlzQAqLfuVHHoOq/xJ52wHSLEFY9E6qyT86J36yTexK7K"
 			+ "/AwXrlRnTAjHLISjY2HQoV/S7aKaz7u1/GWky5lzgqRYXeF60/LEzLziv+LoTL11"
 			+ "UErs0Eex2MnwCidC4cszddxQvzLJBoMCAwEAAaNlMGMwQgYDVR0RBDswOYY3dXJu";
-
+	
+	
 	private String iari1 = "urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo1";
 
 	private String iari2 = "urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo2";
@@ -68,6 +71,8 @@ public class SecurityInfoProviderTest extends AndroidTestCase {
 	private IARICertificate mIari2Cert1;
 	private IARICertificate mIari2Cert2;
 
+	private SecurityInfosTest mSecurityInfosTest;
+
 	protected void setUp() throws Exception {
 		super.setUp();
 
@@ -78,40 +83,41 @@ public class SecurityInfoProviderTest extends AndroidTestCase {
 		mIari1Cert2 = new IARICertificate(iari1, cert2);
 		mIari2Cert1 = new IARICertificate(iari2, cert1);
 		mIari2Cert2 = new IARICertificate(iari2, cert2);
-		removeAll();
+		mSecurityInfosTest = new SecurityInfosTest();
+		mSecurityInfosTest.removeAll(mContentResolver);
 	}
 
 	protected void tearDown() throws Exception {
 		super.tearDown();
-		removeAll();
-	}
-
-	/**
-	 * Remove all IARI authorizations
-	 * 
-	 * @return The number of rows deleted.
-	 */
-	public int removeAll() {
-		return mContentResolver
-				.delete(SecurityInfoData.CONTENT_URI, null, null);
+		mSecurityInfosTest.removeAll(mContentResolver);
 	}
 
 	public void testAddAuthorizations() {
 		Map<IARICertificate, Integer> map = mSecurityInfos.getAll();
 		assertEquals(0, map.size());
 
+		Log.w("[TEST]", "before "+mIari1Cert1.toString());
+		
 		mSecurityInfos.addCertificateForIARI(mIari1Cert1);
-		Integer id = mSecurityInfos.getIdForIariAndCertificate(mIari1Cert1);
-		assertNotSame(id, SecurityInfos.INVALID_ID);
+		Integer id = mSecurityInfosTest.getIdForIariAndCertificate(mContentResolver, mIari1Cert1);
+		assertNotSame(id, SecurityInfosTest.INVALID_ID);
+		Log.w("[TEST]", "ID="+id);
 		map = mSecurityInfos.getAll();
 		assertEquals(1, map.size());
+		Set<IARICertificate> certificates = map.keySet();
+		for (IARICertificate iariCertificate : certificates) {
+			Log.w("[TEST]", "between "+iariCertificate.toString());
+		}
+		Log.w("[TEST]", "after "+mIari1Cert1.toString());
 		assertTrue(map.containsKey(mIari1Cert1));
+
 		assertTrue(map.get(mIari1Cert1).equals(id));
+		
 
 		mSecurityInfos.addCertificateForIARI(mIari1Cert1);
-		Integer new_id = mSecurityInfos.getIdForIariAndCertificate(mIari1Cert1);
+		Integer new_id = mSecurityInfosTest.getIdForIariAndCertificate(mContentResolver, mIari1Cert1);
 		assertEquals(id, new_id);
-		assertNotSame(id, SecurityInfos.INVALID_ID);
+		assertNotSame(id, SecurityInfosTest.INVALID_ID);
 		map = mSecurityInfos.getAll();
 		assertEquals(1, map.size());
 		assertTrue(map.containsKey(mIari1Cert1));
@@ -120,8 +126,8 @@ public class SecurityInfoProviderTest extends AndroidTestCase {
 
 	public void testRemoveAuthorizations() {
 		mSecurityInfos.addCertificateForIARI(mIari1Cert1);
-		int id = mSecurityInfos.getIdForIariAndCertificate(mIari1Cert1);
-		assertNotSame(id, SecurityInfos.INVALID_ID);
+		int id = mSecurityInfosTest.getIdForIariAndCertificate(mContentResolver, mIari1Cert1);
+		assertNotSame(id, SecurityInfosTest.INVALID_ID);
 		int count = mSecurityInfos.removeCertificate(id);
 		assertEquals(1, count);
 		Map<IARICertificate, Integer> map = mSecurityInfos.getAll();

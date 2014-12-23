@@ -31,6 +31,7 @@ import com.gsma.services.rcs.extension.MultimediaSession;
 import com.gsma.services.rcs.extension.MultimediaSession.ReasonCode;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipDialogPath;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.core.ims.service.sip.SipSessionError;
 import com.orangelabs.rcs.core.ims.service.sip.SipSessionListener;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.GenericSipRtpSession;
@@ -56,6 +57,8 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 	 * Lock used for synchronization
 	 */
 	private final Object lock = new Object();
+
+	private ExtensionManager mServiceExtensionManager;
 	
     /**
 	 * The logger
@@ -73,6 +76,8 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		this.session = session;
 		mMultimediaStreamingSessionEventBroadcaster = broadcaster;
 		session.addListener(this);
+		
+		mServiceExtensionManager = ExtensionManager.getInstance();
 	}
 
 	private void handleSessionRejected(int reasonCode) {
@@ -171,7 +176,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		}
 		
 		// Test security extension
-		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
 
 		// Accept invitation
         new Thread() {
@@ -192,7 +197,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		}
 
 		// Test security extension
-		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
 
 		// Reject invitation
         new Thread() {
@@ -213,7 +218,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		}
 
 		// Test security extension
-		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
 
 		// Abort the session
         new Thread() {
@@ -231,7 +236,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 	 */
 	public void sendPayload(byte[] content) throws ServerApiException {
 		// Test security extension
-		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
 
 		/* TODO: This exception handling is not correct. Will be fixed CR037. */
 		if (!session.sendPlayload(content)) {

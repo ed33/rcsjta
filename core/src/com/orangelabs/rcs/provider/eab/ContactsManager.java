@@ -68,7 +68,7 @@ import com.orangelabs.rcs.core.ims.service.ContactInfo;
 import com.orangelabs.rcs.core.ims.service.ContactInfo.RcsStatus;
 import com.orangelabs.rcs.core.ims.service.ContactInfo.RegistrationState;
 import com.orangelabs.rcs.core.ims.service.capability.Capabilities;
-import com.orangelabs.rcs.core.ims.service.extension.ServiceExtensionManager;
+import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.core.ims.service.presence.FavoriteLink;
 import com.orangelabs.rcs.core.ims.service.presence.Geoloc;
 import com.orangelabs.rcs.core.ims.service.presence.PhotoIcon;
@@ -322,6 +322,8 @@ public final class ContactsManager {
 	 */
 	private final Map<ContactId,Capabilities> mCapabilitiesCache;
 	
+	private final RcsSettings mRcsSettings;
+	
 	/**
 	 * The logger
 	 */
@@ -366,6 +368,7 @@ public final class ContactsManager {
 		mContentResolver = null;
 		mLocalContentResolver = null;
 		mCapabilitiesCache = null;
+		mRcsSettings = null;
 	}
 	
     /**
@@ -380,6 +383,9 @@ public final class ContactsManager {
         mContentResolver = contentResolver;
         mLocalContentResolver = localContentResolver;
         mCapabilitiesCache = new HashMap<ContactId,Capabilities>();
+        
+        RcsSettings.createInstance(mContext);
+        mRcsSettings = RcsSettings.getInstance();
     }
 
 	/**
@@ -391,7 +397,7 @@ public final class ContactsManager {
 		if (logger.isActivated()) {
 			logger.info("Get my presence info");
 		}
-		if (!RcsSettings.getInstance().isSocialPresenceSupported()){
+		if (!mRcsSettings.isSocialPresenceSupported()){
 			return new PresenceInfo();
 			
 		}
@@ -441,7 +447,7 @@ public final class ContactsManager {
 		values.put(RichAddressBookData.KEY_CAPABILITY_IMAGE_SHARING, support);
 
 		support = (newCapabilities.isImSessionSupported() && isRegistered)
-				|| (RcsSettings.getInstance().isImAlwaysOn() && newInfo.isRcsContact());
+				|| (mRcsSettings.isImAlwaysOn() && newInfo.isRcsContact());
 		values.put(RichAddressBookData.KEY_CAPABILITY_IM_SESSION, support);
 
 		support = newCapabilities.isPresenceDiscoverySupported() && isRegistered;
@@ -469,7 +475,7 @@ public final class ContactsManager {
 		values.put(RichAddressBookData.KEY_CAPABILITY_IP_VIDEO_CALL, support);
 
 		support = (newCapabilities.isFileTransferStoreForwardSupported() && isRegistered)
-				|| (RcsSettings.getInstance().isFtAlwaysOn() && newInfo.isRcsContact());
+				|| (mRcsSettings.isFtAlwaysOn() && newInfo.isRcsContact());
 		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_SF, support);
 
 		support = newCapabilities.isSipAutomata() && isRegistered;
@@ -480,7 +486,7 @@ public final class ContactsManager {
 
 		// Save the capabilities extensions
 		values.put(RichAddressBookData.KEY_CAPABILITY_EXTENSIONS,
-				ServiceExtensionManager.getInstance().getExtensions(newCapabilities.getSupportedExtensions()));
+				ExtensionManager.getExtensions(newCapabilities.getSupportedExtensions()));
 
 		// Save capabilities timestamp
 		values.put(RichAddressBookData.KEY_CAPABILITY_TIME_LAST_RQST, newCapabilities.getTimestampOfLastRequest());
@@ -589,7 +595,7 @@ public final class ContactsManager {
     			
     			// File transfer
     			// For FT, also check if the FT S&F is activated, for RCS contacts
-    			ContentProviderOperation op = modifyMimeTypeForContact(rcsRawContactId, contact, MIMETYPE_CAPABILITY_FILE_TRANSFER, (newInfo.getCapabilities().isFileTransferSupported() && isRegistered)||(RcsSettings.getInstance().isFileTransferStoreForwardSupported() && newInfo.isRcsContact()), oldInfo.getCapabilities().isFileTransferSupported());
+    			ContentProviderOperation op = modifyMimeTypeForContact(rcsRawContactId, contact, MIMETYPE_CAPABILITY_FILE_TRANSFER, (newInfo.getCapabilities().isFileTransferSupported() && isRegistered)||(mRcsSettings.isFileTransferStoreForwardSupported() && newInfo.isRcsContact()), oldInfo.getCapabilities().isFileTransferSupported());
     			if (op!=null){
     				ops.add(op);
     			}
@@ -600,7 +606,7 @@ public final class ContactsManager {
     			}
     			// IM session
     			// For IM, also check if the IM capability always on is activated, for RCS contacts
-    			op = modifyMimeTypeForContact(rcsRawContactId, contact, MIMETYPE_CAPABILITY_IM_SESSION, (newInfo.getCapabilities().isImSessionSupported() && isRegistered)||(RcsSettings.getInstance().isImAlwaysOn() && newInfo.isRcsContact()), oldInfo.getCapabilities().isImSessionSupported());
+    			op = modifyMimeTypeForContact(rcsRawContactId, contact, MIMETYPE_CAPABILITY_IM_SESSION, (newInfo.getCapabilities().isImSessionSupported() && isRegistered)||(mRcsSettings.isImAlwaysOn() && newInfo.isRcsContact()), oldInfo.getCapabilities().isImSessionSupported());
     			if (op!=null){
     				ops.add(op);
     			}
@@ -777,7 +783,7 @@ public final class ContactsManager {
 					capabilities.setSipAutomata(isCapabilitySupported(cursor, RichAddressBookData.KEY_AUTOMATA));
 					
 					// Set RCS extensions capability
-					capabilities.setSupportedExtensions(ServiceExtensionManager.getInstance().getExtensions(
+					capabilities.setSupportedExtensions(ExtensionManager.getExtensions(
 							cursor.getString(cursor.getColumnIndexOrThrow(RichAddressBookData.KEY_CAPABILITY_EXTENSIONS))));
 
 					// Set time of last request
@@ -1372,7 +1378,7 @@ public final class ContactsManager {
 				.newUpdate(Data.CONTENT_URI)
 				.withSelection(SELECTION_RAW_CONTACT_MIMETYPE_DATA1,
 						new String[] { String.valueOf(rawContactId), MIMETYPE_CAPABILITY_EXTENSIONS, contact.toString() })
-				.withValue(Data.DATA2, ServiceExtensionManager.getInstance().getExtensions(newExtensions)).build());
+				.withValue(Data.DATA2, ExtensionManager.getExtensions(newExtensions)).build());
 		return ops;
 	}
 	
@@ -1614,7 +1620,7 @@ public final class ContactsManager {
 		// - if the capability is present and the contact is registered
 		// - if the FT S&F is enabled and the contact is RCS capable		
 		capabilities.setFileTransferSupport((capabilities.isFileTransferSupported() && isRegistered) ||
-				(RcsSettings.getInstance().isFileTransferStoreForwardSupported() && newInfo.isRcsContact()));
+				(mRcsSettings.isFileTransferStoreForwardSupported() && newInfo.isRcsContact()));
 		
 		// Image sharing
 		capabilities.setImageSharingSupport(capabilities.isImageSharingSupported() && isRegistered);
@@ -1624,14 +1630,14 @@ public final class ContactsManager {
 		// - if the capability is present and the contact is registered
 		// - if the IM store&forward is enabled and the contact is RCS capable
 		capabilities.setImSessionSupport((capabilities.isImSessionSupported() && isRegistered) 
-				|| (RcsSettings.getInstance().isImAlwaysOn() && newInfo.isRcsContact()));
+				|| (mRcsSettings.isImAlwaysOn() && newInfo.isRcsContact()));
 		
 		// IM session. This capability is enabled:
 		// - if the capability is present and the contact is registered
 		// - if the IM S&F is enabled and the contact is RCS capable
 		// - if the IM store&forward is enabled and the contact is RCS capable
 		capabilities.setImSessionSupport((capabilities.isImSessionSupported() && isRegistered) 
-				|| (RcsSettings.getInstance().isImAlwaysOn() && newInfo.isRcsContact()));
+				|| (mRcsSettings.isImAlwaysOn() && newInfo.isRcsContact()));
 		
 		// Video sharing
 		capabilities.setVideoSharingSupport(capabilities.isVideoSharingSupported() && isRegistered);
@@ -1647,7 +1653,7 @@ public final class ContactsManager {
 		
 		// FT S&F
 		capabilities.setFileTransferStoreForwardSupport((capabilities.isFileTransferStoreForwardSupported() && isRegistered)||
-				(RcsSettings.getInstance().isFtAlwaysOn() && newInfo.isRcsContact()));
+				(mRcsSettings.isFtAlwaysOn() && newInfo.isRcsContact()));
 
 		// Group chat S&F
 		capabilities.setGroupChatStoreForwardSupport(capabilities.isGroupChatStoreForwardSupported() && isRegistered);
@@ -1702,7 +1708,7 @@ public final class ContactsManager {
 		caps.setImageSharingSupport(supported);
 		values.put(RichAddressBookData.KEY_CAPABILITY_IMAGE_SHARING, supported);
 		
-		supported = (caps.isImSessionSupported() && isRegistered) || (RcsSettings.getInstance().isImAlwaysOn() && isRcsContact);
+		supported = (caps.isImSessionSupported() && isRegistered) || (mRcsSettings.isImAlwaysOn() && isRcsContact);
 		caps.setImSessionSupport(supported);
 		values.put(RichAddressBookData.KEY_CAPABILITY_IM_SESSION, supported);
 
@@ -1739,7 +1745,7 @@ public final class ContactsManager {
 		values.put(RichAddressBookData.KEY_CAPABILITY_IP_VIDEO_CALL, supported);
 
 		supported = (caps.isFileTransferStoreForwardSupported() && isRegistered)
-				|| (RcsSettings.getInstance().isFtAlwaysOn() && isRcsContact);
+				|| (mRcsSettings.isFtAlwaysOn() && isRcsContact);
 		caps.setFileTransferStoreForwardSupport(supported);
 		values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_SF, supported);
 		
@@ -1751,9 +1757,8 @@ public final class ContactsManager {
 		caps.setGroupChatStoreForwardSupport(supported);
 		values.put(RichAddressBookData.KEY_CAPABILITY_GROUP_CHAT_SF, supported);
 		
-		String extensions = ServiceExtensionManager.getInstance().getExtensions(caps.getSupportedExtensions());
 		// Save the capabilities extensions
-		values.put(RichAddressBookData.KEY_CAPABILITY_EXTENSIONS, extensions);
+		values.put(RichAddressBookData.KEY_CAPABILITY_EXTENSIONS, ExtensionManager.getExtensions(caps.getSupportedExtensions()));
 		
 		// Save capabilities timestamp
 		values.put(RichAddressBookData.KEY_CAPABILITY_TIME_LAST_RQST, caps.getTimestampOfLastRequest());
@@ -1873,7 +1878,7 @@ public final class ContactsManager {
 			caps.setSipAutomata(isCapabilitySupported(cursor, RichAddressBookData.KEY_AUTOMATA));
 
 			// Set RCS extensions capability
-			caps.setSupportedExtensions(ServiceExtensionManager.getInstance().getExtensions(
+			caps.setSupportedExtensions(ExtensionManager.getExtensions(
 					cursor.getString(cursor.getColumnIndexOrThrow(RichAddressBookData.KEY_CAPABILITY_EXTENSIONS))));
 
 			// Set time of last request
@@ -1998,7 +2003,7 @@ public final class ContactsManager {
 				.withValueBackReference(Data.RAW_CONTACT_ID, rawContactRefIms)
 				.withValue(Data.MIMETYPE, MIMETYPE_CAPABILITY_EXTENSIONS)
 				.withValue(Data.DATA1, info.getContact().toString())
-				.withValue(Data.DATA2, ServiceExtensionManager.getInstance().getExtensions(info.getCapabilities().getSupportedExtensions()))
+				.withValue(Data.DATA2, ExtensionManager.getExtensions(info.getCapabilities().getSupportedExtensions()))
 				.withValue(Data.DATA3, info.getContact().toString())
 				.build());
 
@@ -2095,8 +2100,7 @@ public final class ContactsManager {
      * @return the rawContactId of the newly created contact
      */
     public long createMyContact() {
-    	RcsSettings.createInstance(mContext);
-		if (!RcsSettings.getInstance().isSocialPresenceSupported()){
+		if (!mRcsSettings.isSocialPresenceSupported()){
 			return INVALID_ID;
 			
 		}
@@ -2597,8 +2601,7 @@ public final class ContactsManager {
 					// Set RCS extensions capability
 					int columnIndex = cursor.getColumnIndex(Data.DATA2);
 					if (columnIndex != -1) {
-						capabilities.setSupportedExtensions(ServiceExtensionManager.getInstance().getExtensions(
-								cursor.getString(columnIndex)));
+						capabilities.setSupportedExtensions(ExtensionManager.getExtensions(cursor.getString(columnIndex)));
 					}
 				}
 					break;
@@ -2982,4 +2985,5 @@ public final class ContactsManager {
 		Uri uri = Uri.withAppendedPath(RichAddressBookData.CONTENT_URI, contact.toString());
 		mLocalContentResolver.update(uri, values, null, null);
 	}
+	
 }

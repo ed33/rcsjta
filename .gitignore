@@ -7,3 +7,5 @@ project.properties
 *.classpath
 *.project
 build
+/tools/security/SecurityDemoAndroid/SecurityDemoAndroid.apk
+/tools/security/tag-auth-util/test/provisioning

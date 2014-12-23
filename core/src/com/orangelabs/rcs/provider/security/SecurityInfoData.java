@@ -35,7 +35,7 @@ public class SecurityInfoData {
 	/**
 	 * Column name primary key
 	 */
-	/* package private */static final String KEY_ID = "_id";
+	public static final String KEY_ID = "_id";
 	
 	/**
 	 * The name of the column containing the IARI tag as the unique ID of certificate
@@ -43,7 +43,7 @@ public class SecurityInfoData {
 	 * Type: TEXT
 	 * </P>
 	 */
-	/* package private */static final String KEY_IARI = "iari";
+	public static final String KEY_IARI = "iari";
 
 	/**
 	 * The name of the column containing the certificate for the IARI document validation.
@@ -51,5 +51,5 @@ public class SecurityInfoData {
 	 * Type: TEXT
 	 * </P>
 	 */
-	/* package private */static final String KEY_CERT = "cert";
+	public static final String KEY_CERT = "cert";
 }

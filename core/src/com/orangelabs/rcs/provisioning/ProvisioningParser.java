@@ -27,7 +27,7 @@ import javax2.sip.ListeningPoint;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
-import com.orangelabs.rcs.core.ims.service.extension.ICertificateProvisioning;
+import com.orangelabs.rcs.core.ims.service.extension.ICertificateProvisioningListener;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
@@ -65,7 +65,7 @@ public class ProvisioningParser {
     
     private boolean first = false;
     
-    private ICertificateProvisioning mICertificateProvisioning;
+    private ICertificateProvisioningListener mICertificateProvisioning;
 
     /**
      * The logger
@@ -94,7 +94,7 @@ public class ProvisioningParser {
      * @param content Content
      * @param certificateProvisioning the interface to handle certificate parsing events
      */
-    public ProvisioningParser(String content, ICertificateProvisioning certificateProvisioning) {
+    public ProvisioningParser(String content, ICertificateProvisioningListener certificateProvisioning) {
         mContent = content;
         mICertificateProvisioning = certificateProvisioning;
     }
@@ -1973,9 +1973,9 @@ public class ProvisioningParser {
         Node nameNode = null;
         Node valueNode = null;
         
-        if (logger.isActivated()) {
-            logger.debug("Get parameter " + paramName + ", node " + node);
-        }
+//        if (logger.isActivated()) {
+//            logger.debug("Get parameter " + paramName + ", node " + node);
+//        }
 
         if ((node == null) ||
         		!(node.getNodeName().equals("parm") ||
@@ -1994,9 +1994,9 @@ public class ProvisioningParser {
             }
             if (nameNode.getNodeValue().equalsIgnoreCase(paramName)) {
             	String value = valueNode.getNodeValue();
-                if (logger.isActivated()) {
-                	logger.debug("Read parameter " + paramName);
-                }
+//                if (logger.isActivated()) {
+//                	logger.debug("Read parameter " + paramName);
+//                }
             	
             	// Check type
             	if (type == TYPE_INT) {

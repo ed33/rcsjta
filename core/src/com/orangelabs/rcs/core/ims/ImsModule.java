@@ -37,7 +37,7 @@ import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceDispatcher;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
 import com.orangelabs.rcs.core.ims.service.capability.CapabilityService;
-import com.orangelabs.rcs.core.ims.service.extension.ServiceExtensionManager;
+import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.HttpTransferManager;
 import com.orangelabs.rcs.core.ims.service.ipcall.IPCallService;
@@ -64,7 +64,7 @@ public class ImsModule implements SipEventListener {
     /**
 	 * IMS user profile
 	 */
-    public static UserProfile IMS_USER_PROFILE = null;
+    public static UserProfile IMS_USER_PROFILE;
    
     /**
      * IMS connection manager
@@ -103,44 +103,44 @@ public class ImsModule implements SipEventListener {
      * @throws CoreException 
      */
     public ImsModule(Core core) throws CoreException {
+    	boolean isLoggerActive = logger.isActivated();
     	this.core = core;
     	
-    	if (logger.isActivated()) {
+    	if (isLoggerActive) {
     		logger.info("IMS module initialization");
     	}
-    	
-    	// Get capability extensions
-    	ServiceExtensionManager extensionManager = ServiceExtensionManager.getInstance();
-    	// TODO
-    	extensionManager.updateSupportedExtensions(AndroidFactory.getApplicationContext(), true);
-   	
+
 		// Create the IMS connection manager
         try {
 			connectionManager = new ImsConnectionManager(this);
         } catch(Exception e) {
-        	if (logger.isActivated()) {
+        	if (isLoggerActive) {
         		logger.error("IMS connection manager initialization has failed", e);
         	}
             throw new CoreException("Can't instanciate the IMS connection manager");
         }
-
+        RcsSettings rcsSettings = RcsSettings.getInstance();
         // Set general parameters
-		SipManager.TIMEOUT = RcsSettings.getInstance().getSipTransactionTimeout();
+		SipManager.TIMEOUT = rcsSettings.getSipTransactionTimeout();
 		RtpSource.CNAME = ImsModule.IMS_USER_PROFILE.getPublicUri();
-		MsrpConnection.MSRP_TRACE_ENABLED = RcsSettings.getInstance().isMediaTraceActivated();
-		HttpTransferManager.HTTP_TRACE_ENABLED = RcsSettings.getInstance().isMediaTraceActivated();
+		MsrpConnection.MSRP_TRACE_ENABLED = rcsSettings.isMediaTraceActivated();
+		HttpTransferManager.HTTP_TRACE_ENABLED = rcsSettings.isMediaTraceActivated();
 
 		// Load keystore for certificates
 		try {
 			KeyStoreManager.loadKeyStore();
 		} catch(KeyStoreManagerException e) {
-	    	if (logger.isActivated()) {
+	    	if (isLoggerActive) {
 	    		logger.error("Can't load keystore manager", e);
 	    	}
-	    	throw new CoreException("Keystore manager exeception");			
+	    	throw new CoreException("Keystore manager exception");			
 		}
 		
-		// Instanciates the IMS services
+		// Get capability extensions
+		ExtensionManager extensionManager = ExtensionManager.getInstance();
+		extensionManager.updateSupportedExtensions(AndroidFactory.getApplicationContext(), true);
+		
+		// Instantiates the IMS services
         services = new ImsService[7];
         
         // Create terms & conditions service
@@ -169,10 +169,10 @@ public class ImsModule implements SipEventListener {
 
         // Create the call manager
     	callManager = new CallManager(this);
-        
+    	
         isReady = true;
 
-    	if (logger.isActivated()) {
+    	if (isLoggerActive) {
     		logger.info("IMS module has been created");
     	}
     }

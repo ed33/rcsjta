@@ -43,14 +43,15 @@ import com.gsma.services.rcs.extension.MultimediaSessionServiceConfiguration;
 import com.gsma.services.rcs.extension.MultimediaStreamingSessionIntent;
 import com.orangelabs.rcs.core.Core;
 import com.orangelabs.rcs.core.ims.network.sip.FeatureTags;
+import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.core.ims.service.sip.messaging.GenericSipMsrpSession;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.GenericSipRtpSession;
 import com.orangelabs.rcs.platform.AndroidFactory;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
-import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.MultimediaMessagingSessionEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.MultimediaStreamingSessionEventBroadcaster;
+import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
 import com.orangelabs.rcs.utils.IntentUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -86,6 +87,8 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 	 * The logger
 	 */
 	private static final Logger logger = Logger.getLogger(MultimediaSessionServiceImpl.class.getSimpleName());
+	
+	private ExtensionManager mServiceExtensionManager;
 
 	/**
 	 * Constructor
@@ -94,6 +97,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 		if (logger.isActivated()) {
 			logger.info("Multimedia session API is loaded");
 		}
+		mServiceExtensionManager = ExtensionManager.getInstance();
 	}
 
 	/**
@@ -285,7 +289,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 		ServerApiUtils.testIms();
 
 		// Test security extension
-		ServerApiUtils.testApiExtensionPermission(serviceId);
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, serviceId);
 
 		try {
 			// Initiate a new session
@@ -381,7 +385,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 		ServerApiUtils.testIms();
 		
 		// Test security extension
-		ServerApiUtils.testApiExtensionPermission(serviceId);
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, serviceId);
 
 		try {
 			// Initiate a new session

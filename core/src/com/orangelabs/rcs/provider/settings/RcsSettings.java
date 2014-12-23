@@ -34,7 +34,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.orangelabs.rcs.core.ims.service.capability.Capabilities;
-import com.orangelabs.rcs.core.ims.service.extension.ServiceExtensionManager;
+import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.ConfigurationMode;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
@@ -85,7 +85,7 @@ public class RcsSettings {
 	 * A cache for storing settings in order to increase performance
 	 */
 	final private Map<String,String> mCache;
-
+	
 	/**
 	 * Empty constructor : prevent caller from creating multiple instances
 	 */
@@ -106,7 +106,7 @@ public class RcsSettings {
 		}
 		synchronized (RcsSettings.class) {
 			if (instance == null) {
-				instance = new RcsSettings(ctx);;
+				instance = new RcsSettings(ctx);
 			}
 		}
 	}
@@ -1756,7 +1756,7 @@ public class RcsSettings {
 	 * @return the set of extensions
 	 */
 	public Set<String> getSupportedRcsExtensions() {
-		return ServiceExtensionManager.getInstance().getExtensions(readString(RcsSettingsData.CAPABILITY_RCS_EXTENSIONS,RcsSettingsData.DEFAULT_CAPABILITY_RCS_EXTENSIONS));
+		return ExtensionManager.getExtensions(readString(RcsSettingsData.CAPABILITY_RCS_EXTENSIONS,RcsSettingsData.DEFAULT_CAPABILITY_RCS_EXTENSIONS));
 	}
 
 	/**
@@ -1766,7 +1766,7 @@ public class RcsSettings {
 	 *            Set of extensions
 	 */
 	public void setSupportedRcsExtensions(Set<String> extensions) {
-		writeParameter(RcsSettingsData.CAPABILITY_RCS_EXTENSIONS, ServiceExtensionManager.getInstance().getExtensions(extensions));
+		writeParameter(RcsSettingsData.CAPABILITY_RCS_EXTENSIONS, ExtensionManager.getExtensions(extensions));
 	}
 
 	/**

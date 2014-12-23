@@ -18,7 +18,9 @@
 package com.orangelabs.rcs.provider.security;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -46,12 +48,9 @@ public class SecurityInfos {
 	 */
 	private final ContentResolver mContentResolver;
 
-	private final String WHERE_IARI_CERTIFICATE_CLAUSE = new StringBuilder(SecurityInfoData.KEY_IARI).append("=? AND ")
-			.append(SecurityInfoData.KEY_CERT).append("=?").toString();
+	private final String[] PROJ_CERTIFICATE = new String[] { SecurityInfoData.KEY_CERT };
 
-	private final String[] PROJECTION_ID = new String[] { SecurityInfoData.KEY_ID };
-
-	public static final int INVALID_ID = -1;
+	private static final String WHERE_IARI = SecurityInfoData.KEY_IARI.concat("=?");
 
 	/**
 	 * The logger
@@ -132,34 +131,7 @@ public class SecurityInfos {
 	}
 
 	/**
-	 * Get row ID for certificate and IARI
-	 * 
-	 * @param iariCertificate
-	 *            the IARI and associated certificate
-	 * @return id or INVALID_ID if not found
-	 */
-	public int getIdForIariAndCertificate(IARICertificate iariCertificate) {
-		Cursor cursor = null;
-		try {
-			cursor = mContentResolver.query(SecurityInfoData.CONTENT_URI, PROJECTION_ID, WHERE_IARI_CERTIFICATE_CLAUSE,
-					new String[] { iariCertificate.getIARI(), iariCertificate.getCertificate() }, null);
-			if (cursor.moveToFirst()) {
-				return cursor.getInt(cursor.getColumnIndexOrThrow(SecurityInfoData.KEY_ID));
-			}
-		} catch (Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Exception occurred", e);
-			}
-		} finally {
-			if (cursor != null) {
-				cursor.close();
-			}
-		}
-		return INVALID_ID;
-	}
-
-	/**
-	 * Get all IARI authorizations
+	 * Get all IARI authorization information
 	 * 
 	 * @return a map which key set is the IARI / Certificate pairs and the value set is the row IDs
 	 */
@@ -184,6 +156,40 @@ public class SecurityInfos {
 				iari = cursor.getString(iariColumnIdx);
 				IARICertificate ic = new IARICertificate(iari, cert);
 				result.put(ic, id);
+			} while (cursor.moveToNext());
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Get all certificates
+	 * 
+	 * @param iariRange
+	 * @return set of certificates
+	 */
+	public Set<String> getAllCertificatesForIariRange(String iariRange) {
+		Set<String> result = new HashSet<String>();
+		Cursor cursor = null;
+		try {
+			cursor = mContentResolver
+					.query(SecurityInfoData.CONTENT_URI, PROJ_CERTIFICATE, WHERE_IARI, new String[] { iariRange }, null);
+			if (!cursor.moveToFirst()) {
+				return result;
+
+			}
+			int certColumnIdx = cursor.getColumnIndexOrThrow(SecurityInfoData.KEY_CERT);
+			String cert = null;
+			do {
+				cert = cursor.getString(certColumnIdx);
+				result.add(cert);
 			} while (cursor.moveToNext());
 		} catch (Exception e) {
 			if (logger.isActivated()) {

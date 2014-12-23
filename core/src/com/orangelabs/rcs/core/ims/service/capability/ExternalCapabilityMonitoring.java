@@ -26,8 +26,9 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 
 import com.gsma.services.rcs.capability.CapabilityService;
-import com.orangelabs.rcs.core.ims.service.extension.ServiceExtensionManager;
+import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.platform.AndroidFactory;
+import com.orangelabs.rcs.provider.security.SecurityInfos;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -44,10 +45,28 @@ public class ExternalCapabilityMonitoring extends BroadcastReceiver {
 	
     @Override
 	public void onReceive(Context context, Intent intent) {
+    	boolean isLoggerActive = logger.isActivated();
+    	Context appContext = AndroidFactory.getApplicationContext();
     	try {
+    		if (appContext == null) {
+    			// TODO check
+    			if (isLoggerActive) {
+    				logger.warn("Discard event context is null");
+    			}
+    			return;
+    		}
 	    	// Instantiate the settings manager
 	    	RcsSettings.createInstance(context);
+	    	RcsSettings rcsSettings = RcsSettings.getInstance();
 	    	
+	    	// Instantiate the security info manager
+			SecurityInfos.createInstance(context.getContentResolver());
+			SecurityInfos securityInfos = SecurityInfos.getInstance();
+			
+			// Instantiate the service extension manager
+			ExtensionManager.createInstance(rcsSettings, securityInfos);
+			ExtensionManager extensionManager = ExtensionManager.getInstance();
+			
 	    	// Get Intent parameters
 	        String action = intent.getAction();
 	    	Integer uid = intent.getIntExtra(Intent.EXTRA_UID, -1);
@@ -76,21 +95,27 @@ public class ExternalCapabilityMonitoring extends BroadcastReceiver {
     	        	return;
     	        }
     	        
-            	if (logger.isActivated()) {
-            		logger.debug("Add extensions " + exts + " for application " + uid);
+            	if (isLoggerActive) {
+            		logger.debug("Add extensions " + exts + " for application " + uid+ " context="+appContext);
             	}
-
-    	        // Add the new extension in the supported RCS extensions
-		    	ServiceExtensionManager.getInstance().addNewSupportedExtensions(AndroidFactory.getApplicationContext());
-			} else {
-				if (Intent.ACTION_PACKAGE_REMOVED.equals(action)) {
-					if (logger.isActivated()) {
-						logger.debug("Remove extensions for application " + uid);
+            	
+				// Add the new extension in the supported RCS extensions
+				try {
+					extensionManager.addNewSupportedExtensions(appContext);
+				} catch (Exception e) {
+					if (isLoggerActive) {
+						logger.error("Failed to add nex supported extensions", e);
 					}
-
-					// Remove the extensions in the supported RCS extensions
-					ServiceExtensionManager.getInstance().removeSupportedExtensions(AndroidFactory.getApplicationContext());
 				}
+			} else {
+//				if (Intent.ACTION_PACKAGE_REMOVED.equals(action)) {
+//					if (logger.isActivated()) {
+//						logger.debug("Remove extensions for application " + uid);
+//					}
+//
+//					// Remove the extensions in the supported RCS extensions
+//					ServiceExtensionManager.getInstance().removeSupportedExtensions(appContext);
+//				}
 			}
 		} catch(Exception e) {
 			e.printStackTrace();

@@ -26,7 +26,7 @@ import java.util.Set;
 import android.test.AndroidTestCase;
 
 import com.orangelabs.rcs.core.ims.service.extension.IARICertificate;
-import com.orangelabs.rcs.core.ims.service.extension.ICertificateProvisioning;
+import com.orangelabs.rcs.core.ims.service.extension.ICertificateProvisioningListener;
 import com.orangelabs.rcs.provider.security.SecurityInfos;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
@@ -81,7 +81,7 @@ public class SecurityModelTest extends AndroidTestCase {
 	public void testAuthorized() {
 		String content = loadConfigFile("assets/template-ota_config-allowed.xml");
 		mMemoryData = null;
-		ProvisioningParser parser = new ProvisioningParser(content, new ICertificateProvisioning() {
+		ProvisioningParser parser = new ProvisioningParser(content, new ICertificateProvisioningListener() {
 			
 			@Override
 			public void stop() {

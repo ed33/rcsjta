@@ -19,86 +19,70 @@ import java.util.Map;
 import java.util.Set;
 
 import com.orangelabs.rcs.provider.security.SecurityInfos;
-import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
- * A Class to update security provider and trust store only once provisioning is fully parsed
+ * A Class to update security provider only once provisioning is fully parsed
  * 
- * @author LEMORDANT Philippe
+ * @author Oh. LEMORDANT
  *
  */
-public class CertificateProvisioning implements ICertificateProvisioning {
+public class CertificateProvisioning implements ICertificateProvisioningListener {
 
 	private SecurityInfos mSecurityInfos;
 
-	private Map<IARICertificate, Integer> mProviderData;
+	private Map<IARICertificate, Integer> mCertiticatesBeforeProvisioning;
 
-	private Set<IARICertificate> mMemoryData;
+	private Set<IARICertificate> mCertificatesAfterProvisioning;
 
-	/**
-	 * The logger
-	 */
-	private static final Logger logger = Logger.getLogger(CertificateProvisioning.class.getSimpleName());
-
-	public CertificateProvisioning() {
-		// TODO Check if SecurityInfos instance is created
-		mSecurityInfos = SecurityInfos.getInstance();
+	public CertificateProvisioning(SecurityInfos securityInfos) {
+		mSecurityInfos = securityInfos;
 	}
 
 	@Override
 	public void start() {
 		// Check if not already started
-		if (mProviderData != null) {
+		if (mCertiticatesBeforeProvisioning != null) {
 			return;
 
 		}
-		// Save all provider content in memory
-		mProviderData = mSecurityInfos.getAll();
-		mMemoryData = new HashSet<IARICertificate>();
+		// Save certificates before provisioning
+		mCertiticatesBeforeProvisioning = mSecurityInfos.getAll();
+		// No certificates yet newly provisioned
+		mCertificatesAfterProvisioning = new HashSet<IARICertificate>();
 	}
 
 	@Override
 	public void stop() {
 		// Check if not already stopped or never started
-		if (mProviderData == null) {
+		if (mCertiticatesBeforeProvisioning == null) {
 			return;
 
 		}
-
 		// Check for new Certificates
-		for (IARICertificate iariCertificate : mMemoryData) {
-			if (!mProviderData.containsKey(iariCertificate)) {
+		for (IARICertificate iariCertificate : mCertificatesAfterProvisioning) {
+			if (!mCertiticatesBeforeProvisioning.containsKey(iariCertificate)) {
 				// new certificate: add to provider
 				mSecurityInfos.addCertificateForIARI(iariCertificate);
-				int id = mSecurityInfos.getIdForIariAndCertificate(iariCertificate);
-				if (id != SecurityInfos.INVALID_ID) {
-					// TODO add certificate to key store using ID as alias
-					// ks.add( id, iariCertificate.getCertificate());
-				} else {
-					if (logger.isActivated()) {
-						logger.warn("Invalid ID for IARI ".concat(iariCertificate.getIARI()));
-					}
-				}
 			}
 		}
+
 		// Check for revoked certificates
-		for (IARICertificate iariCertificate : mProviderData.keySet()) {
-			if (!mMemoryData.contains(iariCertificate)) {
+		for (IARICertificate iariCertificate : mCertiticatesBeforeProvisioning.keySet()) {
+			if (!mCertificatesAfterProvisioning.contains(iariCertificate)) {
 				// revoked certificate: remove from provider
-				mSecurityInfos.removeCertificate(mProviderData.get(iariCertificate));
-				int id = mProviderData.get(iariCertificate);
-				// TODO remove from key store certificate with alias
-				// ks.remove( id, iariCertificate.getCertificate());
+				mSecurityInfos.removeCertificate(mCertiticatesBeforeProvisioning.get(iariCertificate));
 			}
 		}
 		// Only stop provisioning once
-		mProviderData = null;
+		mCertiticatesBeforeProvisioning = null;
 	}
+
 
 	@Override
 	public void addNewCertificate(String iari, String certificate) {
 		// Add IARI / Certificate in memory
-		mMemoryData.add(new IARICertificate(iari, certificate));
+		// Format certificate
+		mCertificatesAfterProvisioning.add(new IARICertificate(iari, IARICertificate.format(certificate)));
 	}
 
 }

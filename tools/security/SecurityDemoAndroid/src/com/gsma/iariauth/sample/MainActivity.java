@@ -13,7 +13,7 @@ import com.gsma.iariauth.validator.ProcessingResult;
 
 public class MainActivity extends Activity {
 
-	private static final String FINGER_PRINT = "C0:23:13:91:C0:46:FB:39:E9:86:8B:E6:4E:4C:B0:E6:57:65:7E:43";
+	private static final String FINGER_PRINT = "1E:74:D2:9A:21:FC:D8:6E:66:28:D9:DE:A9:FB:38:B5:04:01:10:28";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {

@@ -21,13 +21,10 @@ package com.orangelabs.rcs.service.api;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.os.Binder;
 
 import com.orangelabs.rcs.core.Core;
-import com.orangelabs.rcs.core.ims.service.extension.ServiceExtensionManager;
+import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.platform.AndroidFactory;
 
 /**
@@ -70,42 +67,39 @@ public class ServerApiUtils {
 	}
 	
 	/**
-	 * Test API extension permission
+	 * Get running application process information
 	 * 
-	 * @param ext Extension ID
-	 * @throws ServerApiException
+	 * @return RunningAppProcessInfo or null
 	 */
-	public static void testApiExtensionPermission(String ext) throws ServerApiException {
-		boolean authorized = false;
+	private static RunningAppProcessInfo getRunningAppProcessInfo() throws ServerApiException {
 
-		// Check extension authorization 
+		// Check extension authorization
 		int pid = Binder.getCallingPid();
-		RunningAppProcessInfo processInfo = null;
-		ActivityManager manager = (ActivityManager)AndroidFactory.getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
-		for(RunningAppProcessInfo info : manager.getRunningAppProcesses()){
+		ActivityManager manager = (ActivityManager) AndroidFactory.getApplicationContext().getSystemService(
+				Context.ACTIVITY_SERVICE);
+		for (RunningAppProcessInfo info : manager.getRunningAppProcesses()) {
 			if (info.pid == pid) {
-				processInfo = info;
-				break;
+				return info;
 			}
 		}
-		if (processInfo != null) {
-			PackageManager pm = AndroidFactory.getApplicationContext().getPackageManager();
-			Intent intent = new Intent(Intent.ACTION_MAIN);
-			intent.addCategory(Intent.CATEGORY_LAUNCHER);
-			ServiceExtensionManager serviceExtensionManager = ServiceExtensionManager.getInstance();
-			for(ResolveInfo info : pm.queryIntentActivities(intent, 0)) {
-				if (processInfo.processName.equals(info.activityInfo.packageName)) {
-					// TODO 
-					if (serviceExtensionManager.isExtensionAuthorizedBySecurity(pm, info, ext, null)) {
-						authorized = true;
-						break;
-					}
-				}
-			}
+		return null;
+	}
+	
+	/**
+	 * Checks if extension is authorized.
+	 * @param serviceExtensionManager
+	 * @param extension
+	 * @throws ServerApiException if not authorized
+	 */
+	public static void assertExtensionIsAuthorized(ExtensionManager serviceExtensionManager, String extension) throws ServerApiException {
+		if (serviceExtensionManager == null) {
+			throw new ServerApiException("ServiceExtensionManager is null"); 
 		}
-		
-		if (!authorized) {
-			throw new ServerApiException("Extension " + ext + " is not authorized"); 
+		// Test API permission
+		RunningAppProcessInfo appInfo = ServerApiUtils.getRunningAppProcessInfo();
+		if (appInfo == null) {
+			throw new ServerApiException("Cannot get RunningAppProcessInfo"); 
 		}
+		serviceExtensionManager.testApiExtensionPermission(extension, appInfo);
 	}
 }

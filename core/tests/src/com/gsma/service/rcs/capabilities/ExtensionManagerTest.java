@@ -19,38 +19,46 @@ package com.gsma.service.rcs.capabilities;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 import android.test.AndroidTestCase;
-import android.util.Log;
 
-import com.orangelabs.rcs.core.ims.service.extension.ServiceExtensionManager;
+import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 
-public class ServiceExtensionManagerTest extends AndroidTestCase {
-
-	private Set<String> extensions;
+public class ExtensionManagerTest extends AndroidTestCase {
 
 	protected void setUp() throws Exception {
 		super.setUp();
-		extensions = new HashSet<String>();
-		extensions.add(UUID.randomUUID().toString());
-		extensions.add(UUID.randomUUID().toString());
 	}
 
 	protected void tearDown() throws Exception {
 		super.tearDown();
 	}
 
-	public void testGetExtensions() {
-		String concatenatedExtensions = ServiceExtensionManager.getInstance().getExtensions(extensions);
-		Log.d("RCS", "testGetExtensions concatenatedExtensions=" + concatenatedExtensions);
-		Set<String> newExtensions = ServiceExtensionManager.getInstance().getExtensions(concatenatedExtensions);
+	public void testGetExtensionsMultipleEntriesInSet() {
+		Set<String> extensions = new HashSet<String>();
+		extensions.add("extension1");
+		extensions.add("extension2");
+		extensions.add("extension3");
+		String concatenatedExtensions = ExtensionManager.getExtensions(extensions);
+		assertTrue(concatenatedExtensions.matches("extension[1-3];extension[1-3];extension[1-3]"));
+		Set<String> newExtensions = ExtensionManager.getExtensions(concatenatedExtensions);
 		assertEquals(newExtensions, extensions);
 	}
 	
 	public void testGetExtensionsEmptyTokens() {
-		Set<String> newExtensions = ServiceExtensionManager.getInstance().getExtensions("; ;");
+		Set<String> newExtensions = ExtensionManager.getExtensions("; ;");
 		assertTrue(newExtensions.isEmpty());
 	}
 
+	public void testGetExtensionsEmptySet() {
+		Set<String> extensions = new HashSet<String>();
+		assertEquals("",ExtensionManager.getExtensions(extensions));
+	}
+	
+	public void testGetExtensionsSingleEntryInSet() {
+		Set<String> extensions = new HashSet<String>();
+		extensions.add("extension1");
+		assertEquals("extension1",ExtensionManager.getExtensions(extensions));
+	}
+	
 }

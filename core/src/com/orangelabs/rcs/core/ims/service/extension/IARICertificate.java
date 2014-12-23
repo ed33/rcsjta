@@ -17,11 +17,18 @@ package com.orangelabs.rcs.core.ims.service.extension;
 /**
  * A class to hold IARI and associated certificate.
  * 
- * @author LEMORDANT Philippe
+ * @author P. LEMORDANT
+ * @author F. ABOT
  *
  */
 public class IARICertificate {
 
+	private final static int CHUNK_SIZE = 64;
+	private final static String CRLF = "\r\n";
+
+	private final static StringBuilder CERT_HEADER = new StringBuilder("-----BEGIN CERTIFICATE-----").append(CRLF);
+	private final static StringBuilder CERT_FOOTER = new StringBuilder("-----END CERTIFICATE-----");
+	
 	private String mIARI;
 
 	private String mCertificate;
@@ -70,4 +77,42 @@ public class IARICertificate {
 		return mCertificate;
 	}
 
+	@Override
+	public String toString() {
+		return "IARICertificate [IARI=" + mIARI + ", Certificate=" + mCertificate + "]";
+	}
+
+	/**
+	 * Insure the certificate will be correctly formatted, including header + footer
+	 * 
+	 * @param certificate
+	 * @return the formatted certificate
+	 */
+	public static String format(String certificate) {
+		// remove header & footer if already here
+		if (certificate.startsWith(CERT_HEADER.toString())) {
+			certificate = certificate.substring(CERT_HEADER.length() - 1);
+		}
+		int footer = certificate.lastIndexOf(CERT_FOOTER.toString());
+		if (footer >= 0) {
+			certificate = certificate.substring(0, footer - 1);
+		} 
+
+		// Strip space and tabs
+		certificate = certificate.replaceAll("\\s+", "");
+
+		// Append header
+		StringBuilder ret = new StringBuilder(CERT_HEADER);
+
+		int max = certificate.length();
+
+		// add a CRLF every 64 chars chunks
+		for (int i = 0; i < max; i += CHUNK_SIZE) {
+			ret.append(certificate.substring(i, ((i+CHUNK_SIZE)> max)?max:i+CHUNK_SIZE));
+			ret.append(CRLF);
+		}
+		// finally add footer and return
+		return ret.append(CERT_FOOTER).append(CRLF).toString();
+	}
+	
 }

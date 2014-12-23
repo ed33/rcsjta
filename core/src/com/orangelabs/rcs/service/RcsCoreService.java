@@ -59,6 +59,7 @@ import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.content.VideoContent;
 import com.orangelabs.rcs.core.ims.ImsError;
 import com.orangelabs.rcs.core.ims.service.capability.Capabilities;
+import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.core.ims.service.im.chat.OneOneChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.TerminatingAdhocGroupChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.TerminatingOne2OneChatSession;
@@ -117,59 +118,59 @@ public class RcsCoreService extends Service implements CoreListener {
     /**
      * Account changed broadcast receiver
      */
-    private AccountChangedReceiver accountChangedReceiver = null;
+    private AccountChangedReceiver accountChangedReceiver;
 
 	// --------------------- RCSJTA API -------------------------
 	
 	/**
 	 * Contacts API
 	 */
-    private ContactsServiceImpl contactsApi = null; 
+    private ContactsServiceImpl contactsApi; 
 
     /**
 	 * Capability API
 	 */
-    private CapabilityServiceImpl capabilityApi = null; 
+    private CapabilityServiceImpl capabilityApi; 
 
 	/**
 	 * Chat API
 	 */
-    private ChatServiceImpl chatApi = null; 
+    private ChatServiceImpl chatApi; 
 
 	/**
 	 * File transfer API
 	 */
-    private FileTransferServiceImpl ftApi = null; 
+    private FileTransferServiceImpl ftApi; 
 
     /**
 	 * Video sharing API
 	 */
-    private VideoSharingServiceImpl vshApi = null; 
+    private VideoSharingServiceImpl vshApi; 
 
     /**
 	 * Image sharing API
 	 */
-    private ImageSharingServiceImpl ishApi = null; 
+    private ImageSharingServiceImpl ishApi; 
 
     /**
 	 * Geoloc sharing API
 	 */
-    private GeolocSharingServiceImpl gshApi = null; 
+    private GeolocSharingServiceImpl gshApi; 
 
     /**
 	 * IP call API
 	 */
-    private IPCallServiceImpl ipcallApi = null; 
+    private IPCallServiceImpl ipcallApi; 
 
     /**
 	 * Multimedia session API
 	 */
-	private MultimediaSessionServiceImpl sessionApi = null; 
+	private MultimediaSessionServiceImpl sessionApi; 
 	
     /**
 	 * File upload API
 	 */
-    private FileUploadServiceImpl uploadApi = null; 
+    private FileUploadServiceImpl uploadApi; 
 
     /**
 	 * The logger
@@ -220,13 +221,24 @@ public class RcsCoreService extends Service implements CoreListener {
 			return;
 		}
 
+		boolean isLoggerActivated = logger.isActivated();
         try {
-    		if (logger.isActivated()) {
+    		if (isLoggerActivated) {
     			logger.debug("Start RCS core service");
     		}
     		
             Context ctx = getApplicationContext();
+            // Instantiate the RCS settings provider
             RcsSettings.createInstance(ctx);
+            RcsSettings rcsSettings = RcsSettings.getInstance();
+            
+            // Instantiate the Security infos provider
+            ContentResolver contentResolver = ctx.getContentResolver();
+            SecurityInfos.createInstance(contentResolver);
+            SecurityInfos securityInfos = SecurityInfos.getInstance();
+            
+            // Instantiate the Security infos provider
+            ExtensionManager.createInstance(rcsSettings, securityInfos);
             
             // Instantiate the contactUtils instance (CountryCode is already set)
             com.gsma.services.rcs.contacts.ContactUtils.getInstance(this);
@@ -244,25 +256,21 @@ public class RcsCoreService extends Service implements CoreListener {
             uploadApi = new FileUploadServiceImpl(); 
             
             // Set the logger properties
-    		Logger.activationFlag = RcsSettings.getInstance().isTraceActivated();
-    		Logger.traceLevel = RcsSettings.getInstance().getTraceLevel();
+    		Logger.activationFlag = rcsSettings.isTraceActivated();
+    		Logger.traceLevel = rcsSettings.getTraceLevel();
 
     		// Terminal version
-            if (logger.isActivated()) {
-                logger.info("RCS stack release is " + TerminalInfo.getProductVersion());
+            if (isLoggerActivated) {
+                logger.info("RCS stack release is ".concat(TerminalInfo.getProductVersion()));
             }
-
-            ContentResolver contentResolver = ctx.getContentResolver();
+           
             LocalContentResolver localContentResolver = new LocalContentResolver(contentResolver);
             ContactsManager.createInstance(ctx, contentResolver, localContentResolver);
             MessagingLog.createInstance(ctx, localContentResolver);
             RichCallHistory.createInstance(localContentResolver);
             IPCallHistory.createInstance(localContentResolver);
             FtHttpResumeDaoImpl.createInstance(ctx);
-            
-			// Instantiate the Security infos provider
-			SecurityInfos.createInstance(contentResolver);
-
+			
             // Create the core
 			Core.createCore(this);
 
@@ -270,9 +278,9 @@ public class RcsCoreService extends Service implements CoreListener {
 			Core.getInstance().startCore();		
 
 			// Create multimedia directory on sdcard
-			FileFactory.createDirectory(RcsSettings.getInstance().getPhotoRootDirectory());
-			FileFactory.createDirectory(RcsSettings.getInstance().getVideoRootDirectory());
-			FileFactory.createDirectory(RcsSettings.getInstance().getFileRootDirectory());
+			FileFactory.createDirectory(rcsSettings.getPhotoRootDirectory());
+			FileFactory.createDirectory(rcsSettings.getVideoRootDirectory());
+			FileFactory.createDirectory(rcsSettings.getFileRootDirectory());
 			
 			// Init CPU manager
 			cpuManager.init();
@@ -297,12 +305,12 @@ public class RcsCoreService extends Service implements CoreListener {
 	        // Show a first notification
 	    	addRcsServiceNotification(false, getString(R.string.rcs_core_loaded));
 
-			if (logger.isActivated()) {
+			if (isLoggerActivated) {
 				logger.info("RCS core service started with success");
 			}
 		} catch(Exception e) {
 			// Unexpected error
-			if (logger.isActivated()) {
+			if (isLoggerActivated) {
 				logger.error("Can't instanciate the RCS core service", e);
 			}
 			
@@ -336,6 +344,9 @@ public class RcsCoreService extends Service implements CoreListener {
 		gshApi.close();
 		ipcallApi.close();
     	vshApi.close();
+    	ipcallApi.close();
+    	sessionApi.close();
+    	uploadApi.close();
 
     	// Terminate the core in background
 		Core.terminateCore();
@@ -474,6 +485,7 @@ public class RcsCoreService extends Service implements CoreListener {
 		if (sessionApi != null) {
 			sessionApi.notifyRegistrationEvent(status);
 		}
+		// TODO check for missing API
 	}    
     
     /* (non-Javadoc)

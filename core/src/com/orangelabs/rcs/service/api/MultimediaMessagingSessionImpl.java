@@ -31,6 +31,7 @@ import com.gsma.services.rcs.extension.MultimediaSession;
 import com.gsma.services.rcs.extension.MultimediaSession.ReasonCode;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipDialogPath;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.core.ims.service.sip.SipSessionError;
 import com.orangelabs.rcs.core.ims.service.sip.SipSessionListener;
 import com.orangelabs.rcs.core.ims.service.sip.messaging.GenericSipMsrpSession;
@@ -60,6 +61,8 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 	 * The logger
 	 */
 	private static final Logger logger = Logger.getLogger(MultimediaMessagingSessionImpl.class.getSimpleName());
+	
+	private ExtensionManager mServiceExtensionManager;
 
     /**
      * Constructor
@@ -72,6 +75,8 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 		this.session = session;
 		mMultimediaMessagingSessionEventBroadcaster = broadcaster;
 		session.addListener(this);
+		
+		mServiceExtensionManager = ExtensionManager.getInstance();
 	}
 
 	private void handleSessionRejected(int reasonCode) {
@@ -158,7 +163,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 	 */
 	public String getServiceId() {
 		return session.getServiceId();
-	}	
+	}
 	
 	/**
 	 * Accepts session invitation
@@ -170,8 +175,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 			logger.info("Accept session invitation");
 		}
 		
-		// Test API permission
-		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
 		
 		// Accept invitation
         new Thread() {
@@ -192,7 +196,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 		}
 
 		// Test API permission
-		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
 
 		// Reject invitation
         new Thread() {
@@ -213,7 +217,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 		}
 
 		// Test API permission
-		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
 
 		// Abort the session
         new Thread() {
@@ -231,7 +235,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 	 */
 	public void sendMessage(byte[] content) throws ServerApiException {
 		// Test API permission
-		ServerApiUtils.testApiExtensionPermission(session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
 
 		/* TODO: This exception handling is not correct. Will be fixed CR037. */
 		// Do not consider max message size if null
