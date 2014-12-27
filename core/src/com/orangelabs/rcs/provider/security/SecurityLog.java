@@ -28,13 +28,11 @@ import android.database.Cursor;
 import android.net.Uri;
 
 import com.gsma.iariauth.validator.IARIAuthDocument.AuthType;
-import com.orangelabs.rcs.core.ims.service.extension.IARIRangeCertificate;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
  * SecurityLog class to manage certificates for IARI range or authorizations for IARI
  * 
- * @author jexa7410
  * @author yplo6403
  *
  */
@@ -49,15 +47,25 @@ public class SecurityLog {
 	 */
 	private final ContentResolver mContentResolver;
 
-	private final String[] PROJ_CERTIFICATE = new String[] { CertificateData.KEY_CERT };
+	private static final String[] PROJ_CERTIFICATE = new String[] { CertificateData.KEY_CERT };
 
 	private static final String WHERE_IARI_RANGE = CertificateData.KEY_IARI_RANGE.concat("=?");
+
+	private static final String[] PROJ_EXTENSION = new String[] { AuthorizationData.KEY_EXT };
+
+	private static final String WHERE_PACKAGE = AuthorizationData.KEY_PACK_NAME.concat("=?");
+
+	private final String WHERE_PACK_EXT_CLAUSE = new StringBuilder(AuthorizationData.KEY_PACK_NAME).append("=? AND ")
+			.append(AuthorizationData.KEY_EXT).append("=?").toString();
+
+	private final String[] AUTH_PROJECTION_ID = new String[] { AuthorizationData.KEY_ID };
+
+	public static final int INVALID_ID = -1;
 
 	/**
 	 * The logger
 	 */
 	private static final Logger logger = Logger.getLogger(SecurityLog.class.getSimpleName());
-
 
 	/**
 	 * Create instance
@@ -107,16 +115,16 @@ public class SecurityLog {
 	/**
 	 * Add a certificate for IARI range
 	 * 
-	 * @param iariCertificate
+	 * @param certificateData
 	 */
-	public void addCertificateForIARIRange(IARIRangeCertificate iariCertificate) {
-		String iari = iariCertificate.getIARIRange();
+	public void addCertificate(CertificateData certificateData) {
+		String iari = certificateData.getIARIRange();
 		if (logger.isActivated()) {
 			logger.debug("Add certificate for IARI range ".concat(iari));
 		}
 		ContentValues values = new ContentValues();
 		values.put(CertificateData.KEY_IARI_RANGE, iari);
-		values.put(CertificateData.KEY_CERT, iariCertificate.getCertificate());
+		values.put(CertificateData.KEY_CERT, certificateData.getCertificate());
 		mContentResolver.insert(CertificateData.CONTENT_URI, values);
 	}
 
@@ -135,10 +143,10 @@ public class SecurityLog {
 	/**
 	 * Get all IARI range certificates
 	 * 
-	 * @return a map which key set is the IARI range / Certificate pairs and the value set is the row IDs
+	 * @return map which key set is the CertificateData instance and the value set is the row IDs
 	 */
-	public Map<IARIRangeCertificate, Integer> getAllCertificates() {
-		Map<IARIRangeCertificate, Integer> result = new HashMap<IARIRangeCertificate, Integer>();
+	public Map<CertificateData, Integer> getAllCertificates() {
+		Map<CertificateData, Integer> result = new HashMap<CertificateData, Integer>();
 		Cursor cursor = null;
 		try {
 			cursor = mContentResolver.query(CertificateData.CONTENT_URI, null, null, null, null);
@@ -156,7 +164,7 @@ public class SecurityLog {
 				cert = cursor.getString(certColumnIdx);
 				id = cursor.getInt(idColumnIdx);
 				iari = cursor.getString(iariColumnIdx);
-				IARIRangeCertificate ic = new IARIRangeCertificate(iari, cert);
+				CertificateData ic = new CertificateData(iari, cert);
 				result.put(ic, id);
 			} while (cursor.moveToNext());
 		} catch (Exception e) {
@@ -172,17 +180,17 @@ public class SecurityLog {
 	}
 
 	/**
-	 * Get all certificates for a IARI range
+	 * Get certificates for a IARI range
 	 * 
 	 * @param iariRange
 	 * @return set of certificates
 	 */
-	public Set<String> getAllCertificatesForIariRange(String iariRange) {
+	public Set<String> getCertificatesForIariRange(String iariRange) {
 		Set<String> result = new HashSet<String>();
 		Cursor cursor = null;
 		try {
-			cursor = mContentResolver
-					.query(CertificateData.CONTENT_URI, PROJ_CERTIFICATE, WHERE_IARI_RANGE, new String[] { iariRange }, null);
+			cursor = mContentResolver.query(CertificateData.CONTENT_URI, PROJ_CERTIFICATE, WHERE_IARI_RANGE,
+					new String[] { iariRange }, null);
 			if (!cursor.moveToFirst()) {
 				return result;
 
@@ -204,53 +212,58 @@ public class SecurityLog {
 		}
 		return result;
 	}
-	
+
 	/**
-	 * Set authorization for IARI<br>
-	 * Add authorization if it does not exists else update
+	 * Add authorization
+	 * 
 	 * @param authData
 	 */
-	public void setAuthorizationForIARI(AuthorizationData authData) {
-		String iari = authData.getIari();
+	public void addAuthorization(AuthorizationData authData) {
+		String extension = authData.getExtension();
+		String packageName = authData.getPackageName();
+
 		ContentValues values = new ContentValues();
-		values.put(AuthorizationData.KEY_PACK_NAME, authData.getPackageName());
 		values.put(AuthorizationData.KEY_AUTH_TYPE, authData.getAuthType().toInt());
 		values.put(AuthorizationData.KEY_SIGNER, authData.getPackageSigner());
 		values.put(AuthorizationData.KEY_RANGE, authData.getRange());
-		values.put(AuthorizationData.KEY_EXTENSION, authData.getExtension());
-		if (!doesAuthroizationExistForIari(iari)) {
+		values.put(AuthorizationData.KEY_IARI, authData.getIari());
+		Integer id = getIdForPackageNameAndExtension(packageName, extension);
+		if (INVALID_ID == id) {
 			if (logger.isActivated()) {
-				logger.debug("Add authorization for IARI ".concat(authData.getIari()));
+				logger.debug("Add authorization for package '" + authData.getPackageName() + "' extension:" + extension);
 			}
-			values.put(AuthorizationData.KEY_IARI, iari);
+			values.put(AuthorizationData.KEY_PACK_NAME, packageName);
+			values.put(AuthorizationData.KEY_EXT, extension);
 			mContentResolver.insert(AuthorizationData.CONTENT_URI, values);
 			return;
+
 		}
 		if (logger.isActivated()) {
-			logger.debug("Update authorization for IARI ".concat(authData.getIari()));
+			logger.debug("Update authorization for package '" + authData.getPackageName() + "' extension:" + extension);
 		}
-		Uri uri = Uri.withAppendedPath(AuthorizationData.CONTENT_URI, iari);
+		Uri uri = Uri.withAppendedPath(AuthorizationData.CONTENT_URI, id.toString());
 		mContentResolver.update(uri, values, null, null);
 	}
-	
+
 	/**
-	 * Remove a authorization for IARI
+	 * Remove a authorization
 	 * 
-	 * @param iari
+	 * @param id
+	 *            the row ID
 	 * @return The number of rows deleted.
 	 */
-	public int removeAuthorization(String iari) {
-		Uri uri = Uri.withAppendedPath(AuthorizationData.CONTENT_URI, iari);
+	public int removeAuthorization(int id) {
+		Uri uri = Uri.withAppendedPath(AuthorizationData.CONTENT_URI, Integer.toString(id));
 		return mContentResolver.delete(uri, null, null);
 	}
 
 	/**
-	 * Get all IARI authorizations
+	 * Get all authorizations
 	 * 
-	 * @return a set of authorization data
+	 * @return a map which key set is the AuthorizationData instance and the value set is the row IDs
 	 */
-	public Set<AuthorizationData> getAllAuthorizations() {
-		Set<AuthorizationData> result = new HashSet<AuthorizationData>();
+	public Map<AuthorizationData, Integer> getAllAuthorizations() {
+		Map<AuthorizationData, Integer> result = new HashMap<AuthorizationData, Integer>();
 		Cursor cursor = null;
 		try {
 			cursor = mContentResolver.query(AuthorizationData.CONTENT_URI, null, null, null, null);
@@ -258,18 +271,21 @@ public class SecurityLog {
 				return result;
 
 			}
+			int idColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_ID);
+			int packageColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_PACK_NAME);
+			int extensionColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_EXT);
 			int iariColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_IARI);
 			int authTypeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_AUTH_TYPE);
 			int rangeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_RANGE);
-			int packageColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_PACK_NAME);
 			int signerColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_SIGNER);
-			int extensionColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_EXTENSION);
+
 			String iari = null;
 			Integer authType = null;
 			String range = null;
 			String packageName = null;
 			String signer = null;
 			String extension = null;
+			Integer id = null;
 			do {
 				iari = cursor.getString(iariColumnIdx);
 				authType = cursor.getInt(authTypeColumnIdx);
@@ -277,7 +293,7 @@ public class SecurityLog {
 				packageName = cursor.getString(packageColumnIdx);
 				signer = cursor.getString(signerColumnIdx);
 				extension = cursor.getString(extensionColumnIdx);
-				AuthType enumAuthType = AuthType.RANGE;
+				AuthType enumAuthType = AuthType.UNSPECIFIED;
 				try {
 					enumAuthType = AuthType.valueOf(authType);
 				} catch (Exception e) {
@@ -285,9 +301,9 @@ public class SecurityLog {
 						logger.error("Invalid authorization type:".concat(Integer.toString(authType)), e);
 					}
 				}
-
-				AuthorizationData ad = new AuthorizationData(iari, enumAuthType, range, packageName, signer, extension);
-				result.add(ad);
+				id = cursor.getInt(idColumnIdx);
+				AuthorizationData ad = new AuthorizationData(packageName, extension, iari, enumAuthType, range, signer);
+				result.put(ad, id);
 			} while (cursor.moveToNext());
 		} catch (Exception e) {
 			if (logger.isActivated()) {
@@ -300,26 +316,98 @@ public class SecurityLog {
 		}
 		return result;
 	}
-	
+
 	/**
-	 * Check if authorization exists for IARI
+	 * Get authorization IDs for a package name
 	 * 
-	 * @param iari
-	 *            the IARI 
-	 * @return True if authorization exists for IARI
+	 * @param packageName
+	 * @return set of authorization IDs
 	 */
-	boolean doesAuthroizationExistForIari(String iari) {
-		Uri uri = Uri.withAppendedPath(AuthorizationData.CONTENT_URI, iari);
+	public Set<Integer> getAuthorizationIDsForPackageName(String packageName) {
+		Set<Integer> result = new HashSet<Integer>();
 		Cursor cursor = null;
 		try {
-			cursor = mContentResolver.query(uri, null, null, null, null);
-			return cursor.moveToFirst();
+			cursor = mContentResolver.query(AuthorizationData.CONTENT_URI, AUTH_PROJECTION_ID, WHERE_PACKAGE,
+					new String[] { packageName }, null);
+			if (!cursor.moveToFirst()) {
+				return result;
+
+			}
+			int idColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_ID);
+			Integer id = null;
+			do {
+				id = cursor.getInt(idColumnIdx);
+				result.add(id);
+			} while (cursor.moveToNext());
 		} catch (Exception e) {
-			return false;
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
 		} finally {
 			if (cursor != null) {
 				cursor.close();
 			}
 		}
+		return result;
 	}
+
+	/**
+	 * Get all supported extensions
+	 * 
+	 * @return set of supported extensions
+	 */
+	public Set<String> getSupportedExtensions() {
+		Set<String> result = new HashSet<String>();
+		Cursor cursor = null;
+		try {
+			cursor = mContentResolver.query(AuthorizationData.CONTENT_URI, PROJ_EXTENSION, null, null, null);
+			if (!cursor.moveToFirst()) {
+				return result;
+
+			}
+			int extensionColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_EXT);
+			String extension = null;
+			do {
+				extension = cursor.getString(extensionColumnIdx);
+				result.add(extension);
+			} while (cursor.moveToNext());
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Get row ID for authorization
+	 * 
+	 * @param packageName
+	 * @param extension
+	 * @return id or INVALID_ID if not found
+	 */
+	public int getIdForPackageNameAndExtension(String packageName, String extension) {
+		Cursor cursor = null;
+		try {
+			cursor = mContentResolver.query(AuthorizationData.CONTENT_URI, AUTH_PROJECTION_ID, WHERE_PACK_EXT_CLAUSE, new String[] {
+					packageName, extension }, null);
+			if (cursor.moveToFirst()) {
+				return cursor.getInt(cursor.getColumnIndexOrThrow(AuthorizationData.KEY_ID));
+			}
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return INVALID_ID;
+	}
+
 }

@@ -20,9 +20,10 @@ package com.orangelabs.rcs.provider.security;
 import android.net.Uri;
 
 /**
- * Definition of data for security certificate table
+ * A class to hold IARI range and associated certificate.<br>
+ * It also defines data to access the certificate table from security provider.
  * 
- * @author jexa7410
+ * @author F.Abot
  * @author yplo6403
  *
  */
@@ -34,6 +35,9 @@ public class CertificateData {
 
 	/**
 	 * Column name primary key
+	 * <P>
+	 * Type: INTEGER AUTO INCREMENTED
+	 * </P>
 	 */
 	public static final String KEY_ID = "_id";
 	
@@ -53,4 +57,96 @@ public class CertificateData {
 	 * </P>
 	 */
 	public static final String KEY_CERT = "cert";
+	
+	private final static int CHUNK_SIZE = 64;
+	private final static String CRLF = "\r\n";
+
+	private final static StringBuilder CERT_HEADER = new StringBuilder("-----BEGIN CERTIFICATE-----").append(CRLF);
+	private final static StringBuilder CERT_FOOTER = new StringBuilder("-----END CERTIFICATE-----");
+	
+	final private String mIARIRange;
+
+	final private String mCertificate;
+
+	public CertificateData(String iariRange, String certificate) {
+		mIARIRange = iariRange;
+		mCertificate = certificate;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((mCertificate == null) ? 0 : mCertificate.hashCode());
+		result = prime * result + ((mIARIRange == null) ? 0 : mIARIRange.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		CertificateData other = (CertificateData) obj;
+		if (mCertificate == null) {
+			if (other.mCertificate != null)
+				return false;
+		} else if (!mCertificate.equals(other.mCertificate))
+			return false;
+		if (mIARIRange == null) {
+			if (other.mIARIRange != null)
+				return false;
+		} else if (!mIARIRange.equals(other.mIARIRange))
+			return false;
+		return true;
+	}
+
+	public String getIARIRange() {
+		return mIARIRange;
+	}
+
+	public String getCertificate() {
+		return mCertificate;
+	}
+
+	@Override
+	public String toString() {
+		return "CertificateData [IARI range=" + mIARIRange + ", cert=" + mCertificate + "]";
+	}
+
+	/**
+	 * Insure the certificate will be correctly formatted, including header + footer
+	 * 
+	 * @param certificate
+	 * @return the formatted certificate
+	 */
+	public static String format(String certificate) {
+		// remove header & footer if already here
+		if (certificate.startsWith(CERT_HEADER.toString())) {
+			certificate = certificate.substring(CERT_HEADER.length() - 1);
+		}
+		int footer = certificate.lastIndexOf(CERT_FOOTER.toString());
+		if (footer >= 0) {
+			certificate = certificate.substring(0, footer - 1);
+		} 
+
+		// Strip space and tabs
+		certificate = certificate.replaceAll("\\s+", "");
+
+		// Append header
+		StringBuilder ret = new StringBuilder(CERT_HEADER);
+
+		int max = certificate.length();
+
+		// add a CRLF every 64 chars chunks
+		for (int i = 0; i < max; i += CHUNK_SIZE) {
+			ret.append(certificate.substring(i, ((i+CHUNK_SIZE)> max)?max:i+CHUNK_SIZE));
+			ret.append(CRLF);
+		}
+		// finally add footer and return
+		return ret.append(CERT_FOOTER).append(CRLF).toString();
+	}
 }

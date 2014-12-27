@@ -965,12 +965,6 @@ public class RcsSettingsData {
 	/* package private */static final Boolean DEFAULT_CAPABILITY_GC_SF = false;
 
 	/**
-	 * RCS extensions capability
-	 */
-	public static final String CAPABILITY_RCS_EXTENSIONS = "CapabilityRcsExtensions";
-	/* package private */static final String DEFAULT_CAPABILITY_RCS_EXTENSIONS = "";
-	
-	/**
 	 * Instant messaging is always on (Store & Forward server)
 	 */
 	public static final String IM_CAPABILITY_ALWAYS_ON = "ImAlwaysOn";

@@ -206,15 +206,14 @@ public class RcsCoreService extends Service implements CoreListener {
 	    }
 
         // Stop the core
-        Thread t = new Thread() {
+        new Thread() {
             /**
              * Processing
              */
             public void run() {
                 stopCore();
             }
-        };
-        t.start();
+        }.start();
     }
 
     /**
@@ -240,10 +239,10 @@ public class RcsCoreService extends Service implements CoreListener {
             // Instantiate the Security infos provider
             ContentResolver contentResolver = ctx.getContentResolver();
             SecurityLog.createInstance(contentResolver);
-            SecurityLog securityInfos = SecurityLog.getInstance();
+            SecurityLog securityLog = SecurityLog.getInstance();
             
             // Instantiate the Security infos provider
-            ExtensionManager.createInstance(rcsSettings, securityInfos);
+            ExtensionManager.createInstance(ctx, rcsSettings, securityLog);
             
             // Instantiate the contactUtils instance (CountryCode is already set)
             com.gsma.services.rcs.contacts.ContactUtils.getInstance(this);

@@ -18,6 +18,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.gsma.iariauth.validator.IARIAuthDocument.AuthType;
+import com.orangelabs.rcs.provider.security.AuthorizationData;
+import com.orangelabs.rcs.provider.security.CertificateData;
 import com.orangelabs.rcs.provider.security.SecurityLog;
 
 /**
@@ -28,14 +31,18 @@ import com.orangelabs.rcs.provider.security.SecurityLog;
  */
 public class CertificateProvisioning implements ICertificateProvisioningListener {
 
-	private SecurityLog mSecurityInfos;
+	private SecurityLog mSecurityLog;
 
-	private Map<IARIRangeCertificate, Integer> mCertiticatesBeforeProvisioning;
+	private Map<CertificateData, Integer> mCertiticatesBeforeProvisioning;
 
-	private Set<IARIRangeCertificate> mCertificatesAfterProvisioning;
+	private Set<CertificateData> mCertificatesAfterProvisioning;
 
-	public CertificateProvisioning(SecurityLog securityInfos) {
-		mSecurityInfos = securityInfos;
+	/**
+	 * Constructor
+	 * @param securityLog
+	 */
+	public CertificateProvisioning(SecurityLog securityLog) {
+		mSecurityLog = securityLog;
 	}
 
 	@Override
@@ -46,43 +53,71 @@ public class CertificateProvisioning implements ICertificateProvisioningListener
 
 		}
 		// Save certificates before provisioning
-		mCertiticatesBeforeProvisioning = mSecurityInfos.getAllCertificates();
+		mCertiticatesBeforeProvisioning = mSecurityLog.getAllCertificates();
 		// No certificates yet newly provisioned
-		mCertificatesAfterProvisioning = new HashSet<IARIRangeCertificate>();
+		mCertificatesAfterProvisioning = new HashSet<CertificateData>();
 	}
 
 	@Override
 	public void stop() {
+		boolean newCertificate = false;
+		
 		// Check if not already stopped or never started
 		if (mCertiticatesBeforeProvisioning == null) {
 			return;
 
 		}
 		// Check for new Certificates
-		for (IARIRangeCertificate iariCertificate : mCertificatesAfterProvisioning) {
-			if (!mCertiticatesBeforeProvisioning.containsKey(iariCertificate)) {
+		for (CertificateData iariRangeCertificate : mCertificatesAfterProvisioning) {
+			if (!mCertiticatesBeforeProvisioning.containsKey(iariRangeCertificate)) {
 				// new certificate: add to provider
-				mSecurityInfos.addCertificateForIARIRange(iariCertificate);
+				mSecurityLog.addCertificate(iariRangeCertificate);
+				newCertificate = true;
 			}
 		}
 
 		// Check for revoked certificates
-		for (IARIRangeCertificate iariCertificate : mCertiticatesBeforeProvisioning.keySet()) {
-			if (!mCertificatesAfterProvisioning.contains(iariCertificate)) {
-				// revoked certificate: remove from provider
-				mSecurityInfos.removeCertificate(mCertiticatesBeforeProvisioning.get(iariCertificate));
-			}
+		mCertiticatesBeforeProvisioning.entrySet().removeAll(mCertificatesAfterProvisioning);
+		for (CertificateData iariRangeCertificate : mCertiticatesBeforeProvisioning.keySet()) {
+			// revoked certificate: remove from provider
+			mSecurityLog.removeCertificate(mCertiticatesBeforeProvisioning.get(iariRangeCertificate));
 		}
+		
 		// Only stop provisioning once
 		mCertiticatesBeforeProvisioning = null;
-	}
+		
+		// Compile set of IARI ranges
+		Set<String> iariRanges = new HashSet<String>();
+		for (CertificateData iariRangeCertificate : mCertificatesAfterProvisioning) {
+			iariRanges.add(iariRangeCertificate.getIARIRange());
+		}
+		
+		// Remove from authorizations for which IARI range is not provisioned
+		Map<AuthorizationData, Integer> authorizationDatas = mSecurityLog.getAllAuthorizations();
+		for (AuthorizationData authorizationData : authorizationDatas.keySet()) {
+			// Only consider authorizations of type RANGE
+			if (!AuthType.RANGE.equals(authorizationData.getAuthType())) {
+				continue;
 
+			}
+			if (!iariRanges.contains(authorizationData.getRange())) {
+				mSecurityLog.removeAuthorization(authorizationDatas.get(authorizationData));
+			}
+		}
+		if (newCertificate) {
+			// The supported extensions need to be reevaluated
+			ExtensionManager extensionManager = ExtensionManager.getInstance();
+			if (extensionManager != null) {
+				extensionManager.updateSupportedExtensions();
+			}
+		}
+	}
 
 	@Override
 	public void addNewCertificate(String iari, String certificate) {
 		// Add IARI / Certificate in memory
 		// Format certificate
-		mCertificatesAfterProvisioning.add(new IARIRangeCertificate(iari, IARIRangeCertificate.format(certificate)));
+		mCertificatesAfterProvisioning.add(new CertificateData(iari, CertificateData.format(certificate)));
 	}
 
 }

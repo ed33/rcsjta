@@ -19,12 +19,11 @@ import java.io.InputStream;
 
 import android.content.ContentResolver;
 import android.test.AndroidTestCase;
-import android.util.Log;
 
 import com.gsma.iariauth.validator.PackageProcessor;
 import com.gsma.iariauth.validator.ProcessingResult;
 import com.orangelabs.rcs.core.ims.service.extension.BKSTrustStore;
-import com.orangelabs.rcs.core.ims.service.extension.IARIRangeCertificate;
+import com.orangelabs.rcs.provider.security.CertificateData;
 import com.orangelabs.rcs.provider.security.SecurityLog;
 
 /**
@@ -81,7 +80,7 @@ public class SecurityBKSTrustStoreTest extends AndroidTestCase {
 			    certif.append((char)ch);
 			}
 			// insert into provider
-			mSecurityInfos.addCertificateForIARIRange(new IARIRangeCertificate("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.*", certif.toString()));
+			mSecurityInfos.addCertificate(new CertificateData("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.*", certif.toString()));
 		
 			// Check validity of iari authorization doc
 			PackageProcessor processor = new PackageProcessor(mTrustore, PKG_NAME, FINGER_PRINT);
@@ -89,7 +88,6 @@ public class SecurityBKSTrustStoreTest extends AndroidTestCase {
 
 			assertEquals(ProcessingResult.STATUS_OK, result.getStatus());
 			
-			Log.w("[TEST]","OK");
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());

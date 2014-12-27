@@ -42,7 +42,7 @@ public class IARIAuthDocument {
 	 * The type of this IARI Authorization
 	 */
 	public static enum AuthType {
-		STANDALONE(0), RANGE(1);
+		UNSPECIFIED(0), STANDALONE(1), RANGE(2);
 		private int mValue;
 
 		private static SparseArray<AuthType> mValueToEnum = new SparseArray<AuthType>();

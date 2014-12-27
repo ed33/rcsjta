@@ -23,8 +23,8 @@
 package com.orangelabs.rcs.provider.settings;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -35,7 +35,7 @@ import android.util.Log;
 import android.util.SparseArray;
 
 import com.orangelabs.rcs.core.ims.service.capability.Capabilities;
-import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
+import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.ConfigurationMode;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
@@ -122,7 +122,7 @@ public class RcsSettings {
 	 * A cache for storing settings in order to increase performance
 	 */
 	final private Map<String,String> mCache;
-	
+
 	/**
 	 * Empty constructor : prevent caller from creating multiple instances
 	 */
@@ -1117,7 +1117,12 @@ public class RcsSettings {
 		capabilities.setTimestampOfLastRequest(Capabilities.INVALID_TIMESTAMP);
 		capabilities.setTimestampOfLastRefresh(System.currentTimeMillis());
 		// Add extensions
-		capabilities.setSupportedExtensions(getSupportedRcsExtensions());
+		SecurityLog securityLog = SecurityLog.getInstance();
+		if (securityLog != null) {
+			capabilities.setSupportedExtensions(securityLog.getSupportedExtensions());
+		} else {
+			capabilities.setSupportedExtensions(new HashSet<String>());
+		}
 		return capabilities;
 	}
 
@@ -1796,25 +1801,6 @@ public class RcsSettings {
 	 */
 	public boolean isGroupChatStoreForwardSupported() {
 		return readBoolean(RcsSettingsData.CAPABILITY_GROUP_CHAT_SF, RcsSettingsData.DEFAULT_CAPABILITY_GC_SF);
-	}
-
-	/**
-	 * Get set of supported RCS extensions
-	 *
-	 * @return the set of extensions
-	 */
-	public Set<String> getSupportedRcsExtensions() {
-		return ExtensionManager.getExtensions(readString(RcsSettingsData.CAPABILITY_RCS_EXTENSIONS,RcsSettingsData.DEFAULT_CAPABILITY_RCS_EXTENSIONS));
-	}
-
-	/**
-	 * Set the set of supported RCS extensions
-	 *
-	 * @param extensions
-	 *            Set of extensions
-	 */
-	public void setSupportedRcsExtensions(Set<String> extensions) {
-		writeParameter(RcsSettingsData.CAPABILITY_RCS_EXTENSIONS, ExtensionManager.getExtensions(extensions));
 	}
 
 	/**

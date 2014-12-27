@@ -378,8 +378,8 @@ public class ProfileProvisioning extends Activity {
 		 */
 		private boolean createProvisioning(String mXMLFileContent, String userPhoneNumber) {
 			SecurityLog.createInstance(getContentResolver());
-			SecurityLog securityInfos = SecurityLog.getInstance();
-			ProvisioningParser parser = new ProvisioningParser(mXMLFileContent, new CertificateProvisioning(securityInfos));
+			SecurityLog securityLog = SecurityLog.getInstance();
+			ProvisioningParser parser = new ProvisioningParser(mXMLFileContent, new CertificateProvisioning(securityLog));
 			RcsSettings rcsSettings = RcsSettings.getInstance();
 			// Save GSMA release set into the provider
 			GsmaRelease release = rcsSettings.getGsmaRelease();
