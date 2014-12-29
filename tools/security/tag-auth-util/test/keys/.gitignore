@@ -1,8 +1,5 @@
 /range-root-truststore.bks
 /range-root-truststore.jks
-/com.gsma.iariauth.sample.cert
-/com.gsma.iariauth.sample.csr
-/com.gsma.iariauth.sample.jks
 /package-signer.jks
 /range-root.cert
 /range-root.jks
@@ -11,3 +8,5 @@
 /range-root.srl
 /iari-standalone-test.jks.inprogress
 /iari-standalone-test.jks
+/com.gsma.iariauth0.sample.*
+/com.gsma.iariauth1.sample.*

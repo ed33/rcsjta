@@ -29,24 +29,3 @@ echo "6 -"
 keytool -importkeystore -srckeystore range-root-truststore.jks -destkeystore range-root-truststore.bks -srcstoretype JKS -deststoretype BKS -srcstorepass secret -deststorepass secret -provider org.bouncycastle.jce.provider.BouncyCastleProvider -providerpath ../../libs/bcprov-jdk15on-150.jar
 #keytool -list -keystore range-root.jks -storepass secret -keypass secret -v
 
-# create entity key for specific range iari.
-echo "create entity cert for specific range iari"
-keytool -genkey -keyalg RSA -alias com.gsma.iariauth.sample -keystore com.gsma.iariauth.sample.jks -storepass secret -keypass secret -dname CN=iari.range.test -keysize 2048
-#keytool -list -keystore com.gsma.iariauth.sample.jks -storepass secret -keypass secret -v
-
-# create csr for entity cert.
-echo "create csr for entity cert"
-keytool -certreq -keyalg RSA -alias com.gsma.iariauth.sample -keystore com.gsma.iariauth.sample.jks -storepass secret -keypass secret -dname CN=iari.range.test -file com.gsma.iariauth.sample.csr
-
-# sign entity cert using range cert
-echo "sign entity cert using range cert"
-openssl x509 -req -CA range-root.pem -CAkey range-root.pem -in com.gsma.iariauth.sample.csr -out com.gsma.iariauth.sample.cert -days 365 -CAcreateserial -extfile _iarilist-range.ext
-#openssl x509 -req -CA range-root.pem -CAkey range-root.pem -in com.gsma.iariauth.sample.csr -out com.gsma.iariauth.sample.cert -days 365 -CAcreateserial -extfile _iarilist-stdalone.ext
-
-# import root cert into keystore
-echo "import root cert into keystore"
-keytool -importcert -keystore com.gsma.iariauth.sample.jks -file range-root.cert -alias range-root -noprompt -storepass secret -keypass secret
-
-# import entity cert into keystore
-echo "import entity cert into keystore"
-keytool -importcert -keystore com.gsma.iariauth.sample.jks -file com.gsma.iariauth.sample.cert -alias com.gsma.iariauth.sample -storepass secret -keypass secret
