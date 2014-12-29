@@ -48,7 +48,6 @@ import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
 import com.orangelabs.rcs.core.ims.service.sip.SipService;
 import com.orangelabs.rcs.core.ims.service.terms.TermsConditionsService;
 import com.orangelabs.rcs.core.ims.userprofile.UserProfile;
-import com.orangelabs.rcs.platform.AndroidFactory;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
@@ -94,6 +93,8 @@ public class ImsModule implements SipEventListener {
      * flag to indicate whether instantiation is finished
      */
     private boolean isReady = false;
+    
+    final private ExtensionManager mExtensionManager;
 
 	/**
      * The logger
@@ -144,9 +145,8 @@ public class ImsModule implements SipEventListener {
 
 		MessagingLog messagingLog = MessagingLog.getInstance();
 
-		// Get capability extensions
-		ExtensionManager extensionManager = ExtensionManager.getInstance();
-		extensionManager.updateSupportedExtensions(AndroidFactory.getApplicationContext(), true);
+		// Get capability extension manager
+		mExtensionManager = ExtensionManager.getInstance();
 		
 		// Instantiates the IMS services
         services = new ImsService[7];
@@ -238,6 +238,8 @@ public class ImsModule implements SipEventListener {
     		logger.info("Start the IMS module");
     	}
     	
+        mExtensionManager.updateSupportedExtensions();
+    	
     	// Start the service dispatcher
     	serviceDispatcher.start();
 
@@ -256,7 +258,9 @@ public class ImsModule implements SipEventListener {
     	if (logger.isActivated()) {
     		logger.info("Stop the IMS module");
     	}
-         
+        
+		mExtensionManager.stop();
+    	
 		// Stop call monitoring
     	callManager.stopCallMonitoring();
 

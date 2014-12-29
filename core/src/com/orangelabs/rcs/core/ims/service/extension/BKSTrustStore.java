@@ -37,13 +37,20 @@ public class BKSTrustStore implements TrustStore {
 	
 	private CertificateFactory mFactory;
 	
-	private SecurityLog mSecurityInfos;
+	private SecurityLog mSecurityLog;
 
 	private final static Logger logger = Logger.getLogger(BKSTrustStore.class.getSimpleName());
 
-	public BKSTrustStore(SecurityLog securityInfos) throws CertificateException, NoSuchProviderException {
+	/**
+	 * Constructor
+	 * 
+	 * @param securityLog
+	 * @throws CertificateException
+	 * @throws NoSuchProviderException
+	 */
+	public BKSTrustStore(SecurityLog securityLog) throws CertificateException, NoSuchProviderException {
 		mFactory = CertificateFactory.getInstance("X.509", "BC");
-		mSecurityInfos = securityInfos;
+		mSecurityLog = securityLog;
 	}
 
 	@Override
@@ -53,12 +60,15 @@ public class BKSTrustStore implements TrustStore {
 			logger.info("Get trust anchors for range: ".concat(range));
 		}
 		Set<TrustAnchor> result = new HashSet<TrustAnchor>();
-		Set<String> certificates = mSecurityInfos.getAllCertificatesForIariRange(range);
+		Set<String> certificates = mSecurityLog.getCertificatesForIariRange(range);
 		if (certificates == null || certificates.isEmpty()) {
 			return result;
 
 		}
 		for (String certificate : certificates) {
+			if (isLoggerActivated) {
+				logger.debug("Certificate".concat(certificate));
+			}
 			try {
 				// convert String into InputStream
 				InputStream is = new ByteArrayInputStream(certificate.getBytes());

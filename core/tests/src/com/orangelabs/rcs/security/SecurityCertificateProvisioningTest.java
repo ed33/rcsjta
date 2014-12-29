@@ -25,8 +25,8 @@ import java.util.Set;
 
 import android.test.AndroidTestCase;
 
-import com.orangelabs.rcs.core.ims.service.extension.IARIRangeCertificate;
 import com.orangelabs.rcs.core.ims.service.extension.ICertificateProvisioningListener;
+import com.orangelabs.rcs.provider.security.CertificateData;
 import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
@@ -40,7 +40,7 @@ import com.orangelabs.rcs.provisioning.ProvisioningParser;
 public class SecurityCertificateProvisioningTest extends AndroidTestCase {
 
 	private RcsSettings mRcsSettings;
-	private Set<IARIRangeCertificate> mMemoryData;
+	private Set<CertificateData> mMemoryData;
 
 	protected void setUp() throws Exception {
 		super.setUp();
@@ -90,13 +90,13 @@ public class SecurityCertificateProvisioningTest extends AndroidTestCase {
 			
 			@Override
 			public void start() {
-				mMemoryData = new HashSet<IARIRangeCertificate>();
+				mMemoryData = new HashSet<CertificateData>();
 			}
 			
 			@Override
 			public void addNewCertificate(String iari, String certificate) {
-				IARIRangeCertificate iariCertificate = new IARIRangeCertificate(iari, certificate);
-				mMemoryData.add(iariCertificate);
+				CertificateData iariRangeCertificate = new CertificateData(iari, certificate);
+				mMemoryData.add(iariRangeCertificate);
 			}
 		});
 		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
@@ -105,9 +105,9 @@ public class SecurityCertificateProvisioningTest extends AndroidTestCase {
 		assertTrue(mRcsSettings.isExtensionsAllowed());
 
 		assertNotNull(mMemoryData);
-		for (IARIRangeCertificate iariCertificate : mMemoryData) {
-			String iariRange = iariCertificate.getIARIRange();
-			String cert = iariCertificate.getCertificate();
+		for (CertificateData iariRangeCertificate : mMemoryData) {
+			String iariRange = iariRangeCertificate.getIARIRange();
+			String cert = iariRangeCertificate.getCertificate();
 			if (!iariRange.equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo1")) {
 				if (!iariRange.equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo2")) {
 					fail("IARI not found ".concat(iariRange));

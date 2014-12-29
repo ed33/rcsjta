@@ -224,7 +224,6 @@ public class RcsSettingsProvider extends ContentProvider {
 			addParameter(db, RcsSettingsData.CAPABILITY_FILE_TRANSFER_THUMBNAIL, RcsSettingsData.DEFAULT_CAPABILITY_FT_THUMBNAIL);
 			addParameter(db, RcsSettingsData.CAPABILITY_GROUP_CHAT_SF, RcsSettingsData.DEFAULT_CAPABILITY_GC_SF);
 			addParameter(db, RcsSettingsData.CAPABILITY_FILE_TRANSFER_SF, RcsSettingsData.DEFAULT_CAPABILITY_FT_SF);
-			addParameter(db, RcsSettingsData.CAPABILITY_RCS_EXTENSIONS, RcsSettingsData.DEFAULT_CAPABILITY_RCS_EXTENSIONS);
 			addParameter(db, RcsSettingsData.IMS_SERVICE_POLLING_PERIOD, RcsSettingsData.DEFAULT_IMS_SERVICE_POLLING_PERIOD);
 			addParameter(db, RcsSettingsData.SIP_DEFAULT_PORT, RcsSettingsData.DEFAULT_SIP_DEFAULT_PORT);
 			addParameter(db, RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE, RcsSettingsData.DEFAULT_SIP_DEFAULT_PROTOCOL_FOR_MOBILE);

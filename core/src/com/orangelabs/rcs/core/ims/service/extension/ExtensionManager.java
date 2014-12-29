@@ -17,16 +17,18 @@ package com.orangelabs.rcs.core.ims.service.extension;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
+import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -34,13 +36,13 @@ import android.content.pm.ResolveInfo;
 import android.content.pm.Signature;
 import android.content.res.AssetManager;
 import android.content.res.Resources;
-import android.os.Bundle;
 import android.text.TextUtils;
 
 import com.gsma.iariauth.validator.IARIAuthDocument;
 import com.gsma.iariauth.validator.PackageProcessor;
 import com.gsma.iariauth.validator.ProcessingResult;
 import com.gsma.services.rcs.capability.CapabilityService;
+import com.orangelabs.rcs.core.ims.service.capability.ExternalCapabilityMonitoring;
 import com.orangelabs.rcs.platform.AndroidFactory;
 import com.orangelabs.rcs.provider.security.AuthorizationData;
 import com.orangelabs.rcs.provider.security.SecurityLog;
@@ -62,8 +64,8 @@ public class ExtensionManager {
 	private final static String EXTENSION_SEPARATOR = ";";
 
 	private final static String IARI_DOC_NAME_TYPE = ".xml";
-	
-	private final static String ALL_EXTENSIONS_MIME_TYPE = CapabilityService.EXTENSION_MIME_TYPE.concat("/*");
+
+	public final static String ALL_EXTENSIONS_MIME_TYPE = CapabilityService.EXTENSION_MIME_TYPE.concat("/*");
 
 	/**
 	 * Singleton of ServiceExtensionManager
@@ -73,11 +75,17 @@ public class ExtensionManager {
 	private final static Logger logger = Logger.getLogger(ExtensionManager.class.getSimpleName());
 
 	final private BKSTrustStore mTrustStore;
-	
+
 	final private RcsSettings mRcsSettings;
-	
+
 	final private SecurityLog mSecurityLog;
-	
+
+	final private Context mContext;
+
+	private ExternalCapabilityMonitoring mCapabilityMonitoring;
+
+	private final static Executor sUpdateSupportedExtensionProcessor = Executors.newSingleThreadExecutor();
+
 	/**
 	 * Empty constructor to prevent default instantiation
 	 */
@@ -85,22 +93,26 @@ public class ExtensionManager {
 		mTrustStore = null;
 		mRcsSettings = null;
 		mSecurityLog = null;
+		mContext = null;
 	}
 
 	/**
 	 * Constructor
 	 * 
+	 * @param context
 	 * @param rcsSettings
-	 * @param securityInfos
-	 * @throws CertificateException 
+	 * @param securityLog
+	 * @throws CertificateException
 	 * @throws NoSuchProviderException
 	 */
-	private ExtensionManager(RcsSettings rcsSettings, SecurityLog securityLog) throws NoSuchProviderException,
+	private ExtensionManager(Context context, RcsSettings rcsSettings, SecurityLog securityLog) throws NoSuchProviderException,
 			CertificateException {
 		try {
 			mTrustStore = new BKSTrustStore(securityLog);
 			mRcsSettings = rcsSettings;
 			mSecurityLog = securityLog;
+			mContext = context;
+			mCapabilityMonitoring = new ExternalCapabilityMonitoring(mContext, mRcsSettings, this);
 		} catch (NoSuchProviderException e1) {
 			if (logger.isActivated()) {
 				logger.error("Failed to instantiate ServiceExtensionManager", e1);
@@ -117,25 +129,27 @@ public class ExtensionManager {
 	/**
 	 * Create an instance of ServiceExtensionManager.
 	 *
+	 * @param context
 	 * @param rcsSettings
-	 * @param securityInfos
+	 * @param securityLog
 	 * @return the singleton instance.
-	 * @throws CertificateException 
+	 * @throws CertificateException
 	 * @throws NoSuchProviderException
 	 */
-	public static ExtensionManager createInstance(RcsSettings rcsSettings, SecurityLog securityInfos) throws NoSuchProviderException, CertificateException {
+	public static ExtensionManager createInstance(Context context, RcsSettings rcsSettings, SecurityLog securityLog)
+			throws NoSuchProviderException, CertificateException {
 		if (sInstance != null) {
 			return sInstance;
 			// ---
 		}
 		synchronized (ExtensionManager.class) {
 			if (sInstance == null) {
-				sInstance = new ExtensionManager(rcsSettings, securityInfos);
+				sInstance = new ExtensionManager(context, rcsSettings, securityLog);
 			}
 		}
 		return sInstance;
 	}
-	
+
 	/**
 	 * Get the instance of ServiceExtensionManager.
 	 *
@@ -144,136 +158,118 @@ public class ExtensionManager {
 	public static ExtensionManager getInstance() {
 		return sInstance;
 	}
-	
-	/**
-	 * Save supported extensions in database
-	 *
-	 * @param authorizationDatast
-	 *            Set of authorization data
-	 */
-	private void saveSupportedExtensions(Set<AuthorizationData> authorizationDatas) {
-		Set<String> extensions = new HashSet<String>();
-		for (AuthorizationData authorizationData : authorizationDatas) {
-			extensions.add(authorizationData.getExtension());
-		}
-		// Update supported extensions in database
-		mRcsSettings.setSupportedRcsExtensions(extensions);
-	}
 
 	/**
 	 * Check if the extensions are valid.
 	 *
-	 * @param packageManager
-	 * @param resolvedInfos
-	 * @param extensions set of extensions to validate
+	 * @param pkgManager
+	 * @param pkgName
+	 * @param extensions
+	 *            set of extensions to validate
 	 * @return Set of authorization data
 	 */
-	private Set<AuthorizationData> checkExtensions(PackageManager packageManager, List<ResolveInfo> resolveInfos,
-			Set<String> extensions) {
+	public Set<AuthorizationData> checkExtensions(PackageManager pkgManager, String pkgName, Set<String> extensions) {
 		Set<AuthorizationData> result = new HashSet<AuthorizationData>();
 		boolean isLogActivated = logger.isActivated();
 		// Check each new extension
 		for (String extension : extensions) {
-			for (ResolveInfo resolveInfo : resolveInfos) {
-				String packageName = resolveInfo.activityInfo.packageName;
-				IARIAuthDocument authDocument = getExtensionAuthorizedBySecurity(packageManager, packageName, extension);
-				if (authDocument != null) {
-					// Add the extension in the supported list if authorized and not yet in the list
-					AuthorizationData authData = new AuthorizationData(authDocument.iari, authDocument.authType,
-							authDocument.range, authDocument.packageName, authDocument.packageSigner, extension);
-					result.add(authData);
-					if (isLogActivated) {
-						logger.debug("Extension '" + extension + "' is added to the list");
-					}
-				} else {
-					if (isLogActivated) {
-						logger.debug("Extension '" + extension + "' CANNOT be added to the list");
-					}
+			IARIAuthDocument authDocument = getExtensionAuthorizedBySecurity(pkgManager, pkgName, extension);
+			if (authDocument == null) {
+				if (isLogActivated) {
+					logger.debug("Extension '" + extension + "' CANNOT be added to the list");
 				}
+				continue;
+
+			}
+			// Add the extension in the supported list if authorized and not yet in the list
+			AuthorizationData authData = new AuthorizationData(authDocument.packageName, extension, authDocument.iari,
+					authDocument.authType, authDocument.range, authDocument.packageSigner);
+			result.add(authData);
+			if (isLogActivated) {
+				logger.debug("Extension '" + extension + "' is added to the list");
 			}
 		}
 		return result;
 	}
 
 	/**
-	 * Update supported extensions at boot
-	 *
-	 * @param context
-	 *            Context
-	 * @param addExtensions
+	 * Stop monitoring for package installations and removals.
 	 */
-	public void updateSupportedExtensions(Context context, boolean addExtensions) {
-		boolean isLogActivated = logger.isActivated();
-		try {
-			if (isLogActivated) {
-				logger.debug("Update supported extensions addExtensions=" + addExtensions);
-			}
-			// Intent query on current installed activities
-			PackageManager packageManager = context.getPackageManager();
-			Intent intent = new Intent(CapabilityService.INTENT_EXTENSIONS);
-			intent.setType(ALL_EXTENSIONS_MIME_TYPE);
-
-			List<ResolveInfo> resolveInfos = packageManager.queryIntentActivities(intent, PackageManager.GET_RESOLVED_FILTER);
-
-			// Intent query on current installed activities
-			List<ApplicationInfo> apps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
-			for (ApplicationInfo appInfo : apps) {
-				Bundle appMeta = appInfo.metaData;
-				if (appMeta != null) {
-					String extensions = appMeta.getString(CapabilityService.INTENT_EXTENSIONS);
-					if (!TextUtils.isEmpty(extensions)) {
-						if (isLogActivated) {
-							logger.debug("Update supported extensions ".concat(extensions));
-						}
-						// Check extensions
-						Set<AuthorizationData> supportedExts = checkExtensions(packageManager, resolveInfos,
-								getExtensions(extensions));
-						if (!supportedExts.isEmpty()) {
-							// Update supported extensions in database
-							saveSupportedExtensions(supportedExts);
-							// Save IARI Authorization document in cache to avoid having to re-process the signature each time the
-							// application is loaded
-							saveAuthorizations(supportedExts);
-						}
-					}
-				}
-			}
-		} catch (Exception e) {
-			if (isLogActivated) {
-				logger.error("Unexpected error", e);
-			}
+	public void stop() {
+		if (mCapabilityMonitoring != null) {
+			mContext.unregisterReceiver(mCapabilityMonitoring);
+			mCapabilityMonitoring = null;
 		}
 	}
 
 	/**
-	 * Save authorization in provider to avoid having to re-process the signature each time the application is loaded
+	 * Save authorizations in authorization table for caching
 	 * 
 	 * @param authorizationDatas
+	 *            collection of authorizations
 	 */
-	private void saveAuthorizations(Set<AuthorizationData> authorizationDatas) {
+	private void saveAuthorizations(Collection<AuthorizationData> authorizationDatas) {
 		for (AuthorizationData authData : authorizationDatas) {
-			mSecurityLog.setAuthorizationForIARI(authData);
+			mSecurityLog.addAuthorization(authData);
 		}
 	}
 
 	/**
-	 * Remove supported extensions
-	 *
-	 * @param context
-	 *            Context
+	 * Save authorizations in authorization table for caching.<br>
+	 * This method is used when authorization data are not controlled.
+	 * 
+	 * @param pkgName
+	 * @param extensions
+	 *            set of extensions
 	 */
-	public void removeSupportedExtensions(Context context) {
-		updateSupportedExtensions(context, true);
+	private void saveAuthorizations(String pkgName, Set<String> extensions) {
+		for (String extension : extensions) {
+			// Save supported extension in database
+			AuthorizationData authData = new AuthorizationData(pkgName, extension);
+			mSecurityLog.addAuthorization(authData);
+		}
 	}
 
 	/**
-	 * Add supported extensions
+	 * Remove supported extensions for package
 	 *
-	 * @param context
-	 *            Context
+	 * @param pkgName
 	 */
-	public void addNewSupportedExtensions(Context context) {
-		updateSupportedExtensions(context, true);
+	public void removeExtensionsForPackage(String pkgName) {
+		Set<Integer> rowIDds = mSecurityLog.getAuthorizationIDsForPackageName(pkgName);
+		if (rowIDds.isEmpty()) {
+			return;
+		}
+		if (logger.isActivated()) {
+			logger.info("Remove authorizations for package ".concat(pkgName));
+		}
+		for (Integer rowId : rowIDds) {
+			mSecurityLog.removeAuthorization(rowId);
+		}
+	}
+
+	/**
+	 * Add extensions if supported
+	 * 
+	 * @param pkgManager
+	 * @param pkgName
+	 * @param extensions
+	 *            set of extensions
+	 */
+	public void addSupportedExtensions(PackageManager pkgManager, String pkgName, Set<String> extensions) {
+		if (!mRcsSettings.isExtensionsControlled()) {
+			if (logger.isActivated()) {
+				logger.debug("No control on extensions");
+			}
+			saveAuthorizations(pkgName, extensions);
+			return;
+			// ---
+		}
+		// Check if extensions are supported
+		Set<AuthorizationData> supportedExts = checkExtensions(pkgManager, pkgName, extensions);
+		// Save IARI Authorization document in cache to avoid having to re-process the signature each time the
+		// application is loaded
+		saveAuthorizations(supportedExts);
 	}
 
 	/**
@@ -287,7 +283,7 @@ public class ExtensionManager {
 		Set<String> result = new HashSet<String>();
 		if (TextUtils.isEmpty(extensions)) {
 			return result;
-			
+
 		}
 		String[] extensionList = extensions.split(ExtensionManager.EXTENSION_SEPARATOR);
 		for (String extension : extensionList) {
@@ -308,7 +304,7 @@ public class ExtensionManager {
 	public static String getExtensions(Set<String> extensions) {
 		if (extensions == null || extensions.isEmpty()) {
 			return "";
-			
+
 		}
 		StringBuilder result = new StringBuilder();
 		int size = extensions.size();
@@ -316,7 +312,7 @@ public class ExtensionManager {
 			if (extension.trim().length() == 0) {
 				--size;
 				continue;
-				
+
 			}
 			result.append(extension);
 			if (--size != 0) {
@@ -328,102 +324,90 @@ public class ExtensionManager {
 	}
 
 	/**
-	 * Get authorized extensions. 
+	 * Get authorized extensions.<br>
 	 * NB: there can be at most one IARI for a given extension by app
 	 * 
-	 * @param pm
+	 * @param pkgManager
 	 *            the app's package manager
-	 * @param resolveInfo
-	 *            Application info
+	 * @param pkgName Package name
 	 * @param extension
 	 *            Extension ID
 	 * @return IARIAuthDocument or null if not authorized
 	 */
-	private IARIAuthDocument getExtensionAuthorizedBySecurity(PackageManager pm, String packageName, String extension) {
-		boolean islogActivated = logger.isActivated();
+	private IARIAuthDocument getExtensionAuthorizedBySecurity(PackageManager pkgManager, String pkgName, String extension) {
+		boolean isLogActivated = logger.isActivated();
 		try {
-			if (!mRcsSettings.isExtensionsAllowed()) {
-				if (islogActivated) {
-					logger.debug("Extensions are NOT allowed");
-				}
-				return null;
-				// ---
-			}
-// TODO
-//			if (!mRcsSettings.isExtensionsControlled()) {
-//				if (islogActivated) {
-//					logger.debug("No control on extensions");
-//				}
-//				return true;
-//				// ---
-//			}
-			if (islogActivated) {
-				logger.debug("Check extension " + extension + " for package " + packageName);
+			if (isLogActivated) {
+				logger.debug("Check extension " + extension + " for package " + pkgName);
 			}
 
 			if (!ExtensionUtils.isValidExt(extension)) {
-				if (islogActivated) {
+				if (isLogActivated) {
 					logger.debug(extension.concat(" is NOT a valid extension (not a 2nd party nor 3dr party extension )"));
 				}
 				// TODO return false;
 				// ---
 			}
+			// TODO following test is wrong
 			if (ExtensionUtils.isThirdPartyExt(extension) && (mRcsSettings.getExtensionspolicy() == 1)) {
-				if (islogActivated) {
+				if (isLogActivated) {
 					logger.debug("Third party extensions are not allowed");
 				}
 				return null;
 				// ---
 			}
 
-			PackageInfo pkg = pm.getPackageInfo(packageName, PackageManager.GET_SIGNATURES);
+			PackageInfo pkg = pkgManager.getPackageInfo(pkgName, PackageManager.GET_SIGNATURES);
 			Signature[] signs = pkg.signatures;
 
 			if (signs.length == 0) {
-				if (islogActivated) {
+				if (isLogActivated) {
 					logger.debug("Extension is not authorized: no signature found");
 				}
 				return null;
-				
+
+			}
+			if (isLogActivated) {
+				logger.debug("Signature: length "+signs[0].toByteArray().length);
 			}
 			String sha1Sign = getFingerprint(signs[0].toByteArray());
-			if (islogActivated) {
+			if (isLogActivated) {
 				logger.debug("Check application fingerprint: ".concat(sha1Sign));
 			}
 
-			PackageProcessor processor = new PackageProcessor(mTrustStore, packageName, sha1Sign);
+			PackageProcessor processor = new PackageProcessor(mTrustStore, pkgName, sha1Sign);
 
 			// search all IARI authorizations for configuration
 			// com.iari-authorization string from app pkgName
 
-			InputStream iariDocument = getIariDocumentFromAssets(pm, packageName, extension);
+			InputStream iariDocument = getIariDocumentFromAssets(pkgManager, pkgName, extension);
 			// Is IARI document resource found ?
 			if (iariDocument == null) {
-				if (islogActivated) {
+				if (isLogActivated) {
 					logger.warn("Failed to find IARI document for ".concat(extension));
 				}
 				return null;
 
 			}
-			if (islogActivated) {
+			if (isLogActivated) {
 				logger.debug("IARI document found for ".concat(extension));
 			}
 
 			try {
 				ProcessingResult result = processor.processIARIauthorization(iariDocument);
 				if (ProcessingResult.STATUS_OK == result.getStatus()) {
-					if (islogActivated) {
+					if (isLogActivated) {
 						logger.debug("Extension is authorized: ".concat(extension));
 					}
 					return result.getAuthDocument();
 					// ---
 				}
-				if (islogActivated) {
+				if (isLogActivated) {
 					logger.debug("Extension " + extension + " is not authorized: " + result.getStatus() + " "
 							+ result.getError().toString());
 				}
 			} catch (Exception e) {
-				if (islogActivated) {
+				if (isLogActivated) {
 					logger.error("Exception raised when processing IARI doc=".concat(extension), e);
 				}
 				// ---
@@ -431,7 +415,7 @@ public class ExtensionManager {
 				iariDocument.close();
 			}
 		} catch (Exception e) {
-			if (islogActivated) {
+			if (isLogActivated) {
 				logger.error("Internal exception", e);
 			}
 		}
@@ -439,24 +423,25 @@ public class ExtensionManager {
 	}
 
 	/**
-	 * @param pm
+	 * Get IARI authorization document from assets
+	 * @param pkgManager
 	 * @param pkgName
 	 * @param iariResourceName
-	 * @return
+	 * @return InputStream or null if not found
 	 */
-	private InputStream getIariDocumentFromAssets(PackageManager pm, String pkgName, String iariResourceName) {
+	private InputStream getIariDocumentFromAssets(PackageManager pkgManager, String pkgName, String iariResourceName) {
 		try {
-			Resources res = pm.getResourcesForApplication(pkgName);
+			Resources res = pkgManager.getResourcesForApplication(pkgName);
 			AssetManager am = res.getAssets();
 			return am.open(iariResourceName.concat(IARI_DOC_NAME_TYPE));
-			
+
 		} catch (IOException e) {
 			if (logger.isActivated()) {
 				logger.error("Cannot get IARI document from assets", e);
 			}
 		} catch (NameNotFoundException e) {
 			if (logger.isActivated()) {
-				logger.error("Cannot get IARI document from assets", e);
+				logger.error("IARI authorization doc no found", e);
 			}
 		}
 		return null;
@@ -467,12 +452,10 @@ public class ExtensionManager {
 	 * 
 	 * @param cert
 	 *            Certificate
-	 * @param algorithm
-	 *            hash algorithm to be used
 	 * @return String as xx:yy:zz
+	 * @throws NoSuchAlgorithmException
 	 */
-	private String getFingerprint(byte[] cert) throws Exception {
-		
+	private String getFingerprint(byte[] cert) throws NoSuchAlgorithmException {
 		MessageDigest md = MessageDigest.getInstance("SHA-1");
 		md.update(cert);
 		byte[] digest = md.digest();
@@ -480,12 +463,12 @@ public class ExtensionManager {
 		String toRet = "";
 		for (int i = 0; i < digest.length; i++) {
 			if (i != 0)
-				toRet += ":";
+				toRet = toRet.concat(":");
 			int b = digest[i] & 0xff;
 			String hex = Integer.toHexString(b);
 			if (hex.length() == 1)
-				toRet += LEADING_ZERO;
-			toRet += hex;
+				toRet = toRet.concat(LEADING_ZERO);
+			toRet = toRet.concat(hex);
 		}
 		return toRet.toUpperCase();
 	}
@@ -493,11 +476,19 @@ public class ExtensionManager {
 	/**
 	 * Test API extension permission
 	 * 
-	 * @param extension Extension ID
+	 * @param extension
+	 *            Extension ID
 	 * @param processInfo
 	 * @throws ServerApiException
 	 */
 	public void testApiExtensionPermission(String extension, RunningAppProcessInfo processInfo) throws ServerApiException {
+		if (!mRcsSettings.isExtensionsControlled()) {
+			if (logger.isActivated()) {
+				logger.debug("No control on extensions");
+			}
+			return;
+
+		}
 		PackageManager pm = AndroidFactory.getApplicationContext().getPackageManager();
 		Intent intent = new Intent(Intent.ACTION_MAIN);
 		intent.addCategory(Intent.CATEGORY_LAUNCHER);
@@ -505,11 +496,21 @@ public class ExtensionManager {
 			if (processInfo.processName.equals(info.activityInfo.packageName)) {
 				if (getExtensionAuthorizedBySecurity(pm, info.activityInfo.packageName, extension) != null) {
 					return;
-					
+
 				}
 			}
 		}
 
 		throw new ServerApiException("Extension " + extension + " is not authorized");
 	}
+
+	/**
+	 * Update supported extensions<br>
+	 * Updates are queued in order to be serialized.
+	 */
+	public void updateSupportedExtensions() {
+		sUpdateSupportedExtensionProcessor.execute(new SupportedExtensionUpdater(mRcsSettings, mSecurityLog, mContext,
+				this, mCapabilityMonitoring));
+	}
+
 }

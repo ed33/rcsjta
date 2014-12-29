@@ -708,8 +708,8 @@ public class HttpsProvisioningManager {
 
 				// Parse the received content
 				SecurityLog.createInstance(mCtx.getContentResolver());
-				SecurityLog securityInfos = SecurityLog.getInstance();
-				ProvisioningParser parser = new ProvisioningParser(result.content, new CertificateProvisioning(securityInfos));
+				SecurityLog securityLog = SecurityLog.getInstance();
+				ProvisioningParser parser = new ProvisioningParser(result.content, new CertificateProvisioning(securityLog));
 				
 				// Save GSMA release set into the provider
 				GsmaRelease gsmaRelease = RcsSettings.getInstance().getGsmaRelease();

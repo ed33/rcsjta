@@ -22,7 +22,8 @@ import com.gsma.iariauth.validator.IARIAuthDocument.AuthType;
 import android.net.Uri;
 
 /**
- * IARI Authorization document data
+ * A class to hold the IARI authorization data.<br>
+ * It also defines data to access the authorization table from security provider.
  * 
  * @author yplo6403
  *
@@ -32,11 +33,19 @@ public class AuthorizationData {
 	 * Database URI
 	 */
 	public static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.security/authorization");
+	
+	/**
+	 * Column name primary key
+	 * <P>
+	 * Type: INTEGER AUTO INCREMENTED
+	 * </P>
+	 */
+	public static final String KEY_ID = "_id";
 
 	/**
 	 * The name of the column containing the IARI tag as the unique ID of certificate
 	 * <P>
-	 * Type: TEXT primary key
+	 * Type: TEXT
 	 * </P>
 	 */
 	public static final String KEY_IARI = "iari";
@@ -79,7 +88,7 @@ public class AuthorizationData {
 	 * Type: TEXT
 	 * </P>
 	 */
-	public static final String KEY_EXTENSION = "extension";
+	public static final String KEY_EXT = "ext";
 	
 	final private AuthType mAuthType;
 	final private String mIari;
@@ -89,14 +98,14 @@ public class AuthorizationData {
 	final private String mExtension;
 	
 	/**
+	 * @param packageName
+	 * @param extension
 	 * @param iari
 	 * @param authType
 	 * @param range
-	 * @param packageName
 	 * @param packageSigner
-	 * @param extension
 	 */
-	public AuthorizationData(String iari, AuthType authType, String range, String packageName, String packageSigner, String extension) {
+	public AuthorizationData(String packageName, String extension, String iari, AuthType authType, String range, String packageSigner) {
 		mAuthType = authType;
 		mIari = iari;
 		mRange = range;
@@ -105,6 +114,19 @@ public class AuthorizationData {
 		mExtension = extension;
 	}
 
+	/**
+	 * @param packageName
+	 * @param extension
+	 */
+	public AuthorizationData(String packageName, String extension) {
+		mAuthType = AuthType.UNSPECIFIED;
+		mPackageName = packageName;
+		mExtension = extension;
+		mIari = null;
+		mPackageSigner = null;
+		mRange = null;
+	}
+	
 	public AuthType getAuthType() {
 		return mAuthType;
 	}

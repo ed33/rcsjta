@@ -32,7 +32,6 @@ import com.orangelabs.rcs.utils.DatabaseUtils;
 /**
  * Security provider
  * 
- * @author jexa7410
  * @author yplo6403
  *
  */
@@ -41,9 +40,9 @@ public class SecurityProvider extends ContentProvider {
 	private static final String TABLE_CERT = "cert";
 	private static final String TABLE_AUTH = "auth";
 
-	private static final String SELECTION_WITH_ID_ONLY = CertificateData.KEY_ID.concat("=?");
+	private static final String CERT_SELECT_WITH_ID_ONLY = CertificateData.KEY_ID.concat("=?");
 	
-	private static final String SELECTION_WITH_IARI_ONLY = AuthorizationData.KEY_IARI.concat("=?");
+	private static final String AUTH_SELECT_WITH_ID_ONLY = AuthorizationData.KEY_ID.concat("=?");
 
 	public static final String DATABASE_NAME = "security.db";
 
@@ -51,27 +50,27 @@ public class SecurityProvider extends ContentProvider {
 	static {
 		sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 		sUriMatcher.addURI(CertificateData.CONTENT_URI.getAuthority(), CertificateData.CONTENT_URI.getPath().substring(1),
-				UriType.Certificate.IARI_RANGE);
+				UriType.Certificate.CERT);
 		sUriMatcher.addURI(CertificateData.CONTENT_URI.getAuthority(),
-				CertificateData.CONTENT_URI.getPath().substring(1).concat("/*"), UriType.Certificate.IARI_RANGE_WITH_ID);
+				CertificateData.CONTENT_URI.getPath().substring(1).concat("/*"), UriType.Certificate.CERT_WITH_ID);
 		sUriMatcher.addURI(AuthorizationData.CONTENT_URI.getAuthority(),
-				AuthorizationData.CONTENT_URI.getPath().substring(1), UriType.Authorization.IARI);
+				AuthorizationData.CONTENT_URI.getPath().substring(1), UriType.Authorization.AUTH);
 		sUriMatcher.addURI(AuthorizationData.CONTENT_URI.getAuthority(), AuthorizationData.CONTENT_URI.getPath().substring(1)
-				.concat("/*"), UriType.Authorization.IARI_WITH_ID);
+				.concat("/*"), UriType.Authorization.AUTH_WITH_ID);
 	}
 
 	// Class used to differentiate between the different URI requests
 	private static final class UriType {
 		private static final class Certificate {
-			private static final int IARI_RANGE = 1;
+			private static final int CERT = 1;
 
-			private static final int IARI_RANGE_WITH_ID = 2;
+			private static final int CERT_WITH_ID = 2;
 		}
 
 		private static final class Authorization {
-			private static final int IARI = 3;
+			private static final int AUTH = 3;
 
-			private static final int IARI_WITH_ID = 4;
+			private static final int AUTH_WITH_ID = 4;
 		}
 	}
 
@@ -105,7 +104,8 @@ public class SecurityProvider extends ContentProvider {
 					.append(CertificateData.KEY_ID).append(" INTEGER PRIMARY KEY AUTOINCREMENT,")
 					.append(CertificateData.KEY_IARI_RANGE).append(" TEXT NOT NULL,")
                     .append(CertificateData.KEY_CERT).append(" TEXT NOT NULL,")
-                    .append("UNIQUE(").append(CertificateData.KEY_IARI_RANGE).append(",").append(CertificateData.KEY_CERT).append("))").toString());
+                    .append("UNIQUE(").append(CertificateData.KEY_IARI_RANGE).append(",").append(CertificateData.KEY_CERT)
+                    .append("))").toString());
 			
 			 db.execSQL(new StringBuilder("CREATE INDEX ").append(CertificateData.KEY_IARI_RANGE)
 	                    .append("_idx").append(" ON ").append(TABLE_CERT).append("(")
@@ -117,12 +117,20 @@ public class SecurityProvider extends ContentProvider {
 	                    .append(CertificateData.KEY_CERT).append(")").toString());
 			 
 			 db.execSQL(new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(TABLE_AUTH).append("(")
-						.append(AuthorizationData.KEY_IARI).append(" TEXT NOT NULL PRIMARY KEY,")
-						.append(AuthorizationData.KEY_PACK_NAME).append(" TEXT NOT NULL,")
-	                    .append(AuthorizationData.KEY_AUTH_TYPE).append(" INTEGER NOT NULL,")
-	                    .append(AuthorizationData.KEY_SIGNER).append(" TEXT NOT NULL,")
-	                    .append(AuthorizationData.KEY_RANGE).append(" TEXT NOT NULL,")
-	                    .append(AuthorizationData.KEY_EXTENSION).append(" TEXT NOT NULL)").toString());
+					 	.append(AuthorizationData.KEY_ID).append(" INTEGER PRIMARY KEY AUTOINCREMENT,")
+					 	.append(AuthorizationData.KEY_PACK_NAME).append(" TEXT NOT NULL,")
+					 	.append(AuthorizationData.KEY_EXT).append(" TEXT NOT NULL,")
+					 	.append(AuthorizationData.KEY_AUTH_TYPE).append(" INTEGER NOT NULL,")
+						.append(AuthorizationData.KEY_IARI).append(" TEXT,")
+	                    .append(AuthorizationData.KEY_SIGNER).append(" TEXT,")
+	                    .append(AuthorizationData.KEY_RANGE).append(" TEXT,")
+	                    .append("UNIQUE(").append(AuthorizationData.KEY_PACK_NAME).append(",").append(AuthorizationData.KEY_EXT)
+	                    .append(") ON CONFLICT REPLACE)").toString());
+			 
+			 db.execSQL(new StringBuilder("CREATE INDEX ").append(AuthorizationData.KEY_PACK_NAME)
+	                    .append("_").append(AuthorizationData.KEY_EXT).append("_idx").append(" ON ").append(TABLE_AUTH).append("(")
+	                    .append(AuthorizationData.KEY_PACK_NAME).append(",")
+	                    .append(AuthorizationData.KEY_EXT).append(")").toString());
 			// @formatter:on
 		}
 
@@ -136,15 +144,15 @@ public class SecurityProvider extends ContentProvider {
 
 	private SQLiteOpenHelper mOpenHelper;
 
-	private String getSelectionWithId(String selection) {
+	private String getCertSelectionWithId(String selection) {
 		if (TextUtils.isEmpty(selection)) {
-			return SELECTION_WITH_ID_ONLY;
+			return CERT_SELECT_WITH_ID_ONLY;
 			
 		}
-		return new StringBuilder("(").append(SELECTION_WITH_ID_ONLY).append(") AND (").append(selection).append(")").toString();
+		return new StringBuilder("(").append(CERT_SELECT_WITH_ID_ONLY).append(") AND (").append(selection).append(")").toString();
 	}
 
-	private String[] getSelectionArgsWithId(String[] selectionArgs, String id) {
+	private String[] getCertSelectionArgsWithId(String[] selectionArgs, String id) {
 		String[] idSelectionArg = new String[] { id };
 		if (selectionArgs == null) {
 			return idSelectionArg;
@@ -153,21 +161,21 @@ public class SecurityProvider extends ContentProvider {
 		return DatabaseUtils.appendSelectionArgs(idSelectionArg, selectionArgs);
 	}
 
-	private String getSelectionWithIARI(String selection) {
+	private String getAuthSelectionWithId(String selection) {
 		if (TextUtils.isEmpty(selection)) {
-			return SELECTION_WITH_IARI_ONLY;
+			return AUTH_SELECT_WITH_ID_ONLY;
 			
 		}
-		return new StringBuilder("(").append(SELECTION_WITH_IARI_ONLY).append(") AND (").append(selection).append(")").toString();
+		return new StringBuilder("(").append(AUTH_SELECT_WITH_ID_ONLY).append(") AND (").append(selection).append(")").toString();
 	}
 	
-	private String[] getSelectionArgsWithIARI(String[] selectionArgs, String iari) {
-		String[] iariSelectionArg = new String[] { iari };
+	private String[] getAuthSelectionArgsWithId(String[] selectionArgs, String id) {
+		String[] idSelectionArg = new String[] { id };
 		if (selectionArgs == null) {
-			return iariSelectionArg;
+			return idSelectionArg;
 			
 		}
-		return DatabaseUtils.appendSelectionArgs(iariSelectionArg, selectionArgs);
+		return DatabaseUtils.appendSelectionArgs(idSelectionArg, selectionArgs);
 	}
 	
 	@Override
@@ -179,16 +187,16 @@ public class SecurityProvider extends ContentProvider {
 	@Override
 	public String getType(Uri uri) {
 		switch (sUriMatcher.match(uri)) {
-		case UriType.Certificate.IARI_RANGE:
+		case UriType.Certificate.CERT:
 			return CursorType.Certificate.TYPE_DIRECTORY;
 			
-		case UriType.Certificate.IARI_RANGE_WITH_ID:
+		case UriType.Certificate.CERT_WITH_ID:
 			return CursorType.Certificate.TYPE_ITEM;
 			
-		case UriType.Authorization.IARI:
+		case UriType.Authorization.AUTH:
 			return CursorType.Authorization.TYPE_DIRECTORY;
 			
-		case UriType.Authorization.IARI_WITH_ID:
+		case UriType.Authorization.AUTH_WITH_ID:
 			return CursorType.Authorization.TYPE_ITEM;
 			
 		default:
@@ -201,23 +209,23 @@ public class SecurityProvider extends ContentProvider {
 		Cursor cursor = null;
 		try {
 			switch (sUriMatcher.match(uri)) {
-			case UriType.Certificate.IARI_RANGE_WITH_ID:
+			case UriType.Certificate.CERT_WITH_ID:
 				String id = uri.getLastPathSegment();
-				selection = getSelectionWithId(selection);
-				selectionArgs = getSelectionArgsWithId(selectionArgs, id);
+				selection = getCertSelectionWithId(selection);
+				selectionArgs = getCertSelectionArgsWithId(selectionArgs, id);
 				/* Intentional fall through */
-			case UriType.Certificate.IARI_RANGE:
+			case UriType.Certificate.CERT:
 				SQLiteDatabase db = mOpenHelper.getReadableDatabase();
 				cursor = db.query(TABLE_CERT, projection, selection, selectionArgs, null, null, sort);
 				cursor.setNotificationUri(getContext().getContentResolver(), uri);
 				return cursor;
 			
-			case UriType.Authorization.IARI_WITH_ID:
+			case UriType.Authorization.AUTH_WITH_ID:
 				String iari = uri.getLastPathSegment();
-				selection = getSelectionWithIARI(selection);
-				selectionArgs = getSelectionArgsWithIARI(selectionArgs, iari);
+				selection = getAuthSelectionWithId(selection);
+				selectionArgs = getAuthSelectionArgsWithId(selectionArgs, iari);
 				/* Intentional fall through */
-			case UriType.Authorization.IARI:
+			case UriType.Authorization.AUTH:
 				db = mOpenHelper.getReadableDatabase();
 				cursor = db.query(TABLE_AUTH, projection, selection, selectionArgs, null, null, sort);
 				cursor.setNotificationUri(getContext().getContentResolver(), uri);
@@ -238,12 +246,12 @@ public class SecurityProvider extends ContentProvider {
 	@Override
 	public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
 		switch (sUriMatcher.match(uri)) {
-		case UriType.Certificate.IARI_RANGE_WITH_ID:
+		case UriType.Certificate.CERT_WITH_ID:
 			String Id = uri.getLastPathSegment();
-			selection = getSelectionWithId(selection);
-			selectionArgs = getSelectionArgsWithId(selectionArgs, Id);
+			selection = getCertSelectionWithId(selection);
+			selectionArgs = getCertSelectionArgsWithId(selectionArgs, Id);
 			/* Intentional fall through */
-		case UriType.Certificate.IARI_RANGE:
+		case UriType.Certificate.CERT:
 			SQLiteDatabase db = mOpenHelper.getWritableDatabase();
 			int count = db.update(TABLE_CERT, values, selection, selectionArgs);
 			if (count > 0) {
@@ -251,12 +259,12 @@ public class SecurityProvider extends ContentProvider {
 			}
 			return count;
 			
-		case UriType.Authorization.IARI_WITH_ID:
+		case UriType.Authorization.AUTH_WITH_ID:
 			String iari = uri.getLastPathSegment();
-			selection = getSelectionWithIARI(selection);
-			selectionArgs = getSelectionArgsWithIARI(selectionArgs, iari);
+			selection = getAuthSelectionWithId(selection);
+			selectionArgs = getAuthSelectionArgsWithId(selectionArgs, iari);
 			/* Intentional fall through */
-		case UriType.Authorization.IARI:
+		case UriType.Authorization.AUTH:
 			db = mOpenHelper.getWritableDatabase();
 			count = db.update(TABLE_AUTH, values, selection, selectionArgs);
 			if (count > 0) {
@@ -272,9 +280,9 @@ public class SecurityProvider extends ContentProvider {
 	@Override
 	public Uri insert(Uri uri, ContentValues initialValues) {
 		switch (sUriMatcher.match(uri)) {
-		case UriType.Certificate.IARI_RANGE:
+		case UriType.Certificate.CERT:
 			/* Intentional fall through */
-		case UriType.Certificate.IARI_RANGE_WITH_ID:
+		case UriType.Certificate.CERT_WITH_ID:
 			SQLiteDatabase db = mOpenHelper.getWritableDatabase();
 			String id = initialValues.getAsString(CertificateData.KEY_IARI_RANGE);
 			db.insert(TABLE_CERT, null, initialValues);
@@ -282,9 +290,9 @@ public class SecurityProvider extends ContentProvider {
 			getContext().getContentResolver().notifyChange(notificationUri, null);
 			return notificationUri;
 
-		case UriType.Authorization.IARI:
+		case UriType.Authorization.AUTH:
 			/* Intentional fall through */
-		case UriType.Authorization.IARI_WITH_ID:
+		case UriType.Authorization.AUTH_WITH_ID:
 			db = mOpenHelper.getWritableDatabase();
 			String iari = initialValues.getAsString(AuthorizationData.KEY_IARI);
 			db.insert(TABLE_AUTH, null, initialValues);
@@ -300,12 +308,12 @@ public class SecurityProvider extends ContentProvider {
 	@Override
 	public int delete(Uri uri, String selection, String[] selectionArgs) {
 		switch (sUriMatcher.match(uri)) {
-		case UriType.Certificate.IARI_RANGE_WITH_ID:
+		case UriType.Certificate.CERT_WITH_ID:
 			String id = uri.getLastPathSegment();
-			selection = getSelectionWithId(selection);
-			selectionArgs = getSelectionArgsWithId(selectionArgs, id);
+			selection = getCertSelectionWithId(selection);
+			selectionArgs = getCertSelectionArgsWithId(selectionArgs, id);
 			/* Intentional fall through */
-		case UriType.Certificate.IARI_RANGE:
+		case UriType.Certificate.CERT:
 			SQLiteDatabase db = mOpenHelper.getWritableDatabase();
 			int count = db.delete(TABLE_CERT, selection, selectionArgs);
 			if (count > 0) {
@@ -313,12 +321,12 @@ public class SecurityProvider extends ContentProvider {
 			}
 			return count;
 			
-		case UriType.Authorization.IARI_WITH_ID:
+		case UriType.Authorization.AUTH_WITH_ID:
 			String iari = uri.getLastPathSegment();
-			selection = getSelectionWithIARI(selection);
-			selectionArgs = getSelectionArgsWithIARI(selectionArgs, iari);
+			selection = getAuthSelectionWithId(selection);
+			selectionArgs = getAuthSelectionArgsWithId(selectionArgs, iari);
 			/* Intentional fall through */
-		case UriType.Authorization.IARI:
+		case UriType.Authorization.AUTH:
 			db = mOpenHelper.getWritableDatabase();
 			count = db.delete(TABLE_AUTH, selection, selectionArgs);
 			if (count > 0) {
