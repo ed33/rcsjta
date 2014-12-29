@@ -49,11 +49,11 @@ public class IARIAuthDocument {
 	public int read(String templatePath) {
 		File templateFile = new File(templatePath);
 		if(!templateFile.exists()) {
-			error = "Unable to find specified template file";
+			error = "Unable to find specified template file: "+templatePath;
 			return Constants.FILE_NOT_FOUND_ERR;
 		}
 		if(!templateFile.isFile()) {
-			error = "Specified template location is not a file";
+			error = "Specified template location is not a file: "+templatePath;
 			return Constants.FILE_NOT_FOUND_ERR;
 		}
 		FileInputStream is = null;
