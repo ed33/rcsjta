@@ -60,6 +60,9 @@ public class SecurityLog {
 
 	private final String[] AUTH_PROJECTION_ID = new String[] { AuthorizationData.KEY_ID };
 
+	/**
+	 * Invalid ID
+	 */
 	public static final int INVALID_ID = -1;
 
 	/**
@@ -226,7 +229,7 @@ public class SecurityLog {
 		values.put(AuthorizationData.KEY_AUTH_TYPE, authData.getAuthType().toInt());
 		values.put(AuthorizationData.KEY_SIGNER, authData.getPackageSigner());
 		values.put(AuthorizationData.KEY_RANGE, authData.getRange());
-		values.put(AuthorizationData.KEY_IARI, authData.getIari());
+		values.put(AuthorizationData.KEY_IARI, authData.getIARI());
 		Integer id = getIdForPackageNameAndExtension(packageName, extension);
 		if (INVALID_ID == id) {
 			if (logger.isActivated()) {

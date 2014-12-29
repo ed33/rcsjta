@@ -68,6 +68,11 @@ public class CertificateData {
 
 	final private String mCertificate;
 
+	/**
+	 * Constructor
+	 * @param iariRange
+	 * @param certificate
+	 */
 	public CertificateData(String iariRange, String certificate) {
 		mIARIRange = iariRange;
 		mCertificate = certificate;
@@ -104,10 +109,18 @@ public class CertificateData {
 		return true;
 	}
 
+	/**
+	 * Gets IARI range
+	 * @return IARI range
+	 */
 	public String getIARIRange() {
 		return mIARIRange;
 	}
 
+	/**
+	 * Gets certificate
+	 * @return certificate
+	 */
 	public String getCertificate() {
 		return mCertificate;
 	}

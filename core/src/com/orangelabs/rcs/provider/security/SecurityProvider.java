@@ -44,7 +44,7 @@ public class SecurityProvider extends ContentProvider {
 	
 	private static final String AUTH_SELECT_WITH_ID_ONLY = AuthorizationData.KEY_ID.concat("=?");
 
-	public static final String DATABASE_NAME = "security.db";
+	private static final String DATABASE_NAME = "security.db";
 
 	private static final UriMatcher sUriMatcher;
 	static {

@@ -1104,7 +1104,9 @@ public class ProvisioningParser {
         if (node == null) {
             return false;
         }
-        
+        if (logger.isActivated()) {
+			logger.debug("Parse X509 Certificates");
+		}
         Node childnode = node.getFirstChild();
         if (childnode != null) {
             do {
@@ -1209,6 +1211,10 @@ public class ProvisioningParser {
                             if (typenode.getNodeValue().equalsIgnoreCase("iariRangeAuthorizations")) {
                             	if (mICertificateProvisioning != null) {
                             		mICertificateProvisioning.start();
+                            	} else {
+                            		if (logger.isActivated()) {
+                            			logger.warn("Cannot parse X509 certificate: no provisiong listener");
+                            		}
                             	}
                             	
                             	// Parse new IARI authorizations

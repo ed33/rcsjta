@@ -1,6 +1,9 @@
-package com.gsma.iariauth.sample;
+package com.gsma.iariauth0.sample;
 
 import java.io.InputStream;
+
+import com.gsma.iariauth.validator.PackageProcessor;
+import com.gsma.iariauth.validator.ProcessingResult;
 
 import android.app.Activity;
 import android.content.Context;
@@ -8,12 +11,9 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
 
-import com.gsma.iariauth.validator.PackageProcessor;
-import com.gsma.iariauth.validator.ProcessingResult;
-
 public class MainActivity extends Activity {
 
-	private static final String FINGER_PRINT = "1E:74:D2:9A:21:FC:D8:6E:66:28:D9:DE:A9:FB:38:B5:04:01:10:28";
+	private static final String FINGER_PRINT = "22:6A:91:00:5B:0D:C3:2B:07:62:5A:CA:EE:9C:2D:9A:D7:D3:4B:08";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -22,14 +22,14 @@ public class MainActivity extends Activity {
 
 		TextView result = (TextView) findViewById(R.id.result);
 
-		boolean isValid = isExtensionAuthorized(this, "com.gsma.iariauth.sample", FINGER_PRINT);
+		boolean isValid = isExtensionAuthorized(this, "com.gsma.iariauth0.sample", FINGER_PRINT);
 		result.setText(isValid+"");
 	}
 
 
 	private boolean isExtensionAuthorized(Context context, String pkgName, String sha1Sign) {
 		try {
-			InputStream iariDocStream = getAssets().open("iari-range-test.xml");
+			InputStream iariDocStream = getAssets().open("extension0.xml");
 			BKSTrustStore trustStore = new BKSTrustStore(getAssets().open("range-root-truststore.bks"));
 
 			// Checking procedure

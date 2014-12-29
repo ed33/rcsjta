@@ -44,6 +44,7 @@ import com.orangelabs.rcs.platform.registry.AndroidRegistryFactory;
 import com.orangelabs.rcs.provider.BackupRestoreDb;
 import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
+import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.ConfigurationMode;
 import com.orangelabs.rcs.provisioning.ProvisioningInfo;
@@ -108,8 +109,9 @@ public class StartService extends Service {
     public void onCreate() {
         // Instantiate RcsSettings
         Context ctx = getApplicationContext();
-        mLocalContentResolver = new LocalContentResolver(ctx.getContentResolver());
-        RcsSettings.createInstance(getApplicationContext());
+        ContentResolver contentResolver = ctx.getContentResolver();
+        mLocalContentResolver = new LocalContentResolver(contentResolver);
+        RcsSettings.createInstance(ctx);
         ConfigurationMode mode = RcsSettings.getInstance().getConfigurationMode();
     	if (logger.isActivated()) {
     		logger.debug("onCreate ConfigurationMode="+mode);

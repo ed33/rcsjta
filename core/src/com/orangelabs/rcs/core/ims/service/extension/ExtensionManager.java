@@ -65,10 +65,8 @@ public class ExtensionManager {
 
 	private final static String IARI_DOC_NAME_TYPE = ".xml";
 
-	public final static String ALL_EXTENSIONS_MIME_TYPE = CapabilityService.EXTENSION_MIME_TYPE.concat("/*");
-
 	/**
-	 * Singleton of ServiceExtensionManager
+	 * Singleton of ExtensionManager
 	 */
 	private static volatile ExtensionManager sInstance;
 
@@ -85,6 +83,11 @@ public class ExtensionManager {
 	private ExternalCapabilityMonitoring mCapabilityMonitoring;
 
 	private final static Executor sUpdateSupportedExtensionProcessor = Executors.newSingleThreadExecutor();
+
+	/**
+	 * Mime type for application managing extensions
+	 */
+	public final static String ALL_EXTENSIONS_MIME_TYPE = CapabilityService.EXTENSION_MIME_TYPE.concat("/*");
 
 	/**
 	 * Empty constructor to prevent default instantiation
@@ -115,19 +118,19 @@ public class ExtensionManager {
 			mCapabilityMonitoring = new ExternalCapabilityMonitoring(mContext, mRcsSettings, this);
 		} catch (NoSuchProviderException e1) {
 			if (logger.isActivated()) {
-				logger.error("Failed to instantiate ServiceExtensionManager", e1);
+				logger.error("Failed to instantiate ExtensionManager", e1);
 			}
 			throw e1;
 		} catch (CertificateException e2) {
 			if (logger.isActivated()) {
-				logger.error("Failed to instantiate ServiceExtensionManager", e2);
+				logger.error("Failed to instantiate ExtensionManager", e2);
 			}
 			throw e2;
 		}
 	}
 
 	/**
-	 * Create an instance of ServiceExtensionManager.
+	 * Create an instance of ExtensionManager.
 	 *
 	 * @param context
 	 * @param rcsSettings
@@ -176,17 +179,39 @@ public class ExtensionManager {
 			IARIAuthDocument authDocument = getExtensionAuthorizedBySecurity(pkgManager, pkgName, extension);
 			if (authDocument == null) {
 				if (isLogActivated) {
-					logger.debug("Extension '" + extension + "' CANNOT be added to the list");
+					logger.warn(new StringBuilder("Extension '").append(extension)
+							.append("' CANNOT be added: no authorized document").toString());
 				}
 				continue;
 
+			}
+
+			if (!IARIUtils.isValidIARI(authDocument.iari)) {
+				if (isLogActivated) {
+					logger.warn(new StringBuilder("IARI '").append(authDocument.iari)
+							.append("' CANNOT be added: NOT a valid extension (not a 2nd party nor 3dr party extension)")
+							.toString());
+				}
+				continue;
+				// ---
+			}
+			if (IARIUtils.isThirdPartyIARI(authDocument.iari) && (mRcsSettings.getExtensionspolicy() == 1)) {
+				if (isLogActivated) {
+					logger.warn(new StringBuilder("IARI '").append(authDocument.iari)
+							.append("' CANNOT be added: third party extensions are not allowed").toString());
+				}
+				continue;
+				// ---
 			}
 			// Add the extension in the supported list if authorized and not yet in the list
 			AuthorizationData authData = new AuthorizationData(authDocument.packageName, extension, authDocument.iari,
 					authDocument.authType, authDocument.range, authDocument.packageSigner);
 			result.add(authData);
 			if (isLogActivated) {
-				logger.debug("Extension '" + extension + "' is added to the list");
+				if (isLogActivated) {
+					logger.debug(new StringBuilder("Extension '").append(extension).append("' is authorized. IARI tag: ")
+							.append(authDocument.iari).toString());
+				}
 			}
 		}
 		return result;
@@ -239,6 +264,7 @@ public class ExtensionManager {
 		Set<Integer> rowIDds = mSecurityLog.getAuthorizationIDsForPackageName(pkgName);
 		if (rowIDds.isEmpty()) {
 			return;
+			
 		}
 		if (logger.isActivated()) {
 			logger.info("Remove authorizations for package ".concat(pkgName));
@@ -338,23 +364,8 @@ public class ExtensionManager {
 		boolean isLogActivated = logger.isActivated();
 		try {
 			if (isLogActivated) {
-				logger.debug("Check extension " + extension + " for package " + pkgName);
-			}
-
-			if (!ExtensionUtils.isValidExt(extension)) {
-				if (isLogActivated) {
-					logger.debug(extension.concat(" is NOT a valid extension (not a 2nd party nor 3dr party extension )"));
-				}
-				// TODO return false;
-				// ---
-			}
-			// TODO following test is wrong
-			if (ExtensionUtils.isThirdPartyExt(extension) && (mRcsSettings.getExtensionspolicy() == 1)) {
-				if (isLogActivated) {
-					logger.debug("Third party extensions are not allowed");
-				}
-				return null;
-				// ---
+				logger.debug(new StringBuilder("Check extension ").append(extension).append(" for package ").append(pkgName)
+						.toString());
 			}
 
 			PackageInfo pkg = pkgManager.getPackageInfo(pkgName, PackageManager.GET_SIGNATURES);
@@ -366,9 +377,6 @@ public class ExtensionManager {
 				}
 				return null;
 
-			}
-			if (isLogActivated) {
-				logger.debug("Signature: length "+signs[0].toByteArray().length);
 			}
 			String sha1Sign = getFingerprint(signs[0].toByteArray());
 			if (isLogActivated) {
@@ -396,15 +404,12 @@ public class ExtensionManager {
 			try {
 				ProcessingResult result = processor.processIARIauthorization(iariDocument);
 				if (ProcessingResult.STATUS_OK == result.getStatus()) {
-					if (isLogActivated) {
-						logger.debug("Extension is authorized: ".concat(extension));
-					}
 					return result.getAuthDocument();
 					// ---
 				}
 				if (isLogActivated) {
-					logger.debug("Extension " + extension + " is not authorized: " + result.getStatus() + " "
-							+ result.getError().toString());
+					logger.debug(new StringBuilder("Extension '").append(extension).append("' is not authorized: ")
+							.append(result.getStatus()).append(" ").append(result.getError()).toString());
 				}
 			} catch (Exception e) {
 				if (isLogActivated) {

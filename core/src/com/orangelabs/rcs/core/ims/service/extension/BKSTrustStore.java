@@ -62,13 +62,18 @@ public class BKSTrustStore implements TrustStore {
 		Set<TrustAnchor> result = new HashSet<TrustAnchor>();
 		Set<String> certificates = mSecurityLog.getCertificatesForIariRange(range);
 		if (certificates == null || certificates.isEmpty()) {
+			if (isLoggerActivated) {
+				logger.warn("No certificate for IARI range: ".concat(range));
+			}
 			return result;
 
 		}
+		if (isLoggerActivated) {
+			String nbOfMatchingEntries = Integer.toString(certificates.size());
+			logger.debug(new StringBuilder(nbOfMatchingEntries).append(" certificates for IARI range: ").append(range)
+					.toString());
+		}
 		for (String certificate : certificates) {
-			if (isLoggerActivated) {
-				logger.debug("Certificate".concat(certificate));
-			}
 			try {
 				// convert String into InputStream
 				InputStream is = new ByteArrayInputStream(certificate.getBytes());

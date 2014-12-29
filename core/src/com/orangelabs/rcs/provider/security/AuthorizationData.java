@@ -28,6 +28,10 @@ import android.net.Uri;
  * @author yplo6403
  *
  */
+/**
+ * @author LEMORDANT Philippe
+ *
+ */
 public class AuthorizationData {
 	/**
 	 * Database URI
@@ -91,7 +95,7 @@ public class AuthorizationData {
 	public static final String KEY_EXT = "ext";
 	
 	final private AuthType mAuthType;
-	final private String mIari;
+	final private String mIARI;
 	final private String mRange;
 	final private String mPackageName;
 	final private String mPackageSigner;
@@ -107,7 +111,7 @@ public class AuthorizationData {
 	 */
 	public AuthorizationData(String packageName, String extension, String iari, AuthType authType, String range, String packageSigner) {
 		mAuthType = authType;
-		mIari = iari;
+		mIARI = iari;
 		mRange = range;
 		mPackageName = packageName;
 		mPackageSigner = packageSigner;
@@ -122,31 +126,55 @@ public class AuthorizationData {
 		mAuthType = AuthType.UNSPECIFIED;
 		mPackageName = packageName;
 		mExtension = extension;
-		mIari = null;
+		mIARI = null;
 		mPackageSigner = null;
 		mRange = null;
 	}
 	
+	/**
+	 * Gets authorization type
+	 * @return authType
+	 */
 	public AuthType getAuthType() {
 		return mAuthType;
 	}
 
-	public String getIari() {
-		return mIari;
+	/**
+	 * Gets IARI
+	 * @return iari
+	 */
+	public String getIARI() {
+		return mIARI;
 	}
 
+	/**
+	 * Gets IARI range
+	 * @return range
+	 */
 	public String getRange() {
 		return mRange;
 	}
 
+	/**
+	 * Gets package name
+	 * @return package name
+	 */
 	public String getPackageName() {
 		return mPackageName;
 	}
 
+	/**
+	 * Gets package signer
+	 * @return package signer
+	 */
 	public String getPackageSigner() {
 		return mPackageSigner;
 	}
 
+	/**
+	 * Gets extension
+	 * @return extension
+	 */
 	public String getExtension() {
 		return mExtension;
 	}
@@ -157,7 +185,7 @@ public class AuthorizationData {
 		int result = 1;
 		result = prime * result + ((mAuthType == null) ? 0 : mAuthType.hashCode());
 		result = prime * result + ((mExtension == null) ? 0 : mExtension.hashCode());
-		result = prime * result + ((mIari == null) ? 0 : mIari.hashCode());
+		result = prime * result + ((mIARI == null) ? 0 : mIARI.hashCode());
 		result = prime * result + ((mPackageName == null) ? 0 : mPackageName.hashCode());
 		result = prime * result + ((mPackageSigner == null) ? 0 : mPackageSigner.hashCode());
 		result = prime * result + ((mRange == null) ? 0 : mRange.hashCode());
@@ -180,10 +208,10 @@ public class AuthorizationData {
 				return false;
 		} else if (!mExtension.equals(other.mExtension))
 			return false;
-		if (mIari == null) {
-			if (other.mIari != null)
+		if (mIARI == null) {
+			if (other.mIARI != null)
 				return false;
-		} else if (!mIari.equals(other.mIari))
+		} else if (!mIARI.equals(other.mIARI))
 			return false;
 		if (mPackageName == null) {
 			if (other.mPackageName != null)

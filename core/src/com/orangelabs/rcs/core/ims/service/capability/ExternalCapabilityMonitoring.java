@@ -52,6 +52,13 @@ public class ExternalCapabilityMonitoring extends BroadcastReceiver {
 	 */
 	private final static Logger logger = Logger.getLogger(ExternalCapabilityMonitoring.class.getSimpleName());
 
+	/**
+	 * Constructor
+	 * 
+	 * @param appContext
+	 * @param rcsSettings
+	 * @param extensionManager
+	 */
 	public ExternalCapabilityMonitoring(Context appContext, RcsSettings rcsSettings, ExtensionManager extensionManager) {
 		mRcsSettings = rcsSettings;
 		mExtensionManager = extensionManager;

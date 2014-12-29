@@ -17,44 +17,48 @@
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.extension;
 
-import com.orangelabs.rcs.core.ims.network.sip.FeatureTags;
+import com.gsma.iariauth.validator.Constants;
 
 /**
- * Extensions utils
- *  
- * @author jexa7410
+ * IARI utils
+ * 
+ * @author LEMORDANT Philippe
+ *
  */
-public class ExtensionUtils {
-	
-	// 2nd party apps extension prefix
-	private static final String MNO_EXT= new StringBuilder(FeatureTags.FEATURE_RCSE_EXTENSION).append(".mnc").toString();
-	// 3rd party apps extension prefix
-	private static final String OTHER_EXT= new StringBuilder(FeatureTags.FEATURE_RCSE_EXTENSION).append(".mnc").toString();
+public class IARIUtils {
+
+	/**
+	 * 2nd party apps extension prefix
+	 */
+	private static final String MNO_IARI_PREFIX = "urn:urn-7:3gpp-application.ims.iari.rcs.mnc";
 	
 	/**
-	 * Is a valid extension
+	 * Is a valid IARI
 	 * 
-	 * @return Boolean
+	 * @param iari
+	 * @return True if IARI is valid
 	 */
-	public static boolean isValidExt(String ext) {
-		return isMnoExt(ext) || isThirdPartyExt(ext);
+	public static boolean isValidIARI(String iari) {
+		return isMnoIARI(iari) || isThirdPartyIARI(iari) ;
 	}
-	
+
 	/**
 	 * Is a MNO extension
 	 * 
-	 * @return Boolean
+	 * @param iari
+	 * @return True is extension MNO
 	 */
-	public static boolean isMnoExt(String ext) {
-		return (ext.startsWith(MNO_EXT));
+	public static boolean isMnoIARI(String iari) {
+		return iari.startsWith(MNO_IARI_PREFIX);
 	}
 
 	/**
-	 * Is a third party extension
+	 * Is a third party IARI
 	 * 
-	 * @return Boolean
+	 * @param iari
+	 * @return True if IARI is from third party
 	 */
-	public static boolean isThirdPartyExt(String ext) {
-		return (ext.startsWith(OTHER_EXT));
+	public static boolean isThirdPartyIARI(String iari) {
+		return iari.startsWith(Constants.STANDALONE_IARI_PREFIX);
 	}
 }

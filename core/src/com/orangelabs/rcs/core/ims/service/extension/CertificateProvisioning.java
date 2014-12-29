@@ -22,6 +22,7 @@ import com.gsma.iariauth.validator.IARIAuthDocument.AuthType;
 import com.orangelabs.rcs.provider.security.AuthorizationData;
 import com.orangelabs.rcs.provider.security.CertificateData;
 import com.orangelabs.rcs.provider.security.SecurityLog;
+import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
  * A Class to update security provider only once provisioning is fully parsed
@@ -36,6 +37,8 @@ public class CertificateProvisioning implements ICertificateProvisioningListener
 	private Map<CertificateData, Integer> mCertiticatesBeforeProvisioning;
 
 	private Set<CertificateData> mCertificatesAfterProvisioning;
+
+	private final static Logger logger = Logger.getLogger(ExtensionManager.class.getSimpleName());
 
 	/**
 	 * Constructor
@@ -52,14 +55,20 @@ public class CertificateProvisioning implements ICertificateProvisioningListener
 			return;
 
 		}
+
 		// Save certificates before provisioning
 		mCertiticatesBeforeProvisioning = mSecurityLog.getAllCertificates();
 		// No certificates yet newly provisioned
 		mCertificatesAfterProvisioning = new HashSet<CertificateData>();
+		if (logger.isActivated()) {
+			String nbOfCertificates = Integer.toString(mCertiticatesBeforeProvisioning.size());
+			logger.debug( "Start of provisioning. Nb of certificates: ".concat(nbOfCertificates));
+		}
 	}
 
 	@Override
 	public void stop() {
+		boolean isLoggerActive = logger.isActivated();
 		boolean newCertificate = false;
 		
 		// Check if not already stopped or never started
@@ -67,9 +76,16 @@ public class CertificateProvisioning implements ICertificateProvisioningListener
 			return;
 
 		}
+		if (isLoggerActive) {
+			String nbOfCertificates = Integer.toString(mCertificatesAfterProvisioning.size());
+			logger.debug("End of provisioning. Nb of X509 certificates: ".concat(nbOfCertificates));
+		}
 		// Check for new Certificates
 		for (CertificateData iariRangeCertificate : mCertificatesAfterProvisioning) {
 			if (!mCertiticatesBeforeProvisioning.containsKey(iariRangeCertificate)) {
+				if (isLoggerActive) {
+					logger.debug( "New X509 certificate for range: ".concat(iariRangeCertificate.getIARIRange()));
+				}
 				// new certificate: add to provider
 				mSecurityLog.addCertificate(iariRangeCertificate);
 				newCertificate = true;
@@ -77,8 +93,11 @@ public class CertificateProvisioning implements ICertificateProvisioningListener
 		}
 
 		// Check for revoked certificates
-		mCertiticatesBeforeProvisioning.entrySet().removeAll(mCertificatesAfterProvisioning);
+		mCertiticatesBeforeProvisioning.keySet().removeAll(mCertificatesAfterProvisioning);
 		for (CertificateData iariRangeCertificate : mCertiticatesBeforeProvisioning.keySet()) {
+			if (isLoggerActive) {
+				logger.debug( "Revoked X509 certificate for range: ".concat(iariRangeCertificate.getIARIRange()));
+			}
 			// revoked certificate: remove from provider
 			mSecurityLog.removeCertificate(mCertiticatesBeforeProvisioning.get(iariRangeCertificate));
 		}
@@ -101,14 +120,24 @@ public class CertificateProvisioning implements ICertificateProvisioningListener
 
 			}
 			if (!iariRanges.contains(authorizationData.getRange())) {
+				if (isLoggerActive) {
+					logger.debug( "Remove authorization for IARI range: ".concat(authorizationData.getIARI()));
+				}
 				mSecurityLog.removeAuthorization(authorizationDatas.get(authorizationData));
 			}
 		}
 		if (newCertificate) {
+			if (isLoggerActive) {
+				logger.debug( "New provisioned X509 certificates: update supported extensions");
+			}
 			// The supported extensions need to be reevaluated
 			ExtensionManager extensionManager = ExtensionManager.getInstance();
 			if (extensionManager != null) {
 				extensionManager.updateSupportedExtensions();
+			}
+		} else {
+			if (isLoggerActive) {
+				logger.debug( "No new provisioned X509 certificates");
 			}
 		}
 	}
@@ -117,6 +146,9 @@ public class CertificateProvisioning implements ICertificateProvisioningListener
 	public void addNewCertificate(String iari, String certificate) {
 		// Add IARI / Certificate in memory
 		// Format certificate
+		if (logger.isActivated()) {
+			logger.debug( "New certificate for IARI range: ".concat(iari));
+		}
 		mCertificatesAfterProvisioning.add(new CertificateData(iari, CertificateData.format(certificate)));
 	}
 
