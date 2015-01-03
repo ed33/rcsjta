@@ -76,6 +76,7 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * Initiate video sharing.
  *
  * @author Jean-Marc AUFFRET
+ * 
  * @author YPLO6403
  */
 public class InitiateVideoSharing extends Activity implements VideoPlayerListener {
@@ -98,7 +99,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
     /**
      * Video player
      */
-    private OriginatingVideoPlayer mVideoPlayer;
+    private static OriginatingVideoPlayer mVideoPlayer;
 
     /**
      * Camera of the device
@@ -159,7 +160,22 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 	 * Spinner for contact selection
 	 */
 	private Spinner mSpinner;
-	
+
+	/**
+	 * Button
+	 */
+    private Button inviteBtn;
+    
+	/**
+	 * Button
+	 */
+    private Button dialBtn;
+
+    /**
+	 * Button
+	 */
+    private Button switchCamBtn;
+    
     /**
    	 * The log tag for this class
    	 */
@@ -177,17 +193,37 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
         // Set layout
         setContentView(R.layout.video_sharing_initiate);
 
+
         // Set the contact selector
         mSpinner = (Spinner) findViewById(R.id.contact);
         mSpinner.setAdapter(ContactListAdapter.createRcsContactListAdapter(this));
 
+        // Set title
+        setTitle(R.string.menu_initiate_video_sharing);
+
+		// Saved datas
+		if (savedInstanceState == null) {
+	        mNbfCameras = getNumberOfCameras();
+		} else {
+			mSharingId = savedInstanceState.getString("sharingId");
+			mNbfCameras = savedInstanceState.getInt("numberOfCameras");
+			mVideoHeight = savedInstanceState.getInt("videoHeight");
+			mVideoWidth = savedInstanceState.getInt("videoWidth");
+		}
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "Sharing ID " + mSharingId+ " Nb of cameras="+mNbfCameras);
+		}
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "Resoolution: " + mVideoWidth + "x" + mVideoHeight);
+		}
+
         // Set button callback
-        Button inviteBtn = (Button)findViewById(R.id.invite_btn);
+        inviteBtn = (Button)findViewById(R.id.invite_btn);
         inviteBtn.setOnClickListener(btnInviteListener);
-        Button dialBtn = (Button)findViewById(R.id.dial_btn);
+        dialBtn = (Button)findViewById(R.id.dial_btn);
         dialBtn.setOnClickListener(btnDialListener);
-        Button switchCamBtn = (Button)findViewById(R.id.switch_cam_btn);
-        switchCamBtn.setEnabled(false);
+
+        switchCamBtn = (Button)findViewById(R.id.switch_cam_btn);
 
         // Disable button if no contact available
         if (mSpinner.getAdapter().getCount() == 0) {
@@ -195,48 +231,66 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
         	inviteBtn.setEnabled(false);
         }
 
-        // Get camera info
-        mNbfCameras = getNumberOfCameras();
-        
-        if (mNbfCameras > 1) {
-            boolean backAvailable = checkCameraSize(CameraOptions.BACK);
-            boolean frontAvailable = checkCameraSize(CameraOptions.FRONT);
-            if (frontAvailable && backAvailable) {
-                switchCamBtn.setOnClickListener(btnSwitchCamListener);
-            } else if (frontAvailable) {
-                mOpenedCameraId = CameraOptions.FRONT;
-                switchCamBtn.setVisibility(View.INVISIBLE);
-            } else if (backAvailable) {
-                mOpenedCameraId = CameraOptions.BACK;
-                switchCamBtn.setVisibility(View.INVISIBLE);
-            } else {
-    			if (LogUtils.isActive) {
-    				Log.d(LOGTAG, "No camera available for encoding");
-    			}
-            }
-        } else {
-            if (checkCameraSize(CameraOptions.FRONT)) {
-                switchCamBtn.setVisibility(View.INVISIBLE);
-            } else {
-    			if (LogUtils.isActive) {
-    				Log.d(LOGTAG, "No camera available for encoding");
-    			}
-            }
-        }
-
+        // Get camera info       
+		if (mNbfCameras > 1) {
+			switchCamBtn = (Button) findViewById(R.id.switch_cam_btn);
+			boolean backAvailable = checkCameraSize(CameraOptions.BACK);
+			boolean frontAvailable = checkCameraSize(CameraOptions.FRONT);
+			if (frontAvailable && backAvailable) {
+				switchCamBtn.setOnClickListener(btnSwitchCamListener);
+			} else if (frontAvailable) {
+				mOpenedCameraId = CameraOptions.FRONT;
+				switchCamBtn.setVisibility(View.INVISIBLE);
+			} else if (backAvailable) {
+				mOpenedCameraId = CameraOptions.BACK;
+				switchCamBtn.setVisibility(View.INVISIBLE);
+			} else {
+				if (LogUtils.isActive) {
+					Log.d(LOGTAG, "No camera available for encoding");
+				}
+			}
+		} else {
+			if (checkCameraSize(CameraOptions.FRONT)) {
+				switchCamBtn.setVisibility(View.INVISIBLE);
+			} else {
+				if (LogUtils.isActive) {
+					Log.d(LOGTAG, "No camera available for encoding");
+				}
+			}
+		}
+       
         // Create the live video view
         mVideoView = (VideoSurfaceView)findViewById(R.id.video_preview);
         mVideoView.setAspectRatio(mVideoWidth, mVideoHeight);
-        mVideoView.setVisibility(View.GONE);
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
         	mVideoView.setAspectRatio(mVideoWidth, mVideoHeight);
+
         } else {
         	mVideoView.setAspectRatio(mVideoHeight, mVideoWidth);
         }
+
         mSurface = mVideoView.getHolder();
         mSurface.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         mSurface.setKeepScreenOn(true);
         
+        // Check if session in progress
+        if (mSharingId != null) {
+        	// Sharing in progress
+        	dialBtn.setVisibility(View.GONE);
+        	inviteBtn.setVisibility(View.GONE);
+            mSpinner.setVisibility(View.GONE);
+            switchCamBtn.setVisibility(View.VISIBLE);
+        } else {
+        	// Sharing not yet initiated
+        	dialBtn.setVisibility(View.VISIBLE);
+        	inviteBtn.setVisibility(View.VISIBLE);
+        	switchCamBtn.setVisibility(View.GONE);
+
+        	boolean canInitiate = (mSpinner.getAdapter().getCount() != 0);
+        	dialBtn.setEnabled(canInitiate);
+        	inviteBtn.setEnabled(canInitiate);
+        }
+		
 		// Register to API connection manager
 		mCnxManager = ApiConnectionManager.getInstance(this);
 		if (mCnxManager == null || !mCnxManager.isServiceConnected(RcsServiceName.VIDEO_SHARING)) {
@@ -259,7 +313,27 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), mExitOnce);
 		}
     }
-
+    
+	@Override
+	protected void onSaveInstanceState(Bundle outState) {
+		super.onSaveInstanceState(outState);
+		
+		outState.putString("sharingId", mSharingId);
+		outState.putInt("videoHeight", mVideoHeight);
+		outState.putInt("videoWidth", mVideoWidth);
+		outState.putInt("numberOfCameras", mNbfCameras);
+	};
+	
+	
+    @Override
+	public void onResume() {
+    	super.onResume();
+        if (mSharingId != null) {
+		    // Open camera
+			openCamera();
+	    }
+    }
+    
     @Override
 	public void onDestroy() {
 		super.onDestroy();
@@ -281,6 +355,9 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 				Log.e(LOGTAG, "Failed to remove listener", e);
 			}
 		}
+		
+		// Close the camera
+		closeCamera();
 	}
 
     /**
@@ -288,6 +365,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
      */
     private OnClickListener btnDialListener = new OnClickListener() {
         public void onClick(View v) {
+
         	// get selected phone number
     		ContactListAdapter adapter = (ContactListAdapter) mSpinner.getAdapter();
     		String phoneNumber = adapter.getSelectedNumber(mSpinner.getSelectedView());
@@ -337,12 +415,13 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 		                // Create the video player
 		        		mVideoPlayer = new OriginatingVideoPlayer(InitiateVideoSharing.this);
 		        		
-		                // Start the camera
+		                // Open the camera
 		        		openCamera();
 		
 		        		// Initiate sharing
 		        		mVideoSharing = mCnxManager.getVideoSharingApi().shareVideo(remote, mVideoPlayer);
 		        		mSharingId = mVideoSharing.getSharingId();
+
 		        	} catch(Exception e) {
 		        		e.printStackTrace();
 		        		
@@ -367,18 +446,11 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 					quitSession();
 				}
 			});
-            
-            // Disable UI
-            mSpinner.setEnabled(false);
 
-            // Display video view
-            mVideoView.setVisibility(View.VISIBLE);
-            
             // Hide buttons
-            Button inviteBtn = (Button)findViewById(R.id.invite_btn);
         	inviteBtn.setVisibility(View.GONE);
-            Button dialBtn = (Button)findViewById(R.id.dial_btn);
             dialBtn.setVisibility(View.GONE);
+            mSpinner.setVisibility(View.GONE);
         }
     };
 
@@ -387,9 +459,6 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
      */
     private View.OnClickListener btnSwitchCamListener = new View.OnClickListener() {
         public void onClick(View v) {
-		    // Release camera
-		    closeCamera();
-
 		    // Switch camera
             switchCamera();
         }
@@ -465,28 +534,40 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
     /**
      * Open the camera
      */
-    private synchronized void openCamera() {
-        if (mCamera != null) {
-        	return;
-        	
-        }
-		// Open camera
+	private synchronized void openCamera() {
+		if (mCamera != null) {
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "Already open camera");
+			}
+			return;
+			
+		}
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "Open camera");
+		}
 		openCamera(mOpenedCameraId);
-		mVideoView.setAspectRatio(mVideoWidth, mVideoHeight);
-
+		if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+			mVideoView.setAspectRatio(mVideoWidth, mVideoHeight);
+		} else {
+			mVideoView.setAspectRatio(mVideoHeight, mVideoWidth);
+		}
 		// Start camera
 		mCamera.setPreviewCallback(mVideoPlayer);
 		startCameraPreview();
-    }    
+	}
+    
     
     /**
      * Close the camera
      */
-    private synchronized void closeCamera() {
-	    if (mCamera == null) {
-	    	return;
-	    	
-	    }
+	private synchronized void closeCamera() {
+		if (mCamera == null) {
+			return;
+
+		}
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "Close camera");
+		}
 		mCamera.setPreviewCallback(null);
 		if (mCameraPreviewRunning) {
 			mCameraPreviewRunning = false;
@@ -494,26 +575,24 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 		}
 		mCamera.release();
 		mCamera = null;
-    }
+	}
     
     /**
      * Switch the camera
      */
     private synchronized void switchCamera() {
-        if (mCamera != null) {
-        	return;
-        	
-        }
+		if (LogUtils.isActive) {
+			Log.d(LOGTAG, "Switch camera");
+		}
+		closeCamera();
 		// Open the other camera
 		if (mOpenedCameraId.getValue() == CameraOptions.BACK.getValue()) {
-			openCamera(CameraOptions.FRONT);
+			mOpenedCameraId = CameraOptions.FRONT;
 		} else {
-			openCamera(CameraOptions.BACK);
+			mOpenedCameraId = CameraOptions.BACK;
 		}
 
-		// Restart the preview
-		mCamera.setPreviewCallback(mVideoPlayer);
-		startCameraPreview();  
+		openCamera();   
     }
     
     /**
@@ -524,7 +603,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
      * @return false if the camera don't have the good preview size for the encoder
      */
     private boolean checkCameraSize(CameraOptions cameraId) {
-        boolean sizeAvailable = false;
+  /*      boolean sizeAvailable = false;
 
         // Open the camera
         openCamera(cameraId);
@@ -544,105 +623,120 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
         // Release camera
         closeCamera();
 
-        return sizeAvailable;
+        return sizeAvailable;*/
+        return true;
     }
 
     /**
      * Start the camera preview
      */
     private void startCameraPreview() {
-        if (mCamera != null) {
-            // Camera settings
-            Camera.Parameters p = mCamera.getParameters();
-            p.setPreviewFormat(PixelFormat.YCbCr_420_SP);
+        if (mCamera == null) {
+        	return;
+        
+        }
+		// Camera settings
+		Camera.Parameters p = mCamera.getParameters();
+		p.setPreviewFormat(PixelFormat.YCbCr_420_SP);
 
-            // Orientation
-			Display display = ((WindowManager) getSystemService(WINDOW_SERVICE)).getDefaultDisplay();
-			switch (display.getRotation()) {
-			case Surface.ROTATION_0:
-				if (mOpenedCameraId == CameraOptions.FRONT) {
-					mVideoPlayer.setOrientation(Orientation.ROTATE_90_CCW);
-				} else {
-					mVideoPlayer.setOrientation(Orientation.ROTATE_90_CW);
-				}
-				mCamera.setDisplayOrientation(90);
-				break;
-				
-			case Surface.ROTATION_90:
-				mVideoPlayer.setOrientation(Orientation.NONE);
-				break;
-				
-			case Surface.ROTATION_180:
-				if (mOpenedCameraId == CameraOptions.FRONT) {
-					mVideoPlayer.setOrientation(Orientation.ROTATE_90_CW);
-				} else {
-					mVideoPlayer.setOrientation(Orientation.ROTATE_90_CCW);
-				}
-				mCamera.setDisplayOrientation(270);
-				break;
-				
-			case Surface.ROTATION_270:
-				if (mOpenedCameraId == CameraOptions.FRONT) {
-					mVideoPlayer.setOrientation(Orientation.ROTATE_180);
-				} else {
-					mVideoPlayer.setOrientation(Orientation.ROTATE_180);
-				}
-				mCamera.setDisplayOrientation(180);
-				break;
+		// Orientation
+		Display display = ((WindowManager) getSystemService(WINDOW_SERVICE)).getDefaultDisplay();
+		switch (display.getRotation()) {
+		case Surface.ROTATION_0:
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "ROTATION_0");
 			}
-            
-			// Check if preview size is supported
-			if (isPreviewSizeSupported(p, mVideoWidth, mVideoHeight)) {
-				// Use the existing size without resizing
-				p.setPreviewSize(mVideoWidth, mVideoHeight);
-				// TODO videoPlayer.activateResizing(videoWidth, videoHeight); // same size = no
-				// resizing
+			if (mOpenedCameraId == CameraOptions.FRONT) {
+				mVideoPlayer.setOrientation(Orientation.ROTATE_90_CCW);
+			} else {
+				mVideoPlayer.setOrientation(Orientation.ROTATE_90_CW);
+			}
+			mCamera.setDisplayOrientation(90);
+			break;
+
+		case Surface.ROTATION_90:
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "ROTATION_90");
+			}
+			mVideoPlayer.setOrientation(Orientation.NONE);
+			break;
+
+		case Surface.ROTATION_180:
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "ROTATION_180");
+			}
+			if (mOpenedCameraId == CameraOptions.FRONT) {
+				mVideoPlayer.setOrientation(Orientation.ROTATE_90_CW);
+			} else {
+				mVideoPlayer.setOrientation(Orientation.ROTATE_90_CCW);
+			}
+			mCamera.setDisplayOrientation(270);
+			break;
+
+		case Surface.ROTATION_270:
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "ROTATION_270");
+			}
+			if (mOpenedCameraId == CameraOptions.FRONT) {
+				mVideoPlayer.setOrientation(Orientation.ROTATE_180);
+			} else {
+				mVideoPlayer.setOrientation(Orientation.ROTATE_180);
+			}
+			mCamera.setDisplayOrientation(180);
+			break;
+		}
+
+		// Check if preview size is supported
+		if (isPreviewSizeSupported(p, mVideoWidth, mVideoHeight)) {
+			// Use the existing size without resizing
+			p.setPreviewSize(mVideoWidth, mVideoHeight);
+			// TODO videoPlayer.activateResizing(videoWidth, videoHeight); // same size = no
+			// resizing
+			if (LogUtils.isActive) {
+				Log.d(LOGTAG, "Camera preview initialized with size " + mVideoWidth + "x" + mVideoHeight);
+			}
+		} else {
+			// Check if can use a other known size (QVGA, CIF or VGA)
+			int w = 0;
+			int h = 0;
+			for (Camera.Size size : p.getSupportedPreviewSizes()) {
+				w = size.width;
+				h = size.height;
+				if ((w == H264Config.QVGA_WIDTH && h == H264Config.QVGA_HEIGHT) || (w == H264Config.CIF_WIDTH && h == H264Config.CIF_HEIGHT)
+						|| (w == H264Config.VGA_WIDTH && h == H264Config.VGA_HEIGHT)) {
+					break;
+				}
+			}
+
+			if (w != 0) {
+				p.setPreviewSize(w, h);
+				// TODO does not work if default sizes are not supported like for Samsung S5 mini
+				// mVideoPlayer.activateResizing(w, h);
 				if (LogUtils.isActive) {
-					Log.d(LOGTAG, "Camera preview initialized with size " + mVideoWidth + "x" + mVideoHeight);
+					Log.d(LOGTAG, "Camera preview initialized with size " + w + "x" + h + " with a resizing to " + mVideoWidth + "x" + mVideoHeight);
 				}
 			} else {
-				// Check if can use a other known size (QVGA, CIF or VGA)
-				int w = 0;
-				int h = 0;
-				for (Camera.Size size : p.getSupportedPreviewSizes()) {
-					w = size.width;
-					h = size.height;
-					if ((w == H264Config.QVGA_WIDTH && h == H264Config.QVGA_HEIGHT) || (w == H264Config.CIF_WIDTH && h == H264Config.CIF_HEIGHT)
-							|| (w == H264Config.VGA_WIDTH && h == H264Config.VGA_HEIGHT)) {
-						break;
-					}
+				// The camera don't have known size, we can't use it
+				if (LogUtils.isActive) {
+					Log.d(LOGTAG, "Camera preview can't be initialized with size " + mVideoWidth + "x" + mVideoHeight);
 				}
+				Toast.makeText(this, getString(R.string.label_session_failed, "Camera is not compatible"), Toast.LENGTH_SHORT).show();
+				quitSession();
+				return;
 
-				if (w != 0) {
-					p.setPreviewSize(w, h);
-					// TODO does not work if default sizes are not supported like for Samsung S5 mini
-					// mVideoPlayer.activateResizing(w, h);
-					if (LogUtils.isActive) {
-						Log.d(LOGTAG, "Camera preview initialized with size " + w + "x" + h + " with a resizing to " + mVideoWidth + "x" + mVideoHeight);
-					}
-				} else {
-					// The camera don't have known size, we can't use it
-					if (LogUtils.isActive) {
-						Log.d(LOGTAG, "Camera preview can't be initialized with size " + mVideoWidth + "x" + mVideoHeight);
-					}
-					Toast.makeText(this, getString(R.string.label_session_failed,"Camera is not compatible"), Toast.LENGTH_SHORT).show();
-					quitSession();
-					return;
-					
-				}
 			}
+		}
 
-            // Set camera parameters
-            mCamera.setParameters(p);
-            try {
-                mCamera.setPreviewDisplay(mVideoView.getHolder());
-                mCamera.startPreview();
-                mCameraPreviewRunning = true;
-            } catch (Exception e) {
-                mCamera = null;
-            }
-        }
-    }
+		// Set camera parameters
+		mCamera.setParameters(p);
+		try {
+			mCamera.setPreviewDisplay(mVideoView.getHolder());
+			mCamera.startPreview();
+			mCameraPreviewRunning = true;
+		} catch (Exception e) {
+			mCamera = null;
+		}
+	}
 
     /**
      * Get Camera "open" Method

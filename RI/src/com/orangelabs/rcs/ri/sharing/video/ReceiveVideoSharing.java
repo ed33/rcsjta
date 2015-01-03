@@ -21,6 +21,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -128,7 +129,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
         // Set layout
         setContentView(R.layout.video_sharing_receive);
 
-        // Get invitation info
+		// Get invitation info
         vshDao = (VideoSharingDAO) (getIntent().getExtras().getParcelable(VideoSharingIntentService.BUNDLE_VSHDAO_ID));
 		if (vshDao == null) {
 			if (LogUtils.isActive) {
@@ -145,7 +146,11 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 		
         // Create the live video view
         videoView = (VideoSurfaceView)findViewById(R.id.video_view);
-        videoView.setAspectRatio(videoWidth, videoHeight);
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+            videoView.setAspectRatio(videoWidth, videoHeight);
+        } else {
+        	videoView.setAspectRatio(videoHeight, videoWidth);
+        }
         surface = videoView.getHolder();
         surface.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         surface.setKeepScreenOn(true);
@@ -186,7 +191,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 		}
 	}
 
-    public void videoSharingInvitation() {
+    private void videoSharingInvitation() {
     	VideoSharingService vshApi = mCnxManager.getVideoSharingApi();
 		try {
 			// Add service listener

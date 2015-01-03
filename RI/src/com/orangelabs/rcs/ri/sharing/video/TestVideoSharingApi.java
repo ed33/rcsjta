@@ -58,7 +58,7 @@ public class TestVideoSharingApi extends ListActivity {
                 
 	        case 1:
 	        	startActivity(new Intent(this, VideoSharingList.class));
-                break;            
+                break;
         }
     }
 }
