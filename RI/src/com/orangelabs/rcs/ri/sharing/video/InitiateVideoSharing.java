@@ -155,7 +155,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 	 * API connection manager
 	 */
 	private ApiConnectionManager mCnxManager;
-	
+
 	/**
 	 * Spinner for contact selection
 	 */
@@ -268,7 +268,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
         } else {
         	mVideoView.setAspectRatio(mVideoHeight, mVideoWidth);
         }
-
+       
         mSurface = mVideoView.getHolder();
         mSurface.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         mSurface.setKeepScreenOn(true);
@@ -603,7 +603,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
      * @return false if the camera don't have the good preview size for the encoder
      */
     private boolean checkCameraSize(CameraOptions cameraId) {
-  /*      boolean sizeAvailable = false;
+        boolean sizeAvailable = false;
 
         // Open the camera
         openCamera(cameraId);
@@ -623,8 +623,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
         // Release camera
         closeCamera();
 
-        return sizeAvailable;*/
-        return true;
+        return sizeAvailable;
     }
 
     /**

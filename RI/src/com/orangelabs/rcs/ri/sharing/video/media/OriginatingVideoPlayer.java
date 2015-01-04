@@ -25,6 +25,7 @@ import android.os.SystemClock;
 
 import com.gsma.services.rcs.vsh.VideoCodec;
 import com.gsma.services.rcs.vsh.VideoPlayer;
+import com.orangelabs.rcs.core.ims.protocol.rtp.RtpUtils;
 import com.orangelabs.rcs.core.ims.protocol.rtp.VideoRtpSender;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.JavaPacketizer;
@@ -139,7 +140,7 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
     /**
      * Orientation header id
      */
-    private int orientationHeaderId = -1;
+    private int orientationHeaderId = RtpUtils.RTP_DEFAULT_EXTENSION_ID;
 
     /**
      * Camera ID
@@ -200,14 +201,19 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
 	 * @param codec Video codec
 	 * @param remoteHost Remote RTP host
 	 * @param remotePort Remote RTP port
+	 * @param orientationHeaderId Orientation header extension ID. The extension ID is
+	 *  a value between 1 and 15 arbitrarily chosen by the sender, as defined in RFC5285
 	 */
-	public void setRemoteInfo(VideoCodec codec, String remoteHost, int remotePort) {
+	public void setRemoteInfo(VideoCodec codec, String remoteHost, int remotePort, int orientationHeaderId) {
         // Set the video codec
         defaultVideoCodec = codec;
         
         // Set remote host and port
         this.remoteHost = remoteHost;
-        this.remotePort = remotePort;        
+        this.remotePort = remotePort;
+        
+        // Set the orientation ID
+        this.orientationHeaderId = orientationHeaderId;
 	}
     
     /**
@@ -696,6 +702,7 @@ public class OriginatingVideoPlayer extends VideoPlayer implements Camera.Previe
          *
          * @param data Data
          * @param timestamp Timestamp
+         * @param videoOrientation 
          * @param marker Marker bit 
          */
         public void addFrame(byte[] data, long timestamp, VideoOrientation videoOrientation) {

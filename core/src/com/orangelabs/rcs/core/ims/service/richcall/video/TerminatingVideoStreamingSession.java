@@ -185,6 +185,9 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
             }
 
             // Build SDP part
+            // Note ID_6_5 Extmap: it is recommended not to change the extmap's local
+            // identifier in the SDP answer from the one in the SDP offer because there
+            // are no reasons to do that since there should only be one extension in use.
 	    	String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
             String videoSdp = VideoSdpBuilder.buildSdpAnswer(selectedVideoCodec, getVideoPlayer().getLocalRtpPort(), mediaVideo); 
             String sdp = SdpUtils.buildVideoSDP(ipAddress, videoSdp, SdpUtils.DIRECTION_RECVONLY);
@@ -229,7 +232,7 @@ public class TerminatingVideoStreamingSession extends VideoStreamingSession {
                 }
 
                 // Set the video player remote info
-                getVideoPlayer().setRemoteInfo(selectedVideoCodec, remoteHost, remotePort);
+                getVideoPlayer().setRemoteInfo(selectedVideoCodec, remoteHost, remotePort, getVideoOrientationId());
 
                 // Notify listeners
                 for(int i=0; i < getListeners().size(); i++) {
