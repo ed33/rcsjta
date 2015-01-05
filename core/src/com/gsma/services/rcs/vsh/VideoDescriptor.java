@@ -12,12 +12,12 @@ public class VideoDescriptor implements Parcelable {
 	/**
 	 * Screen width
 	 */
-	private int width;
+	private int mWidth;
 	
 	/**
 	 * Screen height
 	 */
-	private int height;
+	private int mHeight;
 
     /**
      * Constructor
@@ -27,8 +27,8 @@ public class VideoDescriptor implements Parcelable {
      * @hide
      */
     public VideoDescriptor(int width, int height) {
-    	this.width = width;
-    	this.height = height;
+    	mWidth = width;
+    	this.mHeight = height;
     }
     
     /**
@@ -38,8 +38,8 @@ public class VideoDescriptor implements Parcelable {
      * @hide
 	 */
 	public VideoDescriptor(Parcel source) {
-    	this.width = source.readInt();
-    	this.height = source.readInt();
+    	mWidth = source.readInt();
+    	mHeight = source.readInt();
 	}
 
 	/**
@@ -61,8 +61,8 @@ public class VideoDescriptor implements Parcelable {
      * @hide
 	 */
     public void writeToParcel(Parcel dest, int flags) {
-    	dest.writeInt(width);
-    	dest.writeInt(height);
+    	dest.writeInt(mWidth);
+    	dest.writeInt(mHeight);
     }
     
     /**
@@ -86,8 +86,8 @@ public class VideoDescriptor implements Parcelable {
      * 
      * @return Video width
      */
-    public int getVideoWidth() {
-    	return width;
+    public int getWidth() {
+    	return mWidth;
     }
     
     /**
@@ -95,7 +95,7 @@ public class VideoDescriptor implements Parcelable {
      * 
      * @return Video height
      */
-    public int getVideoHeight() {
-    	return height;
+    public int getHeight() {
+    	return mHeight;
     }
 }

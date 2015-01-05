@@ -859,7 +859,7 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 						try {
 							VideoDescriptor videoDescriptor = mVideoSharing.getVideoDescriptor();
 							String format = mVideoSharing.getVideoEncoding() + " " +
-									videoDescriptor.getVideoWidth() + "x" + videoDescriptor.getVideoHeight();
+									videoDescriptor.getWidth() + "x" + videoDescriptor.getHeight();
 							TextView fmtView = (TextView) findViewById(R.id.video_format);
 							fmtView.setVisibility(View.VISIBLE);
 							fmtView.setText(getString(R.string.label_video_format, format));
