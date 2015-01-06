@@ -51,10 +51,17 @@ public class ImageSharingIntentService extends IntentService {
 
 	static final String BUNDLE_ISHDAO_ID = "ishdao";
 
+	/**
+	 * Constructor
+	 * @param name
+	 */
 	public ImageSharingIntentService(String name) {
 		super(name);
 	}
 
+	/**
+	 * Constructor
+	 */
 	public ImageSharingIntentService() {
 		super("ImageSharingIntentService");
 	}
@@ -71,13 +78,15 @@ public class ImageSharingIntentService extends IntentService {
 	protected void onHandleIntent(Intent intent) {
 		if (intent == null || intent.getAction() == null) {
 			return;
+			
 		}
 		// Check action from incoming intent
 		if (!intent.getAction().equalsIgnoreCase(ImageSharingIntent.ACTION_NEW_INVITATION)) {
 			if (LogUtils.isActive) {
-				Log.e(LOGTAG, "Unknown action " + intent.getAction());
+				Log.e(LOGTAG, "Unknown action ".concat(intent.getAction()));
 			}
 			return;
+			
 		}
 		// Gets data from the incoming Intent
 		String sharingId = intent.getStringExtra(ImageSharingIntent.EXTRA_SHARING_ID);
@@ -86,6 +95,7 @@ public class ImageSharingIntentService extends IntentService {
 				Log.e(LOGTAG, "Cannot read sharing ID");
 			}
 			return;
+			
 		}
 		try {
 			// Get Image sharing from provider
@@ -95,7 +105,7 @@ public class ImageSharingIntentService extends IntentService {
 			bundle.putParcelable(BUNDLE_ISHDAO_ID, ishDao);
 			intent.putExtras(bundle);
 			if (LogUtils.isActive) {
-				Log.d(LOGTAG, "ISH invitation " + ishDao);
+				Log.d(LOGTAG, "ISH invitation ".concat(ishDao.toString()));
 			}
 			// TODO check ISH state to know if rejected
 			// TODO check validity of direction, etc ...

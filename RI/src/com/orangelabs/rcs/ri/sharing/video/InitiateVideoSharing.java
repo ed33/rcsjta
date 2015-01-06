@@ -97,7 +97,8 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
 	private String mSharingId;
 
     /**
-     * Video player
+     * Video player<br>
+     * Note: this field is intentionally static
      */
     private static OriginatingVideoPlayer mVideoPlayer;
 
@@ -197,9 +198,6 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
         // Set the contact selector
         mSpinner = (Spinner) findViewById(R.id.contact);
         mSpinner.setAdapter(ContactListAdapter.createRcsContactListAdapter(this));
-
-        // Set title
-        setTitle(R.string.menu_initiate_video_sharing);
 
 		// Saved datas
 		if (savedInstanceState == null) {

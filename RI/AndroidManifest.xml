@@ -354,11 +354,11 @@
 		    	<action android:name="com.gsma.services.rcs.vsh.action.NEW_VIDEO_SHARING"/>
             </intent-filter>
         </receiver>
-
         
         <activity
             android:name=".sharing.video.ReceiveVideoSharing"
-            android:label="@string/menu_video_sharing" />
+            android:label="@string/menu_video_sharing" 
+            android:exported="true" />
         
         <activity
             android:name=".sharing.video.VideoSharingList"

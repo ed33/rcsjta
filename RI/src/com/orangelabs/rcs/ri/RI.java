@@ -19,12 +19,9 @@
 package com.orangelabs.rcs.ri;
 
 import android.app.ListActivity;
-import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
@@ -32,21 +29,12 @@ import android.widget.ListView;
 import com.orangelabs.rcs.ri.capabilities.TestCapabilitiesApi;
 import com.orangelabs.rcs.ri.contacts.TestContactsApi;
 import com.orangelabs.rcs.ri.extension.TestMultimediaSessionApi;
-import com.orangelabs.rcs.ri.extension.messaging.MessagingSessionView;
-import com.orangelabs.rcs.ri.extension.streaming.StreamingSessionView;
 import com.orangelabs.rcs.ri.intents.TestIntentsApi;
-import com.orangelabs.rcs.ri.ipcall.IPCallView;
 import com.orangelabs.rcs.ri.ipcall.TestIPCallApi;
 import com.orangelabs.rcs.ri.messaging.TestMessagingApi;
-import com.orangelabs.rcs.ri.messaging.ft.InitiateFileTransfer;
-import com.orangelabs.rcs.ri.messaging.ft.ReceiveFileTransfer;
 import com.orangelabs.rcs.ri.service.TestServiceApi;
 import com.orangelabs.rcs.ri.sharing.TestSharingApi;
-import com.orangelabs.rcs.ri.sharing.geoloc.ReceiveGeolocSharing;
-import com.orangelabs.rcs.ri.sharing.image.ReceiveImageSharing;
-import com.orangelabs.rcs.ri.sharing.video.ReceiveVideoSharing;
 import com.orangelabs.rcs.ri.upload.InitiateFileUpload;
-import com.orangelabs.rcs.ri.utils.LogUtils;
 
 /**
  * RI application
@@ -55,22 +43,12 @@ import com.orangelabs.rcs.ri.utils.LogUtils;
  */
 public class RI extends ListActivity {
 	
-	private static final int VERSION_CODES_KITKAT = 19;
-	
-	 /**
-   	 * The log tag for this class
-   	 */
-   	private static final String LOGTAG = LogUtils.getTag(RI.class.getSimpleName());
-   	
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        cancelAllPendingIntents();
-        
         // Set layout
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        
         
 		// Set items
         String[] items = {
@@ -133,56 +111,6 @@ public class RI extends ListActivity {
         		startActivity(new Intent(this, AboutRI.class));
         		break;
     	}
-    }
-    
-    /**
-     * Cancel all pending intents to take into account Kitkat problem. See ON-30325 and
-     * https://code.google.com/p/android/issues/detail?id=61850
-     */
-    private void cancelAllPendingIntents() {
-        if (Build.VERSION.SDK_INT >= VERSION_CODES_KITKAT) {
-            if (LogUtils.isActive) {
-				Log.d(LOGTAG, "cancelPendingIntents for Kitkat");
-			}
-            // Cancel pending intent for ReceiveVideoSharing
-            cancelPendingIntentForClass(ReceiveVideoSharing.class);
-            
-            // Cancel pending intent for MessagingSessionView
-            cancelPendingIntentForClass(MessagingSessionView.class);
-            
-            // Cancel pending intent for StreamingSessionView
-            cancelPendingIntentForClass(StreamingSessionView.class);
-            
-            // Cancel pending intent for IPCallView
-            cancelPendingIntentForClass(IPCallView.class);
-
-            // Cancel pending intent for ReceiveFileTransfer
-            cancelPendingIntentForClass(ReceiveFileTransfer.class);
-
-            // Cancel pending intent for InitiateFileTransfer
-            cancelPendingIntentForClass(InitiateFileTransfer.class);
-
-            // Cancel pending intent for ReceiveImageSharing
-            cancelPendingIntentForClass(ReceiveImageSharing.class);
-
-            // Cancel pending intent for ReceiveGeolocSharing
-            cancelPendingIntentForClass(ReceiveGeolocSharing.class);
-
-            // Note that if we create other activities that are not exported and that we want to
-            // open using a pendingIntent, we have to add them here also
-        }
-    }
-
-    /**
-     * Cancel a pending intent for a given class
-     * 
-     * @param className
-     */
-    private void cancelPendingIntentForClass(Class<?> className) {
-        Intent notificationIntent = new Intent(this, className);
-        // Creating and canceling an intent allows next calls to the same class to work properly
-        PendingIntent intent = PendingIntent.getActivity(this, 1, notificationIntent, 0);
-        intent.cancel();
     }
 
 }

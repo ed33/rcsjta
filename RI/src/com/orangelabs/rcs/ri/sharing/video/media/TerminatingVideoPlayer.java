@@ -61,17 +61,17 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
     /**
      * RTP receiver session
      */
-    private VideoRtpReceiver rtpReceiver = null;
+    private VideoRtpReceiver rtpReceiver;
 
     /**
      * RTP dummy packet generator
      */
-    private DummyPacketGenerator rtpDummySender = null;
+    private DummyPacketGenerator rtpDummySender;
 
     /**
      * RTP media output
      */
-    private MediaRtpOutput rtpOutput = null;
+    private MediaRtpOutput rtpOutput;
 
     /**
      * Is player opened
@@ -91,12 +91,12 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
     /**
      * Video surface
      */
-    private VideoSurface surface = null;
+    private VideoSurface surface;
 
     /**
      * Temporary connection to reserve the port
      */
-    private DatagramConnection temporaryConnection = null;
+    private DatagramConnection temporaryConnection;
 
     /**
      * Orientation header id.
@@ -456,4 +456,12 @@ public class TerminatingVideoPlayer extends VideoPlayer implements RtpStreamList
             }
         }
     }
+
+	/**
+	 * Set the surface
+	 * @param surface
+	 */
+	public void setSurface(VideoSurface surface) {
+		this.surface = surface;
+	}
 }

@@ -80,9 +80,10 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
     private VideoSharingDAO vshDao;
 
     /**
-     * Video renderer
+     * Video renderer<br>
+     * Note: this field is intentionally static
      */
-    private TerminatingVideoPlayer videoRenderer;
+    private static TerminatingVideoPlayer videoRenderer;
 
     /**
      * Video width
@@ -99,11 +100,6 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
      */
     private VideoSurfaceView videoView;
     
-    /**
-     * Video surface holder
-     */
-    private SurfaceHolder surface;
-    
 	/**
 	 * A locker to exit only once
 	 */
@@ -113,7 +109,14 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 	 * API connection manager
 	 */
 	private ApiConnectionManager mCnxManager;
+	
+	private static final String SAVE_VIDEO_SHARING_DAO = "videoSharingDao";
+	private static final String SAVE_WAIT_USER_ACCEPT = "waitUserAccept";
+	
+    private boolean mWaitForUseAcceptance = true;
     
+    private AlertDialog mAcceptDeclineDialog;
+
     /**
 	 * The log tag for this class
 	 */
@@ -131,8 +134,14 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
         // Set layout
         setContentView(R.layout.video_sharing_receive);
 
-		// Get invitation info
-        vshDao = (VideoSharingDAO) (getIntent().getExtras().getParcelable(VideoSharingIntentService.BUNDLE_VSHDAO_ID));
+        // Saved datas
+        if (savedInstanceState == null) {
+        	// Get invitation info
+        	vshDao = (VideoSharingDAO) (getIntent().getExtras().getParcelable(VideoSharingIntentService.BUNDLE_VSHDAO_ID));
+        } else {
+        	vshDao = savedInstanceState.getParcelable(SAVE_VIDEO_SHARING_DAO);
+        	mWaitForUseAcceptance = savedInstanceState.getBoolean(SAVE_WAIT_USER_ACCEPT);
+        }
 		if (vshDao == null) {
 			if (LogUtils.isActive) {
 				Log.e(LOGTAG, "onCreate cannot read Video Sharing invitation");
@@ -143,22 +152,26 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 		}
 
 		if (LogUtils.isActive) {
-			Log.d(LOGTAG, "onCreate "+vshDao);
+			Log.d(LOGTAG, "onCreate ".concat(vshDao.toString()));
 		}
 		
         // Create the live video view
         videoView = (VideoSurfaceView)findViewById(R.id.video_view);
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
             videoView.setAspectRatio(videoWidth, videoHeight);
         } else {
         	videoView.setAspectRatio(videoHeight, videoWidth);
         }
-        surface = videoView.getHolder();
+        SurfaceHolder surface = videoView.getHolder();
         surface.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         surface.setKeepScreenOn(true);
 
-        // Instantiate the renderer
-        videoRenderer = new TerminatingVideoPlayer(videoView, this);
+        if (videoRenderer == null) {
+        	// Instantiate the renderer
+        	videoRenderer = new TerminatingVideoPlayer(videoView, this);
+        } else {
+        	videoRenderer.setSurface(videoView);
+        }
 
 		// Register to API connection manager
 		mCnxManager = ApiConnectionManager.getInstance(this);
@@ -173,6 +186,11 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
     @Override
 	public void onDestroy() {
 		super.onDestroy();
+		if (mAcceptDeclineDialog != null) {
+			mAcceptDeclineDialog.cancel();
+			mAcceptDeclineDialog = null;
+        }
+		
 		if (mCnxManager == null) {
 			return;
 			
@@ -193,6 +211,13 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 		}
 	}
 
+    @Override
+	protected void onSaveInstanceState(Bundle outState) {
+		super.onSaveInstanceState(outState);
+		outState.putParcelable(SAVE_VIDEO_SHARING_DAO, vshDao);
+		outState.putBoolean(SAVE_WAIT_USER_ACCEPT, mWaitForUseAcceptance);
+	};
+	
     private void videoSharingInvitation() {
     	VideoSharingService vshApi = mCnxManager.getVideoSharingApi();
 		try {
@@ -215,15 +240,9 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
     		TextView fromTextView = (TextView)findViewById(R.id.from);
     		fromTextView.setText(getString(R.string.label_from_args, from));
 	    	
-			// Display accept/reject dialog
-			AlertDialog.Builder builder = new AlertDialog.Builder(this);
-			builder.setTitle(R.string.title_video_sharing);
-			builder.setMessage(getString(R.string.label_from_args, from));
-			builder.setCancelable(false);
-			builder.setIcon(R.drawable.ri_notif_csh_icon);
-			builder.setPositiveButton(getString(R.string.label_accept), acceptBtnListener);
-			builder.setNegativeButton(getString(R.string.label_decline), declineBtnListener);
-			builder.show();
+    		if (mWaitForUseAcceptance) {
+    			showReceiveNotification(from);
+    		}
 	    } catch(RcsServiceNotAvailableException e) {
 	    	if (LogUtils.isActive) {
 				Log.e(LOGTAG, e.getMessage(), e);
@@ -236,6 +255,23 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 			Utils.showMessageAndExit(this, getString(R.string.label_api_failed), exitOnce);
 		}
     }
+    
+    /**
+     * Show Incoming alert dialog 
+	 * @param from
+	 */
+	private void showReceiveNotification(String from) {
+		// User alert
+		// Display accept/reject dialog
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setTitle(R.string.title_video_sharing);
+		builder.setMessage(getString(R.string.label_from_args, from));
+		builder.setCancelable(false);
+		builder.setIcon(R.drawable.ri_notif_csh_icon);
+		builder.setPositiveButton(getString(R.string.label_accept), acceptBtnListener);
+		builder.setNegativeButton(getString(R.string.label_decline), declineBtnListener);
+		mAcceptDeclineDialog = builder.show();
+	}
     
     /**
 	 * Accept invitation
@@ -272,7 +308,9 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
      * Accept button listener
      */
     private OnClickListener acceptBtnListener = new OnClickListener() {
-        public void onClick(DialogInterface dialog, int which) {     
+        public void onClick(DialogInterface dialog, int which) {
+        	mAcceptDeclineDialog = null;
+        	mWaitForUseAcceptance = false;
         	// Accept invitation
         	acceptInvitation();
         }
@@ -283,6 +321,8 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
      */    
     private OnClickListener declineBtnListener = new OnClickListener() {
         public void onClick(DialogInterface dialog, int which) {
+        	mAcceptDeclineDialog = null;
+        	mWaitForUseAcceptance = false;
         	// Reject invitation
         	rejectInvitation();
         	
@@ -358,16 +398,19 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled state=" + state);
 				}
 				return;
+				
 			}
 			if (reasonCode > RiApplication.VSH_REASON_CODES.length) {
 				if (LogUtils.isActive) {
 					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled reason=" + reasonCode);
 				}
 				return;
+				
 			}
 			// Discard event if not for current sharingId
 			if (vshDao == null || !vshDao.getSharingId().equals(sharingId)) {
 				return;
+				
 			}
 			final String _reasonCode = RiApplication.VSH_REASON_CODES[reasonCode];
 			handler.post(new Runnable() {
