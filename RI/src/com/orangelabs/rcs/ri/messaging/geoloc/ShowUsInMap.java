@@ -32,7 +32,7 @@ import com.google.android.maps.MapActivity;
 import com.google.android.maps.MapView;
 import com.gsma.services.rcs.RcsCommon;
 import com.gsma.services.rcs.chat.ChatLog;
-import com.gsma.services.rcs.chat.Geoloc;
+import com.gsma.services.rcs.Geoloc;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.utils.Utils;
 
@@ -135,7 +135,7 @@ public class ShowUsInMap extends MapActivity {
 					QUERY_SORT_ORDER);
 			if (cursor.moveToFirst()) {
 				String content = cursor.getString(cursor.getColumnIndex(ChatLog.Message.CONTENT));
-				return ChatLog.getGeoloc(content);
+				return new Geoloc(content);
 			}
 		} catch (Exception e) {
 		} finally {
@@ -159,7 +159,7 @@ public class ShowUsInMap extends MapActivity {
 					QUERY_WHERE_CLAUSE, null, QUERY_SORT_ORDER);
 			if (cursor.moveToFirst()) {
 				String content = cursor.getString(cursor.getColumnIndex(ChatLog.Message.CONTENT));
-				return ChatLog.getGeoloc(content);
+				return new Geoloc(content);
 			}
 		} catch (Exception e) {
 		} finally {

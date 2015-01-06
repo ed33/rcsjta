@@ -40,7 +40,7 @@ import android.widget.TextView;
 
 import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.chat.ChatLog;
-import com.gsma.services.rcs.chat.Geoloc;
+import com.gsma.services.rcs.Geoloc;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
 import com.orangelabs.rcs.ri.ApiConnectionManager;
@@ -199,9 +199,14 @@ public class SingleChatList extends Activity {
 			String mimetype = cursor.getString(holder.columnMimetype);
 			String text = "";
 			if (ChatLog.Message.MimeType.GEOLOC_MESSAGE.equals(mimetype)) {
-				Geoloc geoloc = ChatLog.getGeoloc(content);
-				if (geoloc != null) {
+				try {
+					Geoloc geoloc = new Geoloc(content);
 					text = geoloc.getLabel() + "," + geoloc.getLatitude() + "," + geoloc.getLongitude();
+				} catch (Exception e) {
+					if (LogUtils.isActive) {
+						Log.e(LOGTAG,"Invalid geoloc message:".concat(content));
+					}
+					text = content;
 				}
 			} else {
 				if (ChatLog.Message.MimeType.TEXT_MESSAGE.equals(mimetype)) {

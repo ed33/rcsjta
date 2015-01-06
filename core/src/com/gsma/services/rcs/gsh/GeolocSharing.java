@@ -21,14 +21,18 @@
  ******************************************************************************/
 package com.gsma.services.rcs.gsh;
 
+import com.gsma.services.rcs.Geoloc;
 import com.gsma.services.rcs.RcsServiceException;
-import com.gsma.services.rcs.chat.Geoloc;
 import com.gsma.services.rcs.contacts.ContactId;
 
 /**
  * Geoloc sharing
  * 
  * @author Jean-Marc AUFFRET
+ */
+/**
+ * @author yplo6403
+ *
  */
 public class GeolocSharing {
 
@@ -44,7 +48,7 @@ public class GeolocSharing {
     	/**
     	 * Sharing invitation sent
     	 */
-    	public final static int INITIATED = 1;
+    	public final static int INITIATING = 1;
     	
     	/**
     	 * Sharing is started
@@ -166,15 +170,15 @@ public class GeolocSharing {
     /**
      * Geoloc sharing interface
      */
-    private IGeolocSharing sharingInf;
+    private IGeolocSharing mSharingInf;
     
     /**
      * Constructor
      * 
      * @param sharingInf Geoloc sharing interface
      */
-    GeolocSharing(IGeolocSharing sharingInf) {
-    	this.sharingInf = sharingInf;
+    /* package private */GeolocSharing(IGeolocSharing sharingInf) {
+    	mSharingInf = sharingInf;
     }
     	
     /**
@@ -185,7 +189,7 @@ public class GeolocSharing {
 	 */
 	public String getSharingId() throws RcsServiceException {
 		try {
-			return sharingInf.getSharingId();
+			return mSharingInf.getSharingId();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -199,7 +203,7 @@ public class GeolocSharing {
 	 */
 	public ContactId getRemoteContact() throws RcsServiceException {
 		try {
-			return sharingInf.getRemoteContact();
+			return mSharingInf.getRemoteContact();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -214,7 +218,7 @@ public class GeolocSharing {
 	 */
 	public Geoloc getGeoloc() throws RcsServiceException {
 		try {
-			return sharingInf.getGeoloc();
+			return mSharingInf.getGeoloc();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -229,7 +233,7 @@ public class GeolocSharing {
 	 */
 	public int getState() throws RcsServiceException {
 		try {
-			return sharingInf.getState();
+			return mSharingInf.getState();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -244,7 +248,7 @@ public class GeolocSharing {
 	 */
 	public int getReasonCode() throws RcsServiceException {
 		try {
-			return sharingInf.getReasonCode();
+			return mSharingInf.getReasonCode();
 		} catch (Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -254,12 +258,12 @@ public class GeolocSharing {
 	 * Returns the direction of the sharing (incoming or outgoing)
 	 * 
 	 * @return Direction
-	 * @see GeolocSharing.Direction
+	 * @see com.gsma.services.rcs.RcsCommon.Direction
 	 * @throws RcsServiceException
 	 */
 	public int getDirection() throws RcsServiceException {
 		try {
-			return sharingInf.getDirection();
+			return mSharingInf.getDirection();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -272,7 +276,7 @@ public class GeolocSharing {
 	 */
 	public void acceptInvitation() throws RcsServiceException {
 		try {
-			sharingInf.acceptInvitation();
+			mSharingInf.acceptInvitation();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -285,7 +289,7 @@ public class GeolocSharing {
 	 */
 	public void rejectInvitation() throws RcsServiceException {
 		try {
-			sharingInf.rejectInvitation();
+			mSharingInf.rejectInvitation();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -298,7 +302,7 @@ public class GeolocSharing {
 	 */
 	public void abortSharing() throws RcsServiceException {
 		try {
-			sharingInf.abortSharing();
+			mSharingInf.abortSharing();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}

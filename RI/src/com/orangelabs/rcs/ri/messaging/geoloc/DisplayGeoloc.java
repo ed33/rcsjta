@@ -23,7 +23,7 @@ import android.os.Bundle;
 import com.google.android.maps.GeoPoint;
 import com.google.android.maps.MapActivity;
 import com.google.android.maps.MapView;
-import com.gsma.services.rcs.chat.Geoloc;
+import com.gsma.services.rcs.Geoloc;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.utils.Utils;
@@ -36,6 +36,7 @@ public class DisplayGeoloc extends MapActivity {
 	 * Intent parameters
 	 */
 	public final static String EXTRA_GEOLOC = "geoloc";
+	@SuppressWarnings("javadoc")
 	public final static String EXTRA_CONTACT = "contact";
 
 	/**

@@ -153,7 +153,7 @@ public abstract class ImsFileSharingSession extends FileSharingSession {
         closeMediaSession();
 
         // Remove the current session
-        getImsService().removeSession(this);
+        removeSession();
 
         // Notify listeners
         for(int j=0; j < getListeners().size(); j++) {
@@ -166,6 +166,7 @@ public abstract class ImsFileSharingSession extends FileSharingSession {
      *
      * @param msgId Message ID
      * @param error Error code
+     * @param typeMsrpChunk 
      */
     public void msrpTransferError(String msgId, String error, MsrpSession.TypeMsrpChunk typeMsrpChunk) {
         if (isSessionInterrupted() || getDialogPath().isSessionTerminated()) {
@@ -200,7 +201,7 @@ public abstract class ImsFileSharingSession extends FileSharingSession {
 		}
         
         // Remove the current session
-        getImsService().removeSession(this);
+        removeSession();
 
         // Notify listeners
         if (!isSessionInterrupted() && !isSessionTerminatedByRemote()) {

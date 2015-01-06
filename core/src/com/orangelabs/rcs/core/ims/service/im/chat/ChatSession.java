@@ -417,7 +417,7 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
 		closeMediaSession();
 
 		// Remove the current session
-		getImsService().removeSession(this);
+		removeSession();
 
 		for (int i = 0; i < getListeners().size(); i++) {
 			((ChatSessionListener) getListeners().get(i)).handleImError(new ChatError(error));
@@ -815,8 +815,7 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
 		}
 
 		// Auto reject if number max of FT reached
-		maxSize = RcsSettings.getInstance().getMaxFileTransferSessions();
-		if (maxSize > 0 && getImsService().getImsModule().getInstantMessagingService().getFileTransferSessions().size() > maxSize) {
+		if (!getImsService().getImsModule().getInstantMessagingService().isFileTransferSessionAvailable()) {
 			if (logger.isActivated()) {
 				logger.debug("Max number of File Tranfer reached, rejecting the HTTP File transfer");
 			}
@@ -879,21 +878,17 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
 	
 	/**
 	 * Send a GeoLoc message
-	 * 
-	 * @param msgId Message-ID
-	 * @param geoloc GeoLocation
-	 * @return Boolean result
+	 *
+	 * @param geolocMsg GeolocMessage
 	 */
-	public abstract void sendGeolocMessage(String msgId, GeolocPush geoloc);
+	public abstract void sendGeolocMessage(GeolocMessage geolocMsg);
 	
 	/**
 	 * Send a text message
-	 * 
-	 * @param msgId Message-ID
-	 * @param txt Text message
-	 * @return Boolean result
+	 *
+	 * @param msg InstantMessage
 	 */
-	public abstract void sendTextMessage(String msgId, String txt);
+	public abstract void sendTextMessage(InstantMessage msg);
 	
 	/**
 	 * Send is composing status
@@ -1068,7 +1063,7 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
 	 * Reject the session invitation
 	 */
 	public abstract void rejectSession();
-	
+
 	/**
 	 * Chat inactivity event
 	 */
@@ -1105,5 +1100,4 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
 	public boolean isMediaEstablished() {
 		return (getMsrpMgr().isEstablished() && !getDialogPath().isSessionTerminated());
 	}
-
 }

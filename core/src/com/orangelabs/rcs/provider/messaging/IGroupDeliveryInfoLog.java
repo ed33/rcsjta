@@ -42,6 +42,7 @@ public interface IGroupDeliveryInfoLog {
      * @param msgId Message ID of a chat message
      * @param status Delivery info status
      * @param reasonCode Delivery info status reason code
+     * @return The URI for the newly inserted item.
      */
     public Uri addGroupChatDeliveryInfoEntry(String chatId, ContactId contact, String msgId,
             int status, int reasonCode);
@@ -49,12 +50,12 @@ public interface IGroupDeliveryInfoLog {
     /**
      * Set delivery status for outgoing group chat messages and files
      *
-     * @param msgID Message ID
+     * @param msgId Message ID
      * @param contact The contact ID for which the entry is to be updated
      * @param status Delivery info status
      * @param reasonCode Delivery info status reason code
      */
-    public void updateGroupChatDeliveryInfoStatusAndReasonCode(String msgId, ContactId contact,
+    public void setGroupChatDeliveryInfoStatusAndReasonCode(String msgId, ContactId contact,
             int status, int reasonCode);
 
     /**

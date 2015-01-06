@@ -40,6 +40,7 @@ import com.orangelabs.rcs.provider.settings.RcsSettingsData.ConfigurationMode;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.FileTransferProtocol;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.ImSessionStartMode;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.ImageResizeOption;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.MessagingMode;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.NetworkAccessType;
@@ -322,6 +323,12 @@ public class RcsSettings {
 		}
 	}
 
+	/**
+	 * Write a string setting parameter
+	 * @param key
+	 * @param value
+	 * @return the number of rows updated
+	 */
 	public int writeParameter(String key, String value) {
 		return writeParameter(key,value,true);
 	}
@@ -333,7 +340,8 @@ public class RcsSettings {
 	 *            Key
 	 * @param value
 	 *            Value
-	 * @param updateCache 
+	 * @param updateCache
+	 * @return the number of rows updated
 	 */
 	public int writeParameter(String key, String value, boolean updateCache) {
 		if (instance == null || value == null) {
@@ -702,6 +710,7 @@ public class RcsSettings {
 
 	/**
 	 * Set the value of the MSISDN
+	 * @param value 
 	 */
 	public void setMsisdn(String value) {
 		writeParameter(RcsSettingsData.MSISDN, value);
@@ -1200,6 +1209,16 @@ public class RcsSettings {
 	}
 
 	/**
+	 * Get max number of simultaneous outgoing file transfer sessions
+	 *
+	 * @return Number of sessions
+	 */
+	public int getMaxConcurrentOutgoingFileTransferSessions() {
+		return readInteger(RcsSettingsData.MAX_CONCURRENT_OUTGOING_FILE_TRANSFERS,
+				RcsSettingsData.DEFAULT_MAX_CONCURRENT_OUTGOING_FT_SESSIONS);
+	}
+
+	/**
 	 * Get max number of simultaneous IP call sessions
 	 *
 	 * @return Number of sessions
@@ -1267,8 +1286,9 @@ public class RcsSettings {
 	 *         </ul>
 	 * 
 	 */
-	public int getImSessionStartMode() {
-		return readInteger(RcsSettingsData.IM_SESSION_START, RcsSettingsData.DEFAULT_IM_SESSION_START);
+	public ImSessionStartMode getImSessionStartMode() {
+		return ImSessionStartMode.valueOf(readInteger(RcsSettingsData.IM_SESSION_START,
+				ImSessionStartMode.ON_OPENING.toInt()));
 	}
 
 	/**
@@ -1756,7 +1776,7 @@ public class RcsSettings {
 	 * @return the set of extensions
 	 */
 	public Set<String> getSupportedRcsExtensions() {
-		return ServiceExtensionManager.getInstance().getExtensions(readString(RcsSettingsData.CAPABILITY_RCS_EXTENSIONS,RcsSettingsData.DEFAULT_CAPABILITY_RCS_EXTENSIONS));
+		return ServiceExtensionManager.getExtensions(readString(RcsSettingsData.CAPABILITY_RCS_EXTENSIONS,RcsSettingsData.DEFAULT_CAPABILITY_RCS_EXTENSIONS));
 	}
 
 	/**
@@ -1766,7 +1786,7 @@ public class RcsSettings {
 	 *            Set of extensions
 	 */
 	public void setSupportedRcsExtensions(Set<String> extensions) {
-		writeParameter(RcsSettingsData.CAPABILITY_RCS_EXTENSIONS, ServiceExtensionManager.getInstance().getExtensions(extensions));
+		writeParameter(RcsSettingsData.CAPABILITY_RCS_EXTENSIONS, ServiceExtensionManager.getExtensions(extensions));
 	}
 
 	/**
@@ -1982,10 +2002,10 @@ public class RcsSettings {
 	/**
 	 * Set secondary provisioning address
 	 *
-	 * @param Address
+	 * @param address
 	 */
-	public void setSecondaryProvisioningAddress(String value) {
-		writeParameter(RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS, value);
+	public void setSecondaryProvisioningAddress(String address) {
+		writeParameter(RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS, address);
 	}
 
 	/**
@@ -1999,8 +2019,7 @@ public class RcsSettings {
 
 	/**
 	 * Set secondary provisioning address only used
-	 *
-	 * @param Boolean
+	 * @param value 
 	 */
 	public void setSecondaryProvisioningAddressOnly(boolean value) {
 		writeBoolean(RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS_ONLY, value);
@@ -2165,10 +2184,17 @@ public class RcsSettings {
 		return readInteger(RcsSettingsData.GEOLOC_EXPIRATION_TIME, RcsSettingsData.DEFAULT_GEOLOC_EXPIRATION_TIME);
 	}
 
+	/**
+	 * Set provisioning token
+	 * @param token
+	 */
 	public void setProvisioningToken(String token) {
 		writeParameter(RcsSettingsData.PROVISIONING_TOKEN, token);
 	}
 
+	/**
+	 * @return provisioning token
+	 */
 	public String getProvisioningToken() {
 		return readString(RcsSettingsData.PROVISIONING_TOKEN, RcsSettingsData.DEFAULT_PROVISIONING_TOKEN);
 	}

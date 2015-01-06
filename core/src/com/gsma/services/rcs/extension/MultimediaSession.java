@@ -44,7 +44,7 @@ public abstract class MultimediaSession {
     	/**
     	 * Session invitation sent
     	 */
-    	public final static int INITIATED = 1;
+    	public final static int INITIATING = 1;
     	
     	/**
     	 * Session is started
@@ -182,7 +182,7 @@ public abstract class MultimediaSession {
 	 * Returns the direction of the session (incoming or outgoing)
 	 * 
 	 * @return Direction
-	 * @see MultimediaSession.Direction
+	 * @see com.gsma.services.rcs.RcsCommon.Direction
 	 * @throws RcsServiceException
 	 */
 	public abstract int getDirection() throws RcsServiceException;

@@ -123,7 +123,7 @@ public class MultimediaStreamingSession extends MultimediaSession {
 	 * Returns the direction of the session (incoming or outgoing)
 	 * 
 	 * @return Direction
-	 * @see MultimediaSession.Direction
+	 * @see com.gsma.services.rcs.RcsCommon.Direction
 	 * @throws RcsServiceException
 	 */
 	public int getDirection() throws RcsServiceException {

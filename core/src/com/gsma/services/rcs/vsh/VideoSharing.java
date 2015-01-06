@@ -43,7 +43,7 @@ public class VideoSharing {
     	/**
     	 * Sharing invitation sent
     	 */
-    	public final static int INITIATED = 1;
+    	public final static int INITIATING = 1;
     	
     	/**
     	 * Sharing is started
@@ -154,15 +154,15 @@ public class VideoSharing {
     /**
      * Video sharing interface
      */
-    private IVideoSharing sharingInf;
+    private IVideoSharing mSharingInf;
     
     /**
      * Constructor
      * 
      * @param sharingInf Video sharing interface
      */
-    VideoSharing(IVideoSharing sharingInf) {
-    	this.sharingInf = sharingInf;
+    /* package private */VideoSharing(IVideoSharing sharingInf) {
+    	mSharingInf = sharingInf;
     }
     	
     /**
@@ -173,7 +173,7 @@ public class VideoSharing {
 	 */
 	public String getSharingId() throws RcsServiceException {
 		try {
-			return sharingInf.getSharingId();
+			return mSharingInf.getSharingId();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -187,7 +187,7 @@ public class VideoSharing {
 	 */
 	public ContactId getRemoteContact() throws RcsServiceException {
 		try {
-			return sharingInf.getRemoteContact();
+			return mSharingInf.getRemoteContact();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -202,7 +202,7 @@ public class VideoSharing {
 	 */
 	public int getState() throws RcsServiceException {
 		try {
-			return sharingInf.getState();
+			return mSharingInf.getState();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -217,7 +217,7 @@ public class VideoSharing {
 	 */
 	public int getReasonCode() throws RcsServiceException {
 		try {
-			return sharingInf.getReasonCode();
+			return mSharingInf.getReasonCode();
 		} catch (Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -232,7 +232,7 @@ public class VideoSharing {
 	 */
 	public int getDirection() throws RcsServiceException {
 		try {
-			return sharingInf.getDirection();
+			return mSharingInf.getDirection();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -246,7 +246,7 @@ public class VideoSharing {
 	 */
 	public void acceptInvitation(VideoPlayer player) throws RcsServiceException {
 		try {
-			sharingInf.acceptInvitation(player);
+			mSharingInf.acceptInvitation(player);
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -259,7 +259,7 @@ public class VideoSharing {
 	 */
 	public void rejectInvitation() throws RcsServiceException {
 		try {
-			sharingInf.rejectInvitation();
+			mSharingInf.rejectInvitation();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -272,7 +272,7 @@ public class VideoSharing {
 	 */
 	public void abortSharing() throws RcsServiceException {
 		try {
-			sharingInf.abortSharing();
+			mSharingInf.abortSharing();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -286,7 +286,7 @@ public class VideoSharing {
 	 */
 	public String getVideoEncoding() throws RcsServiceException {
 		try {
-			return sharingInf.getVideoEncoding();
+			return mSharingInf.getVideoEncoding();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}
@@ -302,7 +302,7 @@ public class VideoSharing {
 	 */
 	public long getTimeStamp() throws RcsServiceException {
 		try {
-			return sharingInf.getTimeStamp();
+			return mSharingInf.getTimeStamp();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}		
@@ -316,7 +316,7 @@ public class VideoSharing {
 	 */
 	public long getDuration() throws RcsServiceException {
 		try {
-			return sharingInf.getDuration();
+			return mSharingInf.getDuration();
 		} catch(Exception e) {
 			throw new RcsServiceException(e.getMessage());
 		}		
@@ -331,7 +331,7 @@ public class VideoSharing {
 	 */ 		
 	public VideoDescriptor getVideoDescriptor() throws RcsServiceException { 		
 		try { 		
-			return sharingInf.getVideoDescriptor(); 		
+			return mSharingInf.getVideoDescriptor(); 		
 		} catch(Exception e) { 		
 			throw new RcsServiceException(e.getMessage()); 		
 		} 		

@@ -64,6 +64,7 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
      * 
 	 * @param parent IMS service
 	 * @param invite Initial INVITE request
+     * @param sessionInvite 
 	 * @throws RcsContactFormatException
 	 */
 	public TerminatingSipMsrpSession(ImsService parent, SipRequest invite, Intent sessionInvite) throws RcsContactFormatException {
@@ -98,7 +99,7 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
                         logger.debug("Session has been rejected by user");
                     }
 
-                    getImsService().removeSession(this);
+                    removeSession();
 
                     for (ImsSessionListener listener : listeners) {
                         listener.handleSessionRejectedByUser();
@@ -113,7 +114,7 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
                     // Ringing period timeout
                     send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
-                    getImsService().removeSession(this);
+                    removeSession();
 
                     for (ImsSessionListener listener : listeners) {
                         listener.handleSessionRejectedByTimeout();
@@ -125,7 +126,7 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
                         logger.debug("Session has been rejected by remote");
                     }
 
-                    getImsService().removeSession(this);
+                    removeSession();
 
                     for (ImsSessionListener listener : listeners) {
                         listener.handleSessionRejectedByRemote();
@@ -294,6 +295,10 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
 		return true;
 	}
 
+	/**
+	 * Get invite session
+	 * @return session
+	 */
 	public Intent getSessionInvite() {
 		return mSessionInvite;
 	}

@@ -22,9 +22,7 @@
 package com.gsma.services.rcs.chat;
 
 import java.util.HashSet;
-import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.StringTokenizer;
 
 import android.content.Context;
 import android.net.Uri;
@@ -57,7 +55,7 @@ public class ChatLog {
         /**
          * The name of the column containing the state of the group chat.
          * <P>Type: INTEGER</P>
-         * @see GroupChat.State
+         * @see com.gsma.services.rcs.chat.GroupChat.State
          */
         public static final String STATE = "state";
 
@@ -103,12 +101,13 @@ public class ChatLog {
         public static final String CONTACT = "contact";
 
 		/**
-         * Utility method to get the set of ParticipantInfo objects from its string representation in the ChatLog provider.
-         *
-         * @param participants
-         *            the SET of participant information from the ChatLog provider
-         * @return the SET of participant information
-         */
+		 * Utility method to get the set of ParticipantInfo objects from its string representation in the ChatLog provider.
+		 * 
+		 * @param context
+		 * @param participants
+		 *            the SET of participant information from the ChatLog provider
+		 * @return the SET of participant information
+		 */
 		public static Set<ParticipantInfo> getParticipantInfo(Context context, String participants) {
 			if (participants == null) {
 				return null;
@@ -226,22 +225,22 @@ public class ChatLog {
          */
         public static final String MIME_TYPE = "mime_type";
 
-        /*
+        /**
          * Message MIME-types
          */
         public static class MimeType {
 
-           /*
+           /**
             * MIME-type of text messages
             */
             public static final String TEXT_MESSAGE = "text/plain";
 
-            /*
+            /**
              * MIME-type of geoloc messages
              */
             public static final String GEOLOC_MESSAGE = "application/geoloc";
 
-            /*
+            /**
              * MIME-type of group chat events
              */
             public static final String GROUPCHAT_EVENT = "rcs/groupchat-event";
@@ -383,32 +382,4 @@ public class ChatLog {
             public static final int REJECTED_SPAM = 4;
         }
     }
-
-	/**
-	 * Utility method to get a Geoloc object from its string representation in the ChatLog provider
-	 * 
-	 * @param body
-	 *            the string representation in the ChatLog provider
-	 * @return Geoloc object or null in case of error
-	 * @see Geoloc
-	 */
-	public static Geoloc getGeoloc(String body) {
-		try {
-			StringTokenizer items = new StringTokenizer(body, ",");
-			String label = null;
-			if (items.countTokens() > 4) {
-				label = items.nextToken();
-			}
-			double latitude = Double.valueOf(items.nextToken());
-			double longitude = Double.valueOf(items.nextToken());
-			long expiration = Long.valueOf(items.nextToken());
-			float accuracy = Float.valueOf(items.nextToken());
-			return new Geoloc(label, latitude, longitude, expiration, accuracy);
-		} catch (NoSuchElementException e) {
-			return null;
-		} catch (NumberFormatException e) {
-			return null;
-		}
-    }
-
 }

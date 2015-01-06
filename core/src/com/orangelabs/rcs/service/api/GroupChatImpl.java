@@ -26,24 +26,27 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import javax2.sip.message.Response;
-
+import com.gsma.services.rcs.Geoloc;
 import com.gsma.services.rcs.GroupDeliveryInfoLog;
 import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.chat.ChatLog;
 import com.gsma.services.rcs.chat.ChatLog.Message;
-import com.gsma.services.rcs.chat.ChatMessage;
-import com.gsma.services.rcs.chat.Geoloc;
 import com.gsma.services.rcs.chat.GroupChat;
+import com.gsma.services.rcs.chat.GroupChat.ReasonCode;
+import com.gsma.services.rcs.chat.IChatMessage;
 import com.gsma.services.rcs.chat.IGroupChat;
 import com.gsma.services.rcs.chat.ParticipantInfo;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipDialogPath;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatError;
+import com.orangelabs.rcs.core.ims.service.im.chat.ChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatSessionListener;
+import com.orangelabs.rcs.core.ims.service.im.chat.ChatUtils;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocMessage;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
+import com.orangelabs.rcs.core.ims.service.im.chat.GroupChatPersistedStorageAccessor;
 import com.orangelabs.rcs.core.ims.service.im.chat.GroupChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage;
 import com.orangelabs.rcs.core.ims.service.im.chat.event.User;
@@ -51,8 +54,9 @@ import com.orangelabs.rcs.core.ims.service.im.chat.imdn.ImdnDocument;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.messaging.GroupChatStateAndReasonCode;
 import com.orangelabs.rcs.provider.messaging.MessagingLog;
+import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.ImSessionStartMode;
 import com.orangelabs.rcs.service.broadcaster.IGroupChatEventBroadcaster;
-import com.orangelabs.rcs.utils.IdGenerator;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -61,13 +65,24 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author Jean-Marc AUFFRET
  */
 public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListener {
-	
-	/**
-	 * Core session
-	 */
-	private GroupChatSession session;
 
-	private final IGroupChatEventBroadcaster mGroupChatEventBroadcaster;
+	private final String mChatId;
+
+	private final IGroupChatEventBroadcaster mBroadcaster;
+
+	private final InstantMessagingService mImService;
+
+	private final GroupChatPersistedStorageAccessor mPersistentStorage;
+
+	private final ChatServiceImpl mChatService;
+
+	private final RcsSettings mRcsSettings;
+
+	private final ContactsManager mContactsManager;
+
+	private final MessagingLog mMessagingLog;
+
+	private boolean mGroupChatRejoinedAsPartOfSendOperation = false;
 
 	/**
 	 * Lock used for synchronization
@@ -82,14 +97,27 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	/**
 	 * Constructor
 	 * 
-	 * @param session Session
+	 * @param chatId Chat Id
 	 * @param broadcaster IGroupChatEventBroadcaster
+	 * @param imService InstantMessagingService
+	 * @param persistentStorage GroupChatPersistedStorageAccessor
+	 * @param rcsSettings RcsSettings
+	 * @param contactsManager ContactsManager
+	 * @param chatService ChatServiceImpl
+	 * @param messagingLog MessagingLog
 	 */
-	public GroupChatImpl(GroupChatSession session,
-			IGroupChatEventBroadcaster broadcaster) {
-		this.session = session;
-		mGroupChatEventBroadcaster = broadcaster;
-		session.addListener(this);
+	public GroupChatImpl(String chatId, IGroupChatEventBroadcaster broadcaster,
+			InstantMessagingService imService, GroupChatPersistedStorageAccessor persistentStorage,
+			RcsSettings rcsSettings, ContactsManager contactsManager, ChatServiceImpl chatService,
+			MessagingLog messagingLog) {
+		mChatId = chatId;
+		mBroadcaster = broadcaster;
+		mImService = imService;
+		mPersistentStorage = persistentStorage;
+		mChatService = chatService;
+		mRcsSettings = rcsSettings;
+		mContactsManager = contactsManager;
+		mMessagingLog = messagingLog;
 	}
 
 	private GroupChatStateAndReasonCode toStateAndReasonCode(ChatError error) {
@@ -142,33 +170,30 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	}
 
 	private void handleSessionRejected(int reasonCode) {
-		String chatId = getChatId();
+		setRejoinedAsPartOfSendOperation(false);
 		synchronized (lock) {
-			ChatServiceImpl.removeGroupChatSession(chatId);
+			mChatService.removeGroupChat(mChatId);
 
-			MessagingLog.getInstance().updateGroupChatStateAndReasonCode(chatId,
-					GroupChat.State.REJECTED, reasonCode);
+			mPersistentStorage.setStateAndReasonCode(GroupChat.State.REJECTED, reasonCode);
 
-			mGroupChatEventBroadcaster.broadcastStateChanged(chatId,
+			mBroadcaster.broadcastStateChanged(mChatId,
 					GroupChat.State.REJECTED, reasonCode);
 		}
 	}
 
     private void handleMessageDeliveryStatusDelivered(ContactId contact, String msgId) {
-        String chatId = getChatId();
-        MessagingLog messagingLog = MessagingLog.getInstance();
         synchronized (lock) {
-            messagingLog.updateGroupChatDeliveryInfoStatusAndReasonCode(msgId, contact,
+            mPersistentStorage.setDeliveryInfoStatusAndReasonCode(msgId, contact,
                     GroupDeliveryInfoLog.Status.DELIVERED,
                     GroupDeliveryInfoLog.ReasonCode.UNSPECIFIED);
-            mGroupChatEventBroadcaster.broadcastMessageGroupDeliveryInfoChanged(chatId, contact,
+            mBroadcaster.broadcastMessageGroupDeliveryInfoChanged(mChatId, contact,
                     msgId, GroupDeliveryInfoLog.Status.DELIVERED,
                     GroupDeliveryInfoLog.ReasonCode.UNSPECIFIED);
-            if (messagingLog.isDeliveredToAllRecipients(msgId)) {
-                messagingLog.updateChatMessageStatusAndReasonCode(msgId,
+            if (mPersistentStorage.isDeliveredToAllRecipients(msgId)) {
+                mPersistentStorage.setMessageStatusAndReasonCode(msgId,
                         ChatLog.Message.Status.Content.DELIVERED,
                         ChatLog.Message.ReasonCode.UNSPECIFIED);
-                mGroupChatEventBroadcaster.broadcastMessageStatusChanged(chatId, msgId,
+                mBroadcaster.broadcastMessageStatusChanged(mChatId, msgId,
                         ChatLog.Message.Status.Content.DELIVERED,
                         ChatLog.Message.ReasonCode.UNSPECIFIED);
             }
@@ -176,20 +201,18 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
     }
 
     private void handleMessageDeliveryStatusDisplayed(ContactId contact, String msgId) {
-        String chatId = getChatId();
-        MessagingLog messagingLog = MessagingLog.getInstance();
         synchronized (lock) {
-            messagingLog.updateGroupChatDeliveryInfoStatusAndReasonCode(msgId, contact,
+            mPersistentStorage.setDeliveryInfoStatusAndReasonCode(msgId, contact,
                     GroupDeliveryInfoLog.Status.DISPLAYED,
                     GroupDeliveryInfoLog.ReasonCode.UNSPECIFIED);
-            mGroupChatEventBroadcaster.broadcastMessageGroupDeliveryInfoChanged(chatId, contact,
+            mBroadcaster.broadcastMessageGroupDeliveryInfoChanged(mChatId, contact,
                     msgId, GroupDeliveryInfoLog.Status.DISPLAYED,
                     GroupDeliveryInfoLog.ReasonCode.UNSPECIFIED);
-            if (messagingLog.isDisplayedByAllRecipients(msgId)) {
-                messagingLog.updateChatMessageStatusAndReasonCode(msgId,
+            if (mPersistentStorage.isDisplayedByAllRecipients(msgId)) {
+                mPersistentStorage.setMessageStatusAndReasonCode(msgId,
                         ChatLog.Message.Status.Content.DISPLAYED,
                         ChatLog.Message.ReasonCode.UNSPECIFIED);
-                mGroupChatEventBroadcaster.broadcastMessageStatusChanged(chatId, msgId,
+                mBroadcaster.broadcastMessageStatusChanged(mChatId, msgId,
                         ChatLog.Message.Status.Content.DISPLAYED,
                         ChatLog.Message.ReasonCode.UNSPECIFIED);
             }
@@ -197,21 +220,19 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
     }
 
     private void handleMessageDeliveryStatusFailed(ContactId contact, String msgId, int reasonCode) {
-        String chatId = getChatId();
-        MessagingLog messagingLog = MessagingLog.getInstance();
         synchronized (lock) {
             if (ChatLog.Message.ReasonCode.FAILED_DELIVERY == reasonCode) {
-                messagingLog.updateGroupChatDeliveryInfoStatusAndReasonCode(msgId, contact,
+                mPersistentStorage.setDeliveryInfoStatusAndReasonCode(msgId, contact,
                         GroupDeliveryInfoLog.Status.FAILED,
                         GroupDeliveryInfoLog.ReasonCode.FAILED_DELIVERY);
-                mGroupChatEventBroadcaster.broadcastMessageGroupDeliveryInfoChanged(chatId,
+                mBroadcaster.broadcastMessageGroupDeliveryInfoChanged(mChatId,
                         contact, msgId, GroupDeliveryInfoLog.Status.FAILED,
                         GroupDeliveryInfoLog.ReasonCode.FAILED_DELIVERY);
             } else {
-                messagingLog.updateGroupChatDeliveryInfoStatusAndReasonCode(msgId, contact,
+                mPersistentStorage.setDeliveryInfoStatusAndReasonCode(msgId, contact,
                         GroupDeliveryInfoLog.Status.FAILED,
                         GroupDeliveryInfoLog.ReasonCode.FAILED_DISPLAY);
-                mGroupChatEventBroadcaster.broadcastMessageGroupDeliveryInfoChanged(chatId,
+                mBroadcaster.broadcastMessageGroupDeliveryInfoChanged(mChatId,
                         contact, msgId, GroupDeliveryInfoLog.Status.FAILED,
                         GroupDeliveryInfoLog.ReasonCode.FAILED_DISPLAY);
             }
@@ -224,7 +245,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * @return Chat ID
 	 */
 	public String getChatId() {
-		return session.getContributionID();
+		return mChatId;
 	}
 	
 	/**
@@ -233,6 +254,10 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * @return ContactId
 	 */
 	public ContactId getRemoteContact() {
+		GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session == null) {
+			return mPersistentStorage.getRemoteContact();
+		}
 		return session.getRemoteContact();
 	}
 	
@@ -242,19 +267,26 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * @return Direction
 	 */
 	public int getDirection() {
+		GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session == null) {
+			return mPersistentStorage.getDirection();
+		}
 		if (session.isInitiatedByRemote()) {
 			return Direction.INCOMING;
-		} else {
-			return Direction.OUTGOING;
 		}
-	}		
-	
+		return Direction.OUTGOING;
+	}
+
 	/**
 	 * Returns the state of the group chat
 	 * 
 	 * @return State
 	 */
 	public int getState() {
+		GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session == null) {
+			return mPersistentStorage.getState();
+		}
 		SipDialogPath dialogPath = session.getDialogPath();
 		if (dialogPath != null && dialogPath.isSessionEstablished()) {
 				return GroupChat.State.STARTED;
@@ -263,11 +295,9 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			if (session.isSessionAccepted()) {
 				return GroupChat.State.ACCEPTING;
 			}
-
 			return GroupChat.State.INVITED;
 		}
-
-		return GroupChat.State.INITIATED;
+		return GroupChat.State.INITIATING;
 	}
 
 	/**
@@ -276,7 +306,11 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * @return ReasonCode
 	 */
 	public int getReasonCode() {
-		return GroupChat.ReasonCode.UNSPECIFIED;
+		GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session == null) {
+			return mPersistentStorage.getReasonCode();
+		}
+		return ReasonCode.UNSPECIFIED;
 	}
 	
 	/**
@@ -285,6 +319,14 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * @return Boolean
 	 */
 	public boolean isStoreAndForward() {
+		GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session == null) {
+			/*
+			 * no session means always not "store and forward" as we do not persist
+			 * this information.
+			 */
+			return false;
+		}
 		return session.isStoreAndForward();
 	}
 	
@@ -294,39 +336,11 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * @return String
 	 */
 	public String getSubject() {
+		GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session == null) {
+			return mPersistentStorage.getSubject();
+		}
 		return session.getSubject();
-	}
-
-	/**
-	 * Accepts chat invitation
-	 */
-	public void acceptInvitation() {
-		if (logger.isActivated()) {
-			logger.info("Accept session invitation");
-		}
-				
-		// Accept invitation
-        new Thread() {
-    		public void run() {
-    			session.acceptSession();
-    		}
-    	}.start();
-	}
-	
-	/**
-	 * Rejects chat invitation
-	 */ 
-	public void rejectInvitation() {
-		if (logger.isActivated()) {
-			logger.info("Reject session invitation");
-		}
-		
-        // Reject invitation
-        new Thread() {
-    		public void run() {
-    			session.rejectSession(Response.DECLINE);
-    		}
-    	}.start();
 	}
 
 	/**
@@ -334,10 +348,23 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * other participants if there are enough participants.
 	 */
 	public void leave() {
+		final GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session == null || !ServerApiUtils.isImsConnected()) {
+			/*
+			 * Quitting group chat that is inactive/ not available due to
+			 * network drop should reject the next group chat invitation that is
+			 * received
+			 */
+			mPersistentStorage.setStateAndReasonCode(GroupChat.State.ABORTED,
+					GroupChat.ReasonCode.ABORTED_BY_USER);
+			mPersistentStorage.setRejectNextGroupChatNextInvitation();
+			return;
+		}
+
 		if (logger.isActivated()) {
 			logger.info("Cancel session");
 		}
-		
+
 		// Abort the session
         new Thread() {
     		public void run() {
@@ -353,10 +380,13 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * @return List of participants
 	 */
 	public List<ParticipantInfo> getParticipants() {
-		List<ParticipantInfo> result = new ArrayList<ParticipantInfo>();
-		if (session.getConnectedParticipants() == null || session.getConnectedParticipants().size()==0)
-			return result;
-		return new ArrayList<ParticipantInfo>(session.getConnectedParticipants());
+		GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session == null) {
+			return new ArrayList<ParticipantInfo>(
+					mPersistentStorage.getParticipants());
+		}
+
+		return new ArrayList<ParticipantInfo>(session.getParticipants());
 	}
 	
 	/**
@@ -366,8 +396,12 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * @return Number
 	 */
 	public int getMaxParticipants() {
-        return session.getMaxParticipants();
-    }
+		GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session == null) {
+			return mPersistentStorage.getMaxParticipants();
+		}
+		return session.getMaxParticipants();
+	}
 
 	/**
 	 * Calculate the number of participants who did not decline or left the Group chat.
@@ -396,6 +430,13 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * @param participants Set of participants
 	 */
 	public void addParticipants(final List<ContactId> participants) {
+		final GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session == null) {
+			/* TODO: Throw proper exception as part of CR037 implementation */
+			throw new IllegalStateException(
+					"Unable to add participants since group chat session with chatId '" + mChatId
+							+ "' does not exist.");
+		}
 		if (logger.isActivated()) {
 			StringBuilder listOfParticipants = new StringBuilder("Add ");
 			for (ContactId contactId : participants) {
@@ -405,12 +446,13 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			logger.info(listOfParticipants.toString());
 		}
 
-		int max = session.getMaxParticipants() - 1;
+		int maxParticipants = session.getMaxParticipants() - 1;
 		// PDD 6.3.5.9 Adding participants to a Group Chat (Clarification)
-		// For the maximum user count, the rcs client shall take into account both the active and inactive users,
+		// For the maximum user count, the joyn client shall take into
+		// account both the active and inactive users,
 		// but not those that have explicitly left or declined the Chat.
-		int connected = getNumberOfParticipants(session.getConnectedParticipants());
-		if (connected < max) {
+		int nrOfConnectedParticipants = getNumberOfParticipants(session.getConnectedParticipants());
+		if (nrOfConnectedParticipants < maxParticipants) {
 			// Add a list of participants to the session
 			new Thread() {
 				public void run() {
@@ -424,60 +466,298 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			}
 		}
 	}
-	
+
+	/**
+	 * Add group chat message to Db
+	 *
+	 * @param msg InstantMessage
+	 * @param state state of message
+	 */
+	private void addOutgoingGroupChatMessage(InstantMessage msg, int state) {
+		mPersistentStorage.addGroupChatMessage(msg, Direction.OUTGOING, state,
+				ReasonCode.UNSPECIFIED);
+		mBroadcaster.broadcastMessageStatusChanged(mChatId, msg.getMessageId(), state,
+				ReasonCode.UNSPECIFIED);
+	}
+
+	/**
+	 * Actual send operation of message performed
+	 *
+	 * @param msg InstantMessage
+	 */
+	private void sendChatMessage(final InstantMessage msg) {
+		final GroupChatSession groupChatSession = mImService.getGroupChatSession(mChatId);
+		if (groupChatSession == null) {
+			/*
+			 * If groupChatSession is not established, queue message and try to
+			 * rejoin group chat session
+			 */
+			addOutgoingGroupChatMessage(msg, Message.Status.Content.QUEUED);
+			try {
+				setRejoinedAsPartOfSendOperation(true);
+				rejoinGroupChat();
+				/*
+				 * Observe that the queued message above will be dequeued on the
+				 * trigger of established rejoined group chat and so the
+				 * sendChatMessage method is finished here for now
+				 */
+				return;
+
+			} catch (ServerApiException e) {
+				/*
+				 * Failed to rejoin group chat session. Ignoring this exception
+				 * because we want to try again later.
+				 */
+				return;
+			}
+		}
+
+		SipDialogPath chatSessionDialogPath = groupChatSession.getDialogPath();
+		if (chatSessionDialogPath.isSessionEstablished()) {
+			addOutgoingGroupChatMessage(msg, Message.Status.Content.SENDING);
+			if (msg instanceof GeolocMessage) {
+				groupChatSession.sendGeolocMessage((GeolocMessage)msg);
+			} else {
+				groupChatSession.sendTextMessage(msg);
+			}
+			return;
+		}
+
+		addOutgoingGroupChatMessage(msg, Message.Status.Content.QUEUED);
+		if (!groupChatSession.isInitiatedByRemote()) {
+			return;
+		}
+		if (logger.isActivated()) {
+			logger.debug("Core chat session is pending: auto accept it.");
+		}
+		new Thread() {
+			public void run() {
+				groupChatSession.acceptSession();
+			}
+		}.start();
+	}
+
 	/**
 	 * Sends a text message to the group
 	 * 
 	 * @param text Message
 	 * @return Chat message
 	 */
-	public ChatMessage sendMessage(final String text) {
-		final String msgId = IdGenerator.generateMessageID();
+	public IChatMessage sendMessage(final String text) {
+		InstantMessage msg = ChatUtils.createTextMessage(null, text, mImService.getImdnManager()
+				.isImdnActivated());
+		ChatMessagePersistedStorageAccessor persistentStorage = new ChatMessagePersistedStorageAccessor(
+				mMessagingLog, msg.getMessageId(), msg.getRemote(), msg.getTextMessage(),
+				InstantMessage.MIME_TYPE, mChatId, msg.getDate().getTime(), Direction.OUTGOING);
 
-		// Send text message
-        new Thread() {
-    		public void run() {
-    			session.sendTextMessage(msgId, text);
-    		}
-    	}.start();
-    	/* TODO: Return a ChatMessage with correct time-stamps in CR018. */
-    	return new ChatMessage(msgId, null, text, 0, 0);
+		/* If the IMS is connected at this time then send this message. */
+		if (ServerApiUtils.isImsConnected()) {
+			sendChatMessage(msg);
+		} else {
+			/* If the IMS is NOT connected at this time then queue message. */
+			addOutgoingGroupChatMessage(msg, Message.Status.Content.QUEUED);
+		}
+		return new ChatMessageImpl(persistentStorage);
 	}
 	
 	/**
-     * Sends a geoloc message
-     * 
-     * @param geoloc Geoloc
-     * @return Geoloc message
-     */
-    public com.gsma.services.rcs.chat.GeolocMessage sendMessage2(Geoloc geoloc) {
-		final String msgId = IdGenerator.generateMessageID();
+	 * Sends a geoloc message
+	 * 
+	 * @param geoloc Geoloc
+	 * @return ChatMessage
+	 */
+	public IChatMessage sendMessage2(Geoloc geoloc) {
+		final GeolocPush geolocPush = new GeolocPush(geoloc.getLabel(), geoloc.getLatitude(),
+				geoloc.getLongitude(), geoloc.getExpiration(), geoloc.getAccuracy());
+		GeolocMessage geolocMsg = ChatUtils.createGeolocMessage(null, geolocPush, mImService
+				.getImdnManager().isImdnActivated());
+		ChatMessagePersistedStorageAccessor persistentStorage = new ChatMessagePersistedStorageAccessor(
+				mMessagingLog, geolocMsg.getMessageId(), geolocMsg.getRemote(),
+				geolocMsg.toString(), GeolocMessage.MIME_TYPE, mChatId, geolocMsg.getDate()
+						.getTime(), Direction.OUTGOING);
 
-		// Send geoloc message
-		final GeolocPush geolocPush = new GeolocPush(geoloc.getLabel(),
-				geoloc.getLatitude(), geoloc.getLongitude(),
-				geoloc.getExpiration(), geoloc.getAccuracy());
-        new Thread() {
-    		public void run() {
-    			session.sendGeolocMessage(msgId, geolocPush);
-    		}
-    	}.start();
-    	/* TODO: Return a GeolocMessage with correct time-stamps in CR018. */
-    	return new com.gsma.services.rcs.chat.GeolocMessage(msgId, null, geoloc, 0, 0);
-    }	
+		/* If the IMS is connected at this time then send this message. */
+		if (ServerApiUtils.isImsConnected()) {
+			sendChatMessage(geolocMsg);
+		} else {
+			/* If the IMS is NOT connected at this time then queue message. */
+			addOutgoingGroupChatMessage(geolocMsg, Message.Status.Content.QUEUED);
+		}
+		return new ChatMessageImpl(persistentStorage);
+	}
 
     /**
 	 * Sends a is-composing event. The status is set to true when typing
 	 * a message, else it is set to false.
 	 * 
 	 * @param status Is-composing status
+	 * @see com.orangelabs.rcs.provider.settings.RcsSettingsData.ImSessionStartMode
 	 */
 	public void sendIsComposingEvent(final boolean status) {
-        new Thread() {
-    		public void run() {
-    			session.sendIsComposingStatus(status);
-    		}
-    	}.start();
+		final GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session == null) {
+			if (logger.isActivated()) {
+				logger.debug("Unable to send composing event '" + status
+						+ "' since group chat session found with chatId '" + mChatId
+						+ "' does not exist for now");
+			}
+			return;
+		}
+		if (session.getDialogPath().isSessionEstablished()) {
+			session.sendIsComposingStatus(status);
+			return;
+		}
+		if (!session.isInitiatedByRemote()) {
+			return;
+		}
+		ImSessionStartMode imSessionStartMode = mRcsSettings.getImSessionStartMode();
+		switch (imSessionStartMode) {
+			case ON_OPENING:
+			case ON_COMPOSING:
+				if (logger.isActivated()) {
+					logger.debug("Core chat session is pending: auto accept it.");
+				}
+				session.acceptSession();
+				break;
+			default:
+				break;
+		}
+	}
+
+/**
+	 * Rejoins an existing group chat from its unique chat ID
+	 *
+	 * @return Group chat
+	 * @throws ServerApiException
+	 */
+	public IGroupChat rejoinGroupChat() throws ServerApiException {
+		if (logger.isActivated()) {
+			logger.info("Rejoin group chat session related to the conversation " + mChatId);
+		}
+
+		ServerApiUtils.testIms();
+
+		try {
+			final ChatSession session = mImService.rejoinGroupChatSession(mChatId);
+
+			new Thread() {
+				public void run() {
+					session.startSession();
+				}
+			}.start();
+			session.addListener(this);
+			mChatService.addGroupChat(this);
+			return this;
+
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Unexpected error", e);
+			}
+			throw new ServerApiException(e.getMessage());
+		}
+	}
+
+	/**
+	 * Restarts a previous group chat from its unique chat ID
+	 *
+	 * @return Group chat
+	 * @throws ServerApiException
+	 */
+	public IGroupChat restartGroupChat() throws ServerApiException {
+		if (logger.isActivated()) {
+			logger.info("Restart group chat session related to the conversation " + mChatId);
+		}
+
+		ServerApiUtils.testIms();
+
+		try {
+			final ChatSession session = mImService.restartGroupChatSession(mChatId);
+
+			new Thread() {
+				public void run() {
+					session.startSession();
+				}
+			}.start();
+			session.addListener(this);
+			mChatService.addGroupChat(this);
+			return this;
+
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Unexpected error", e);
+			}
+			throw new ServerApiException(e.getMessage());
+		}
+	}
+
+	/**
+	 * open the chat conversation. Note: if is an incoming pending chat
+	 * session and the parameter IM SESSION START is 0 then the session is
+	 * accepted now.
+	 * 
+	 * @see com.orangelabs.rcs.provider.settings.RcsSettingsData.ImSessionStartMode
+	 */
+	public void openChat() {
+		if (logger.isActivated()) {
+			logger.info("Open a group chat session with chatId " + mChatId);
+		}
+		try {
+			final GroupChatSession session = mImService.getGroupChatSession(mChatId);
+			if (session == null) {
+				/*
+				 * If there is no session ongoing right now then we do not need
+				 * to open anything right now so we just return here. A sending
+				 * of a new message on this group chat will anyway result in a
+				 * rejoin attempt if this group chat has not been left by choice
+				 * so we do not need to do anything more here for now.
+				 */
+				return;
+			}
+			if (session.getDialogPath().isSessionEstablished()) {
+				return;
+			}
+			ImSessionStartMode imSessionStartMode = mRcsSettings.getImSessionStartMode();
+			if (!session.isInitiatedByRemote()) {
+				/*
+				 * This method needs to accept pending invitation if
+				 * IM_SESSION_START_MODE is 0, which is not applicable if
+				 * session is remote originated so we return here.
+				 */
+				return;
+			}
+			if (ImSessionStartMode.ON_OPENING == imSessionStartMode) {
+				if (logger.isActivated()) {
+					logger.debug("Core chat session is pending: auto accept it, as IM_SESSION_START mode = 0");
+				}
+				session.acceptSession();
+			}
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Unexpected error", e);
+			}
+			// TODO: Exception handling in CR037
+		}
+	}
+
+	/**
+	 * Try to restart group chat session on failure of restart
+	 *
+	 */
+	private void handleGroupChatRejoinAsPartOfSendOperationFailed() {
+		try {
+			restartGroupChat();
+
+		} catch (ServerApiException e) {
+			// failed to restart group chat session. Ignoring this
+			// exception because we want to try again later.
+		}
+	}
+
+	/**
+	 * @param enable
+	 */
+	public void setRejoinedAsPartOfSendOperation(boolean enable) {
+		mGroupChatRejoinedAsPartOfSendOperation = enable;
 	}
 
     /*------------------------------- SESSION EVENTS ----------------------------------*/
@@ -487,14 +767,15 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
      */
     public void handleSessionStarted() {
     	if (logger.isActivated()) {
-			logger.info("Session started");
+			logger.info(new StringBuilder("Session status ").append(GroupChat.State.STARTED)
+					.toString());
 		}
-		String chatId = getChatId();
+		setRejoinedAsPartOfSendOperation(false);
 		synchronized (lock) {
-			MessagingLog.getInstance().updateGroupChatRejoinIdOnSessionStart(chatId,
-					session.getImSessionIdentity());
+			GroupChatSession session = mImService.getGroupChatSession(mChatId);
+			mPersistentStorage.setRejoinId(session.getImSessionIdentity());
 
-			mGroupChatEventBroadcaster.broadcastStateChanged(chatId, GroupChat.State.STARTED,
+			mBroadcaster.broadcastStateChanged(mChatId, GroupChat.State.STARTED,
 					GroupChat.ReasonCode.UNSPECIFIED);
 		}
     }
@@ -506,19 +787,41 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * (int)
 	 */
 	public void handleSessionAborted(int reason) {
-		if (logger.isActivated()) {
-			logger.info("Session aborted (reason " + reason + ")");
+		GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session != null && session.isPendingForRemoval()) {
+			/*
+			 * If there is an ongoing group chat session with same chatId, this
+			 * session has to be silently aborted so after aborting the session we
+			 * make sure to not call the rest of this method that would otherwise
+			 * abort the "current" session also and the GroupChat as a whole which
+			 * is of course not the intention here
+			 */
+			if (logger.isActivated()) {
+				logger.info(new StringBuilder("Session marked pending for removal status ")
+						.append(GroupChat.State.ABORTED).append(" reason ").append(reason)
+						.toString());
+			}
+			return;
 		}
-		String chatId = getChatId();
+		if (logger.isActivated()) {
+			logger.info(new StringBuilder("Session status ").append(GroupChat.State.ABORTED)
+					.append(" reason ").append(reason).toString());
+		}
+		setRejoinedAsPartOfSendOperation(false);
 		synchronized (lock) {
-			ChatServiceImpl.removeGroupChatSession(chatId);
+			mChatService.removeGroupChat(mChatId);
 
 			int reasonCode = sessionAbortedReasonToReasonCode(reason);
-			MessagingLog.getInstance().updateGroupChatStateAndReasonCode(chatId,
-					GroupChat.State.ABORTED, reasonCode);
-
-			mGroupChatEventBroadcaster.broadcastStateChanged(chatId,
-					GroupChat.State.ABORTED, reasonCode);
+			if (ImsServiceSession.TERMINATION_BY_SYSTEM == reason) {
+				/*
+				 * This error is caused because of a network drop so the group
+				 * chat is not set to ABORTED state in this case as it will be
+				 * auto-rejoined when network connection is regained
+				 */
+			} else {
+				mPersistentStorage.setStateAndReasonCode(GroupChat.State.ABORTED, reasonCode);
+				mBroadcaster.broadcastStateChanged(mChatId, GroupChat.State.ABORTED, reasonCode);
+			}
 		}
 	}
     
@@ -526,39 +829,57 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
      * @see com.orangelabs.rcs.core.ims.service.ImsSessionListener#handleSessionTerminatedByRemote()
      */
 	public void handleSessionTerminatedByRemote() {
-		if (logger.isActivated()) {
-			logger.info("Session terminated by remote");
+		GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		if (session != null && session.isPendingForRemoval()) {
+			/*
+			 * If there is an ongoing group chat session with same chatId, this
+			 * session has to be silently aborted so after aborting the session
+			 * we make sure to not call the rest of this method that would
+			 * otherwise abort the "current" session also and the GroupChat as a
+			 * whole which is of course not the intention here
+			 */
+			if (logger.isActivated()) {
+				logger.info(new StringBuilder("Session marked pending for removal status ")
+						.append(GroupChat.State.ABORTED).append(" reason ")
+						.append(GroupChat.ReasonCode.ABORTED_BY_REMOTE).toString());
+			}
+			return;
 		}
-		String chatId = getChatId();
+		if (logger.isActivated()) {
+			logger.info(new StringBuilder("Session status ").append(GroupChat.State.ABORTED)
+					.append(" reason ").append(GroupChat.ReasonCode.ABORTED_BY_REMOTE).toString());
+		}
+		setRejoinedAsPartOfSendOperation(false);
 		synchronized (lock) {
-			ChatServiceImpl.removeGroupChatSession(chatId);
+			mChatService.removeGroupChat(mChatId);
 
-			MessagingLog.getInstance().updateGroupChatStateAndReasonCode(chatId,
+			mPersistentStorage.setStateAndReasonCode(GroupChat.State.ABORTED,
+					GroupChat.ReasonCode.ABORTED_BY_REMOTE);
+
+			mBroadcaster.broadcastStateChanged(mChatId,
 					GroupChat.State.ABORTED, GroupChat.ReasonCode.ABORTED_BY_REMOTE);
-
-				mGroupChatEventBroadcaster.broadcastStateChanged(chatId,
-						GroupChat.State.ABORTED, GroupChat.ReasonCode.ABORTED_BY_REMOTE);
 		}
 	}
     
     /* (non-Javadoc)
      * @see com.orangelabs.rcs.core.ims.service.im.chat.ChatSessionListener#handleReceiveMessage(com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage)
      */
-    public void handleReceiveMessage(InstantMessage message) {
+	public void handleReceiveMessage(InstantMessage message) {
+		String msgId = message.getMessageId();
 		if (logger.isActivated()) {
-			logger.info("New IM received: "+message);
+			logger.info(new StringBuilder("New IM with messageId '").append(msgId)
+					.append("' received").toString());
 		}
-    	synchronized(lock) {
-			// Update rich messaging history
-			MessagingLog.getInstance().addGroupChatMessage(session.getContributionID(), message,
-					Direction.INCOMING, ChatLog.Message.Status.Content.RECEIVED,
-					ChatLog.Message.ReasonCode.UNSPECIFIED);
-			// Update displayName of remote contact
-			 ContactsManager.getInstance().setContactDisplayName(message.getRemote(), message.getDisplayName());
+		synchronized (lock) {
+			mPersistentStorage
+					.addGroupChatMessage(message, Direction.INCOMING,
+							ChatLog.Message.Status.Content.RECEIVED,
+							ChatLog.Message.ReasonCode.UNSPECIFIED);
+			mContactsManager.setContactDisplayName(message.getRemote(), message.getDisplayName());
 
-			 mGroupChatEventBroadcaster.broadcastMessageReceived(message.getMessageId());
-	    }
-    }
+			mBroadcaster.broadcastMessageReceived(msgId);
+		}
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -567,38 +888,63 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * (com.orangelabs.rcs.core.ims.service.im.chat.ChatError)
 	 */
 	public void handleImError(ChatError error) {
-		if (logger.isActivated()) {
-			logger.info("IM error " + error.getErrorCode());
+		GroupChatSession session = mImService.getGroupChatSession(mChatId);
+		int chatErrorCode = error.getErrorCode();
+		if (session != null && session.isPendingForRemoval()) {
+			/*
+			 * If there is an ongoing group chat session with same chatId, this
+			 * session has to be silently aborted so after aborting the session we
+			 * make sure to not call the rest of this method that would otherwise
+			 * abort the "current" session also and the GroupChat as a whole which
+			 * is of course not the intention here
+			 */
+			if (logger.isActivated()) {
+				logger.info(new StringBuilder("Session marked pending for removal - Error ")
+						.append(chatErrorCode).toString());
+			}
+			return;
 		}
-		String chatId = getChatId();
+		if (logger.isActivated()) {
+			logger.info(new StringBuilder("IM error ").append(chatErrorCode).toString());
+		}
+		setRejoinedAsPartOfSendOperation(false);
 		synchronized (lock) {
-			ChatServiceImpl.removeGroupChatSession(chatId);
+			mChatService.removeGroupChat(mChatId);
 
-			if (error.getErrorCode() != ChatError.SESSION_NOT_FOUND
-					&& error.getErrorCode() != ChatError.SESSION_RESTART_FAILED) {
-				GroupChatStateAndReasonCode stateAndReasonCode = toStateAndReasonCode(error);
-				int state = stateAndReasonCode.getState();
-				int reasonCode = stateAndReasonCode.getReasonCode();
-				MessagingLog.getInstance().updateGroupChatStateAndReasonCode(getChatId(), state,
-						reasonCode);
+			if (ChatError.SESSION_NOT_FOUND == chatErrorCode) {
+				if (mGroupChatRejoinedAsPartOfSendOperation) {
+					handleGroupChatRejoinAsPartOfSendOperationFailed();
+				}
+				return;
+			}
 
-				mGroupChatEventBroadcaster.broadcastStateChanged(chatId, state,
-						reasonCode);
+			GroupChatStateAndReasonCode stateAndReasonCode = toStateAndReasonCode(error);
+			int state = stateAndReasonCode.getState();
+			int reasonCode = stateAndReasonCode.getReasonCode();
+			if (ChatError.MEDIA_SESSION_FAILED == chatErrorCode) {
+				/*
+				 * This error is caused because of a network drop so the group
+				 * chat is not set to ABORTED state in this case as it will be
+				 * auto-rejoined when network connection is regained
+				 */
+			} else {
+				mPersistentStorage.setStateAndReasonCode(state, reasonCode);
+				mBroadcaster.broadcastStateChanged(mChatId, state, reasonCode);
 			}
 		}
 	}
 
 	@Override
 	public void handleIsComposingEvent(ContactId contact, boolean status) {
-     	if (logger.isActivated()) {
-			logger.info(contact + " is composing status set to " + status);
+		if (logger.isActivated()) {
+			logger.info(new StringBuilder().append(contact).append(" is composing status set to ")
+					.append(status).toString());
 		}
     	synchronized(lock) {
 			// Notify event listeners
-			mGroupChatEventBroadcaster.broadcastComposingEvent(getChatId(), contact, status);
+			mBroadcaster.broadcastComposingEvent(mChatId, contact, status);
 		}
 	}
-
 
 	/*
 	 * (non-Javadoc)
@@ -610,15 +956,14 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	public void handleMessageSending(InstantMessage msg) {
 		String msgId = msg.getMessageId();
 		if (logger.isActivated()) {
-			logger.info(new StringBuilder("Inserting message with status sending; id=").append(
-					msgId).toString());
+			logger.info(new StringBuilder("Handle message status ")
+					.append(Message.Status.Content.SENDING).append(" id=").append(msgId).toString());
 		}
-		String chatId = getChatId();
 		synchronized (lock) {
-			MessagingLog.getInstance().addGroupChatMessage(chatId, msg, Direction.OUTGOING,
+			mPersistentStorage.setMessageStatusAndReasonCode(msgId,
 					ChatLog.Message.Status.Content.SENDING, ChatLog.Message.ReasonCode.UNSPECIFIED);
-			mGroupChatEventBroadcaster.broadcastMessageStatusChanged(chatId, msgId,
-					ChatLog.Message.Status.Content.SENDING, ChatLog.Message.ReasonCode.UNSPECIFIED);
+			mBroadcaster.broadcastMessageStatusChanged(mChatId, msgId,
+					ChatLog.Message.Status.Content.SENDING, ReasonCode.UNSPECIFIED);
 		}
 	}
 
@@ -630,13 +975,14 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	@Override
 	public void handleMessageFailedSend(String msgId) {
 		if (logger.isActivated()) {
-			logger.info("Handle message send failure;msgId=".concat(msgId));
+			logger.info(new StringBuilder("Handle message send status ")
+					.append(ChatLog.Message.Status.Content.FAILED).append(" msgId=").append(msgId).toString());
 		}
 		synchronized (lock) {
-			MessagingLog.getInstance().updateChatMessageStatusAndReasonCode(msgId,
+			mPersistentStorage.setMessageStatusAndReasonCode(msgId,
 					ChatLog.Message.Status.Content.FAILED, ChatLog.Message.ReasonCode.FAILED_SEND);
 
-			mGroupChatEventBroadcaster.broadcastMessageStatusChanged(getChatId(), msgId,
+			mBroadcaster.broadcastMessageStatusChanged(getChatId(), msgId,
 					ChatLog.Message.Status.Content.FAILED, ChatLog.Message.ReasonCode.FAILED_SEND);
 		}
 	}
@@ -649,13 +995,15 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	@Override
 	public void handleMessageSent(String msgId) {
 		if (logger.isActivated()) {
-			logger.info("Handle message sent; msgId=".concat(msgId));
+			logger.info(new StringBuilder("Handle message status ")
+					.append(ChatLog.Message.Status.Content.SENT).append(" msgId=").append(msgId)
+					.toString());
 		}
 		synchronized (lock) {
-			MessagingLog.getInstance().updateChatMessageStatusAndReasonCode(msgId,
+			mPersistentStorage.setMessageStatusAndReasonCode(msgId,
 					ChatLog.Message.Status.Content.SENT, ChatLog.Message.ReasonCode.UNSPECIFIED);
 
-			mGroupChatEventBroadcaster.broadcastMessageStatusChanged(getChatId(), msgId,
+			mBroadcaster.broadcastMessageStatusChanged(getChatId(), msgId,
 					ChatLog.Message.Status.Content.SENT, ChatLog.Message.ReasonCode.UNSPECIFIED);
 		}
 	}
@@ -665,26 +1013,25 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
     	if (logger.isActivated()) {
 			logger.info("New conference event " + state + " for " + contact);
 		}
-		String chatId = getChatId();
     	synchronized(lock) {
 			if (User.STATE_CONNECTED.equals(state)) {
-				MessagingLog.getInstance().addGroupChatSystemMessage(session.getContributionID(),
+				mPersistentStorage.addGroupChatEvent(mChatId,
 						contact, Message.Status.System.JOINED);
-				mGroupChatEventBroadcaster.broadcastParticipantInfoStatusChanged(chatId,
+				mBroadcaster.broadcastParticipantInfoStatusChanged(mChatId,
 						new ParticipantInfo(contact, ParticipantInfo.Status.CONNECTED));
 
 			} else if (User.STATE_DISCONNECTED.equals(state)) {
-				MessagingLog.getInstance().addGroupChatSystemMessage(session.getContributionID(),
+				mPersistentStorage.addGroupChatEvent(mChatId,
 						contact, Message.Status.System.DISCONNECTED);
 
-				mGroupChatEventBroadcaster.broadcastParticipantInfoStatusChanged(chatId,
+				mBroadcaster.broadcastParticipantInfoStatusChanged(mChatId,
 						new ParticipantInfo(contact, ParticipantInfo.Status.DISCONNECTED));
 
 			} else if (User.STATE_DEPARTED.equals(state)) {
-				MessagingLog.getInstance().addGroupChatSystemMessage(session.getContributionID(),
+				mPersistentStorage.addGroupChatEvent(mChatId,
 						contact, Message.Status.System.GONE);
 
-				mGroupChatEventBroadcaster.broadcastParticipantInfoStatusChanged(chatId,
+				mBroadcaster.broadcastParticipantInfoStatusChanged(mChatId,
 						new ParticipantInfo(contact, ParticipantInfo.Status.DEPARTED));
 			}
 	    }
@@ -720,7 +1067,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			logger.info("Add participant request is successful");
 		}
 		synchronized (lock) {
-			mGroupChatEventBroadcaster.broadcastParticipantInfoStatusChanged(getChatId(),
+			mBroadcaster.broadcastParticipantInfoStatusChanged(mChatId,
 					new ParticipantInfo(contact, ParticipantInfo.Status.CONNECTED));
 		}
 	}
@@ -736,7 +1083,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			logger.info("Add participant request has failed " + reason);
 		}
 		synchronized (lock) {
-			mGroupChatEventBroadcaster.broadcastParticipantInfoStatusChanged(getChatId(),
+			mBroadcaster.broadcastParticipantInfoStatusChanged(mChatId,
 					new ParticipantInfo(contact, ParticipantInfo.Status.FAILED));
 		}
 	}
@@ -751,15 +1098,14 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			logger.info("New geoloc received");
 		}
     	synchronized(lock) {
-			// Update rich messaging history
-			MessagingLog.getInstance().addGroupChatMessage(session.getContributionID(), geoloc,
-					Direction.INCOMING, ChatLog.Message.Status.Content.RECEIVED,
-					ChatLog.Message.ReasonCode.UNSPECIFIED);
+			mPersistentStorage
+					.addGroupChatMessage(geoloc, Direction.INCOMING,
+							ChatLog.Message.Status.Content.RECEIVED,
+							ChatLog.Message.ReasonCode.UNSPECIFIED);
 
-			// Update displayName of remote contact
-			ContactsManager.getInstance().setContactDisplayName(geoloc.getRemote(), geoloc.getDisplayName());
+			mContactsManager.setContactDisplayName(geoloc.getRemote(), geoloc.getDisplayName());
 
-			 mGroupChatEventBroadcaster.broadcastMessageReceived(geoloc.getMessageId());
+			 mBroadcaster.broadcastMessageReceived(geoloc.getMessageId());
 	    }
     }
 
@@ -771,7 +1117,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 			logger.info("handleParticipantStatusChanged " + participantInfo);
 		}
 		synchronized (lock) {
-			mGroupChatEventBroadcaster.broadcastParticipantInfoStatusChanged(getChatId(),
+			mBroadcaster.broadcastParticipantInfoStatusChanged(mChatId,
 					participantInfo);
 		}
 	}
@@ -781,12 +1127,11 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 		if (logger.isActivated()) {
 			logger.info("Accepting group chat session");
 		}
-		String chatId = getChatId();
 		synchronized (lock) {
-			MessagingLog.getInstance().updateGroupChatStateAndReasonCode(chatId,
-					GroupChat.State.ACCEPTING, GroupChat.ReasonCode.UNSPECIFIED);
+			mPersistentStorage.setStateAndReasonCode(GroupChat.State.ACCEPTING,
+					GroupChat.ReasonCode.UNSPECIFIED);
 
-			mGroupChatEventBroadcaster.broadcastStateChanged(chatId,
+			mBroadcaster.broadcastStateChanged(mChatId,
 					GroupChat.State.ACCEPTING, GroupChat.ReasonCode.UNSPECIFIED);
 		}
 	}
@@ -820,14 +1165,13 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 		if (logger.isActivated()) {
 			logger.info("Invited to group chat session");
 		}
-		String chatId = getChatId();
 		synchronized (lock) {
-			MessagingLog.getInstance().addGroupChat(chatId, session.getRemoteContact(),
-					getSubject(), session.getParticipants(), GroupChat.State.INVITED,
-					GroupChat.ReasonCode.UNSPECIFIED, Direction.INCOMING);
+			GroupChatSession session = mImService.getGroupChatSession(mChatId);
+			mPersistentStorage.addGroupChat( session.getRemoteContact(), getSubject(), session.getParticipants(),
+					GroupChat.State.INVITED, ReasonCode.UNSPECIFIED, Direction.INCOMING);
 		}
 
-		mGroupChatEventBroadcaster.broadcastInvitation(chatId);
+		mBroadcaster.broadcastInvitation(mChatId);
 	}
 
 	@Override
@@ -835,13 +1179,12 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 		if (logger.isActivated()) {
 			logger.info("Session auto accepted");
 		}
-		String chatId = getChatId();
 		synchronized (lock) {
-			MessagingLog.getInstance().addGroupChat(chatId, session.getRemoteContact(),
-					getSubject(), session.getParticipants(), GroupChat.State.ACCEPTING,
-					GroupChat.ReasonCode.UNSPECIFIED, Direction.INCOMING);
+			GroupChatSession session = mImService.getGroupChatSession(mChatId);
+			mPersistentStorage.addGroupChat( session.getRemoteContact(), getSubject(), session.getParticipants(),
+					GroupChat.State.ACCEPTING, ReasonCode.UNSPECIFIED, Direction.INCOMING);
 		}
 
-		mGroupChatEventBroadcaster.broadcastInvitation(chatId);
+		mBroadcaster.broadcastInvitation(mChatId);
 	}
 }

@@ -54,16 +54,21 @@ public abstract class ImsServiceSession extends Thread {
 	 * Session invitation status
 	 */
 	public final static int INVITATION_NOT_ANSWERED = 0;
+	@SuppressWarnings("javadoc")
 	public final static int INVITATION_ACCEPTED = 1;
+	@SuppressWarnings("javadoc")
 	public final static int INVITATION_REJECTED = 2;
-    public final static int INVITATION_CANCELED = 3; 
+    @SuppressWarnings("javadoc")
+	public final static int INVITATION_CANCELED = 3; 
 
 	/**
 	 * Session termination reason
 	 */
     public final static int TERMINATION_BY_SYSTEM = 0;
-    public final static int TERMINATION_BY_USER = 1;
-    public final static int TERMINATION_BY_TIMEOUT = 2;
+    @SuppressWarnings("javadoc")
+	public final static int TERMINATION_BY_USER = 1;
+    @SuppressWarnings("javadoc")
+	public final static int TERMINATION_BY_TIMEOUT = 2;
     
 	private final static int SESSION_INTERVAL_TOO_SMALL = 422;
     
@@ -259,6 +264,7 @@ public abstract class ImsServiceSession extends Thread {
 
 	/**
 	 * Remove a listener
+	 * @param listener 
 	 */
 	public void removeListener(ImsSessionListener listener) {
 		listeners.remove(listener);
@@ -310,13 +316,12 @@ public abstract class ImsServiceSession extends Thread {
 	/**
 	 * Start the session in background
 	 */
-	public void startSession() {
-		// Add the session in the session manager
-		imsService.addSession(this);
-		
-		// Start the session
-		start();
-	}
+	public abstract void startSession();
+
+	/**
+	 * Remove session
+	 */
+	public abstract void removeSession();
 	
 	/**
 	 * Return the IMS service
@@ -379,7 +384,7 @@ public abstract class ImsServiceSession extends Thread {
     /**
      * Set display name of the remote contact
      * 
-     * @param String
+     * @param remoteDisplayName
      */
     public void setRemoteDisplayName(String remoteDisplayName) {
         this.remoteDisplayName = remoteDisplayName;
@@ -432,7 +437,7 @@ public abstract class ImsServiceSession extends Thread {
 		sendErrorResponse(getDialogPath().getInvite(), getDialogPath().getLocalTag(), code);
 			
 		// Remove the session in the session manager
-		imsService.removeSession(this);
+		removeSession();
 	}	
 	
 	/**
@@ -508,7 +513,7 @@ public abstract class ImsServiceSession extends Thread {
 	/**
 	 * Abort the session
 	 * 
-	 * @param reason Termination reason
+	 * @param abortedReason Termination reason
 	 */
 	public void abortSession(int abortedReason) {
 		if (logger.isActivated()) {
@@ -521,7 +526,7 @@ public abstract class ImsServiceSession extends Thread {
 
 		closeMediaSession();
 
-		getImsService().removeSession(this);
+		removeSession();
 
 		/* TODO: This will be changed anyway by the implementation of CR018 */
 		Collection<ImsSessionListener> listeners = getListeners();
@@ -610,7 +615,7 @@ public abstract class ImsServiceSession extends Thread {
         sessionTerminatedByRemote = true;
 
     	// Remove the current session
-    	getImsService().removeSession(this);
+        removeSession();
 	
     	// Stop session timer
     	getSessionTimerManager().stop();		
@@ -670,7 +675,7 @@ public abstract class ImsServiceSession extends Thread {
 		}
 
 		// Remove the current session
-		getImsService().removeSession(this);
+		removeSession();
 
 		// Set invitation status
 		invitationStatus = ImsServiceSession.INVITATION_CANCELED;
@@ -1255,8 +1260,8 @@ public abstract class ImsServiceSession extends Thread {
      * Handle ReInvite Sip Response
      *
      * @param response Sip response to reInvite
-     * @param int code response code
-     * @param reInvite reInvite SIP request
+     * @param code response code
+     * @param requestType
      */
     public void handleReInviteResponse(int  code, SipResponse response, int requestType) {   	
     }
@@ -1264,19 +1269,18 @@ public abstract class ImsServiceSession extends Thread {
     /**
      * Handle User Answer in Response to Session Update notification 
      *
-     * @param int code response code
-     * @param reInvite reInvite SIP request
+     * @param code response code
+     * @param requestType 
      */
     public void handleReInviteUserAnswer(int  code, int requestType) {   	
     }
     
     /**
      * Handle ACK sent in Response to 200Ok ReInvite 
-     *
-     * @param int code response code
-     * @param reInvite reInvite SIP request
+     * @param code 
+     * @param requestType 
      */
-    public void handleReInviteAck(int  code, int requestType) {   	
+	public void handleReInviteAck(int  code, int requestType) {   	
     }
     
     /**
@@ -1285,9 +1289,16 @@ public abstract class ImsServiceSession extends Thread {
      * @param response reInvite SIP response
      * @param int requestType  service context of reInvite 
      */
-    public void handleReInvite407ProxyAuthent(SipResponse response, int serviceContext){	
+    @SuppressWarnings("javadoc")
+	public void handleReInvite407ProxyAuthent(SipResponse response, int serviceContext){	
     }
  
+    /**
+     * Build ReInvite SDP response
+     * @param ReInvite
+     * @param serviceContext
+     * @return response
+     */
     public String buildReInviteSdpResponse(SipRequest ReInvite, int serviceContext){
     	return null;
     }

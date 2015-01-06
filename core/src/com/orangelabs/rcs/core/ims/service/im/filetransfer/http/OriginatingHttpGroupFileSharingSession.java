@@ -37,9 +37,7 @@ import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingError;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
 import com.orangelabs.rcs.provider.fthttp.FtHttpResumeDaoImpl;
 import com.orangelabs.rcs.provider.fthttp.FtHttpResumeUpload;
-import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.utils.IdGenerator;
-import com.orangelabs.rcs.utils.MimeManager;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -48,6 +46,8 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author vfml3370
  */
 public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSession implements HttpUploadTransferEventListener {
+
+	private final Core mCore;
 
     /**
      * HTTP upload manager
@@ -72,37 +72,36 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
 	/**
 	 * Constructor
 	 * 
+	 * @param fileTransferId
+	 *            File transfer Id
 	 * @param parent
 	 *            IMS service
 	 * @param content
 	 *            The file content to share
 	 * @param fileIcon
-	 *            true if the stack must try to attach file icon
+	 *            Content of fileicon
 	 * @param conferenceId
 	 *            Conference ID
 	 * @param participants
 	 *            Set of participants
-	 * @param chatSessionId
+	 * @param chatSessionID
 	 *            Chat session ID
 	 * @param chatContributionId
 	 *            Chat contribution Id
 	 * @param tId
 	 *            TID of the upload
+	 * @param core Core
 	 */
-	public OriginatingHttpGroupFileSharingSession(ImsService parent, MmContent content, boolean fileIcon,
-			String conferenceId, Set<ParticipantInfo> participants, String chatSessionID, String chatContributionId, String tId) {
-		super(parent, content, null, conferenceId, null, chatSessionID, chatContributionId, IdGenerator.generateMessageID());
-		// Set participants involved in the transfer
+	public OriginatingHttpGroupFileSharingSession(String fileTransferId, ImsService parent,
+			MmContent content, MmContent fileIcon, String conferenceId,
+			Set<ParticipantInfo> participants, String chatSessionID, String chatContributionId,
+			String tId, Core core) {
+		super(parent, content, null, conferenceId, fileIcon, chatSessionID, chatContributionId, fileTransferId);
+		mCore = core;
 		this.participants = participants;
-		
-		MmContent fileIconContent = null;
-		if (fileIcon && MimeManager.isImageType(content.getEncoding())) {
-			// Create the file icon
-			fileIconContent = FileTransferUtils.createFileicon(content.getUri(), getSessionID());
-			setFileicon(fileIconContent);
-		}
+
 		// Instantiate the upload manager
-		uploadManager = new HttpUploadManager(getContent(), fileIconContent, this, tId);
+		uploadManager = new HttpUploadManager(getContent(), fileIcon, this, tId);
 	}
 
 	/**
@@ -145,18 +144,15 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
     /**
      * Send the file transfer information
      */
-    private void sendFileTransferInfo() {
-        // Send File transfer Info
+	private void sendFileTransferInfo() {
         String mime = CpimMessage.MIME_TYPE;
         String from = ImsModule.IMS_USER_PROFILE.getPublicAddress();
         String to = ChatUtils.ANOMYNOUS_URI;
         // Note: FileTransferId is always generated to equal the associated msgId of a FileTransfer invitation message.
         String msgId = getFileTransferId();
 
-        // Send file info in CPIM message
         String content = ChatUtils.buildCpimMessageWithImdn(from, to, msgId, fileInfo, FileTransferHttpInfoDocument.MIME_TYPE);
         
-        // Send content
 		chatSession.sendDataChunks(IdGenerator.generateMessageID(), content, mime, TypeMsrpChunk.FileSharing);
     }
     
@@ -178,24 +174,20 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
                 logger.debug("Upload done with success: " + fileInfo);
             }
 
-			// Send the file transfer info via a chat message
-            chatSession = (ChatSession) Core.getInstance().getImService().getSession(getChatSessionID());
+            chatSession = mCore.getImService()
+                    .getGroupChatSession(getContributionID());
             if (chatSession != null) {
-				// A chat session exists
                 if (logger.isActivated()) {
                     logger.debug("Send file transfer info via an existing chat session");
                 }
 
-                // Send file transfer info
                 sendFileTransferInfo();
 
-                // File transfered
                 handleFileTransfered();
             } else {
-                // No chat error
                 handleError(new FileSharingError(FileSharingError.NO_CHAT_SESSION));
-			}
-		} else {
+            }
+        } else {
             if (logger.isActivated()) {
                 logger.debug("Upload has failed");
             }

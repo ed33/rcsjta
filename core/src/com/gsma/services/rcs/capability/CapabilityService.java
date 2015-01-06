@@ -50,7 +50,6 @@ public class CapabilityService extends RcsService {
     /**
      * Intent broadcasted to discover extensions
      * 
-     * @see CapabilityService.EXTENSION_MIME_TYPE
      */
     public final static String INTENT_EXTENSIONS = "com.gsma.services.rcs.capability.EXTENSION";
     

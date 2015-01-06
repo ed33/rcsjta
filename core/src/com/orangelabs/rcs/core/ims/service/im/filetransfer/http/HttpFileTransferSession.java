@@ -75,7 +75,7 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
 	 * @param contact Remote contact identifier
 	 * @param remoteUri the remote URI
 	 * @param fileIcon Content of file icon
-	 * @param chatSessionId Chat session ID
+	 * @param chatSessionID Chat session ID
 	 * @param chatContributionId Chat contribution Id
 	 * @param fileTransferId File transfer Id
 	 */
@@ -148,7 +148,7 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
                     terminateSession(reason);
 
                     // Remove the current session
-                    getImsService().removeSession(this);
+                    removeSession();
 
                     Collection<ImsSessionListener> listeners = getListeners();
                     for (ImsSessionListener listener : listeners) {
@@ -180,7 +180,7 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
         }
 
         // Remove the current session
-        getImsService().removeSession(this);
+        removeSession();
 
         Collection<ImsSessionListener> listeners = getListeners();
         for (ImsSessionListener listener : listeners) {
@@ -224,7 +224,7 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
         fileTransfered();
 
         // Remove the current session
-        getImsService().removeSession(this);
+        removeSession();
 
         Collection<ImsSessionListener> listeners = getListeners();
         for (ImsSessionListener listener : listeners) {
@@ -305,7 +305,6 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
      * Get session state
      *
      * @return State 
-     * @see SessionState
      */
     public int getSessionState() {
         return sessionState;

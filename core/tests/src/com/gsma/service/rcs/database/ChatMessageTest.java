@@ -28,7 +28,7 @@ import com.gsma.services.rcs.RcsCommon;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
 import com.gsma.services.rcs.chat.ChatLog;
-import com.gsma.services.rcs.chat.Geoloc;
+import com.gsma.services.rcs.Geoloc;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocMessage;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
 import com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage;
@@ -124,7 +124,7 @@ public class ChatMessageTest extends AndroidTestCase {
     		String contact = cursor.getString(cursor.getColumnIndex(ChatLog.Message.CONTACT));
     		String content = cursor.getString(cursor.getColumnIndex(ChatLog.Message.CONTENT));
     		assertNotNull(content);
-			Geoloc readGeoloc = ChatLog.getGeoloc(content);
+			Geoloc readGeoloc = new Geoloc(content);
     		assertNotNull(readGeoloc);
 			
     		String contentType = cursor.getString(cursor.getColumnIndex(ChatLog.Message.MIME_TYPE));

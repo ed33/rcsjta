@@ -88,6 +88,7 @@ public abstract class FileSharingSession extends ImsServiceSession {
 	 * @param contact Remote contactId
 	 * @param remoteUri the remote URI
 	 * @param fileIcon File icon
+     * @param filetransferId 
 	 */
 	public FileSharingSession(ImsService parent, MmContent content, ContactId contact, String remoteUri, MmContent fileIcon, String filetransferId) {
 		super(parent, contact, remoteUri);
@@ -258,5 +259,16 @@ public abstract class FileSharingSession extends ImsServiceSession {
 
 		// Request capabilities to the remote
 		getImsService().getImsModule().getCapabilityService().requestContactCapabilities(getRemoteContact());
+	}
+
+	@Override
+	public void startSession() {
+		getImsService().getImsModule().getInstantMessagingService().addSession(this);
+		start();
+	}
+
+	@Override
+	public void removeSession() {
+		getImsService().getImsModule().getInstantMessagingService().removeSession(this);
 	}
 }

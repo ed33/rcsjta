@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.orangelabs.rcs.core.ims.service.terms;
@@ -77,11 +81,8 @@ public class TermsConditionsService extends ImsService {
 	 */
 	private final static String DECLINE_RESPONSE = "decline";
 
-	/**
-	 * Remote server
-	 */
-	private String remoteServer;
-	
+	private final RcsSettings mRcsSettings;
+
 	/**
      * The logger
      */
@@ -91,13 +92,12 @@ public class TermsConditionsService extends ImsService {
      * Constructor
      * 
      * @param parent IMS module
+	 * @param rcsSettings RcsSettings
      * @throws CoreException
      */
-	public TermsConditionsService(ImsModule parent) throws CoreException {
+	public TermsConditionsService(ImsModule parent, RcsSettings rcsSettings) throws CoreException {
         super(parent, true);
-        
-        // Get remote server URI
-		remoteServer = RcsSettings.getInstance().getEndUserConfirmationRequestUri();
+        mRcsSettings = rcsSettings;
 	}
 
 	/**
@@ -225,7 +225,8 @@ public class TermsConditionsService extends ImsService {
 		}
 		
 		// Send SIP MESSAGE
-		return sendSipMessage(remoteServer, id, ACCEPT_RESPONSE, pin);
+		return sendSipMessage(mRcsSettings.getEndUserConfirmationRequestUri(), id, ACCEPT_RESPONSE,
+				pin);
 	}
 
 	/**
@@ -241,7 +242,8 @@ public class TermsConditionsService extends ImsService {
 		}
 
 		// Send SIP MESSAGE
-		return sendSipMessage(remoteServer, id, DECLINE_RESPONSE, pin);
+		return sendSipMessage(mRcsSettings.getEndUserConfirmationRequestUri(), id,
+				DECLINE_RESPONSE, pin);
 	}
 
 	/**

@@ -27,7 +27,7 @@ import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
  * OneToOneChatEventBroadcaster maintains the registering and unregistering of
- * IChatListeners and also performs broadcast events on these listeners upon the
+ * IOneToOneChatListeners and also performs broadcast events on these listeners upon the
  * trigger of corresponding callbacks.
  */
 public class OneToOneChatEventBroadcaster implements IOneToOneChatEventBroadcaster {
@@ -36,13 +36,24 @@ public class OneToOneChatEventBroadcaster implements IOneToOneChatEventBroadcast
 
 	private final Logger logger = Logger.getLogger(getClass().getName());
 
+	/**
+	 * Constructor
+	 */
 	public OneToOneChatEventBroadcaster() {
 	}
 
+	/**
+	 * Add one to one chat event listener
+	 * @param listener
+	 */
 	public void addOneToOneChatEventListener(IOneToOneChatListener listener) {
 		mOneToOneChatListeners.register(listener);
 	}
 
+	/**
+	 * Remove one to one chat event listener
+	 * @param listener
+	 */
 	public void removeOneToOneChatEventListener(IOneToOneChatListener listener) {
 		mOneToOneChatListeners.unregister(listener);
 	}
