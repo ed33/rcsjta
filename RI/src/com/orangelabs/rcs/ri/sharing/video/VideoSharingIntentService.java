@@ -137,7 +137,7 @@ public class VideoSharingIntentService extends IntentService {
 		}
 		// Create notification
 		Intent intent = new Intent(invitation);
-		intent.setClass(this, ReceiveVideoSharing.class);
+		intent.setClass(this, IncomingVideoSharing.class);
 		intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 		PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 		

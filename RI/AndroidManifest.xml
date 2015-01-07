@@ -345,8 +345,8 @@
             android:label="@string/title_video_sharing" />
         
         <activity
-            android:name=".sharing.video.InitiateVideoSharing"
-            android:label="@string/menu_initiate_video_sharing"
+            android:name=".sharing.video.OutgoingVideoSharing"
+            android:label="@string/menu_video_sharing"
         />
         
 		<receiver android:name=".sharing.video.VideoSharingInvitationReceiver">
@@ -356,7 +356,7 @@
         </receiver>
         
         <activity
-            android:name=".sharing.video.ReceiveVideoSharing"
+            android:name=".sharing.video.IncomingVideoSharing"
             android:label="@string/menu_video_sharing" 
             android:exported="true" />
         

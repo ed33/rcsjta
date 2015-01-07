@@ -24,6 +24,7 @@
 <string name="label_decline">Decline</string>
 <string name="label_refresh">Refresh</string>
 <string name="label_from_args">From: %s</string>
+<string name="label_with_args">With: %s</string>
 <string name="label_invitation_failed">Invitation has failed</string>
 <string name="label_yes">Yes</string>
 <string name="label_no">No</string>

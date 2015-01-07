@@ -3,7 +3,7 @@
 	android:layout_width="fill_parent"
 	android:layout_height="fill_parent">
 
-    <LinearLayout 
+   <LinearLayout 
         android:layout_height="wrap_content"
         android:layout_width="fill_parent"
         android:orientation="vertical">
@@ -39,12 +39,21 @@
 			android:layout_marginRight="5dip"
 			android:visibility="gone"/>        
         
+		<TextView 
+			android:id="@+id/with" 
+			android:layout_width="fill_parent" 
+			android:layout_height="wrap_content"
+			android:layout_marginLeft="5dip"
+			android:layout_marginRight="5dip"
+			android:visibility="gone"/> 
+			
 		<Button android:id="@+id/switch_cam_btn"
 			android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
             android:layout_marginLeft="5dip"
             android:layout_marginRight="5dip"
 			android:text="@string/label_switch_camera"/>
+   
 
 		<com.orangelabs.rcs.ri.sharing.video.media.VideoSurfaceView
             android:id="@+id/video_preview"
