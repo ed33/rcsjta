@@ -32,6 +32,7 @@ import android.os.IBinder;
 
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.extension.IMultimediaMessagingSession;
 import com.gsma.services.rcs.extension.IMultimediaMessagingSessionListener;
@@ -333,6 +334,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 
     /**
      * Returns a current messaging session from its unique session ID
+     * @param sessionId 
      * 
      * @return Multimedia messaging session
      * @throws ServerApiException
@@ -440,6 +442,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 
     /**
      * Returns a current streaming session from its unique session ID
+     * @param sessionId 
      * 
      * @return Multimedia streaming session or null if not found
      * @throws ServerApiException
@@ -492,7 +495,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see com.gsma.services.rcs.RcsService.Build.VERSION_CODES
+	 * @see VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {

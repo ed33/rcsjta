@@ -591,7 +591,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * a message, else it is set to false.
 	 * 
 	 * @param status Is-composing status
-	 * @see com.orangelabs.rcs.provider.settings.RcsSettingsData.ImSessionStartMode
+	 * @see ImSessionStartMode
 	 */
 	public void sendIsComposingEvent(final boolean status) {
 		final GroupChatSession session = mImService.getGroupChatSession(mChatId);
@@ -695,7 +695,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements ChatSessionListene
 	 * session and the parameter IM SESSION START is 0 then the session is
 	 * accepted now.
 	 * 
-	 * @see com.orangelabs.rcs.provider.settings.RcsSettingsData.ImSessionStartMode
+	 * @see ImSessionStartMode
 	 */
 	public void openChat() {
 		if (logger.isActivated()) {

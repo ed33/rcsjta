@@ -72,8 +72,6 @@ public class GroupChatLog implements IGroupChatLog {
 
 	private static final int FIRST_COLUMN_IDX = 0;
 
-
-	@SuppressWarnings("javadoc")
 	public static enum UserAbortion {
 
 		SERVER_NOTIFIED(0), SERVER_NOT_NOTIFIED(1);

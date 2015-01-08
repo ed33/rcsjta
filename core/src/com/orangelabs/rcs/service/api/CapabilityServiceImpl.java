@@ -24,6 +24,7 @@ package com.orangelabs.rcs.service.api;
 
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
 import com.gsma.services.rcs.capability.Capabilities;
 import com.gsma.services.rcs.capability.ICapabilitiesListener;
 import com.gsma.services.rcs.capability.ICapabilityService;
@@ -194,7 +195,7 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
      */
 	public Capabilities getContactCapabilities(ContactId contact) {
 		if (logger.isActivated()) {
-			logger.info("Get capabilities for contact " + contact);
+			logger.info("Get capabilities for contact ".concat(contact.toString()));
 		}
 		// Read capabilities in the local database
 		return ContactsServiceImpl.getCapabilities( ContactsManager.getInstance().getContactCapabilities(contact));
@@ -217,7 +218,7 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	 */
 	public void requestContactCapabilities(final ContactId contact) throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Request capabilities for contact " + contact);
+			logger.info("Request capabilities for contact ".concat(contact.toString()));
 		}
 
 		// Test IMS connection
@@ -241,7 +242,7 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
     public void receiveCapabilities(ContactId contact, com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities) {
     	synchronized(lock) {
     		if (logger.isActivated()) {
-    			logger.info("Receive capabilities for " + contact);
+    			logger.info("Receive capabilities for ".concat(contact.toString()));
     		}
 	
     		// Create capabilities instance
@@ -329,7 +330,7 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	 */
 	public void addCapabilitiesListener2(ContactId contact, ICapabilitiesListener listener) {
 		if (logger.isActivated()) {
-			logger.info("Add a listener for contact " + contact);
+			logger.info("Add a listener for contact ".concat(contact.toString()));
 		}
 		synchronized (lock) {
 			mCapabilitiesBroadcaster.addContactCapabilitiesListener(contact, listener);
@@ -344,7 +345,7 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	 */
 	public void removeCapabilitiesListener2(ContactId contact, ICapabilitiesListener listener) {
 		if (logger.isActivated()) {
-			logger.info("Remove a listener for contact " + contact);
+			logger.info("Remove a listener for contact ".concat(contact.toString()));
 		}
 		synchronized (lock) {
 			mCapabilitiesBroadcaster.removeContactCapabilitiesListener(contact, listener);
@@ -355,7 +356,7 @@ public class CapabilityServiceImpl extends ICapabilityService.Stub {
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see RcsService.Build.VERSION_CODES
+	 * @see VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {

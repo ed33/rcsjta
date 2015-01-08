@@ -61,7 +61,7 @@ public class GeolocSharingImpl extends IGeolocSharing.Stub implements GeolocTran
 	private final GeolocSharingServiceImpl mGeolocSharingService;
 
 	/**
-	 * Lock used for synchronisation
+	 * Lock used for synchronization
 	 */
 	private final Object lock = new Object();
 

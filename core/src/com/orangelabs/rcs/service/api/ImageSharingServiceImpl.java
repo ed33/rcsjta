@@ -32,6 +32,7 @@ import android.os.IBinder;
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.RcsCommon.Direction;
+import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ish.IImageSharing;
 import com.gsma.services.rcs.ish.IImageSharingListener;
@@ -314,6 +315,7 @@ public class ImageSharingServiceImpl extends IImageSharingService.Stub {
 
     /**
      * Returns a current image sharing from its unique ID
+     * @param sharingId 
      * 
      * @return Image sharing
      * @throws ServerApiException
@@ -380,7 +382,7 @@ public class ImageSharingServiceImpl extends IImageSharingService.Stub {
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see com.gsma.services.rcs.RcsService.Build.VERSION_CODES
+	 * @see VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {

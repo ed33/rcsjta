@@ -20,7 +20,7 @@ import com.gsma.services.rcs.chat.IChatMessage;
 import com.gsma.services.rcs.contacts.ContactId;
 
 /**
- * 
+ * A class that implements interface to allow access to chat message information from API
  *
  */
 public class ChatMessageImpl extends IChatMessage.Stub {
