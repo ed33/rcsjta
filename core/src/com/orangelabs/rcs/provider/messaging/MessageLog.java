@@ -42,7 +42,6 @@ import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
 import com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage;
 import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
-import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.IdGenerator;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -375,25 +374,10 @@ public class MessageLog implements IMessageLog {
 					+ msgId);
 
 		} catch (RuntimeException e) {
-			if (logger.isActivated()) {
-				logger.error("Exception occured while retrieving message info of msgId = '" + msgId
-						+ "' ! ", e);
-			}
 			if (cursor != null) {
 				cursor.close();
 			}
 			throw e;
-		}
-	}
-
-	private String getDataAsString(Cursor cursor) {
-		try {
-			return cursor.getString(FIRST_COLUMN_IDX);
-
-		} finally {
-			if (cursor != null) {
-				cursor.close();
-			}
 		}
 	}
 
@@ -428,14 +412,6 @@ public class MessageLog implements IMessageLog {
 	}
 
 	@Override
-	public long getMessageTimestamp(String msgId) {
-		if (logger.isActivated()) {
-			logger.debug(new StringBuilder("Get message timestamp for ").append(msgId).toString());
-		}
-		return getDataAsLong(getMessageData(MessageData.KEY_TIMESTAMP, msgId));
-	}
-
-	@Override
 	public long getMessageSentTimestamp(String msgId) {
 		if (logger.isActivated()) {
 			logger.debug(new StringBuilder("Get message sent timestamp for ").append(msgId)
@@ -463,54 +439,6 @@ public class MessageLog implements IMessageLog {
 	}
 
 	@Override
-	public String getMessageChatId(String msgId) {
-		if (logger.isActivated()) {
-			logger.debug(new StringBuilder("Get message chat ID for ").append(msgId).toString());
-		}
-		return getDataAsString(getMessageData(MessageData.KEY_CHAT_ID, msgId));
-	}
-
-	@Override
-	public ContactId getMessageRemoteContact(String msgId) {
-		if (logger.isActivated()) {
-			logger.debug(new StringBuilder("Get message remote contact for ").append(msgId)
-					.toString());
-		}
-		String number = getDataAsString(getMessageData(MessageData.KEY_CONTACT, msgId));
-		/*
-		 * null is legal value here only when this is a outgoing group message
-		 */
-		if (number == null) {
-			return null;
-		}
-		return ContactUtils.createContactId(number);
-	}
-
-	@Override
-	public String getMessageMimeType(String msgId) {
-		if (logger.isActivated()) {
-			logger.debug(new StringBuilder("Get message mime type for ").append(msgId).toString());
-		}
-		return getDataAsString(getMessageData(MessageData.KEY_MIME_TYPE, msgId));
-	}
-
-	@Override
-	public String getMessageContent(String msgId) {
-		if (logger.isActivated()) {
-			logger.debug(new StringBuilder("Get message content for ").append(msgId).toString());
-		}
-		return getDataAsString(getMessageData(MessageData.KEY_CONTENT, msgId));
-	}
-
-	@Override
-	public int getMessageDirection(String msgId) {
-		if (logger.isActivated()) {
-			logger.debug(new StringBuilder("Get message direction for ").append(msgId).toString());
-		}
-		return getDataAsInt(getMessageData(MessageData.KEY_DIRECTION, msgId));
-	}
-
-	@Override
 	public int getMessageStatus(String msgId) {
 		if (logger.isActivated()) {
 			logger.debug(new StringBuilder("Get message status for ").append(msgId).toString());
@@ -524,5 +452,27 @@ public class MessageLog implements IMessageLog {
 			logger.debug(new StringBuilder("Get message reason code for ").append(msgId).toString());
 		}
 		return getDataAsInt(getMessageData(MessageData.KEY_REASON_CODE, msgId));
+	}
+
+	@Override
+	public Cursor getCacheableChatMessageData(String msgId) {
+		Cursor cursor = null;
+		try {
+			cursor = mLocalContentResolver.query(
+					Uri.withAppendedPath(ChatLog.Message.CONTENT_URI, msgId), null, null, null,
+					null);
+			if (cursor.moveToFirst()) {
+				return cursor;
+			}
+
+			throw new SQLException("No row returned while querying for message data with msgId : "
+					+ msgId);
+
+		} catch (RuntimeException e) {
+			if (cursor != null) {
+				cursor.close();
+			}
+			throw e;
+		}
 	}
 }

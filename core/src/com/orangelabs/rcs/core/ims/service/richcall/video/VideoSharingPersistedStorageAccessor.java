@@ -18,9 +18,12 @@ package com.orangelabs.rcs.core.ims.service.richcall.video;
 
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.VideoDescriptor;
+import com.gsma.services.rcs.vsh.VideoSharingLog;
 import com.orangelabs.rcs.core.content.VideoContent;
 import com.orangelabs.rcs.provider.sharing.RichCallHistory;
+import com.orangelabs.rcs.utils.ContactUtils;
 
+import android.database.Cursor;
 import android.net.Uri;
 
 /**
@@ -76,6 +79,27 @@ public class VideoSharingPersistedStorageAccessor {
 		mVideoDescriptor = new VideoDescriptor(width, height);
 	}
 
+	private void cacheData() {
+		Cursor cursor = null;
+		try {
+			cursor = mRichCallLog.getCacheableVideoSharingData(mSharingId);
+			String contact = cursor.getString(cursor
+					.getColumnIndexOrThrow(VideoSharingLog.CONTACT));
+			if (contact != null) {
+				mContact = ContactUtils.createContactId(contact);
+			}
+			mDirection = cursor.getInt(cursor.getColumnIndexOrThrow(VideoSharingLog.DIRECTION));
+			mVideoEncoding = cursor.getString(cursor.getColumnIndexOrThrow(VideoSharingLog.VIDEO_ENCODING));
+			int width = cursor.getInt(cursor.getColumnIndexOrThrow(VideoSharingLog.WIDTH));
+			int height = cursor.getInt(cursor.getColumnIndexOrThrow(VideoSharingLog.HEIGHT));
+			mVideoDescriptor = new VideoDescriptor(width, height);
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+	}
+
 	/**
 	 * Gets remote contact
 	 * @return remote contact
@@ -87,7 +111,7 @@ public class VideoSharingPersistedStorageAccessor {
 		 * multiple times.
 		 */
 		if (mContact == null) {
-			mContact = mRichCallLog.getVideoSharingRemoteContact(mSharingId);
+			cacheData();
 		}
 		return mContact;
 	}
@@ -119,7 +143,7 @@ public class VideoSharingPersistedStorageAccessor {
 		 * multiple times.
 		 */
 		if (mDirection == null) {
-			mDirection = mRichCallLog.getVideoSharingDirection(mSharingId);
+			cacheData();
 		}
 		return mDirection;
 	}
@@ -167,7 +191,7 @@ public class VideoSharingPersistedStorageAccessor {
 		 * multiple times.
 		 */
 		if (mVideoEncoding == null) {
-			mVideoEncoding = mRichCallLog.getVideoSharingEncoding(mSharingId);
+			cacheData();
 		}
 		return mVideoEncoding;
 	}
@@ -177,8 +201,13 @@ public class VideoSharingPersistedStorageAccessor {
 	 * @return descriptor
 	 */
 	public VideoDescriptor getVideoDescriptor() {
+		/*
+		 * Utilizing cache here as video descriptor can't be changed in persistent
+		 * storage after entry insertion anyway so no need to query for it
+		 * multiple times.
+		 */
 		if (mVideoDescriptor == null) {
-			mVideoDescriptor = mRichCallLog.getVideoSharingDescriptor(mSharingId);
+			cacheData();
 		}
 		return mVideoDescriptor;
 	}

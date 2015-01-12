@@ -32,6 +32,7 @@ import android.os.IBinder;
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.RcsCommon.Direction;
+import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.IVideoSharing;
@@ -266,7 +267,7 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
      */
     public IVideoSharing shareVideo(ContactId contact, IVideoPlayer player) throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Initiate a live video session with " + contact);
+			logger.info("Initiate a live video session with ".concat(contact.toString()));
 		}
 
 		// Test IMS connection
@@ -313,13 +314,14 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 
     /**
      * Returns a current video sharing from its unique ID
+     * @param sharingId 
      * 
      * @return Video sharing
      * @throws ServerApiException
      */
 	public IVideoSharing getVideoSharing(String sharingId) throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Get video sharing " + sharingId);
+			logger.info("Get video sharing ".concat(sharingId));
 		}
 
 		IVideoSharing videoSharing = mVideoSharingCache.get(sharingId);
@@ -405,7 +407,7 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see com.gsma.services.rcs.RcsService.Build.VERSION_CODES
+	 * @see VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {

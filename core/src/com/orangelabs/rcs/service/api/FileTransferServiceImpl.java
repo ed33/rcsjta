@@ -35,6 +35,7 @@ import com.gsma.services.rcs.GroupDeliveryInfoLog;
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
 import com.gsma.services.rcs.chat.ParticipantInfo;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ft.FileTransfer;
@@ -618,13 +619,14 @@ public class FileTransferServiceImpl extends IFileTransferService.Stub {
 
     /**
      * Returns a current file transfer from its unique ID
+     * @param transferId 
      * 
      * @return File transfer
      * @throws ServerApiException
      */
 	public IFileTransfer getFileTransfer(String transferId) throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Get file transfer session " + transferId);
+			logger.info("Get file transfer session ".concat(transferId));
 		}
 
 		IFileTransfer fileTransfer = mFileTransferCache.get(transferId);
@@ -820,7 +822,7 @@ public class FileTransferServiceImpl extends IFileTransferService.Stub {
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see com.gsma.services.rcs.RcsService.Build.VERSION_CODES
+	 * @see VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {

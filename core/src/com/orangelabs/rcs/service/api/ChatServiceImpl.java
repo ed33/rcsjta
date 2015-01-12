@@ -33,6 +33,7 @@ import android.os.RemoteException;
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
 import com.gsma.services.rcs.chat.ChatLog.Message;
 import com.gsma.services.rcs.chat.ChatLog.Message.ReasonCode;
 import com.gsma.services.rcs.chat.ChatServiceConfiguration;
@@ -408,6 +409,7 @@ public class ChatServiceImpl extends IChatService.Stub {
 	 *            List of contact IDs
 	 * @param subject
 	 *            Subject
+	 * @return IGrouChat
 	 * @throws ServerApiException
 	 *             Note: List is used instead of Set because AIDL does only support List
 	 */
@@ -490,6 +492,7 @@ public class ChatServiceImpl extends IChatService.Stub {
 	 * Adds a listener on one-to-one chat events
 	 *
 	 * @param listener One-to-One chat event listener
+	 * @throws RemoteException 
 	 */
 	public void addEventListener2(IOneToOneChatListener listener) throws RemoteException {
 		if (logger.isActivated()) {
@@ -504,6 +507,7 @@ public class ChatServiceImpl extends IChatService.Stub {
 	 * Removes a listener on one-to-one chat events
 	 *
 	 * @param listener One-to-One chat event listener
+	 * @throws RemoteException 
 	 */
 	public void removeEventListener2(IOneToOneChatListener listener) throws RemoteException {
 		if (logger.isActivated()) {
@@ -587,7 +591,7 @@ public class ChatServiceImpl extends IChatService.Stub {
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see com.gsma.services.rcs.RcsService.Build.VERSION_CODES
+	 * @see VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {

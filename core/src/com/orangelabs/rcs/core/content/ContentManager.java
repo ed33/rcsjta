@@ -23,6 +23,7 @@
 package com.orangelabs.rcs.core.content;
 
 import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
+import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;
 import com.orangelabs.rcs.core.ims.protocol.sdp.MediaAttribute;
 import com.orangelabs.rcs.core.ims.protocol.sdp.MediaDescription;
 import com.orangelabs.rcs.core.ims.protocol.sdp.SdpParser;
@@ -261,21 +262,21 @@ public class ContentManager{
         MediaAttribute frameSize = desc.getMediaAttribute("framesize");
         int width = 0;
         int height = 0;
-        if (frameSize != null) {
-        	try {
-	            String value = frameSize.getValue();
-	            index = value.indexOf(desc.payload);
-	            int separator = value.indexOf('-');
-	            if ((index != -1) && (separator != -1)) {
-	            	width = Integer.parseInt(
-		            		value.substring(index + desc.payload.length() + 1,
-		                    separator));
-		            height = Integer.parseInt(value.substring(separator + 1));
-	            }
-        	} catch(NumberFormatException e) {
-        		// Use default value
-        	}
-        }
+		if (frameSize != null) {
+			try {
+				String value = frameSize.getValue();
+				index = value.indexOf(desc.payload);
+				int separator = value.indexOf('-');
+				if (index != -1 && separator != -1) {
+					width = Integer.parseInt(value.substring(index + desc.payload.length() + 1, separator));
+					height = Integer.parseInt(value.substring(separator + 1));
+				}
+			} catch (NumberFormatException e) {
+				// Use default value
+				width = H264Config.QCIF_WIDTH;
+				height = H264Config.QCIF_WIDTH;
+			}
+		}
 		
 		return createLiveVideoContent(codec, width, height);
 	}

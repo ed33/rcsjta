@@ -32,6 +32,7 @@ import com.gsma.services.rcs.vsh.VideoCodec;
 import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharing.ReasonCode;
+import com.gsma.services.rcs.vsh.VideoSharing.State;
 import com.orangelabs.rcs.core.content.VideoContent;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipDialogPath;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
@@ -178,7 +179,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	 * Returns the state of the sharing
 	 * 
 	 * @return State
-	 * @see com.gsma.services.rcs.vsh.VideoSharing.State
+	 * @see State
 	 */
 	public int getState() {
 		VideoStreamingSession session = mRichcallService.getVideoSharingSession(mSharingId);
@@ -201,7 +202,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	 * Returns the reason code of the state of the video sharing
 	 *
 	 * @return ReasonCode
-	 * @see com.gsma.services.rcs.vsh.VideoSharing.ReasonCode
+	 * @see ReasonCode
 	 */
 	public int getReasonCode() {
 		VideoStreamingSession session = mRichcallService.getVideoSharingSession(mSharingId);
@@ -215,7 +216,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	 * Returns the direction of the sharing (incoming or outgoing)
 	 * 
 	 * @return Direction
-	 * @see com.gsma.services.rcs.RcsCommon.Direction
+	 * @see Direction
 	 */
 	public int getDirection() {
 		VideoStreamingSession session = mRichcallService.getVideoSharingSession(mSharingId);
@@ -313,7 +314,7 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 			return mPersistentStorage.getVideoEncoding();
 		}
 		try {
-			if ((session.getVideoPlayer() != null) && (session.getVideoPlayer().getCodec() != null)) {
+			if (session.getVideoPlayer() != null && session.getVideoPlayer().getCodec() != null) {
 				return session.getVideoPlayer().getCodec().getEncoding();
 			}
 		} catch (Exception e) {

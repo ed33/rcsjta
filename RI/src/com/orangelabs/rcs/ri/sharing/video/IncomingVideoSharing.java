@@ -62,7 +62,7 @@ import com.orangelabs.rcs.ri.utils.Utils;
  * @author Jean-Marc AUFFRET
  * @author YPLO6403
  */
-public class ReceiveVideoSharing extends Activity implements VideoPlayerListener {
+public class IncomingVideoSharing extends Activity implements VideoPlayerListener {
 
 	/**
 	 * UI handler
@@ -72,33 +72,33 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 	/**
 	 * Video sharing
 	 */
-	private VideoSharing videoSharing;
+	private VideoSharing mVideoSharing;
 	
     /**
      * The Video Sharing Data Object 
      */
-    private VideoSharingDAO vshDao;
+    private VideoSharingDAO mVshDao;
 
     /**
      * Video renderer<br>
      * Note: this field is intentionally static
      */
-    private static TerminatingVideoPlayer videoRenderer;
+    private static TerminatingVideoPlayer mVideoRenderer;
 
     /**
      * Video width
      */
-    private int videoWidth = H264Config.QCIF_WIDTH;
+    private int mVideoWidth = H264Config.QCIF_WIDTH;
     
     /**
      * Video height
      */
-    private int videoHeight = H264Config.QCIF_HEIGHT;
+    private int mVideoHeight = H264Config.QCIF_HEIGHT;
     
     /**
      * Live video preview
      */
-    private VideoSurfaceView videoView;
+    private VideoSurfaceView mVideoView;
     
 	/**
 	 * A locker to exit only once
@@ -120,7 +120,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
     /**
 	 * The log tag for this class
 	 */
-	private static final String LOGTAG = LogUtils.getTag(ReceiveVideoSharing.class.getSimpleName());
+	private static final String LOGTAG = LogUtils.getTag(IncomingVideoSharing.class.getSimpleName());
     
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -132,17 +132,17 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
 
         // Set layout
-        setContentView(R.layout.video_sharing_receive);
+        setContentView(R.layout.video_sharing_incoming);
 
         // Saved datas
         if (savedInstanceState == null) {
         	// Get invitation info
-        	vshDao = (VideoSharingDAO) (getIntent().getExtras().getParcelable(VideoSharingIntentService.BUNDLE_VSHDAO_ID));
+        	mVshDao = (VideoSharingDAO) (getIntent().getExtras().getParcelable(VideoSharingIntentService.BUNDLE_VSHDAO_ID));
         } else {
-        	vshDao = savedInstanceState.getParcelable(SAVE_VIDEO_SHARING_DAO);
+        	mVshDao = savedInstanceState.getParcelable(SAVE_VIDEO_SHARING_DAO);
         	mWaitForUseAcceptance = savedInstanceState.getBoolean(SAVE_WAIT_USER_ACCEPT);
         }
-		if (vshDao == null) {
+		if (mVshDao == null) {
 			if (LogUtils.isActive) {
 				Log.e(LOGTAG, "onCreate cannot read Video Sharing invitation");
 			}
@@ -152,25 +152,25 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 		}
 
 		if (LogUtils.isActive) {
-			Log.d(LOGTAG, "onCreate ".concat(vshDao.toString()));
+			Log.d(LOGTAG, "onCreate ".concat(mVshDao.toString()));
 		}
 		
         // Create the live video view
-        videoView = (VideoSurfaceView)findViewById(R.id.video_view);
+        mVideoView = (VideoSurfaceView)findViewById(R.id.video_view);
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            videoView.setAspectRatio(videoWidth, videoHeight);
+            mVideoView.setAspectRatio(mVideoWidth, mVideoHeight);
         } else {
-        	videoView.setAspectRatio(videoHeight, videoWidth);
+        	mVideoView.setAspectRatio(mVideoHeight, mVideoWidth);
         }
-        SurfaceHolder surface = videoView.getHolder();
+        SurfaceHolder surface = mVideoView.getHolder();
         surface.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         surface.setKeepScreenOn(true);
 
-        if (videoRenderer == null) {
+        if (mVideoRenderer == null) {
         	// Instantiate the renderer
-        	videoRenderer = new TerminatingVideoPlayer(videoView, this);
+        	mVideoRenderer = new TerminatingVideoPlayer(mVideoView, this);
         } else {
-        	videoRenderer.setSurface(videoView);
+        	mVideoRenderer.setSurface(mVideoView);
         }
 
 		// Register to API connection manager
@@ -179,7 +179,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 			Utils.showMessageAndExit(this, getString(R.string.label_service_not_available), exitOnce);
 		} else {
 			mCnxManager.startMonitorServices(this, exitOnce, RcsServiceName.VIDEO_SHARING, RcsServiceName.CONTACTS);
-			videoSharingInvitation();
+			startOrRestartVideoSharing();
 		}
     }
 
@@ -214,34 +214,36 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
     @Override
 	protected void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
-		outState.putParcelable(SAVE_VIDEO_SHARING_DAO, vshDao);
+		outState.putParcelable(SAVE_VIDEO_SHARING_DAO, mVshDao);
 		outState.putBoolean(SAVE_WAIT_USER_ACCEPT, mWaitForUseAcceptance);
 	};
 	
-    private void videoSharingInvitation() {
+    private void startOrRestartVideoSharing() {
     	VideoSharingService vshApi = mCnxManager.getVideoSharingApi();
 		try {
 			// Add service listener
 			vshApi.addEventListener(vshListener);
 			
 			// Get the video sharing
-			videoSharing = vshApi.getVideoSharing(vshDao.getSharingId());
-			if (videoSharing == null) {
+			mVideoSharing = vshApi.getVideoSharing(mVshDao.getSharingId());
+			if (mVideoSharing == null) {
 				// Session not found or expired
 				Utils.showMessageAndExit(this, getString(R.string.label_session_not_found), exitOnce);
 				return;
 				
 			}
 			
-			ContactId remote = vshDao.getContact();
+			ContactId remote = mVshDao.getContact();
 			String from = RcsDisplayName.getInstance(this).getDisplayName(remote);
 			
-	    	// Display sharing infos
+	    	// Display sharing information
     		TextView fromTextView = (TextView)findViewById(R.id.from);
     		fromTextView.setText(getString(R.string.label_from_args, from));
 	    	
     		if (mWaitForUseAcceptance) {
     			showReceiveNotification(from);
+    		} else {
+    			displayVideoFormat();
     		}
 	    } catch(RcsServiceNotAvailableException e) {
 	    	if (LogUtils.isActive) {
@@ -282,7 +284,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 				Log.d(LOGTAG, "acceptInvitation");
 			}
     		// Accept the invitation
-    		videoSharing.acceptInvitation(videoRenderer);
+    		mVideoSharing.acceptInvitation(mVideoRenderer);
     	} catch(Exception e) {
     		e.printStackTrace();
 			Utils.showMessageAndExit(this, getString(R.string.label_invitation_failed), exitOnce);
@@ -298,7 +300,7 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 				Log.d(LOGTAG, "rejectInvitation");
 			}
     		// Reject the invitation
-    		videoSharing.rejectInvitation();
+    		mVideoSharing.rejectInvitation();
     	} catch(Exception e) {
     		e.printStackTrace();
     	}
@@ -337,13 +339,13 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
     private void quitSession() {
     	// Stop the sharing
     	try {
-            if (videoSharing != null) {
-            	videoSharing.abortSharing();
+            if (mVideoSharing != null) {
+            	mVideoSharing.abortSharing();
             }
     	} catch(Exception e) {
     		e.printStackTrace();
     	}
-    	videoSharing = null;
+    	mVideoSharing = null;
 		
 	    // Exit activity
 		finish();
@@ -389,26 +391,30 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 
 		@Override
 		public void onStateChanged(ContactId contact, String sharingId, final int state, int reasonCode) {
+			String _state = Integer.valueOf(state).toString();
+			String _reason = Integer.valueOf(reasonCode).toString();
 			if (LogUtils.isActive) {
-				Log.d(LOGTAG, "onVideoSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state
-						+ " reason=" + reasonCode);
+				Log.d(LOGTAG,
+						new StringBuilder("onStateChanged contact=").append(contact)
+								.append(" sharingId=").append(sharingId).append(" state=")
+								.append(_state).append(" reason=").append(_reason).toString());
 			}
 			if (state > RiApplication.VSH_STATES.length) {
 				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled state=" + state);
+					Log.e(LOGTAG, "onStateChanged unhandled state=".concat(_state));
 				}
 				return;
 				
 			}
 			if (reasonCode > RiApplication.VSH_REASON_CODES.length) {
 				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "onVideoSharingStateChanged unhandled reason=" + reasonCode);
+					Log.e(LOGTAG, "onStateChanged unhandled reason=".concat(_reason));
 				}
 				return;
 				
 			}
 			// Discard event if not for current sharingId
-			if (vshDao == null || !vshDao.getSharingId().equals(sharingId)) {
+			if (mVshDao == null || !mVshDao.getSharingId().equals(sharingId)) {
 				return;
 				
 			}
@@ -417,65 +423,73 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 				public void run() {
 					switch (state) {
 					case VideoSharing.State.STARTED:
-						// Display video format
-						try {
-							VideoDescriptor videoDescriptor = videoSharing.getVideoDescriptor();
-							String format = videoSharing.getVideoEncoding() + " " +
-									videoDescriptor.getWidth() + "x" + videoDescriptor.getHeight();
-							TextView fmtView = (TextView)findViewById(R.id.video_format);
-							fmtView.setVisibility(View.VISIBLE);
-							fmtView.setText(getString(R.string.label_video_format, format));
-						} catch(Exception e) {
-							e.printStackTrace();
-						}
+						displayVideoFormat();
 
 						// Start the renderer
-						videoRenderer.open();
-						videoRenderer.start();
+						mVideoRenderer.open();
+						mVideoRenderer.start();
 						break;
 
 					case VideoSharing.State.ABORTED:
 						// Stop the renderer
-						videoRenderer.stop();
-						videoRenderer.close();
+						mVideoRenderer.stop();
+						mVideoRenderer.close();
 						
 						// Display session status
-						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_aborted, _reasonCode),
+						Utils.showMessageAndExit(IncomingVideoSharing.this, getString(R.string.label_sharing_aborted, _reasonCode),
 								exitOnce);
 						break;
 
 					case VideoSharing.State.FAILED:
 						// Stop the renderer
-						videoRenderer.stop();
-						videoRenderer.close();						
+						mVideoRenderer.stop();
+						mVideoRenderer.close();						
 
 						// Session is failed: exit
-						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_failed, _reasonCode),
+						Utils.showMessageAndExit(IncomingVideoSharing.this, getString(R.string.label_sharing_failed, _reasonCode),
 								exitOnce);
 						break;
 
 					case VideoSharing.State.REJECTED:
 						// Stop the renderer
-						videoRenderer.stop();
-						videoRenderer.close();									
+						mVideoRenderer.stop();
+						mVideoRenderer.close();									
 
 						// Session is rejected: exit
-						Utils.showMessageAndExit(ReceiveVideoSharing.this, getString(R.string.label_sharing_rejected, _reasonCode),
+						Utils.showMessageAndExit(IncomingVideoSharing.this, getString(R.string.label_sharing_rejected, _reasonCode),
 								exitOnce);
 						break;
 					
 					default:
 						if (LogUtils.isActive) {
-							Log.d(LOGTAG,
-									"onVideoSharingStateChanged "
-											+ getString(R.string.label_vsh_state_changed, RiApplication.VSH_STATES[state],
-													_reasonCode));
+							Log.d(LOGTAG, "onStateChanged ".concat(getString(
+									R.string.label_vsh_state_changed,
+									RiApplication.VSH_STATES[state], _reasonCode)));
 						}
 					}
 				}
 			});
 		}
 	};
+	
+	/**
+	 * Display video format
+	 */
+	private void displayVideoFormat() {
+		try {
+			VideoDescriptor videoDescriptor = mVideoSharing.getVideoDescriptor();
+			String format = new StringBuilder(mVideoSharing.getVideoEncoding()).append(" ")
+					.append(videoDescriptor.getWidth()).append("x")
+					.append(videoDescriptor.getHeight()).toString();
+			TextView fmtView = (TextView) findViewById(R.id.video_format);
+			fmtView.setVisibility(View.VISIBLE);
+			fmtView.setText(getString(R.string.label_video_format, format));
+		} catch (Exception e) {
+			if (LogUtils.isActive) {
+				Log.e(LOGTAG, "Exception occurred", e);
+			}
+		}
+	}
     
     /*-------------------------- Video player callbacks ------------------*/
     
@@ -530,12 +544,14 @@ public class ReceiveVideoSharing extends Activity implements VideoPlayerListener
 	 */
 	public void onPlayerResized(int width, int height) {
 		if (LogUtils.isActive) {
-			Log.d(LOGTAG, "onPlayerResized " + width + "x" + height);
+			Log.d(LOGTAG,
+					new StringBuilder("onPlayerResized ").append(width).append("x").append(height)
+							.toString());
 		}
-		videoView.setAspectRatio(width, height);
-		
-    	LinearLayout l = (LinearLayout)videoView.getParent();
-    	l.setLayoutParams(new FrameLayout.LayoutParams(width, height));
+		mVideoView.setAspectRatio(width, height);
+
+		LinearLayout l = (LinearLayout) mVideoView.getParent();
+		l.setLayoutParams(new FrameLayout.LayoutParams(width, height));
 	}	
 }
 

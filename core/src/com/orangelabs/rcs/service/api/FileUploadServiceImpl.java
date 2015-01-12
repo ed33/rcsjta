@@ -30,7 +30,7 @@ import android.net.Uri;
 import android.os.IBinder;
 
 import com.gsma.services.rcs.RcsService;
-import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
 import com.gsma.services.rcs.upload.FileUploadServiceConfiguration;
 import com.gsma.services.rcs.upload.IFileUpload;
 import com.gsma.services.rcs.upload.IFileUploadListener;
@@ -184,6 +184,7 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
      * Can a file be uploaded now
      * 
      * @return Returns true if a file can be uploaded, else returns false
+     * @throws ServerApiException 
      */
     public boolean canUploadFile() throws ServerApiException {
 		if (logger.isActivated()) {
@@ -224,13 +225,14 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
 
     /**
      * Returns a current file upload from its unique ID
+     * @param uploadId 
      * 
      * @return File upload
      * @throws ServerApiException
      */
 	public IFileUpload getFileUpload(String uploadId) throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Get file upload " + uploadId);
+			logger.info("Get file upload ".concat(uploadId));
 		}
 
 		IFileUpload fileUpload = mFileUploadCache.get(uploadId);
@@ -272,7 +274,7 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see com.gsma.services.rcs.RcsService.Build.VERSION_CODES
+	 * @see VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {

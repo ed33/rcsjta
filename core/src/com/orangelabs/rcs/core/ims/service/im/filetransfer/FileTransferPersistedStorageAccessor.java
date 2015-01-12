@@ -17,9 +17,12 @@
 package com.orangelabs.rcs.core.ims.service.im.filetransfer;
 
 import com.gsma.services.rcs.contacts.ContactId;
+import com.gsma.services.rcs.ft.FileTransferLog;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.provider.messaging.MessagingLog;
+import com.orangelabs.rcs.utils.ContactUtils;
 
+import android.database.Cursor;
 import android.net.Uri;
 
 /**
@@ -91,6 +94,34 @@ public class FileTransferPersistedStorageAccessor {
 		mMessagingLog = messagingLog;
 	}
 
+	private void cacheData() {
+		Cursor cursor = null;
+		try {
+			cursor = mMessagingLog.getCacheableFileTransferData(mFileTransferId);
+			String contact = cursor.getString(cursor
+					.getColumnIndexOrThrow(FileTransferLog.CONTACT));
+			if (contact != null) {
+				mContact = ContactUtils.createContactId(contact);
+			}
+			mDirection = cursor.getInt(cursor.getColumnIndexOrThrow(FileTransferLog.DIRECTION));
+			mChatId = cursor.getString(cursor.getColumnIndexOrThrow(FileTransferLog.CHAT_ID));
+			mFileName = cursor.getString(cursor.getColumnIndexOrThrow(FileTransferLog.FILENAME));
+			mMimeType = cursor.getString(cursor
+					.getColumnIndexOrThrow(FileTransferLog.FILEICON_MIME_TYPE));
+			mFile = Uri.parse(cursor.getString(cursor.getColumnIndexOrThrow(FileTransferLog.FILE)));
+			String fileIcon = cursor.getString(cursor
+					.getColumnIndexOrThrow(FileTransferLog.FILEICON));
+			if (fileIcon != null) {
+				mFileIcon = Uri.parse(fileIcon);
+			}
+			mFileSize = cursor.getLong(cursor.getColumnIndexOrThrow(FileTransferLog.FILESIZE));
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+	}
+
 	/**
 	 * Get chat Id
 	 * @return chat Id
@@ -102,7 +133,7 @@ public class FileTransferPersistedStorageAccessor {
 		 * times.
 		 */
 		if (mChatId == null) {
-			mChatId = mMessagingLog.getFileTransferChatId(mFileTransferId);
+			cacheData();
 		}
 		return mChatId;
 	}
@@ -118,7 +149,7 @@ public class FileTransferPersistedStorageAccessor {
 		 * multiple times.
 		 */
 		if (mContact == null) {
-			mContact = mMessagingLog.getFileTransferRemoteContact(mFileTransferId);
+			cacheData();
 		}
 		return mContact;
 	}
@@ -134,7 +165,7 @@ public class FileTransferPersistedStorageAccessor {
 		 * times.
 		 */
 		if (mFile == null) {
-			mFile = mMessagingLog.getFile(mFileTransferId);
+			cacheData();
 		}
 		return mFile;
 	}
@@ -150,7 +181,7 @@ public class FileTransferPersistedStorageAccessor {
 		 * multiple times.
 		 */
 		if (mFileName == null) {
-			mFileName = mMessagingLog.getFileName(mFileTransferId);
+			cacheData();
 		}
 		return mFileName;
 	}
@@ -166,7 +197,7 @@ public class FileTransferPersistedStorageAccessor {
 		 * multiple times.
 		 */
 		if (mFileSize == null) {
-			mFileSize = mMessagingLog.getFileSize(mFileTransferId);
+			cacheData();
 		}
 		return mFileSize;
 	}
@@ -182,7 +213,7 @@ public class FileTransferPersistedStorageAccessor {
 		 * multiple times.
 		 */
 		if (mMimeType == null) {
-			mMimeType = mMessagingLog.getFileMimeType(mFileTransferId);
+			cacheData();
 		}
 		return mMimeType;
 	}
@@ -198,7 +229,7 @@ public class FileTransferPersistedStorageAccessor {
 		 * multiple times.
 		 */
 		if (mFileIcon == null) {
-			mFileIcon = mMessagingLog.getFileIcon(mFileTransferId);
+			cacheData();
 		}
 		return mFileIcon;
 	}
@@ -230,7 +261,7 @@ public class FileTransferPersistedStorageAccessor {
 		 * multiple times.
 		 */
 		if (mDirection == null) {
-			mDirection = mMessagingLog.getFileTransferDirection(mFileTransferId);
+			cacheData();
 		}
 		return mDirection;
 	}

@@ -261,12 +261,12 @@ public class OneToOneChatImpl extends IOneToOneChat.Stub implements ChatSessionL
 			final String msgId) {
 		try {
 			if (logger.isActivated()) {
-				logger.debug("Set displayed delivery report for " + msgId);
+				logger.debug("Set displayed delivery report for ".concat(msgId));
 			}
 			final OneToOneChatSession session = mImService.getOneToOneChatSession(contact);
 			if (session != null && session.isMediaEstablished()) {
 				if (logger.isActivated()) {
-					logger.info("Use the original session to send the delivery status for " + msgId);
+					logger.info("Use the original session to send the delivery status for ".concat(msgId));
 				}
 
 				new Thread() {
@@ -291,11 +291,11 @@ public class OneToOneChatImpl extends IOneToOneChat.Stub implements ChatSessionL
 	}
 
 	/**
-	 * Sends an is-composing event. The status is set to true when typing a
+	 * Sends an is-composing event. The status is set to true when typing a
 	 * message, else it is set to false.
 	 * 
 	 * @param status Is-composing status
-	 * @see com.orangelabs.rcs.provider.settings.RcsSettingsData.ImSessionStartMode
+	 * @see ImSessionStartMode
 	 */
 	public void sendIsComposingEvent(final boolean status) {
 		final OneToOneChatSession session = mImService.getOneToOneChatSession(mContact);
@@ -329,15 +329,15 @@ public class OneToOneChatImpl extends IOneToOneChat.Stub implements ChatSessionL
 	}
 
 	/**
-	 * open the chat conversation. Note: if it’s an incoming pending chat
+	 * open the chat conversation. Note: if is an incoming pending chat
 	 * session and the parameter IM SESSION START is 0 then the session is
 	 * accepted now.
 	 * 
-	 * @see com.orangelabs.rcs.provider.settings.RcsSettingsData.ImSessionStartMode
+	 * @see ImSessionStartMode
 	 */
 	public void openChat() {
 		if (logger.isActivated()) {
-			logger.info("Open a 1-1 chat session with " + mContact);
+			logger.info("Open a 1-1 chat session with ".concat(mContact.toString()));
 		}
 		try {
 			final OneToOneChatSession session = mImService.getOneToOneChatSession(mContact);

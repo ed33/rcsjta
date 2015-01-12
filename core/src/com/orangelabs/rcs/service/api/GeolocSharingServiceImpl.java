@@ -31,6 +31,7 @@ import android.os.IBinder;
 import com.gsma.services.rcs.Geoloc;
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.gsh.GeolocSharing;
 import com.gsma.services.rcs.gsh.IGeolocSharing;
@@ -217,7 +218,7 @@ public class GeolocSharingServiceImpl extends IGeolocSharingService.Stub {
      */
     public IGeolocSharing shareGeoloc(ContactId contact, Geoloc geoloc) throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Initiate a geoloc sharing session with " + contact);
+			logger.info("Initiate a geoloc sharing session with ".concat(contact.toString()));
 		}
 
 		// Test IMS connection
@@ -290,13 +291,14 @@ public class GeolocSharingServiceImpl extends IGeolocSharingService.Stub {
 
     /**
      * Returns a current geoloc sharing from its unique ID
+     * @param sharingId 
      * 
      * @return Geoloc sharing
      * @throws ServerApiException
      */
 	public IGeolocSharing getGeolocSharing(String sharingId) throws ServerApiException {
 		if (logger.isActivated()) {
-			logger.info("Get geoloc sharing session " + sharingId);
+			logger.info("Get geoloc sharing session ".concat(sharingId));
 		}
 
 		IGeolocSharing geolocSharing = mGeolocSharingCache.get(sharingId);
@@ -339,7 +341,7 @@ public class GeolocSharingServiceImpl extends IGeolocSharingService.Stub {
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see com.gsma.services.rcs.RcsService.Build.VERSION_CODES
+	 * @see VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {
