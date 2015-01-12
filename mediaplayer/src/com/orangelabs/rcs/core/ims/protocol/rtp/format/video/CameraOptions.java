@@ -28,8 +28,8 @@ public enum CameraOptions {
     /**
      * Cameras value
      */
-    FRONT(1),
-    BACK(0);
+    FRONT(0),
+    BACK(1);
 
     /**
      * Private value

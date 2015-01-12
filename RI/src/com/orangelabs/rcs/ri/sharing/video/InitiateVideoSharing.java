@@ -764,9 +764,18 @@ public class InitiateVideoSharing extends Activity implements VideoPlayerListene
         Method method = getCameraOpenMethod();
         if (mNbfCameras > 1 && method != null) {
             try {
-                mCamera = (Camera)method.invoke(mCamera, new Object[] {
-                    cameraId.getValue()
-                });
+            	int hCamId = 0;
+            	if (cameraId == CameraOptions.FRONT) {
+            		Camera.CameraInfo cameraInfo = new Camera.CameraInfo();
+	            	for (int id = 0; id < mNbfCameras; id++) {
+	                    Camera.getCameraInfo(id, cameraInfo);
+	                    if (cameraInfo.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+	                    	hCamId = id;
+	                    	break;
+	                    }
+	                }
+            	}
+                mCamera = (Camera)method.invoke(mCamera, new Object[] {	hCamId });
                 mOpenedCameraId = cameraId;
             } catch (Exception e) {
                 mCamera = Camera.open();
