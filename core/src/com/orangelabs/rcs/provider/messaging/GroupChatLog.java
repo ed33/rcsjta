@@ -71,7 +71,7 @@ public class GroupChatLog implements IGroupChatLog {
 
 	private static final int FIRST_COLUMN_IDX = 0;
 
-	public static enum UserAbortion {
+	private static enum UserAbortion {
 
 		SERVER_NOTIFIED(0), SERVER_NOT_NOTIFIED(1);
 
@@ -90,15 +90,6 @@ public class GroupChatLog implements IGroupChatLog {
 
 		public final int toInt() {
 			return mValue;
-		}
-
-		public final static UserAbortion valueOf(int value) {
-			UserAbortion entry = mValueToEnum.get(value);
-			if (entry != null) {
-				return entry;
-			}
-			throw new IllegalArgumentException("No enum const class "
-					+ UserAbortion.class.getName() + "." + value);
 		}
 	}
 
