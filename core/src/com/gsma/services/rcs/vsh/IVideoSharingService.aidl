@@ -29,6 +29,6 @@ interface IVideoSharingService {
 	void addEventListener2(in IVideoSharingListener listener);
 
 	void removeEventListener2(in IVideoSharingListener listener);
-
+	
 	int getServiceVersion();
 }

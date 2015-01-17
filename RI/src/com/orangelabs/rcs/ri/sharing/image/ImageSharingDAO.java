@@ -104,46 +104,90 @@ public class ImageSharingDAO implements Parcelable {
 		dest.writeInt(reasonCode);
 	};
 
+	/**
+	 * Gets state
+	 * @return state
+	 */
 	public int getState() {
 		return state;
 	}
 
+	/**
+	 * Gets transferred size
+	 * @return size
+	 */
 	public long getSizeTransferred() {
 		return sizeTransferred;
 	}
 
+	/**
+	 * Gets sharing ID
+	 * @return sharingId
+	 */
 	public String getSharingId() {
 		return sharingId;
 	}
 
+	/**
+	 * Gets remote contact
+	 * @return contact
+	 */
 	public ContactId getContact() {
 		return contact;
 	}
 
+	/**
+	 * Gets file URI
+	 * @return file URI
+	 */
 	public Uri getFile() {
 		return file;
 	}
 
+	/**
+	 * Gets file name
+	 * @return file name
+	 */
 	public String getFilename() {
 		return filename;
 	}
 
+	/**
+	 * Gets mime type
+	 * @return mime type
+	 */
 	public String getMimeType() {
 		return mimeType;
 	}
 
+	/**
+	 * Gets direction
+	 * @return direction
+	 */
 	public int getDirection() {
 		return direction;
 	}
 
+	/**
+	 * Gets date of the sharing
+	 * @return time stamp
+	 */
 	public long getTimestamp() {
 		return timestamp;
 	}
 
+	/**
+	 * Gets size
+	 * @return size
+	 */
 	public long getSize() {
 		return size;
 	}
 
+	/**
+	 * Gets reason code
+	 * @return reason code
+	 */
 	public int getReasonCode() {
 		return reasonCode;
 	}
@@ -164,25 +208,25 @@ public class ImageSharingDAO implements Parcelable {
 		Cursor cursor = null;
 		try {
 			cursor = context.getContentResolver().query(uri, null, WHERE_CLAUSE, whereArgs, null);
-			if (cursor.moveToFirst()) {
-				this.sharingId = sharingId;
-				String _contact = cursor.getString(cursor.getColumnIndexOrThrow(ImageSharingLog.CONTACT));
-				if (_contact != null) {
-					ContactUtils contactUtils = ContactUtils.getInstance(context);
-					contact = contactUtils.formatContact(_contact);
-				}
-				file = Uri.parse(cursor.getString(cursor.getColumnIndexOrThrow(ImageSharingLog.FILE)));
-				filename = cursor.getString(cursor.getColumnIndexOrThrow(ImageSharingLog.FILENAME));
-				mimeType = cursor.getString(cursor.getColumnIndexOrThrow(ImageSharingLog.MIME_TYPE));
-				state = cursor.getInt(cursor.getColumnIndexOrThrow(ImageSharingLog.STATE));
-				direction = cursor.getInt(cursor.getColumnIndexOrThrow(ImageSharingLog.DIRECTION));
-				timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(ImageSharingLog.TIMESTAMP));
-				sizeTransferred = cursor.getLong(cursor.getColumnIndexOrThrow(ImageSharingLog.TRANSFERRED));
-				size = cursor.getLong(cursor.getColumnIndexOrThrow(ImageSharingLog.FILESIZE));
-				reasonCode = cursor.getInt(cursor.getColumnIndexOrThrow(ImageSharingLog.REASON_CODE));
-			} else {
+			if (!cursor.moveToFirst()) {
 				throw new IllegalArgumentException("Sharing ID not found");
+				
 			}
+			this.sharingId = sharingId;
+			String _contact = cursor.getString(cursor.getColumnIndexOrThrow(ImageSharingLog.CONTACT));
+			if (_contact != null) {
+				ContactUtils contactUtils = ContactUtils.getInstance(context);
+				contact = contactUtils.formatContact(_contact);
+			}
+			file = Uri.parse(cursor.getString(cursor.getColumnIndexOrThrow(ImageSharingLog.FILE)));
+			filename = cursor.getString(cursor.getColumnIndexOrThrow(ImageSharingLog.FILENAME));
+			mimeType = cursor.getString(cursor.getColumnIndexOrThrow(ImageSharingLog.MIME_TYPE));
+			state = cursor.getInt(cursor.getColumnIndexOrThrow(ImageSharingLog.STATE));
+			direction = cursor.getInt(cursor.getColumnIndexOrThrow(ImageSharingLog.DIRECTION));
+			timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(ImageSharingLog.TIMESTAMP));
+			sizeTransferred = cursor.getLong(cursor.getColumnIndexOrThrow(ImageSharingLog.TRANSFERRED));
+			size = cursor.getLong(cursor.getColumnIndexOrThrow(ImageSharingLog.FILESIZE));
+			reasonCode = cursor.getInt(cursor.getColumnIndexOrThrow(ImageSharingLog.REASON_CODE));
 		} catch (Exception e) {
 			throw e;
 		} finally {
@@ -203,6 +247,9 @@ public class ImageSharingDAO implements Parcelable {
 		return 0;
 	}
 
+	/**
+	 * public CREATOR field that generates instances of Parcelable class from a VideoSharingDAO.
+	 */
 	public static final Parcelable.Creator<ImageSharingDAO> CREATOR = new Parcelable.Creator<ImageSharingDAO>() {
 		@Override
 		public ImageSharingDAO createFromParcel(Parcel in) {

@@ -17,6 +17,7 @@
 package com.orangelabs.rcs.core.ims.service.richcall.video;
 
 import com.gsma.services.rcs.contacts.ContactId;
+import com.gsma.services.rcs.vsh.VideoDescriptor;
 import com.gsma.services.rcs.vsh.VideoSharingLog;
 import com.orangelabs.rcs.core.content.VideoContent;
 import com.orangelabs.rcs.provider.sharing.RichCallHistory;
@@ -43,18 +44,39 @@ public class VideoSharingPersistedStorageAccessor {
 	 * TODO: Change type to enum in CR031 implementation
 	 */
 	private Integer mDirection;
+	
+	private String mVideoEncoding;
+	
+	private VideoDescriptor mVideoDescriptor;
 
+	/**
+	 * Constructor
+	 * @param sharingId
+	 * @param richCallLog
+	 */
 	public VideoSharingPersistedStorageAccessor(String sharingId, RichCallHistory richCallLog) {
 		mSharingId = sharingId;
 		mRichCallLog = richCallLog;
 	}
 
+	/**
+	 * Constructor
+	 * @param sharingId
+	 * @param contact
+	 * @param direction
+	 * @param richCallLog
+	 * @param videoEncoding 
+	 * @param height 
+	 * @param width 
+	 */
 	public VideoSharingPersistedStorageAccessor(String sharingId, ContactId contact, int direction,
-			RichCallHistory richCallLog) {
+			RichCallHistory richCallLog, String videoEncoding, int height, int width) {
 		mSharingId = sharingId;
 		mContact = contact;
 		mDirection = direction;
 		mRichCallLog = richCallLog;
+		mVideoEncoding = videoEncoding;
+		mVideoDescriptor = new VideoDescriptor(width, height);
 	}
 
 	private void cacheData() {
@@ -67,6 +89,10 @@ public class VideoSharingPersistedStorageAccessor {
 				mContact = ContactUtils.createContactId(contact);
 			}
 			mDirection = cursor.getInt(cursor.getColumnIndexOrThrow(VideoSharingLog.DIRECTION));
+			mVideoEncoding = cursor.getString(cursor.getColumnIndexOrThrow(VideoSharingLog.VIDEO_ENCODING));
+			int width = cursor.getInt(cursor.getColumnIndexOrThrow(VideoSharingLog.WIDTH));
+			int height = cursor.getInt(cursor.getColumnIndexOrThrow(VideoSharingLog.HEIGHT));
+			mVideoDescriptor = new VideoDescriptor(width, height);
 		} finally {
 			if (cursor != null) {
 				cursor.close();
@@ -74,6 +100,10 @@ public class VideoSharingPersistedStorageAccessor {
 		}
 	}
 
+	/**
+	 * Gets remote contact
+	 * @return remote contact
+	 */
 	public ContactId getRemoteContact() {
 		/*
 		 * Utilizing cache here as contact can't be changed in persistent
@@ -86,14 +116,26 @@ public class VideoSharingPersistedStorageAccessor {
 		return mContact;
 	}
 
+	/**
+	 * Gets video sharing session state
+	 * @return state
+	 */
 	public int getState() {
 		return mRichCallLog.getVideoSharingState(mSharingId);
 	}
 
+	/**
+	 * Gets video sharing reason code
+	 * @return reason code
+	 */
 	public int getReasonCode() {
 		return mRichCallLog.getVideoSharingReasonCode(mSharingId);
 	}
 
+	/**
+	 * Gets direction
+	 * @return direction
+	 */
 	public int getDirection() {
 		/*
 		 * Utilizing cache here as direction can't be changed in persistent
@@ -106,17 +148,67 @@ public class VideoSharingPersistedStorageAccessor {
 		return mDirection;
 	}
 
+	/**
+	 * Sets state and reason code
+	 * @param state
+	 * @param reasonCode
+	 */
 	public void setStateAndReasonCode(int state, int reasonCode) {
 		mRichCallLog.setVideoSharingStateAndReasonCode(mSharingId, state, reasonCode);
 	}
 
+	/**
+	 * Sets duration
+	 * @param duration
+	 */
 	public void setDuration(long duration) {
 		mRichCallLog.setVideoSharingDuration(mSharingId, duration);
 	}
 
+	/**
+	 * Add video sharing session
+	 * @param contact
+	 * @param direction
+	 * @param content
+	 * @param state
+	 * @param reasonCode
+	 * @return the URI of the newly inserted item
+	 */
 	public Uri addVideoSharing(ContactId contact, int direction, VideoContent content, int state,
 			int reasonCode) {
 		return mRichCallLog.addVideoSharing(mSharingId, contact, direction, content, state,
 				reasonCode);
+	}
+
+	/**
+	 * Gets video encoding
+	 * @return video encoding
+	 */
+	public String getVideoEncoding() {
+		/*
+		 * Utilizing cache here as video encoding can't be changed in persistent
+		 * storage after entry insertion anyway so no need to query for it
+		 * multiple times.
+		 */
+		if (mVideoEncoding == null) {
+			cacheData();
+		}
+		return mVideoEncoding;
+	}
+
+	/**
+	 * Gets video descriptor
+	 * @return descriptor
+	 */
+	public VideoDescriptor getVideoDescriptor() {
+		/*
+		 * Utilizing cache here as video descriptor can't be changed in persistent
+		 * storage after entry insertion anyway so no need to query for it
+		 * multiple times.
+		 */
+		if (mVideoDescriptor == null) {
+			cacheData();
+		}
+		return mVideoDescriptor;
 	}
 }

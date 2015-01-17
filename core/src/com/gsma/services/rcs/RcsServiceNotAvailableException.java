@@ -18,7 +18,7 @@
 package com.gsma.services.rcs;
 
 /**
- * Rcs service not available exception
+ * RCS service not available exception
  *  
  * @author Jean-Marc AUFFRET
  */
@@ -29,6 +29,6 @@ public class RcsServiceNotAvailableException extends RcsServiceException {
 	 * Constructor
 	 */
 	public RcsServiceNotAvailableException() {
-		super("rcs service not available");
+		super("RCS service not available");
 	}
 }

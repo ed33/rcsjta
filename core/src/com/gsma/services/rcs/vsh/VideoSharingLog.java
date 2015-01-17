@@ -50,7 +50,7 @@ public class VideoSharingLog {
     /**
      * The name of the column containing the direction of the sharing.
      * <P>Type: INTEGER</P>
-     * @see com.orangelabs.rcs.RcsCommon.Direction
+     * @see com.gsma.services.rcs.RcsCommon.Direction
      */
     public static final String DIRECTION = "direction";
 
@@ -86,7 +86,7 @@ public class VideoSharingLog {
      * <P>Type: INTEGER</P>
 	 * @see VideoSharing.Encoding
      */
-    public static final String VIDEO_ENCODING = "videoEncoding";
+    public static final String VIDEO_ENCODING = "video_encoding";
 
     /**
      * The name of the column containing the width of video
@@ -100,10 +100,4 @@ public class VideoSharingLog {
      */
     public static final String HEIGHT = "height";
 
-    /**
-     * The name of the column containing the video orientation
-     * <P>Type: INTEGER</P>
-     * @see VideoSharing.Orientation
-     */
-    public static final String ORIENTATION = "orientation";
 }

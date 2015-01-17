@@ -54,10 +54,17 @@ public class GroupChatIntentService extends IntentService {
 	 */
 	private static final String LOGTAG = LogUtils.getTag(GroupChatIntentService.class.getSimpleName());
 
+	/**
+	 * Constructor
+	 * @param name
+	 */
 	public GroupChatIntentService(String name) {
 		super(name);
 	}
 
+	/**
+	 * Constructor
+	 */
 	public GroupChatIntentService() {
 		super("GroupChatIntentService");
 	}

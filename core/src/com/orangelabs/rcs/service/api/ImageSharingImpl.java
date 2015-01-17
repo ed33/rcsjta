@@ -38,7 +38,6 @@ import com.orangelabs.rcs.core.ims.service.richcall.image.ImageSharingPersistedS
 import com.orangelabs.rcs.core.ims.service.richcall.image.ImageTransferSession;
 import com.orangelabs.rcs.core.ims.service.richcall.image.ImageTransferSessionListener;
 import com.orangelabs.rcs.provider.sharing.ImageSharingStateAndReasonCode;
-import com.orangelabs.rcs.provider.sharing.RichCallHistory;
 import com.orangelabs.rcs.service.broadcaster.IImageSharingEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -111,9 +110,6 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 			case ContentSharingError.MEDIA_SIZE_TOO_BIG:
 				return new ImageSharingStateAndReasonCode(ImageSharing.State.REJECTED,
 						ReasonCode.REJECTED_MAX_SIZE);
-			case ContentSharingError.MEDIA_RENDERER_NOT_INITIALIZED:
-				return new ImageSharingStateAndReasonCode(ImageSharing.State.ABORTED,
-						ReasonCode.ABORTED_BY_SYSTEM);
 			default:
 				throw new IllegalArgumentException(
 						"Unknown reason in ImageSharingImpl.toStateAndReasonCode; error=" + error
@@ -449,7 +445,7 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
     /**
      * Content has been transferred
      *
-     * @param filename Filename associated to the received content
+     * @param file File URI associated to the received content
      */
     public void handleContentTransfered(Uri file) {
 		if (logger.isActivated()) {
