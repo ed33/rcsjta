@@ -47,35 +47,36 @@ public class VideoCodecManager {
 				VideoCodec videoCodec = supportedCodecs[j];
 				int videoCodecPref = supportedCodecs.length - 1 - j;
 				// Compare codec
-				if (compareVideoCodec(proposedCodec, videoCodec)) {
-					if (videoCodecPref > pref) {
-						pref = videoCodecPref;
-						int proposedCodecWidth = proposedCodec.getWidth();
-						int width = (proposedCodecWidth == 0) ? videoCodec.getWidth()
-								: proposedCodecWidth;
-						int proposedCodectHeight = proposedCodec.getHeight();
-						int height = (proposedCodectHeight == 0) ? videoCodec.getHeight()
-								: proposedCodectHeight;
-						int proposedCodecPayloadType = proposedCodec.getPayloadType();
-						int payloadType = (proposedCodecPayloadType == 0) ? videoCodec
-								.getPayloadType() : proposedCodecPayloadType;
-						int proposedCodecClockRate = proposedCodec.getClockRate();
-						int clockRate = (proposedCodecClockRate == 0) ? videoCodec.getClockRate()
-								: proposedCodecClockRate;
-						int proposedCodecFrameRate = proposedCodec.getFrameRate();
-						int frameRate = (proposedCodecFrameRate == 0) ? videoCodec.getFrameRate()
-								: proposedCodecFrameRate;
-						int proposedCodecBitRate = proposedCodec.getBitRate();
-						int bitRate = (proposedCodecBitRate == 0) ? videoCodec.getBitRate()
-								: proposedCodecBitRate;
-						String proposedCodecParameters = proposedCodec.getParameters();
-
-						selectedCodec = new VideoCodec(proposedCodec.getEncoding(), payloadType,
-								clockRate, frameRate, bitRate, width, height,
-								(proposedCodecParameters.length() == 0) ? videoCodec
-										.getParameters() : proposedCodecParameters);
-					}
+				if (!compareVideoCodec(proposedCodec, videoCodec)) {
+					continue;
 				}
+				if (videoCodecPref <= pref) {
+					continue;
+				}
+				pref = videoCodecPref;
+				int proposedCodecWidth = proposedCodec.getWidth();
+				int width = (proposedCodecWidth == 0) ? videoCodec.getWidth() : proposedCodecWidth;
+				int proposedCodectHeight = proposedCodec.getHeight();
+				int height = (proposedCodectHeight == 0) ? videoCodec.getHeight()
+						: proposedCodectHeight;
+				int proposedCodecPayloadType = proposedCodec.getPayloadType();
+				int payloadType = (proposedCodecPayloadType == 0) ? videoCodec.getPayloadType()
+						: proposedCodecPayloadType;
+				int proposedCodecClockRate = proposedCodec.getClockRate();
+				int clockRate = (proposedCodecClockRate == 0) ? videoCodec.getClockRate()
+						: proposedCodecClockRate;
+				int proposedCodecFrameRate = proposedCodec.getFrameRate();
+				int frameRate = (proposedCodecFrameRate == 0) ? videoCodec.getFrameRate()
+						: proposedCodecFrameRate;
+				int proposedCodecBitRate = proposedCodec.getBitRate();
+				int bitRate = (proposedCodecBitRate == 0) ? videoCodec.getBitRate()
+						: proposedCodecBitRate;
+				String proposedCodecParameters = proposedCodec.getParameters();
+
+				selectedCodec = new VideoCodec(proposedCodec.getEncoding(), payloadType, clockRate,
+						frameRate, bitRate, width, height,
+						(proposedCodecParameters.length() == 0) ? videoCodec.getParameters()
+								: proposedCodecParameters);
 			}
 		}
         return selectedCodec;
@@ -193,18 +194,18 @@ public class VideoCodecManager {
 
     /**
      * Extract list of video codecs from SDP part
+     * @param medias 
      *
-     * @param sdp SDP part
      * @return List of video codecs
      */
     public static Vector<VideoCodec> extractVideoCodecsFromSdp(Vector<MediaDescription> medias) {
-    	Vector<VideoCodec> list = new Vector<VideoCodec>();
-    	for(int i=0; i < medias.size(); i++) {
-    		VideoCodec codec = createVideoCodecFromSdp(medias.get(i));
+    	Vector<VideoCodec> codecs = new Vector<VideoCodec>();
+    	for (MediaDescription media : medias) {
+    		VideoCodec codec = createVideoCodecFromSdp(media);
     		if (codec != null) {
-    			list.add(codec);
+    			codecs.add(codec);
     		}
-    	}
-    	return list;
+		}
+    	return codecs;
     }
 }
