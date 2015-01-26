@@ -22,6 +22,8 @@
 
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.msrp;
 
+import static com.orangelabs.rcs.utils.StringUtils.UTF8;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Vector;
@@ -67,7 +69,9 @@ public class TerminatingMsrpFileSharingSession extends ImsFileSharingSession imp
 	/**
 	 * MSRP manager
 	 */
-	private MsrpManager msrpMgr = null;
+	private MsrpManager msrpMgr;
+
+	private RcsSettings mRcsSettings;
 
 	/**
      * The logger
@@ -79,9 +83,10 @@ public class TerminatingMsrpFileSharingSession extends ImsFileSharingSession imp
      * 
 	 * @param parent IMS service
 	 * @param invite Initial INVITE request
+     * @param rcsSettings RCS settings
 	 * @throws RcsContactFormatException
 	 */
-	public TerminatingMsrpFileSharingSession(ImsService parent, SipRequest invite) throws RcsContactFormatException {
+	public TerminatingMsrpFileSharingSession(ImsService parent, SipRequest invite, RcsSettings rcsSettings) throws RcsContactFormatException {
 		super(parent, ContentManager.createMmContentFromSdp(invite), ContactUtils.createContactId(SipUtils
 				.getAssertedIdentity(invite)), FileTransferUtils.extractFileIcon(invite), IdGenerator.generateMessageID());
 
@@ -95,6 +100,7 @@ public class TerminatingMsrpFileSharingSession extends ImsFileSharingSession imp
 		if (shouldBeAutoAccepted()) {
 			setSessionAccepted();
 		}
+		mRcsSettings = rcsSettings;
 	}
 
 	/**
@@ -220,7 +226,7 @@ public class TerminatingMsrpFileSharingSession extends ImsFileSharingSession imp
 
 			// Parse the remote SDP part
 			String remoteSdp = getDialogPath().getInvite().getSdpContent();
-        	SdpParser parser = new SdpParser(remoteSdp.getBytes());
+        	SdpParser parser = new SdpParser(remoteSdp.getBytes(UTF8));
     		Vector<MediaDescription> media = parser.getMediaDescriptions();
 			MediaDescription mediaDesc = media.elementAt(0);
             String protocol = mediaDesc.protocol;
@@ -270,7 +276,7 @@ public class TerminatingMsrpFileSharingSession extends ImsFileSharingSession imp
 
 			// Build SDP part
 	    	String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
-	    	int maxSize = ImsFileSharingSession.getMaxFileSharingSize();
+	    	long maxSize = mRcsSettings.getMaxFileTransferSize();
 	    	String sdp = SdpUtils.buildFileSDP(ipAddress, localMsrpPort,
                     msrpMgr.getLocalSocketProtocol(), getContent().getEncoding(), fileTransferId,
                     fileSelector, null, localSetup, msrpMgr.getLocalMsrpPath(),
@@ -467,6 +473,7 @@ public class TerminatingMsrpFileSharingSession extends ImsFileSharingSession imp
      * @param currentSize Current transfered size in bytes
      * @param totalSize Total size in bytes
      * @param data received data chunk
+     * @return always true TODO
      */
     public boolean msrpTransferProgress(long currentSize, long totalSize, byte[] data) {
 		if (isSessionInterrupted() || isInterrupted()) {

@@ -21,6 +21,8 @@
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.sip.streaming;
 
+import static com.orangelabs.rcs.utils.StringUtils.UTF8;
+
 import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.ims.network.sip.SipUtils;
 import com.orangelabs.rcs.core.ims.protocol.rtp.MediaRtpReceiver;
@@ -141,6 +143,7 @@ public abstract class GenericSipRtpSession extends GenericSipSession implements 
 	
     /**
      * Generate SDP
+     * @return SDP
      */
     public String generateSdp() {
     	String ntpTime = SipUtils.constructNTPtime(System.currentTimeMillis());
@@ -162,7 +165,8 @@ public abstract class GenericSipRtpSession extends GenericSipSession implements 
      */
     public void prepareMediaSession() throws Exception {
         // Parse the remote SDP part
-        SdpParser parser = new SdpParser(getDialogPath().getRemoteContent().getBytes());
+        SdpParser parser = new SdpParser(getDialogPath().getRemoteContent().getBytes(
+                UTF8));
         MediaDescription mediaApp = parser.getMediaDescription("application");
         String remoteHost = SdpUtils.extractRemoteHost(parser.sessionDescription, mediaApp);
         int remotePort = mediaApp.port;

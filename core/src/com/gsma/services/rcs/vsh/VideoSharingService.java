@@ -52,6 +52,8 @@ public class VideoSharingService extends RcsService {
 	 * API
 	 */
 	private IVideoSharingService mApi;
+	
+	private static final String ERROR_CNX = "VideoSharing service not connected";
 
 	/**
 	 * Constructor
@@ -69,7 +71,7 @@ public class VideoSharingService extends RcsService {
 	 * Connects to the API
 	 */
 	public void connect() {
-		ctx.bindService(new Intent(IVideoSharingService.class.getName()),
+		mCtx.bindService(new Intent(IVideoSharingService.class.getName()),
 				apiConnection, 0);
 	}
 
@@ -78,7 +80,7 @@ public class VideoSharingService extends RcsService {
 	 */
 	public void disconnect() {
 		try {
-			ctx.unbindService(apiConnection);
+			mCtx.unbindService(apiConnection);
 		} catch (IllegalArgumentException e) {
 			// Nothing to do
 		}
@@ -91,7 +93,6 @@ public class VideoSharingService extends RcsService {
 	 */
     protected void setApi(IInterface api) {
     	super.setApi(api);
-    	
         mApi = (IVideoSharingService)api;
     }
     
@@ -101,16 +102,15 @@ public class VideoSharingService extends RcsService {
 	private ServiceConnection apiConnection = new ServiceConnection() {
 		public void onServiceConnected(ComponentName className, IBinder service) {
 			setApi(IVideoSharingService.Stub.asInterface(service));
-			if (serviceListener != null) {
-				serviceListener.onServiceConnected();
+			if (mListener != null) {
+				mListener.onServiceConnected();
 			}
 		}
 
 		public void onServiceDisconnected(ComponentName className) {
         	setApi(null);
-			if (serviceListener != null) {
-				serviceListener
-						.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
+			if (mListener != null) {
+				mListener.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
 			}
 		}
 	};
@@ -123,10 +123,10 @@ public class VideoSharingService extends RcsService {
 	 */
 	public VideoSharingServiceConfiguration getConfiguration() throws RcsServiceException {
 		if (mApi == null) {
-			throw new RcsServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException(ERROR_CNX);
 		}
 		try {
-			return mApi.getConfiguration();
+			return new VideoSharingServiceConfiguration(mApi.getConfiguration());
 		} catch (Exception e) {
 			throw new RcsServiceException(e);
 		}
@@ -150,7 +150,7 @@ public class VideoSharingService extends RcsService {
 	public VideoSharing shareVideo(ContactId contact, VideoPlayer player)
 			throws RcsServiceException {
 		if (mApi == null) {
-			throw new RcsServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException(ERROR_CNX);
 		}
 		try {
 			IVideoSharing sharingIntf = mApi.shareVideo(contact, player);
@@ -172,7 +172,7 @@ public class VideoSharingService extends RcsService {
 	 */
 	public Set<VideoSharing> getVideoSharings() throws RcsServiceException {
 		if (mApi == null) {
-			throw new RcsServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException(ERROR_CNX);
 		}
 		try {
 			Set<VideoSharing> result = new HashSet<VideoSharing>();
@@ -198,7 +198,7 @@ public class VideoSharingService extends RcsService {
 	public VideoSharing getVideoSharing(String sharingId)
 			throws RcsServiceException {
 		if (mApi == null) {
-			throw new RcsServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException(ERROR_CNX);
 		}
 		try {
 			return new VideoSharing(mApi.getVideoSharing(sharingId));
@@ -215,7 +215,7 @@ public class VideoSharingService extends RcsService {
 	 */
 	public void addEventListener(VideoSharingListener listener) throws RcsServiceException {
 		if (mApi == null) {
-			throw new RcsServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException(ERROR_CNX);
 		}
 		try {
 			mApi.addEventListener2(listener);
@@ -232,7 +232,7 @@ public class VideoSharingService extends RcsService {
 	 */
 	public void removeEventListener(VideoSharingListener listener) throws RcsServiceException {
 		if (mApi == null) {
-			throw new RcsServiceNotAvailableException();
+			throw new RcsServiceNotAvailableException(ERROR_CNX);
 		}
 		try {
 			mApi.removeEventListener2(listener);

@@ -22,6 +22,8 @@
 
 package com.orangelabs.rcs.core.ims.service.richcall.image;
 
+import static com.orangelabs.rcs.utils.StringUtils.UTF8;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Vector;
@@ -187,7 +189,7 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
 			
 	    	// Parse the remote SDP part
 			String remoteSdp = getDialogPath().getInvite().getSdpContent();
-        	SdpParser parser = new SdpParser(remoteSdp.getBytes());
+        	SdpParser parser = new SdpParser(remoteSdp.getBytes(UTF8));
     		Vector<MediaDescription> media = parser.getMediaDescriptions();
 			MediaDescription mediaDesc = media.elementAt(0);
             String protocol = mediaDesc.protocol;
@@ -238,7 +240,7 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
 
 			// Build SDP part
 	    	String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
-	    	int maxSize = ImageTransferSession.getMaxImageSharingSize();
+	    	long maxSize = ImageTransferSession.getMaxImageSharingSize();
 	    	String sdp = SdpUtils.buildFileSDP(ipAddress, localMsrpPort,
                     msrpMgr.getLocalSocketProtocol(), getContent().getEncoding(), fileTransferId,
                     fileSelector, null, localSetup, msrpMgr.getLocalMsrpPath(),
@@ -442,6 +444,7 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
      * @param currentSize Current transfered size in bytes
      * @param totalSize Total size in bytes
      * @param data received data chunk
+     * @return always true TODO
      */
     public boolean msrpTransferProgress(long currentSize, long totalSize, byte[] data) {
         try {

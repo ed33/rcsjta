@@ -15,29 +15,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package com.orangelabs.rcs.geoloc;
 
-import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
+package com.orangelabs.rcs.service.api;
 
-import android.test.AndroidTestCase;
+import android.os.RemoteException;
 
-public class GeolocTest extends AndroidTestCase {
+import com.gsma.services.rcs.extension.IMultimediaSessionServiceConfiguration;
+import com.orangelabs.rcs.provider.settings.RcsSettings;
+
+/**
+ * A class that implements interface to allow access to multimedia session service configuration from API
+ *
+ * @author yplo6403
+ *
+ */
+public class IMultimediaSessionServiceConfigurationImpl extends IMultimediaSessionServiceConfiguration.Stub {
+	private final RcsSettings mRcsSettings;
 	
-	protected void setUp() throws Exception {
-		super.setUp();
+	/**
+	 * @param rcsSettings 
+	 */
+	public IMultimediaSessionServiceConfigurationImpl(RcsSettings rcsSettings) {
+		mRcsSettings = rcsSettings;
 	}
 
-	protected void tearDown() throws Exception {
-		super.tearDown();
+
+	@Override
+	public int getMessageMaxLength() throws RemoteException {
+		return mRcsSettings.getMaxMsrpLengthForExtensions();
 	}
 
-	public final void testGeolocPush() {
-		GeolocPush g = new GeolocPush("label", 1.0, 2.0,  0, 100);
-		assertEquals(g.getLabel(), "label");
-		assertEquals(g.getLatitude(), 1.0);
-		assertEquals(g.getLongitude(), 2.0);
-		assertEquals(g.getExpiration(), 0);
-		assertEquals((int)(g.getAccuracy() + 0.4), 100);
-	}
+	
 
 }

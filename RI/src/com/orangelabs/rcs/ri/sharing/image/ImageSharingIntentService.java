@@ -30,6 +30,7 @@ import android.os.Bundle;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
+import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ish.ImageSharingIntent;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.utils.LogUtils;
@@ -52,15 +53,15 @@ public class ImageSharingIntentService extends IntentService {
 	static final String BUNDLE_ISHDAO_ID = "ishdao";
 
 	/**
-	 * Constructor
-	 * @param name
+	 * Creates an IntentService.
+	 * @param name of the thread
 	 */
 	public ImageSharingIntentService(String name) {
 		super(name);
 	}
 
 	/**
-	 * Constructor
+	 * Creates an IntentService.
 	 */
 	public ImageSharingIntentService() {
 		super("ImageSharingIntentService");
@@ -80,10 +81,11 @@ public class ImageSharingIntentService extends IntentService {
 			return;
 			
 		}
+		String action = intent.getAction();
 		// Check action from incoming intent
-		if (!intent.getAction().equalsIgnoreCase(ImageSharingIntent.ACTION_NEW_INVITATION)) {
+		if (!ImageSharingIntent.ACTION_NEW_INVITATION.equals(action)) {
 			if (LogUtils.isActive) {
-				Log.e(LOGTAG, "Unknown action ".concat(intent.getAction()));
+				Log.e(LOGTAG, "Unknown action ".concat(action));
 			}
 			return;
 			
@@ -127,7 +129,8 @@ public class ImageSharingIntentService extends IntentService {
 	 *            the image sharing data object
 	 */
 	private void addImageSharingInvitationNotification(Intent invitation, ImageSharingDAO ishDao) {
-		if (ishDao.getContact() == null) {
+		ContactId contact = ishDao.getContact();
+		if (contact == null) {
 			if (LogUtils.isActive) {
 				Log.e(LOGTAG, "addImageSharingInvitationNotification failed: cannot parse contact");
 			}
@@ -139,7 +142,7 @@ public class ImageSharingIntentService extends IntentService {
 		intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 		PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 		
-		String displayName = RcsDisplayName.getInstance(this).getDisplayName(ishDao.getContact());
+		String displayName = RcsDisplayName.getInstance(this).getDisplayName(contact);
 		String title = getString(R.string.title_recv_image_sharing, displayName);
 
 		// Create notification
@@ -152,7 +155,7 @@ public class ImageSharingIntentService extends IntentService {
 		notif.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
 		notif.setDefaults(Notification.DEFAULT_VIBRATE);
 		notif.setContentTitle(title);
-		notif.setContentText(getString(R.string.label_from_args, ishDao.getFilename()));
+		notif.setContentText(getString(R.string.label_from_args, contact.toString()));
 				
 		// Send notification
 		NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);

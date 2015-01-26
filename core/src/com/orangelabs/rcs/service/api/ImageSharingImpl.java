@@ -88,7 +88,8 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 	}
 
 	private ImageSharingStateAndReasonCode toStateAndReasonCode(ContentSharingError error) {
-		switch (error.getErrorCode()) {
+		int contentSharingError = error.getErrorCode();
+		switch (contentSharingError) {
 			case ContentSharingError.SESSION_INITIATION_FAILED:
 				return new ImageSharingStateAndReasonCode(ImageSharing.State.FAILED,
 						ReasonCode.FAILED_INITIATION);
@@ -112,8 +113,9 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 						ReasonCode.REJECTED_MAX_SIZE);
 			default:
 				throw new IllegalArgumentException(
-						"Unknown reason in ImageSharingImpl.toStateAndReasonCode; error=" + error
-								+ "!");
+						new StringBuilder(
+								"Unknown reason in ImageSharingImpl.toStateAndReasonCode; contentSharingError=")
+								.append(contentSharingError).append("!").toString());
 		}
 	}
 

@@ -30,17 +30,19 @@ import java.util.Map;
 import android.content.Intent;
 import android.os.IBinder;
 
+import com.gsma.services.rcs.ICommonServiceConfiguration;
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.extension.IMultimediaMessagingSession;
 import com.gsma.services.rcs.extension.IMultimediaMessagingSessionListener;
 import com.gsma.services.rcs.extension.IMultimediaSessionService;
+import com.gsma.services.rcs.extension.IMultimediaSessionServiceConfiguration;
 import com.gsma.services.rcs.extension.IMultimediaStreamingSession;
 import com.gsma.services.rcs.extension.IMultimediaStreamingSessionListener;
 import com.gsma.services.rcs.extension.MultimediaSession;
 import com.gsma.services.rcs.extension.MultimediaSession.ReasonCode;
-import com.gsma.services.rcs.extension.MultimediaSessionServiceConfiguration;
 import com.gsma.services.rcs.extension.MultimediaStreamingSessionIntent;
 import com.orangelabs.rcs.core.ims.network.sip.FeatureTags;
 import com.orangelabs.rcs.core.ims.service.sip.SipService;
@@ -49,9 +51,9 @@ import com.orangelabs.rcs.core.ims.service.sip.streaming.GenericSipRtpSession;
 import com.orangelabs.rcs.platform.AndroidFactory;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
-import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.MultimediaMessagingSessionEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.MultimediaStreamingSessionEventBroadcaster;
+import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
 import com.orangelabs.rcs.utils.IntentUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -224,8 +226,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 
 	/**
 	 * Receive a new SIP session invitation with MRSP media
-	 * 
-     * @param intent Resolved intent
+	 * @param msrpSessionInvite Resolved intent
      * @param session SIP session
 	 */
 	public void receiveSipMsrpSessionInvitation(Intent msrpSessionInvite, GenericSipMsrpSession session) {
@@ -243,7 +244,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 	/**
 	 * Receive a new SIP session invitation with RTP media
 	 * 
-     * @param intent Resolved intent
+	 * @param rtpSessionInvite Resolved intent
      * @param session SIP session
 	 */
 	public void receiveSipRtpSessionInvitation(Intent rtpSessionInvite, GenericSipRtpSession session) {
@@ -271,9 +272,8 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
      * 
      * @return Configuration
      */
-	public MultimediaSessionServiceConfiguration getConfiguration() {
-		return new MultimediaSessionServiceConfiguration(
-				mRcsSettings.getMaxMsrpLengthForExtensions());
+	public IMultimediaSessionServiceConfiguration getConfiguration() {
+		return new IMultimediaSessionServiceConfigurationImpl(mRcsSettings);
 	}  
     
 	/**
@@ -333,6 +333,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 
     /**
      * Returns a current messaging session from its unique session ID
+     * @param sessionId 
      * 
      * @return Multimedia messaging session
      * @throws ServerApiException
@@ -440,6 +441,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 
     /**
      * Returns a current streaming session from its unique session ID
+     * @param sessionId 
      * 
      * @return Multimedia streaming session or null if not found
      * @throws ServerApiException
@@ -492,7 +494,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see RcsService.Build.VERSION_CODES
+	 * @see VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {
@@ -555,5 +557,14 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 		synchronized (lock) {
 			mMultimediaStreamingSessionEventBroadcaster.removeMultimediaStreamingEventListener(listener);
 		}
+	}
+	
+	/**
+	 * Returns the common service configuration
+	 * 
+	 * @return the common service configuration
+	 */
+	public ICommonServiceConfiguration getCommonConfiguration() {
+		return new CommonServiceConfigurationImpl();
 	}
 }

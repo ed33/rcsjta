@@ -88,7 +88,7 @@ public class ReceiveImageSharing extends Activity {
     /**
      * Image sharing listener
      */
-	private ImageSharingListener ishListener = new ImageSharingListener() {
+	private ImageSharingListener mListener = new ImageSharingListener() {
 
 		@Override
 		public void onProgressUpdate(ContactId contact, String sharingId, final long currentSize, final long totalSize) {
@@ -108,19 +108,21 @@ public class ReceiveImageSharing extends Activity {
 		@Override
 		public void onStateChanged(ContactId contact, String sharingId, final int state, int reasonCode) {
 			if (LogUtils.isActive) {
-				Log.d(LOGTAG, "onImageSharingStateChanged contact=" + contact + " sharingId=" + sharingId + " state=" + state
-						+ " reason=" + reasonCode);
+				Log.d(LOGTAG,
+						new StringBuilder("onStateChanged contact=").append(contact.toString())
+								.append(" sharingId=").append(sharingId).append(" state=")
+								.append(state).append(" reason=").append(reasonCode).toString());
 			}
 			if (state > RiApplication.ISH_STATES.length) {
 				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "onImageSharingStateChanged unhandled state=" + state);
+					Log.e(LOGTAG, "onStateChanged unhandled state=".concat(String.valueOf(state)));
 				}
 				return;
 				
 			}
 			if (reasonCode > RiApplication.ISH_REASON_CODES.length) {
 				if (LogUtils.isActive) {
-					Log.e(LOGTAG, "onImageSharingStateChanged unhandled reason=" + reasonCode);
+					Log.e(LOGTAG, "onStateChanged unhandled reason=".concat(String.valueOf(reasonCode)));
 				}
 				return;
 				
@@ -172,7 +174,7 @@ public class ReceiveImageSharing extends Activity {
 						// Display session status
 						statusView.setText(_state);
 						if (LogUtils.isActive) {
-							Log.d(LOGTAG, "onImageSharingStateChanged " + getString(R.string.label_ish_state_changed, _state, _reasonCode));
+							Log.d(LOGTAG, "onStateChanged ".concat(getString(R.string.label_ish_state_changed, _state, _reasonCode)));
 						}
 					}
 				}
@@ -223,7 +225,7 @@ public class ReceiveImageSharing extends Activity {
 		}
 		// Remove file transfer listener
 		try {
-			mCnxManager.getImageSharingApi().removeEventListener(ishListener);
+			mCnxManager.getImageSharingApi().removeEventListener(mListener);
 		} catch (Exception e) {
 			if (LogUtils.isActive) {
 				Log.e(LOGTAG, "Failed to remove listener", e);
@@ -235,7 +237,7 @@ public class ReceiveImageSharing extends Activity {
     	ImageSharingService ishApi = mCnxManager.getImageSharingApi();
 		try {
 			// Add service listener
-			ishApi.addEventListener(ishListener);
+			ishApi.addEventListener(mListener);
 			
 			// Get the image sharing
 			mImageSharing = ishApi.getImageSharing(mIshDao.getSharingId());

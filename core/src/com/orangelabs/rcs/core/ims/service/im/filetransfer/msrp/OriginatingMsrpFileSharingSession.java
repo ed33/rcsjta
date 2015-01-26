@@ -21,6 +21,8 @@
  ******************************************************************************/
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.msrp;
 
+import static com.orangelabs.rcs.utils.StringUtils.UTF8;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Collection;
@@ -49,7 +51,6 @@ import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 import com.orangelabs.rcs.core.ims.service.im.chat.ContributionIdGenerator;
 import com.orangelabs.rcs.core.ims.service.im.chat.imdn.ImdnDocument;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingError;
-import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSessionListener;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.ImsFileSharingSession;
 import com.orangelabs.rcs.platform.AndroidFactory;
@@ -74,10 +75,9 @@ public class OriginatingMsrpFileSharingSession extends ImsFileSharingSession imp
 	 * MSRP manager
 	 */
 	private MsrpManager msrpMgr;
+
+	private RcsSettings mRcsSettings;
 	
-	/**
-     * The logger
-     */
     private static final Logger logger = Logger.getLogger(OriginatingMsrpFileSharingSession.class.getSimpleName());
 
 	/**
@@ -93,9 +93,10 @@ public class OriginatingMsrpFileSharingSession extends ImsFileSharingSession imp
 	 *            Remote contact identifier
 	 * @param fileIcon
 	 *            Content of fileicon
+	 * @param rcsSettings RCS settings
 	 */
 	public OriginatingMsrpFileSharingSession(String fileTransferId, ImsService parent,
-			MmContent content, ContactId contact, MmContent fileIcon) {
+			MmContent content, ContactId contact, MmContent fileIcon, RcsSettings rcsSettings) {
 		super(parent, content, contact, fileIcon, fileTransferId);
 		
 		if (logger.isActivated()) {
@@ -107,7 +108,7 @@ public class OriginatingMsrpFileSharingSession extends ImsFileSharingSession imp
 		// Set contribution ID
 		String id = ContributionIdGenerator.getContributionId(getDialogPath().getCallId());
 		setContributionID(id);
-
+		mRcsSettings = rcsSettings;
 	}
 
 	/**
@@ -143,7 +144,7 @@ public class OriginatingMsrpFileSharingSession extends ImsFileSharingSession imp
 			// Build SDP part
 	    	String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
 	    	String encoding = getContent().getEncoding();
-	    	int maxSize = FileSharingSession.getMaxFileSharingSize();
+	    	long maxSize = mRcsSettings.getMaxFileTransferSize();
 	    	// Set File-selector attribute
 	    	String selector = getFileSelectorAttribute();
 	    	String sdp = SdpUtils.buildFileSDP(ipAddress, localMsrpPort,
@@ -163,22 +164,24 @@ public class OriginatingMsrpFileSharingSession extends ImsFileSharingSession imp
 	    		// Encode the file icon file
 	    	    String imageEncoded = Base64.encodeBase64ToString(getFileicon().getData());
 
-	    		// Build multipart
-	    		String multipart = 
-	    				Multipart.BOUNDARY_DELIMITER + BOUNDARY_TAG + SipUtils.CRLF +
-	    				ContentTypeHeader.NAME + ": application/sdp" + SipUtils.CRLF +
-	    				ContentLengthHeader.NAME + ": " + sdp.getBytes().length + SipUtils.CRLF +
-	    				SipUtils.CRLF +
-	    				sdp + SipUtils.CRLF + 
-	    				Multipart.BOUNDARY_DELIMITER + BOUNDARY_TAG + SipUtils.CRLF +
-	    				ContentTypeHeader.NAME + ": " + getFileicon().getEncoding() + SipUtils.CRLF +
-	    				SipUtils.HEADER_CONTENT_TRANSFER_ENCODING + ": base64" + SipUtils.CRLF +
-	    				SipUtils.HEADER_CONTENT_ID + ": <image@joyn.com>" + SipUtils.CRLF +
-	    				ContentLengthHeader.NAME + ": "+ imageEncoded.length() + SipUtils.CRLF +
-	    				ContentDispositionHeader.NAME + ": icon" + SipUtils.CRLF +
-	    				SipUtils.CRLF +
-	    				imageEncoded + SipUtils.CRLF +
-	    				Multipart.BOUNDARY_DELIMITER + BOUNDARY_TAG + Multipart.BOUNDARY_DELIMITER;
+				String multipart = new StringBuilder(Multipart.BOUNDARY_DELIMITER)
+						.append(BOUNDARY_TAG).append(SipUtils.CRLF).append(ContentTypeHeader.NAME)
+						.append(": application/sdp").append(SipUtils.CRLF)
+						.append(ContentLengthHeader.NAME).append(": ")
+						.append(sdp.getBytes(UTF8).length)
+						.append(SipUtils.CRLF).append(SipUtils.CRLF).append(sdp)
+						.append(SipUtils.CRLF).append(Multipart.BOUNDARY_DELIMITER)
+						.append(BOUNDARY_TAG).append(SipUtils.CRLF).append(ContentTypeHeader.NAME)
+						.append(": ").append(getFileicon().getEncoding()).append(SipUtils.CRLF)
+						.append(SipUtils.HEADER_CONTENT_TRANSFER_ENCODING).append(": base64")
+						.append(SipUtils.CRLF).append(SipUtils.HEADER_CONTENT_ID)
+						.append(": <image@joyn.com>").append(SipUtils.CRLF)
+						.append(ContentLengthHeader.NAME).append(": ")
+						.append(imageEncoded.length()).append(SipUtils.CRLF)
+						.append(ContentDispositionHeader.NAME).append(": icon")
+						.append(SipUtils.CRLF).append(SipUtils.CRLF).append(imageEncoded)
+						.append(SipUtils.CRLF).append(Multipart.BOUNDARY_DELIMITER)
+						.append(BOUNDARY_TAG).append(Multipart.BOUNDARY_DELIMITER).toString();
 
 	    		// Set the local SDP part in the dialog path
 	    		getDialogPath().setLocalContent(multipart);	    		
@@ -224,7 +227,7 @@ public class OriginatingMsrpFileSharingSession extends ImsFileSharingSession imp
     public void prepareMediaSession() throws Exception {
         // Changed by Deutsche Telekom
         // Get the remote SDP part
-        byte[] sdp = getDialogPath().getRemoteContent().getBytes();
+        byte[] sdp = getDialogPath().getRemoteContent().getBytes(UTF8);
 
         // Changed by Deutsche Telekom
         // Create the MSRP session
@@ -346,6 +349,7 @@ public class OriginatingMsrpFileSharingSession extends ImsFileSharingSession imp
      * @param currentSize Current transfered size in bytes
      * @param totalSize Total size in bytes
      * @param data received data chunk
+     * @return always false TODO
      */
     public boolean msrpTransferProgress(long currentSize, long totalSize, byte[] data) {
         // Not used in originating side

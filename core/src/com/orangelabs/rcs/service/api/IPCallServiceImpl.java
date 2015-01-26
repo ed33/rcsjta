@@ -28,18 +28,20 @@ import java.util.Map;
 
 import android.os.IBinder;
 
+import com.gsma.services.rcs.ICommonServiceConfiguration;
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
-import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.RcsCommon.Direction;
+import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ipcall.IIPCall;
 import com.gsma.services.rcs.ipcall.IIPCallListener;
 import com.gsma.services.rcs.ipcall.IIPCallPlayer;
 import com.gsma.services.rcs.ipcall.IIPCallRenderer;
 import com.gsma.services.rcs.ipcall.IIPCallService;
+import com.gsma.services.rcs.ipcall.IIPCallServiceConfiguration;
 import com.gsma.services.rcs.ipcall.IPCall;
 import com.gsma.services.rcs.ipcall.IPCall.ReasonCode;
-import com.gsma.services.rcs.ipcall.IPCallServiceConfiguration;
 import com.orangelabs.rcs.core.content.AudioContent;
 import com.orangelabs.rcs.core.content.VideoContent;
 import com.orangelabs.rcs.core.ims.service.SessionIdGenerator;
@@ -392,9 +394,8 @@ public class IPCallServiceImpl extends IIPCallService.Stub {
      * 
      * @return Configuration
      */
-	public IPCallServiceConfiguration getConfiguration() {
-		return new IPCallServiceConfiguration(mRcsSettings.isIPVoiceCallBreakoutAA()
-				|| mRcsSettings.isIPVoiceCallBreakoutAA());
+	public IIPCallServiceConfiguration getConfiguration() {
+		return new IPCallServiceConfigurationImpl(mRcsSettings);
 	}
 
 	/**
@@ -445,10 +446,19 @@ public class IPCallServiceImpl extends IIPCallService.Stub {
 	 * Returns service version
 	 * 
 	 * @return Version
-	 * @see RcsService.Build.VERSION_CODES
+	 * @see VERSION_CODES
 	 * @throws ServerApiException
 	 */
 	public int getServiceVersion() throws ServerApiException {
 		return RcsService.Build.API_VERSION;
+	}
+	
+	/**
+	 * Returns the common service configuration
+	 * 
+	 * @return the common service configuration
+	 */
+	public ICommonServiceConfiguration getCommonConfiguration() {
+		return new CommonServiceConfigurationImpl();
 	}
 }

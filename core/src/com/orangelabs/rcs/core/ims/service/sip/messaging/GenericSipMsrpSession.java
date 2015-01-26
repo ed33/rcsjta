@@ -22,6 +22,8 @@
 
 package com.orangelabs.rcs.core.ims.service.sip.messaging;
 
+import static com.orangelabs.rcs.utils.StringUtils.UTF8;
+
 import java.io.ByteArrayInputStream;
 import java.util.Vector;
 
@@ -109,6 +111,7 @@ public abstract class GenericSipMsrpSession extends GenericSipSession implements
      * Generate SDP
      * 
      * @param setup Setup mode
+     * @return SDP
      */
     public String generateSdp(String setup) {
         int msrpPort;
@@ -141,7 +144,8 @@ public abstract class GenericSipMsrpSession extends GenericSipSession implements
      */
     public void prepareMediaSession() throws Exception {
         // Parse the remote SDP part
-        SdpParser parser = new SdpParser(getDialogPath().getRemoteContent().getBytes());
+        SdpParser parser = new SdpParser(getDialogPath().getRemoteContent().getBytes(
+                UTF8));
         Vector<MediaDescription> media = parser.getMediaDescriptions();
         MediaDescription mediaDesc = media.elementAt(0);
         MediaAttribute attr = mediaDesc.getMediaAttribute("path");

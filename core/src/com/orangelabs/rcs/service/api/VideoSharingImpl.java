@@ -23,6 +23,7 @@
 package com.orangelabs.rcs.service.api;
 
 import javax2.sip.message.Response;
+import android.os.RemoteException;
 
 import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.contacts.ContactId;
@@ -92,8 +93,8 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 	}
 
 	private VideoSharingStateAndReasonCode toStateAndReasonCode(ContentSharingError error) {
-		int code = error.getErrorCode();
-		switch (code) {
+		int contentSharingError = error.getErrorCode();
+		switch (contentSharingError) {
 			case ContentSharingError.SESSION_INITIATION_FAILED:
 				return new VideoSharingStateAndReasonCode(VideoSharing.State.FAILED,
 						ReasonCode.FAILED_INITIATION);
@@ -109,7 +110,9 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 						ReasonCode.FAILED_SHARING);
 			default:
 				throw new IllegalArgumentException(
-						"Unknown errorCode=".concat(String.valueOf(code)));
+						new StringBuilder(
+								"Unknown reason in VideoSharingImpl.toStateAndReasonCode; contentSharingError=")
+								.append(contentSharingError).append("!").toString());
 		}
 	}
 
@@ -305,22 +308,22 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 		}
 		try {
 			IVideoPlayer player = session.getPlayer();
-			if (player != null) {
-				VideoCodec codec = player.getCodec();
-				if (codec != null) {
-					return codec.getEncoding();
+			try {
+				return player.getCodec().getEncoding();
+			} catch (RemoteException e) {
+				/*
+				 * Here we just log error and do not re-throw exception via AIDL because the problem
+				 * occurred on the binding connection to the service.
+				 */
+				if (logger.isActivated()) {
+					logger.error("Cannot get video codec from external player", e);
 				}
+				return null;
 			}
 		} catch (Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Exception occurred", e);
-			}
-			// TODO Should we not rethrow exception ? TODO CR037
+			// TODO to be adjusted with CR037 on exceptions
+			throw new IllegalStateException(e);
 		}
-		if (logger.isActivated()) {
-			logger.warn("Cannot get video encoding");
-		}
-		return null;
 	}
 
 	/**
@@ -364,20 +367,22 @@ public class VideoSharingImpl extends IVideoSharing.Stub implements VideoStreami
 		}
 		try {
 			IVideoPlayer player = session.getPlayer();
-			if (player != null) {
+			try {
 				VideoCodec codec = player.getCodec();
 				return new VideoDescriptor(codec.getWidth(), codec.getHeight());
-				
-			} else {
-				VideoContent content = (VideoContent) session.getContent();
-				return new VideoDescriptor(content.getWidth(), content.getHeight());
+			} catch (RemoteException e) {
+				/*
+				 * Here we just log error and do not re-throw exception via AIDL because the problem
+				 * occurred on the binding connection to the service.
+				 */
+				if (logger.isActivated()) {
+					logger.error("Cannot get video codec from external player", e);
+				}
+				return null;
 			}
 		} catch (Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Exception occurred", e);
-			}
-			// TODO should we not rethrow exception here ?
-			return null;
+			// TODO to be adjusted with CR037 on exceptions
+			throw new IllegalStateException(e);
 		}
 	}
 	
