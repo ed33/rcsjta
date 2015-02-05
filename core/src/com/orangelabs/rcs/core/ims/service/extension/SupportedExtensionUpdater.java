@@ -181,13 +181,21 @@ public class SupportedExtensionUpdater implements Runnable {
 	 */
 	 public static void revokeExtensions(List<String> exts) {
 		for(int i=0; i < exts.size(); i++) {
-        	// <IARI>,duration 
-			String data [] = exts.get(i).split(",");
-			String iari = data[0];
-			String duration = data[1];
-			// TODO: update database
-			if (logger.isActivated()) {
-				logger.debug("Revoke extension " + iari + " for " + duration);
+        	// <IARI>,duration
+			try {
+				String data [] = exts.get(i).split(",");
+				String iari = data[0];
+				String duration = data[1];
+				
+				// Update security database
+				SecurityLog.getInstance().revokeExtension(iari.trim(), Long.parseLong(duration.trim()));
+				if (logger.isActivated()) {
+					logger.debug("Revoke extension " + iari + " for " + duration);
+				}
+			} catch(Exception e) {
+				if (logger.isActivated()) {
+					logger.error("Bad format", e);
+				}
 			}
 		}
 	 }

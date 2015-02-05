@@ -412,5 +412,18 @@ public class SecurityLog {
 		}
 		return INVALID_ID;
 	}
-
+	
+	/**
+	 * Revoke an extension
+	 * 
+	 * @param iari IARI tag
+	 * @param duration Duration in seconds
+	 */ 
+	public void revokeExtension(String iari, long duration) {
+		if (logger.isActivated()) {
+			logger.debug("Revoke extension " + iari + " for " + duration + "s");
+		}
+		
+		// TODO: update the table
+	}
 }
