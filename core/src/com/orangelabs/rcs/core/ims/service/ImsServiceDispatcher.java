@@ -43,6 +43,7 @@ import com.orangelabs.rcs.core.ims.service.im.chat.ChatUtils;
 import com.orangelabs.rcs.core.ims.service.im.chat.standfw.StoreAndForwardManager;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.FileTransferHttpInfoDocument;
+import com.orangelabs.rcs.core.ims.service.system.SystemRequestService;
 import com.orangelabs.rcs.core.ims.service.terms.TermsConditionsService;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.utils.FifoBuffer;
@@ -465,6 +466,10 @@ public class ImsServiceDispatcher extends Thread {
 	    	if (TermsConditionsService.isTermsRequest(request)) {
 	    		// Terms & conditions service
 	    		imsModule.getTermsConditionsService().receiveMessage(request);
+	    	} else
+	    	if (SystemRequestService.isSystemRequest(request)) {
+	    		// System request service
+	    		imsModule.getSystemRequestService().receiveMessage(request);
 	    	} else {
 				// Unknown service: reject the message with a 403 Forbidden
 				if (logger.isActivated()) {

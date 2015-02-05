@@ -82,7 +82,6 @@ public class SupportedExtensionUpdater implements Runnable {
 				logger.debug("Extensions are NOT allowed");
 			}
 			return;
-			// ---
 		}
 		try {
 			// Save authorizations before update
@@ -174,5 +173,22 @@ public class SupportedExtensionUpdater implements Runnable {
 		packagesWithMetaData.keySet().retainAll(packagesWithActivitiesProcessingIntentExtension);
 		return packagesWithMetaData;
 	}
-	
+
+	/**
+	 * Revoke extensions
+	 * 
+	 * @param exts Extensions
+	 */
+	 public static void revokeExtensions(List<String> exts) {
+		for(int i=0; i < exts.size(); i++) {
+        	// <IARI>,duration 
+			String data [] = exts.get(i).split(",");
+			String iari = data[0];
+			String duration = data[1];
+			// TODO: update database
+			if (logger.isActivated()) {
+				logger.debug("Revoke extension " + iari + " for " + duration);
+			}
+		}
+	 }
 }
