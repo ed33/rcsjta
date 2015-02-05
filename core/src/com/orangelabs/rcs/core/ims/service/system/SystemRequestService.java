@@ -38,11 +38,6 @@ import com.orangelabs.rcs.utils.logger.Logger;
  */
 public class SystemRequestService extends ImsService {
 	/**
-	 * Request MIME type
-	 */
-	private final static String REQUEST_MIME_TYPE = "application/end-user-confirmation-request+xml";
-
-	/**
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
@@ -112,18 +107,12 @@ public class SystemRequestService extends ImsService {
 
 		// Parse received request
 		try {
-	    	if (message.getContentType().equals(REQUEST_MIME_TYPE)) {
-		    	// Parse system request
-				InputSource input = new InputSource(new ByteArrayInputStream(message.getContentBytes()));
-				SystemRequestParser parser = new SystemRequestParser(input);
+	    	// Parse system request
+			InputSource input = new InputSource(new ByteArrayInputStream(message.getContentBytes()));
+			SystemRequestParser parser = new SystemRequestParser(input);
 
-				// Update the security model
-				SupportedExtensionUpdater.revokeExtensions(parser.getRevokedExtensions());
-            } else {
-                if (logger.isActivated()) {
-                    logger.warn("Unknown system request " + message.getContentType());
-                }
-	    	}
+			// Update the security model
+			SupportedExtensionUpdater.revokeExtensions(parser.getRevokedExtensions());
     	} catch(Exception e) {
     		if (logger.isActivated()) {
     			logger.error("Can't parse system request", e);
