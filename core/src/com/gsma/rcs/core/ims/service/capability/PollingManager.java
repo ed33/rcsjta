@@ -36,36 +36,37 @@ public class PollingManager extends PeriodicRefresher {
     /**
      * Capability service
      */
-    private CapabilityService imsService;
+    private final CapabilityService mImsService;
 
     /**
      * Polling period (in seconds)
      */
-    private int pollingPeriod;
+    private final int mPollingPeriod;
 
     /**
      * The logger
      */
-    private final static Logger logger = Logger.getLogger(PollingManager.class.getSimpleName());
+    private final static Logger sLogger = Logger.getLogger(PollingManager.class.getSimpleName());
 
     /**
      * Constructor
      * 
      * @param parent IMS service
+     * @param rcsSettings
      */
-    public PollingManager(CapabilityService parent) {
-        this.imsService = parent;
-        this.pollingPeriod = RcsSettings.getInstance().getCapabilityPollingPeriod();
+    public PollingManager(CapabilityService parent, RcsSettings rcsSettings) {
+        mImsService = parent;
+        mPollingPeriod = rcsSettings.getCapabilityPollingPeriod();
     }
 
     /**
      * Start polling
      */
     public void start() {
-        if (pollingPeriod == 0) {
+        if (mPollingPeriod == 0) {
             return;
         }
-        startTimer(pollingPeriod, 1);
+        startTimer(mPollingPeriod, 1);
     }
 
     /**
@@ -80,8 +81,8 @@ public class PollingManager extends PeriodicRefresher {
      */
     public void periodicProcessing() {
         // Make a registration
-        if (logger.isActivated()) {
-            logger.info("Execute new capabilities update");
+        if (sLogger.isActivated()) {
+            sLogger.info("Execute new capabilities update");
         }
 
         // Update all contacts capabilities if refresh timeout has not expired
@@ -91,7 +92,7 @@ public class PollingManager extends PeriodicRefresher {
         }
 
         // Restart timer
-        startTimer(pollingPeriod, 1);
+        startTimer(mPollingPeriod, 1);
     }
 
     /**
@@ -100,36 +101,36 @@ public class PollingManager extends PeriodicRefresher {
      * @param contact Contact identifier
      */
     private void requestContactCapabilities(ContactId contact) {
-        if (logger.isActivated()) {
-            logger.debug("Request capabilities for " + contact);
+        if (sLogger.isActivated()) {
+            sLogger.debug("Request capabilities for " + contact);
         }
 
         // Read capabilities from the database
         Capabilities capabilities = ContactsManager.getInstance().getContactCapabilities(contact);
         if (capabilities == null) {
-            if (logger.isActivated()) {
-                logger.debug("No capability exist for " + contact);
+            if (sLogger.isActivated()) {
+                sLogger.debug("No capability exist for " + contact);
             }
 
             // New contact: request capabilities from the network
-            imsService.getOptionsManager().requestCapabilities(contact);
+            mImsService.getOptionsManager().requestCapabilities(contact);
         } else {
-            if (logger.isActivated()) {
-                logger.debug("Capabilities exist for " + contact);
+            if (sLogger.isActivated()) {
+                sLogger.debug("Capabilities exist for " + contact);
             }
             if (isCapabilityRefreshRequired(capabilities.getTimestampOfLastRefresh())) {
-                if (logger.isActivated()) {
-                    logger.debug("Capabilities have expired for " + contact);
+                if (sLogger.isActivated()) {
+                    sLogger.debug("Capabilities have expired for " + contact);
                 }
 
                 // Capabilities are too old: request capabilities from the network
                 if (capabilities.isPresenceDiscoverySupported()) {
                     // If contact supports capability discovery via presence, use the selected
                     // discoveryManager
-                    imsService.getAnonymousFetchManager().requestCapabilities(contact);
+                    mImsService.getAnonymousFetchManager().requestCapabilities(contact);
                 } else {
                     // The contact only supports OPTIONS requests
-                    imsService.getOptionsManager().requestCapabilities(contact);
+                    mImsService.getOptionsManager().requestCapabilities(contact);
                 }
             }
         }

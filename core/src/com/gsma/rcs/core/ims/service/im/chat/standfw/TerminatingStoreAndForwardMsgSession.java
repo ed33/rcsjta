@@ -68,7 +68,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
     /**
      * The logger
      */
-    private static final Logger logger = Logger
+    private static final Logger sLogger = Logger
             .getLogger(TerminatingStoreAndForwardMsgSession.class.getSimpleName());
 
     /**
@@ -114,17 +114,17 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
             return true;
         }
 
-        return RcsSettings.getInstance().isChatAutoAccepted();
+        return mRcsSettings.isChatAutoAccepted();
     }
 
     /**
      * Background processing
      */
     public void run() {
-        final boolean logActivated = logger.isActivated();
+        final boolean logActivated = sLogger.isActivated();
         try {
             if (logActivated) {
-                logger.info("Initiate a store & forward session for messages");
+                sLogger.info("Initiate a store & forward session for messages");
             }
 
             // Send message delivery report if requested
@@ -146,7 +146,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
             /* Check if session should be auto-accepted once */
             if (isSessionAccepted()) {
                 if (logActivated) {
-                    logger.debug("Auto accept store and forward chat invitation");
+                    sLogger.debug("Auto accept store and forward chat invitation");
                 }
 
                 for (ImsSessionListener listener : listeners) {
@@ -155,7 +155,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
                 }
             } else {
                 if (logActivated) {
-                    logger.debug("Accept manually store and forward chat invitation");
+                    sLogger.debug("Accept manually store and forward chat invitation");
                 }
 
                 for (ImsSessionListener listener : listeners) {
@@ -169,7 +169,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
                 switch (answer) {
                     case ImsServiceSession.INVITATION_REJECTED:
                         if (logActivated) {
-                            logger.debug("Session has been rejected by user");
+                            sLogger.debug("Session has been rejected by user");
                         }
 
                         removeSession();
@@ -181,7 +181,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
 
                     case ImsServiceSession.INVITATION_NOT_ANSWERED:
                         if (logActivated) {
-                            logger.debug("Session has been rejected on timeout");
+                            sLogger.debug("Session has been rejected on timeout");
                         }
 
                         // Ringing period timeout
@@ -196,7 +196,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
 
                     case ImsServiceSession.INVITATION_CANCELED:
                         if (logActivated) {
-                            logger.debug("Session has been rejected by remote");
+                            sLogger.debug("Session has been rejected by remote");
                         }
 
                         removeSession();
@@ -216,7 +216,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
 
                     default:
                         if (logActivated) {
-                            logger.debug("Unknown invitation answer in run; answer=".concat(String
+                            sLogger.debug("Unknown invitation answer in run; answer=".concat(String
                                     .valueOf(answer)));
                         }
                         return;
@@ -243,13 +243,13 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
                 remoteSetup = attr2.getValue();
             }
             if (logActivated) {
-                logger.debug("Remote setup attribute is " + remoteSetup);
+                sLogger.debug("Remote setup attribute is " + remoteSetup);
             }
 
             // Set setup mode
             String localSetup = createSetupAnswer(remoteSetup);
             if (logActivated) {
-                logger.debug("Local setup attribute is " + localSetup);
+                sLogger.debug("Local setup attribute is " + localSetup);
             }
 
             // Set local port
@@ -272,7 +272,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
             // Test if the session should be interrupted
             if (isInterrupted()) {
                 if (logActivated) {
-                    logger.debug("Session has been interrupted: end of processing");
+                    sLogger.debug("Session has been interrupted: end of processing");
                 }
                 return;
             }
@@ -295,7 +295,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
                             sendEmptyDataChunk();
                         } catch (IOException e) {
                             if (logActivated) {
-                                logger.error("Can't create the MSRP server session", e);
+                                sLogger.error("Can't create the MSRP server session", e);
                             }
                         }
                     }
@@ -305,7 +305,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
 
             // Create a 200 OK response
             if (logActivated) {
-                logger.info("Send 200 OK");
+                sLogger.info("Send 200 OK");
             }
             SipResponse resp = SipMessageFactory.create200OkInviteResponse(getDialogPath(),
                     getFeatureTags(), sdp);
@@ -321,7 +321,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
             if (ctx.isSipAck()) {
                 // ACK received
                 if (logActivated) {
-                    logger.info("ACK request received");
+                    sLogger.info("ACK request received");
                 }
 
                 // The session is established
@@ -357,7 +357,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
 
             } else {
                 if (logActivated) {
-                    logger.debug("No ACK received for INVITE");
+                    sLogger.debug("No ACK received for INVITE");
                 }
 
                 // No response received: timeout
@@ -365,7 +365,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
             }
         } catch (Exception e) {
             if (logActivated) {
-                logger.error("Session initiation has failed", e);
+                sLogger.error("Session initiation has failed", e);
             }
 
             // Unexpected error
@@ -385,10 +385,10 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
 
     @Override
     public void startSession() {
-        final boolean logActivated = logger.isActivated();
+        final boolean logActivated = sLogger.isActivated();
         ContactId contact = getRemoteContact();
         if (logActivated) {
-            logger.debug("Start OneToOneChatSession with '" + contact + "'");
+            sLogger.debug("Start OneToOneChatSession with '" + contact + "'");
         }
         InstantMessagingService imService = getImsService().getImsModule()
                 .getInstantMessagingService();
@@ -403,7 +403,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
                  * that was locally originated with the same contact.
                  */
                 if (logActivated) {
-                    logger.warn("Rejecting OneToOneChatSession (session id '" + getSessionID()
+                    sLogger.warn("Rejecting OneToOneChatSession (session id '" + getSessionID()
                             + "') with '" + contact + "'");
                 }
                 rejectSession();
@@ -415,7 +415,7 @@ public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession im
              * CURRENT rcs chat session if there is one and replace it with the new one.
              */
             if (logActivated) {
-                logger.warn("Rejecting/Aborting existing OneToOneChatSession (session id '"
+                sLogger.warn("Rejecting/Aborting existing OneToOneChatSession (session id '"
                         + getSessionID() + "') with '" + contact + "'");
             }
             if (currentSessionInitiatedByRemote) {

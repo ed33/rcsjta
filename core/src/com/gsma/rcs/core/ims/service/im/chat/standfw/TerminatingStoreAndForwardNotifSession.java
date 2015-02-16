@@ -67,12 +67,12 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
     /**
      * MSRP manager
      */
-    private MsrpManager msrpMgr = null;
+    private MsrpManager mMsrpMgr;
 
     /**
      * The logger
      */
-    private static final Logger logger = Logger
+    private static final Logger sLogger = Logger
             .getLogger(TerminatingStoreAndForwardNotifSession.class.getSimpleName());
 
     /**
@@ -93,9 +93,9 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
         int localMsrpPort = NetworkRessourceManager.generateLocalMsrpPort();
         String localIpAddress = getImsService().getImsModule().getCurrentNetworkInterface()
                 .getNetworkAccess().getIpAddress();
-        msrpMgr = new MsrpManager(localIpAddress, localMsrpPort);
+        mMsrpMgr = new MsrpManager(localIpAddress, localMsrpPort);
         if (parent.getImsModule().isConnectedToWifiAccess()) {
-            msrpMgr.setSecured(RcsSettings.getInstance().isSecureMsrpOverWifi());
+            mMsrpMgr.setSecured(rcsSettings.isSecureMsrpOverWifi());
         }
 
         // Create dialog path
@@ -106,10 +106,10 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
      * Background processing
      */
     public void run() {
-        final boolean logActivated = logger.isActivated();
+        final boolean logActivated = sLogger.isActivated();
         try {
             if (logActivated) {
-                logger.info("Initiate a new store & forward session for notifications");
+                sLogger.info("Initiate a new store & forward session for notifications");
             }
 
             // Parse the remote SDP part
@@ -131,13 +131,13 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
                 remoteSetup = attr2.getValue();
             }
             if (logActivated) {
-                logger.debug("Remote setup attribute is " + remoteSetup);
+                sLogger.debug("Remote setup attribute is " + remoteSetup);
             }
 
             // Set setup mode
             String localSetup = createSetupAnswer(remoteSetup);
             if (logActivated) {
-                logger.debug("Local setup attribute is " + localSetup);
+                sLogger.debug("Local setup attribute is " + localSetup);
             }
 
             // Set local port
@@ -160,7 +160,7 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
             // Test if the session should be interrupted
             if (isInterrupted()) {
                 if (logActivated) {
-                    logger.debug("Session has been interrupted: end of processing");
+                    sLogger.debug("Session has been interrupted: end of processing");
                 }
                 return;
             }
@@ -183,7 +183,7 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
                             sendEmptyDataChunk();
                         } catch (IOException e) {
                             if (logActivated) {
-                                logger.error("Can't create the MSRP server session", e);
+                                sLogger.error("Can't create the MSRP server session", e);
                             }
                         }
                     }
@@ -193,7 +193,7 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
 
             // Create a 200 OK response
             if (logActivated) {
-                logger.info("Send 200 OK");
+                sLogger.info("Send 200 OK");
             }
             SipResponse resp = SipMessageFactory.create200OkInviteResponse(getDialogPath(),
                     InstantMessagingService.CHAT_FEATURE_TAGS, sdp);
@@ -209,7 +209,7 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
             if (ctx.isSipAck()) {
                 // ACK received
                 if (logActivated) {
-                    logger.info("ACK request received");
+                    sLogger.info("ACK request received");
                 }
 
                 // The session is established
@@ -235,7 +235,7 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
 
             } else {
                 if (logActivated) {
-                    logger.debug("No ACK received for INVITE");
+                    sLogger.debug("No ACK received for INVITE");
                 }
 
                 // No response received: timeout
@@ -243,7 +243,7 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
             }
         } catch (Exception e) {
             if (logActivated) {
-                logger.error("Session initiation has failed", e);
+                sLogger.error("Session initiation has failed", e);
             }
 
             // Unexpected error
@@ -257,7 +257,7 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
      * @return MSRP manager
      */
     public MsrpManager getMsrpMgr() {
-        return msrpMgr;
+        return mMsrpMgr;
     }
 
     /**
@@ -266,8 +266,8 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
     public void closeMsrpSession() {
         if (getMsrpMgr() != null) {
             getMsrpMgr().closeSession();
-            if (logger.isActivated()) {
-                logger.debug("MSRP session has been closed");
+            if (sLogger.isActivated()) {
+                sLogger.debug("MSRP session has been closed");
             }
         }
     }
@@ -279,8 +279,9 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
      */
     public void handleError(ImsServiceError error) {
         // Error
-        if (logger.isActivated()) {
-            logger.info("Session error: " + error.getErrorCode() + ", reason=" + error.getMessage());
+        if (sLogger.isActivated()) {
+            sLogger.info("Session error: " + error.getErrorCode() + ", reason="
+                    + error.getMessage());
         }
 
         // Close media session
@@ -307,9 +308,9 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
      * @param mimeType Data mime-type
      */
     public void msrpDataReceived(String msgId, byte[] data, String mimeType) {
-        final boolean logActivated = logger.isActivated();
+        final boolean logActivated = sLogger.isActivated();
         if (logActivated) {
-            logger.info("Data received (type " + mimeType + ")");
+            sLogger.info("Data received (type " + mimeType + ")");
         }
 
         // Update the activity manager
@@ -318,7 +319,7 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
         if ((data == null) || (data.length == 0)) {
             // By-pass empty data
             if (logActivated) {
-                logger.debug("By-pass received empty data");
+                sLogger.debug("By-pass received empty data");
             }
             return;
         }
@@ -346,13 +347,13 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
                 }
             } catch (Exception e) {
                 if (logActivated) {
-                    logger.error("Can't parse the CPIM message", e);
+                    sLogger.error("Can't parse the CPIM message", e);
                 }
             }
         } else {
             // Not supported content
             if (logActivated) {
-                logger.debug("Not supported content " + mimeType + " in chat session");
+                sLogger.debug("Not supported content " + mimeType + " in chat session");
             }
         }
     }
@@ -381,8 +382,8 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
      * @param error Error code
      */
     public void msrpTransferError(String msgId, String error) {
-        if (logger.isActivated()) {
-            logger.info("Data transfer error " + error);
+        if (sLogger.isActivated()) {
+            sLogger.info("Data transfer error " + error);
         }
     }
 
@@ -391,10 +392,10 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
      */
     public void sendEmptyDataChunk() {
         try {
-            msrpMgr.sendEmptyChunk();
+            mMsrpMgr.sendEmptyChunk();
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("Problem while sending empty data chunk", e);
+            if (sLogger.isActivated()) {
+                sLogger.error("Problem while sending empty data chunk", e);
             }
         }
     }
@@ -425,8 +426,8 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
 
             }
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("Can't parse IMDN document", e);
+            if (sLogger.isActivated()) {
+                sLogger.error("Can't parse IMDN document", e);
             }
         }
     }
@@ -444,10 +445,10 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
 
     @Override
     public void startSession() {
-        final boolean logActivated = logger.isActivated();
+        final boolean logActivated = sLogger.isActivated();
         ContactId contact = getRemoteContact();
         if (logActivated) {
-            logger.debug("Start OneToOneChatSession with '" + contact + "'");
+            sLogger.debug("Start OneToOneChatSession with '" + contact + "'");
         }
         InstantMessagingService imService = getImsService().getImsModule()
                 .getInstantMessagingService();
@@ -462,7 +463,7 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
                  * that was locally originated with the same contact.
                  */
                 if (logActivated) {
-                    logger.warn("Rejecting OneToOneChatSession (session id '" + getSessionID()
+                    sLogger.warn("Rejecting OneToOneChatSession (session id '" + getSessionID()
                             + "') with '" + contact + "'");
                 }
                 rejectSession();
@@ -474,7 +475,7 @@ public class TerminatingStoreAndForwardNotifSession extends OneToOneChatSession 
              * CURRENT rcs chat session if there is one and replace it with the new one.
              */
             if (logActivated) {
-                logger.warn("Rejecting/Aborting existing OneToOneChatSession (session id '"
+                sLogger.warn("Rejecting/Aborting existing OneToOneChatSession (session id '"
                         + getSessionID() + "') with '" + contact + "'");
             }
             if (currentSessionInitiatedByRemote) {

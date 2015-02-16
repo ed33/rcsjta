@@ -46,14 +46,15 @@ import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
 import com.gsma.services.rcs.RcsService.Direction;
+import com.gsma.services.rcs.RcsServiceRegistration;
 import com.gsma.services.rcs.contacts.ContactId;
-import com.gsma.services.rcs.sharing.video.VideoSharing;
-import com.gsma.services.rcs.sharing.video.VideoSharing.ReasonCode;
 import com.gsma.services.rcs.sharing.video.IVideoPlayer;
 import com.gsma.services.rcs.sharing.video.IVideoSharing;
 import com.gsma.services.rcs.sharing.video.IVideoSharingListener;
 import com.gsma.services.rcs.sharing.video.IVideoSharingService;
 import com.gsma.services.rcs.sharing.video.IVideoSharingServiceConfiguration;
+import com.gsma.services.rcs.sharing.video.VideoSharing;
+import com.gsma.services.rcs.sharing.video.VideoSharing.ReasonCode;
 
 /**
  * Rich call API service
@@ -158,8 +159,17 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
     }
 
     /**
-     * Registers a listener on service registration events
+     * Return the reason code for IMS service registration
      * 
+     * @return the reason code for IMS service registration
+     */
+    public RcsServiceRegistration.ReasonCode getServiceRegistrationReasonCode() {
+        return ServerApiUtils.getServiceRegistrationReasonCode();
+    }
+
+    /**
+     * Registers a listener on service registration events
+     *
      * @param listener Service registration listener
      */
     public void addEventListener(IRcsServiceRegistrationListener listener) {
@@ -173,7 +183,7 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 
     /**
      * Unregisters a listener on service registration events
-     * 
+     *
      * @param listener Service registration listener
      */
     public void removeEventListener(IRcsServiceRegistrationListener listener) {
@@ -186,18 +196,24 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
     }
 
     /**
-     * Receive registration event
-     * 
-     * @param state Registration state
+     * Notifies registration event
      */
-    public void notifyRegistrationEvent(boolean state) {
+    public void notifyRegistration() {
         // Notify listeners
         synchronized (mLock) {
-            if (state) {
-                mRcsServiceRegistrationEventBroadcaster.broadcastServiceRegistered();
-            } else {
-                mRcsServiceRegistrationEventBroadcaster.broadcastServiceUnRegistered();
-            }
+            mRcsServiceRegistrationEventBroadcaster.broadcastServiceRegistered();
+        }
+    }
+
+    /**
+     * Notifies unregistration event
+     *
+     * @param reasonCode for unregistration
+     */
+    public void notifyUnRegistration(RcsServiceRegistration.ReasonCode reasonCode) {
+        // Notify listeners
+        synchronized (mLock) {
+            mRcsServiceRegistrationEventBroadcaster.broadcastServiceUnRegistered(reasonCode);
         }
     }
 
@@ -287,10 +303,11 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 
             String sharingId = session.getSessionID();
             VideoContent content = (VideoContent) session.getContent();
-            mRichCallLog.addVideoSharing(sharingId, contact, Direction.OUTGOING, content,
+            mRichCallLog.addVideoSharing(sharingId, contact,
+                    Direction.OUTGOING, content,
                     VideoSharing.State.INITIATING, ReasonCode.UNSPECIFIED);
-            mBroadcaster.broadcastStateChanged(contact, sharingId, VideoSharing.State.INITIATING,
-                    ReasonCode.UNSPECIFIED);
+            mBroadcaster.broadcastStateChanged(contact, sharingId,
+                    VideoSharing.State.INITIATING, ReasonCode.UNSPECIFIED);
 
             VideoSharingPersistedStorageAccessor storageAccessor = new VideoSharingPersistedStorageAccessor(
                     sharingId, contact, Direction.OUTGOING, mRichCallLog, content.getEncoding(),
@@ -359,16 +376,17 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 
     /**
      * Add and broadcast video sharing invitation rejections
-     * 
+     *
      * @param contact Contact ID
      * @param content Video content
      * @param reasonCode Reason code
      */
     public void addAndBroadcastVideoSharingInvitationRejected(ContactId contact,
-            VideoContent content, int reasonCode) {
+            VideoContent content,
+            int reasonCode) {
         String sessionId = SessionIdGenerator.getNewId();
-        mRichCallLog.addVideoSharing(sessionId, contact, Direction.INCOMING, content,
-                VideoSharing.State.REJECTED, reasonCode);
+        mRichCallLog.addVideoSharing(sessionId, contact,
+                Direction.INCOMING, content, VideoSharing.State.REJECTED, reasonCode);
         mBroadcaster.broadcastInvitation(sessionId);
     }
 
@@ -417,7 +435,7 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
      * @return the common service configuration
      */
     public ICommonServiceConfiguration getCommonConfiguration() {
-        return new CommonServiceConfigurationImpl();
+        return new CommonServiceConfigurationImpl(mRcsSettings);
     }
 
     /**

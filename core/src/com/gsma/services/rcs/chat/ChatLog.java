@@ -28,6 +28,7 @@ import java.util.Set;
 import android.content.Context;
 import android.net.Uri;
 
+import com.gsma.services.rcs.RcsService.Direction;
 import com.gsma.services.rcs.contacts.ContactUtils;
 import com.gsma.services.rcs.chat.GroupChat.State;
 

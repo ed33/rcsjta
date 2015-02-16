@@ -48,6 +48,7 @@ import com.gsma.rcs.core.ims.service.SessionTimerManager;
 import com.gsma.rcs.core.ims.service.im.chat.ChatUtils;
 import com.gsma.rcs.core.ims.service.richcall.ContentSharingError;
 import com.gsma.rcs.core.ims.service.richcall.RichcallService;
+import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.ContactUtils;
 import com.gsma.rcs.utils.NetworkRessourceManager;
 import com.gsma.rcs.utils.logger.Logger;
@@ -79,9 +80,11 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
      * @param parent IMS service
      * @param invite Initial INVITE request
      * @param contact Contact Id
+     * @param rcsSettings
      */
-    public TerminatingGeolocTransferSession(ImsService parent, SipRequest invite, ContactId contact) {
-        super(parent, ContentManager.createMmContentFromSdp(invite), contact);
+    public TerminatingGeolocTransferSession(ImsService parent, SipRequest invite,
+            ContactId contact, RcsSettings rcsSettings) {
+        super(parent, ContentManager.createMmContentFromSdp(invite), contact, rcsSettings);
 
         // Create dialog path
         createTerminatingDialogPath(invite);
@@ -408,6 +411,7 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
      * @param currentSize Current transfered size in bytes
      * @param totalSize Total size in bytes
      * @param data received data chunk
+     * @return True if transfer in progress
      */
     public boolean msrpTransferProgress(long currentSize, long totalSize, byte[] data) {
         // Not used for geolocation sharing

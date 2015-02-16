@@ -172,7 +172,7 @@ public class SingleChatView extends ChatView {
             composingManager = new IsComposingManager(configuration.getIsComposingTimeout() * 1000,
                     getNotifyComposing());
         } catch (RcsServiceNotAvailableException e) {
-            Utils.showMessageAndExit(this, getString(R.string.label_api_disabled), mExitOnce, e);
+            Utils.showMessageAndExit(this, getString(R.string.label_api_unavailable), mExitOnce, e);
         } catch (RcsServiceException e) {
             Utils.showMessageAndExit(this, getString(R.string.label_api_failed), mExitOnce, e);
         }
@@ -237,7 +237,7 @@ public class SingleChatView extends ChatView {
             return true;
 
         } catch (RcsServiceNotAvailableException e) {
-            Utils.showMessageAndExit(this, getString(R.string.label_api_disabled), mExitOnce, e);
+            Utils.showMessageAndExit(this, getString(R.string.label_api_unavailable), mExitOnce, e);
         } catch (RcsServiceException e) {
             Utils.showMessageAndExit(this, getString(R.string.label_api_failed), mExitOnce, e);
         }

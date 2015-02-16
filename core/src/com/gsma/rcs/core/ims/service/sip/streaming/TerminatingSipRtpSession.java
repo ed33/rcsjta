@@ -35,6 +35,7 @@ import com.gsma.rcs.core.ims.service.ImsSessionListener;
 import com.gsma.rcs.core.ims.service.SessionTimerManager;
 import com.gsma.rcs.core.ims.service.sip.SipSessionError;
 import com.gsma.rcs.core.ims.service.sip.SipSessionListener;
+import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.ContactUtils;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.RcsContactFormatException;
@@ -51,7 +52,7 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
     /**
      * The logger
      */
-    private final static Logger logger = Logger.getLogger(TerminatingSipRtpSession.class
+    private final static Logger sLogger = Logger.getLogger(TerminatingSipRtpSession.class
             .getSimpleName());
 
     private final Intent mSessionInvite;
@@ -61,12 +62,15 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
      * 
      * @param parent IMS service
      * @param invite Initial INVITE request
+     * @param sessionInvite
+     * @param rcsSettings
      * @throws RcsContactFormatException
      */
-    public TerminatingSipRtpSession(ImsService parent, SipRequest invite, Intent sessionInvite)
+    public TerminatingSipRtpSession(ImsService parent, SipRequest invite, Intent sessionInvite,
+            RcsSettings rcsSettings)
             throws RcsContactFormatException {
         super(parent, ContactUtils.createContactId(SipUtils.getAssertedIdentity(invite)), invite
-                .getFeatureTags().get(0));
+                .getFeatureTags().get(0), rcsSettings);
 
         mSessionInvite = sessionInvite;
         // Create dialog path
@@ -78,8 +82,8 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
      */
     public void run() {
         try {
-            if (logger.isActivated()) {
-                logger.info("Initiate a new RTP session as terminating");
+            if (sLogger.isActivated()) {
+                sLogger.info("Initiate a new RTP session as terminating");
             }
 
             send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
@@ -93,8 +97,8 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
             int answer = waitInvitationAnswer();
             switch (answer) {
                 case ImsServiceSession.INVITATION_REJECTED:
-                    if (logger.isActivated()) {
-                        logger.debug("Session has been rejected by user");
+                    if (sLogger.isActivated()) {
+                        sLogger.debug("Session has been rejected by user");
                     }
 
                     removeSession();
@@ -105,8 +109,8 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
                     return;
 
                 case ImsServiceSession.INVITATION_NOT_ANSWERED:
-                    if (logger.isActivated()) {
-                        logger.debug("Session has been rejected on timeout");
+                    if (sLogger.isActivated()) {
+                        sLogger.debug("Session has been rejected on timeout");
                     }
 
                     // Ringing period timeout
@@ -120,8 +124,8 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
                     return;
 
                 case ImsServiceSession.INVITATION_CANCELED:
-                    if (logger.isActivated()) {
-                        logger.debug("Session has been canceled");
+                    if (sLogger.isActivated()) {
+                        sLogger.debug("Session has been canceled");
                     }
 
                     removeSession();
@@ -140,8 +144,8 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
                     break;
 
                 default:
-                    if (logger.isActivated()) {
-                        logger.debug("Unknown invitation answer in run; answer=".concat(String
+                    if (sLogger.isActivated()) {
+                        sLogger.debug("Unknown invitation answer in run; answer=".concat(String
                                 .valueOf(answer)));
                     }
                     return;
@@ -155,16 +159,16 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
 
             // Test if the session should be interrupted
             if (isInterrupted()) {
-                if (logger.isActivated()) {
-                    logger.debug("Session has been interrupted: end of processing");
+                if (sLogger.isActivated()) {
+                    sLogger.debug("Session has been interrupted: end of processing");
                 }
                 return;
             }
 
             // Test if the session should be interrupted
             if (isInterrupted()) {
-                if (logger.isActivated()) {
-                    logger.debug("Session has been interrupted: end of processing");
+                if (sLogger.isActivated()) {
+                    sLogger.debug("Session has been interrupted: end of processing");
                 }
                 return;
             }
@@ -173,8 +177,8 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
             prepareMediaSession();
 
             // Create a 200 OK response
-            if (logger.isActivated()) {
-                logger.info("Send 200 OK");
+            if (sLogger.isActivated()) {
+                sLogger.info("Send 200 OK");
             }
             SipResponse resp = create200OKResponse();
 
@@ -188,8 +192,8 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
             // Analyze the received response
             if (ctx.isSipAck()) {
                 // ACK received
-                if (logger.isActivated()) {
-                    logger.info("ACK request received");
+                if (sLogger.isActivated()) {
+                    sLogger.info("ACK request received");
                 }
 
                 // The session is established
@@ -209,16 +213,16 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
                     getListeners().get(j).handleSessionStarted(contact);
                 }
             } else {
-                if (logger.isActivated()) {
-                    logger.debug("No ACK received for INVITE");
+                if (sLogger.isActivated()) {
+                    sLogger.debug("No ACK received for INVITE");
                 }
 
                 // No response received: timeout
                 handleError(new SipSessionError(SipSessionError.SESSION_INITIATION_FAILED));
             }
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("Session initiation has failed", e);
+            if (sLogger.isActivated()) {
+                sLogger.error("Session initiation has failed", e);
             }
 
             // Unexpected error
@@ -231,7 +235,4 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
         return true;
     }
 
-    public Intent getSessionInvite() {
-        return mSessionInvite;
-    }
 }

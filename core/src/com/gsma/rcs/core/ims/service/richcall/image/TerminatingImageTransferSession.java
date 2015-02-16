@@ -50,6 +50,7 @@ import com.gsma.rcs.core.ims.service.SessionTimerManager;
 import com.gsma.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
 import com.gsma.rcs.core.ims.service.richcall.ContentSharingError;
 import com.gsma.rcs.core.ims.service.richcall.RichcallService;
+import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.ContactUtils;
 import com.gsma.rcs.utils.NetworkRessourceManager;
 import com.gsma.rcs.utils.logger.Logger;
@@ -82,10 +83,12 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
      * @param parent IMS service
      * @param invite Initial INVITE request
      * @param contact Contact ID
+     * @param rcsSettings
      */
-    public TerminatingImageTransferSession(ImsService parent, SipRequest invite, ContactId contact) {
+    public TerminatingImageTransferSession(ImsService parent, SipRequest invite, ContactId contact,
+            RcsSettings rcsSettings) {
         super(parent, ContentManager.createMmContentFromSdp(invite), contact, FileTransferUtils
-                .extractFileIcon(invite));
+                .extractFileIcon(invite), rcsSettings);
 
         // Create dialog path
         createTerminatingDialogPath(invite);
@@ -244,7 +247,7 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
             // Create the MSRP manager
             String localIpAddress = getImsService().getImsModule().getCurrentNetworkInterface()
                     .getNetworkAccess().getIpAddress();
-            msrpMgr = new MsrpManager(localIpAddress, localMsrpPort, getImsService());
+            msrpMgr = new MsrpManager(localIpAddress, localMsrpPort, getImsService(), mRcsSettings);
             msrpMgr.setSecured(isSecured);
 
             // Build SDP part

@@ -38,6 +38,7 @@ import com.gsma.rcs.core.ims.service.ImsServiceSession;
 import com.gsma.rcs.core.ims.service.sip.GenericSipSession;
 import com.gsma.rcs.core.ims.service.sip.SipSessionError;
 import com.gsma.rcs.core.ims.service.sip.SipSessionListener;
+import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.NetworkRessourceManager;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.contacts.ContactId;
@@ -95,9 +96,11 @@ public abstract class GenericSipRtpSession extends GenericSipSession implements 
      * @param parent IMS service
      * @param contact Remote contact Id
      * @param featureTag Feature tag
+     * @param rcsSettings
      */
-    public GenericSipRtpSession(ImsService parent, ContactId contact, String featureTag) {
-        super(parent, contact, featureTag);
+    public GenericSipRtpSession(ImsService parent, ContactId contact, String featureTag,
+            RcsSettings rcsSettings) {
+        super(parent, contact, featureTag, rcsSettings);
 
         // Get local port
         localRtpPort = NetworkRessourceManager.generateLocalRtpPort();
@@ -145,6 +148,7 @@ public abstract class GenericSipRtpSession extends GenericSipSession implements 
 
     /**
      * Generate SDP
+     * @return SDP built
      */
     public String generateSdp() {
         String ntpTime = SipUtils.constructNTPtime(System.currentTimeMillis());

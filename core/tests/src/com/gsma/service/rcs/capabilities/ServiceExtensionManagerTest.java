@@ -26,16 +26,23 @@ import android.test.AndroidTestCase;
 import android.util.Log;
 
 import com.gsma.rcs.core.ims.service.extension.ServiceExtensionManager;
+import com.gsma.rcs.provider.LocalContentResolver;
+import com.gsma.rcs.provider.settings.RcsSettings;
 
 public class ServiceExtensionManagerTest extends AndroidTestCase {
 
     private Set<String> extensions;
+    private RcsSettings mRcsSettings;
 
     protected void setUp() throws Exception {
         super.setUp();
         extensions = new HashSet<String>();
         extensions.add(UUID.randomUUID().toString());
         extensions.add(UUID.randomUUID().toString());
+
+        LocalContentResolver localContentResolver = new LocalContentResolver(getContext());
+        RcsSettings.createInstance(localContentResolver);
+        mRcsSettings = RcsSettings.getInstance();
     }
 
     protected void tearDown() throws Exception {
@@ -43,16 +50,19 @@ public class ServiceExtensionManagerTest extends AndroidTestCase {
     }
 
     public void testGetExtensions() {
-        String concatenatedExtensions = ServiceExtensionManager.getInstance().getExtensions(
-                extensions);
+        String concatenatedExtensions = ServiceExtensionManager.getInstance(mRcsSettings)
+                .getExtensions(
+                        extensions);
         Log.d("RCS", "testGetExtensions concatenatedExtensions=" + concatenatedExtensions);
-        Set<String> newExtensions = ServiceExtensionManager.getInstance().getExtensions(
-                concatenatedExtensions);
+        Set<String> newExtensions = ServiceExtensionManager.getInstance(mRcsSettings)
+                .getExtensions(
+                        concatenatedExtensions);
         assertEquals(newExtensions, extensions);
     }
 
     public void testGetExtensionsEmptyTokens() {
-        Set<String> newExtensions = ServiceExtensionManager.getInstance().getExtensions("; ;");
+        Set<String> newExtensions = ServiceExtensionManager.getInstance(mRcsSettings)
+                .getExtensions("; ;");
         assertTrue(newExtensions.isEmpty());
     }
 

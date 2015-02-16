@@ -169,7 +169,7 @@ public class TerminatingAdhocGroupChatSession extends GroupChatSession implement
             return true;
         }
 
-        return RcsSettings.getInstance().isGroupChatAutoAccepted();
+        return mRcsSettings.isGroupChatAutoAccepted();
     }
 
     /**

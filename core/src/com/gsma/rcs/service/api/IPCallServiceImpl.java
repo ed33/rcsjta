@@ -44,8 +44,9 @@ import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.ICommonServiceConfiguration;
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsService;
-import com.gsma.services.rcs.RcsService.Direction;
 import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
+import com.gsma.services.rcs.RcsService.Direction;
+import com.gsma.services.rcs.RcsServiceRegistration;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ipcall.IIPCall;
 import com.gsma.services.rcs.ipcall.IIPCallListener;
@@ -156,8 +157,17 @@ public class IPCallServiceImpl extends IIPCallService.Stub {
     }
 
     /**
-     * Registers a listener on service registration events
+     * Return the reason code for IMS service registration
      * 
+     * @return the reason code for IMS service registration
+     */
+    public RcsServiceRegistration.ReasonCode getServiceRegistrationReasonCode() {
+        return ServerApiUtils.getServiceRegistrationReasonCode();
+    }
+
+    /**
+     * Registers a listener on service registration events
+     *
      * @param listener Service registration listener
      */
     public void addEventListener(IRcsServiceRegistrationListener listener) {
@@ -171,7 +181,7 @@ public class IPCallServiceImpl extends IIPCallService.Stub {
 
     /**
      * Unregisters a listener on service registration events
-     * 
+     *
      * @param listener Service registration listener
      */
     public void removeEventListener(IRcsServiceRegistrationListener listener) {
@@ -184,18 +194,24 @@ public class IPCallServiceImpl extends IIPCallService.Stub {
     }
 
     /**
-     * Receive registration event
-     * 
-     * @param state Registration state
+     * Notifies registration event
      */
-    public void notifyRegistrationEvent(boolean state) {
+    public void notifyRegistration() {
         // Notify listeners
         synchronized (lock) {
-            if (state) {
-                mRcsServiceRegistrationEventBroadcaster.broadcastServiceRegistered();
-            } else {
-                mRcsServiceRegistrationEventBroadcaster.broadcastServiceUnRegistered();
-            }
+            mRcsServiceRegistrationEventBroadcaster.broadcastServiceRegistered();
+        }
+    }
+
+    /**
+     * Notifies unregistration event
+     *
+     * @param reasonCode for unregistration
+     */
+    public void notifyUnRegistration(RcsServiceRegistration.ReasonCode reasonCode) {
+        // Notify listeners
+        synchronized (lock) {
+            mRcsServiceRegistrationEventBroadcaster.broadcastServiceUnRegistered(reasonCode);
         }
     }
 
@@ -253,10 +269,11 @@ public class IPCallServiceImpl extends IIPCallService.Stub {
                     player, renderer);
 
             String callId = session.getSessionID();
-            mIPCallLog.addCall(callId, contact, Direction.OUTGOING, session.getAudioContent(),
+            mIPCallLog.addCall(callId, contact,
+                    Direction.OUTGOING, session.getAudioContent(),
                     session.getVideoContent(), IPCall.State.INITIATED, ReasonCode.UNSPECIFIED);
-            mBroadcaster.broadcastIPCallStateChanged(contact, callId, IPCall.State.INITIATED,
-                    ReasonCode.UNSPECIFIED);
+            mBroadcaster.broadcastIPCallStateChanged(contact, callId,
+                    IPCall.State.INITIATED, ReasonCode.UNSPECIFIED);
 
             IPCallPersistedStorageAccessor storageAccessor = new IPCallPersistedStorageAccessor(
                     callId, contact, Direction.OUTGOING, mIPCallLog);
@@ -276,8 +293,9 @@ public class IPCallServiceImpl extends IIPCallService.Stub {
             return ipCall;
 
         } catch (Exception e) {
-            mIPCallLog.addCall(SessionIdGenerator.getNewId(), contact, Direction.OUTGOING, null,
-                    null, IPCall.State.FAILED, ReasonCode.FAILED_INITIATION);
+            mIPCallLog.addCall(SessionIdGenerator.getNewId(), contact,
+                    Direction.OUTGOING, null, null, IPCall.State.FAILED,
+                    ReasonCode.FAILED_INITIATION);
             ;
             throw new ServerApiException(e.getMessage());
         }
@@ -314,10 +332,11 @@ public class IPCallServiceImpl extends IIPCallService.Stub {
                     player, renderer);
 
             String callId = session.getSessionID();
-            mIPCallLog.addCall(callId, contact, Direction.OUTGOING, session.getAudioContent(),
+            mIPCallLog.addCall(callId, contact,
+                    Direction.OUTGOING, session.getAudioContent(),
                     session.getVideoContent(), IPCall.State.INITIATED, ReasonCode.UNSPECIFIED);
-            mBroadcaster.broadcastIPCallStateChanged(contact, callId, IPCall.State.INITIATED,
-                    ReasonCode.UNSPECIFIED);
+            mBroadcaster.broadcastIPCallStateChanged(contact, callId,
+                    IPCall.State.INITIATED, ReasonCode.UNSPECIFIED);
 
             IPCallPersistedStorageAccessor storageAccessor = new IPCallPersistedStorageAccessor(
                     callId, contact, Direction.OUTGOING, mIPCallLog);
@@ -337,8 +356,9 @@ public class IPCallServiceImpl extends IIPCallService.Stub {
             return ipCall;
 
         } catch (Exception e) {
-            mIPCallLog.addCall(SessionIdGenerator.getNewId(), contact, Direction.OUTGOING, null,
-                    null, IPCall.State.FAILED, ReasonCode.FAILED_INITIATION);
+            mIPCallLog.addCall(SessionIdGenerator.getNewId(), contact,
+                    Direction.OUTGOING, null, null, IPCall.State.FAILED,
+                    ReasonCode.FAILED_INITIATION);
             throw new ServerApiException(e.getMessage());
         }
     }
@@ -401,17 +421,18 @@ public class IPCallServiceImpl extends IIPCallService.Stub {
 
     /**
      * Add and broadcast video sharing invitation rejections
-     * 
+     *
      * @param contact Contact ID
      * @param audioContent Audio content
      * @param videoContent Video content
      * @param reasonCode Reason code
      */
     public void addAndBroadcastIPCallInvitationRejected(ContactId contact,
-            AudioContent audioContent, VideoContent videoContent, int reasonCode) {
+            AudioContent audioContent,
+            VideoContent videoContent, int reasonCode) {
         String sessionId = SessionIdGenerator.getNewId();
-        mIPCallLog.addCall(sessionId, contact, Direction.INCOMING, audioContent, videoContent,
-                IPCall.State.REJECTED, reasonCode);
+        mIPCallLog.addCall(sessionId, contact, Direction.INCOMING,
+                audioContent, videoContent, IPCall.State.REJECTED, reasonCode);
         mBroadcaster.broadcastIPCallInvitation(sessionId);
     }
 
@@ -460,6 +481,6 @@ public class IPCallServiceImpl extends IIPCallService.Stub {
      * @return the common service configuration
      */
     public ICommonServiceConfiguration getCommonConfiguration() {
-        return new CommonServiceConfigurationImpl();
+        return new CommonServiceConfigurationImpl(mRcsSettings);
     }
 }

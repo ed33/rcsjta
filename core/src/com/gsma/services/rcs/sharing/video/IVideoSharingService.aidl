@@ -7,6 +7,7 @@ import com.gsma.services.rcs.sharing.video.IVideoPlayer;
 import com.gsma.services.rcs.sharing.video.IVideoSharingServiceConfiguration;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ICommonServiceConfiguration;
+import com.gsma.services.rcs.RcsServiceRegistration;
 
 /**
  * Video sharing service API
@@ -14,6 +15,8 @@ import com.gsma.services.rcs.ICommonServiceConfiguration;
 interface IVideoSharingService {
 
 	boolean isServiceRegistered();
+	
+	RcsServiceRegistration.ReasonCode getServiceRegistrationReasonCode();
 
 	void addEventListener(IRcsServiceRegistrationListener listener);
 

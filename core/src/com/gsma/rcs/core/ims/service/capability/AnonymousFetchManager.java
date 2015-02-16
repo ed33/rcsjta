@@ -33,6 +33,7 @@ import com.gsma.rcs.core.ims.service.presence.pidf.PidfDocument;
 import com.gsma.rcs.core.ims.service.presence.pidf.PidfParser;
 import com.gsma.rcs.core.ims.service.presence.pidf.Tuple;
 import com.gsma.rcs.provider.eab.ContactsManager;
+import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.ContactUtils;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.RcsContactFormatException;
@@ -47,20 +48,24 @@ public class AnonymousFetchManager implements DiscoveryManager {
     /**
      * IMS module
      */
-    private ImsModule imsModule;
+    private ImsModule mImsModule;
 
     /**
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
 
+    private final RcsSettings mRcsSettings;
+
     /**
      * Constructor
      * 
      * @param parent IMS module
+     * @param rcsSettings
      */
-    public AnonymousFetchManager(ImsModule parent) {
-        this.imsModule = parent;
+    public AnonymousFetchManager(ImsModule parent, RcsSettings rcsSettings) {
+        mImsModule = parent;
+        mRcsSettings = rcsSettings;
     }
 
     /**
@@ -73,7 +78,8 @@ public class AnonymousFetchManager implements DiscoveryManager {
         if (logger.isActivated()) {
             logger.debug("Request capabilities in background for " + contact);
         }
-        AnonymousFetchRequestTask task = new AnonymousFetchRequestTask(imsModule, contact);
+        AnonymousFetchRequestTask task = new AnonymousFetchRequestTask(mImsModule, contact,
+                mRcsSettings);
         task.start();
         return true;
     }
@@ -133,7 +139,7 @@ public class AnonymousFetchManager implements DiscoveryManager {
                         RcsStatus.RCS_CAPABLE, RegistrationState.UNKNOWN);
 
                 // Notify listener
-                imsModule.getCore().getListener()
+                mImsModule.getCore().getListener()
                         .handleCapabilitiesNotification(contact, capabilities);
 
             } catch (Exception e) {
@@ -157,7 +163,7 @@ public class AnonymousFetchManager implements DiscoveryManager {
                         RcsStatus.NO_INFO, RegistrationState.UNKNOWN);
 
                 // Notify listener
-                imsModule.getCore().getListener()
+                mImsModule.getCore().getListener()
                         .handleCapabilitiesNotification(contact, capabilities);
             } catch (RcsContactFormatException e) {
                 if (isLogActivated) {

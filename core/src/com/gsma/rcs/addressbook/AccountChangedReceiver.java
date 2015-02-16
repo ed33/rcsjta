@@ -32,6 +32,7 @@ import com.gsma.rcs.service.LauncherUtils;
 import com.gsma.rcs.service.ServiceUtils;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.rcs.R;
+import com.gsma.rcs.provider.LocalContentResolver;
 
 /**
  * The user changed an account (modify, delete or add) <br>
@@ -39,7 +40,7 @@ import com.gsma.rcs.R;
  */
 public class AccountChangedReceiver extends BroadcastReceiver {
     /**
-     * Account has been manualy deleted
+     * Account has been manually deleted
      */
     private static final String REGISTRY_RCS_ACCOUNT_MANUALY_DELETED = "RcsAccountManualyDeleted";
 
@@ -62,7 +63,7 @@ public class AccountChangedReceiver extends BroadcastReceiver {
             }
 
             // Set the user account manually deleted flag
-            RcsSettings.createInstance(context);
+            RcsSettings.createInstance(new LocalContentResolver(context));
             if (RcsSettings.getInstance().isUserProfileConfigured()) {
                 setAccountResetByEndUser(true);
             }
@@ -108,7 +109,7 @@ public class AccountChangedReceiver extends BroadcastReceiver {
     /**
      * Set user account reset by end user
      * 
-     * @param Boolean
+     * @param value
      */
     public static void setAccountResetByEndUser(boolean value) {
         RegistryFactory.getFactory().writeBoolean(REGISTRY_RCS_ACCOUNT_MANUALY_DELETED, value);

@@ -47,8 +47,9 @@ import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.ICommonServiceConfiguration;
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsService;
-import com.gsma.services.rcs.RcsService.Direction;
 import com.gsma.services.rcs.RcsService.Build.VERSION_CODES;
+import com.gsma.services.rcs.RcsService.Direction;
+import com.gsma.services.rcs.RcsServiceRegistration;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.sharing.image.IImageSharing;
 import com.gsma.services.rcs.sharing.image.IImageSharingListener;
@@ -158,8 +159,17 @@ public class ImageSharingServiceImpl extends IImageSharingService.Stub {
     }
 
     /**
-     * Registers a listener on service registration events
+     * Return the reason code for IMS service registration
      * 
+     * @return the reason code for IMS service registration
+     */
+    public RcsServiceRegistration.ReasonCode getServiceRegistrationReasonCode() {
+        return ServerApiUtils.getServiceRegistrationReasonCode();
+    }
+
+    /**
+     * Registers a listener on service registration events
+     *
      * @param listener Service registration listener
      */
     public void addEventListener(IRcsServiceRegistrationListener listener) {
@@ -173,7 +183,7 @@ public class ImageSharingServiceImpl extends IImageSharingService.Stub {
 
     /**
      * Unregisters a listener on service registration events
-     * 
+     *
      * @param listener Service registration listener
      */
     public void removeEventListener(IRcsServiceRegistrationListener listener) {
@@ -186,18 +196,24 @@ public class ImageSharingServiceImpl extends IImageSharingService.Stub {
     }
 
     /**
-     * Receive registration event
-     * 
-     * @param state Registration state
+     * Notifies registration event
      */
-    public void notifyRegistrationEvent(boolean state) {
+    public void notifyRegistration() {
         // Notify listeners
         synchronized (lock) {
-            if (state) {
-                mRcsServiceRegistrationEventBroadcaster.broadcastServiceRegistered();
-            } else {
-                mRcsServiceRegistrationEventBroadcaster.broadcastServiceUnRegistered();
-            }
+            mRcsServiceRegistrationEventBroadcaster.broadcastServiceRegistered();
+        }
+    }
+
+    /**
+     * Notifies unregistration event
+     *
+     * @param reasonCode for unregistration
+     */
+    public void notifyUnRegistration(RcsServiceRegistration.ReasonCode reasonCode) {
+        // Notify listeners
+        synchronized (lock) {
+            mRcsServiceRegistrationEventBroadcaster.broadcastServiceUnRegistered(reasonCode);
         }
     }
 
@@ -209,7 +225,8 @@ public class ImageSharingServiceImpl extends IImageSharingService.Stub {
     public void receiveImageSharingInvitation(ImageTransferSession session) {
         if (logger.isActivated()) {
             logger.info("Receive image sharing invitation from " + session.getRemoteContact()
-                    + " displayName=" + session.getRemoteDisplayName());
+                    + " displayName="
+                    + session.getRemoteDisplayName());
         }
         ContactId contact = session.getRemoteContact();
 
@@ -263,10 +280,11 @@ public class ImageSharingServiceImpl extends IImageSharingService.Stub {
                     contact, content, null);
 
             String sharingId = session.getSessionID();
-            mRichCallLog.addImageSharing(session.getSessionID(), contact, Direction.OUTGOING,
-                    session.getContent(), ImageSharing.State.INITIATING, ReasonCode.UNSPECIFIED);
-            mBroadcaster.broadcastStateChanged(contact, sharingId, ImageSharing.State.INITIATING,
-                    ReasonCode.UNSPECIFIED);
+            mRichCallLog.addImageSharing(session.getSessionID(), contact,
+                    Direction.OUTGOING, session.getContent(),
+                    ImageSharing.State.INITIATING, ReasonCode.UNSPECIFIED);
+            mBroadcaster.broadcastStateChanged(contact, sharingId,
+                    ImageSharing.State.INITIATING, ReasonCode.UNSPECIFIED);
 
             ImageSharingPersistedStorageAccessor storageAccessor = new ImageSharingPersistedStorageAccessor(
                     sharingId, contact, Direction.OUTGOING, file, content.getName(),
@@ -342,16 +360,16 @@ public class ImageSharingServiceImpl extends IImageSharingService.Stub {
 
     /**
      * Add and broadcast image sharing invitation rejection invitation.
-     * 
+     *
      * @param contact Contact
      * @param content Image content
      * @param reasonCode Reason code
      */
-    public void addAndBroadcastImageSharingInvitationRejected(ContactId contact, MmContent content,
-            int reasonCode) {
+    public void addAndBroadcastImageSharingInvitationRejected(ContactId contact,
+            MmContent content, int reasonCode) {
         String sessionId = SessionIdGenerator.getNewId();
-        mRichCallLog.addImageSharing(sessionId, contact, Direction.INCOMING, content,
-                ImageSharing.State.REJECTED, reasonCode);
+        mRichCallLog.addImageSharing(sessionId, contact,
+                Direction.INCOMING, content, ImageSharing.State.REJECTED, reasonCode);
         mBroadcaster.broadcastInvitation(sessionId);
     }
 
@@ -428,6 +446,6 @@ public class ImageSharingServiceImpl extends IImageSharingService.Stub {
      * @return the common service configuration
      */
     public ICommonServiceConfiguration getCommonConfiguration() {
-        return new CommonServiceConfigurationImpl();
+        return new CommonServiceConfigurationImpl(mRcsSettings);
     }
 }

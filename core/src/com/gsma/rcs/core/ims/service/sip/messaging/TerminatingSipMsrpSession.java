@@ -45,6 +45,7 @@ import com.gsma.rcs.core.ims.service.ImsSessionListener;
 import com.gsma.rcs.core.ims.service.SessionTimerManager;
 import com.gsma.rcs.core.ims.service.sip.SipSessionError;
 import com.gsma.rcs.core.ims.service.sip.SipSessionListener;
+import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.ContactUtils;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.RcsContactFormatException;
@@ -69,12 +70,15 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
      * 
      * @param parent IMS service
      * @param invite Initial INVITE request
+     * @param sessionInvite
+     * @param rcsSettings
      * @throws RcsContactFormatException
      */
-    public TerminatingSipMsrpSession(ImsService parent, SipRequest invite, Intent sessionInvite)
+    public TerminatingSipMsrpSession(ImsService parent, SipRequest invite, Intent sessionInvite,
+            RcsSettings rcsSettings)
             throws RcsContactFormatException {
         super(parent, ContactUtils.createContactId(SipUtils.getAssertedIdentity(invite)), invite
-                .getFeatureTags().get(0));
+                .getFeatureTags().get(0), rcsSettings);
 
         mSessionInvite = sessionInvite;
 
@@ -304,7 +308,4 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
         return true;
     }
 
-    public Intent getSessionInvite() {
-        return mSessionInvite;
-    }
 }

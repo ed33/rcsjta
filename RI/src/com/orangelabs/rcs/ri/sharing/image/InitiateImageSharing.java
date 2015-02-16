@@ -46,8 +46,8 @@ import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
 import com.gsma.services.rcs.sharing.image.ImageSharing;
 import com.gsma.services.rcs.sharing.image.ImageSharingListener;
-import com.orangelabs.rcs.ri.ApiConnectionManager;
-import com.orangelabs.rcs.ri.ApiConnectionManager.RcsServiceName;
+import com.orangelabs.rcs.ri.ConnectionManager;
+import com.orangelabs.rcs.ri.ConnectionManager.RcsServiceName;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.RiApplication;
 import com.orangelabs.rcs.ri.utils.ContactListAdapter;
@@ -111,7 +111,7 @@ public class InitiateImageSharing extends Activity {
     /**
      * API connection manager
      */
-    private ApiConnectionManager mCnxManager;
+    private ConnectionManager mCnxManager;
 
     /**
      * Spinner for contact selection
@@ -261,7 +261,7 @@ public class InitiateImageSharing extends Activity {
         }
 
         // Register to API connection manager
-        mCnxManager = ApiConnectionManager.getInstance(this);
+        mCnxManager = ConnectionManager.getInstance(this);
         if (mCnxManager == null || !mCnxManager.isServiceConnected(RcsServiceName.IMAGE_SHARING)) {
             Utils.showMessageAndExit(this, getString(R.string.label_service_not_available),
                     mExitOnce);

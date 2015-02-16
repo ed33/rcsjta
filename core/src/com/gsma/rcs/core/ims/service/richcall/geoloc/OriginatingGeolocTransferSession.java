@@ -43,6 +43,7 @@ import com.gsma.rcs.core.ims.service.ImsServiceError;
 import com.gsma.rcs.core.ims.service.ImsServiceSession;
 import com.gsma.rcs.core.ims.service.ImsSessionListener;
 import com.gsma.rcs.core.ims.service.richcall.ContentSharingError;
+import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.ContactUtils;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.Geoloc;
@@ -74,10 +75,11 @@ public class OriginatingGeolocTransferSession extends GeolocTransferSession impl
      * @param content Content to be shared
      * @param contact Remote contact Id
      * @param geoloc Geoloc info
+     * @param rcsSettings
      */
     public OriginatingGeolocTransferSession(ImsService parent, MmContent content,
-            ContactId contact, Geoloc geoloc) {
-        super(parent, content, contact);
+            ContactId contact, Geoloc geoloc, RcsSettings rcsSettings) {
+        super(parent, content, contact, rcsSettings);
 
         // Create dialog path
         createOriginatingDialogPath();
@@ -282,6 +284,7 @@ public class OriginatingGeolocTransferSession extends GeolocTransferSession impl
      * @param currentSize Current transfered size in bytes
      * @param totalSize Total size in bytes
      * @param data received data chunk
+     * @return True is transfer in progress
      */
     public boolean msrpTransferProgress(long currentSize, long totalSize, byte[] data) {
         // Not used in originating side

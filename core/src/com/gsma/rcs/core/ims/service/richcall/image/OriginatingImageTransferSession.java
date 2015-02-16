@@ -86,10 +86,11 @@ public class OriginatingImageTransferSession extends ImageTransferSession implem
      * @param content Content to be shared
      * @param contact Remote contact Id
      * @param thumbnail Thumbnail content option
+     * @param rcsSettings
      */
     public OriginatingImageTransferSession(ImsService parent, MmContent content, ContactId contact,
-            MmContent thumbnail) {
-        super(parent, content, contact, thumbnail);
+            MmContent thumbnail, RcsSettings rcsSettings) {
+        super(parent, content, contact, thumbnail, rcsSettings);
 
         // Create dialog path
         createOriginatingDialogPath();
@@ -121,9 +122,9 @@ public class OriginatingImageTransferSession extends ImageTransferSession implem
             // Create the MSRP manager
             String localIpAddress = getImsService().getImsModule().getCurrentNetworkInterface()
                     .getNetworkAccess().getIpAddress();
-            msrpMgr = new MsrpManager(localIpAddress, localMsrpPort, getImsService());
+            msrpMgr = new MsrpManager(localIpAddress, localMsrpPort, getImsService(), mRcsSettings);
             if (getImsService().getImsModule().isConnectedToWifiAccess()) {
-                msrpMgr.setSecured(RcsSettings.getInstance().isSecureMsrpOverWifi());
+                msrpMgr.setSecured(mRcsSettings.isSecureMsrpOverWifi());
             }
 
             // Build SDP part

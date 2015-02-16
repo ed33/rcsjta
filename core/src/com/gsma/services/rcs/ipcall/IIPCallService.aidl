@@ -8,6 +8,7 @@ import com.gsma.services.rcs.ipcall.IIPCallRenderer;
 import com.gsma.services.rcs.ipcall.IIPCallServiceConfiguration;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ICommonServiceConfiguration;
+import com.gsma.services.rcs.RcsServiceRegistration;
 
 /**
  * IP call service API
@@ -15,6 +16,8 @@ import com.gsma.services.rcs.ICommonServiceConfiguration;
 interface IIPCallService {
 
 	boolean isServiceRegistered();
+	
+	RcsServiceRegistration.ReasonCode getServiceRegistrationReasonCode();
 
 	void addEventListener(IRcsServiceRegistrationListener listener);
 

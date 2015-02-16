@@ -109,7 +109,7 @@ public class TerminatingOneToOneChatSession extends OneToOneChatSession implemen
             return true;
         }
 
-        return RcsSettings.getInstance().isChatAutoAccepted();
+        return mRcsSettings.isChatAutoAccepted();
     }
 
     /**

@@ -40,35 +40,37 @@ public class UpdateSessionManager {
     /**
      * Session to be renegociated
      */
-    private ImsServiceSession session;
+    private ImsServiceSession mSession;
 
     /**
      * Re-Invite invitation status
      */
-    private int reInviteStatus = ImsServiceSession.INVITATION_NOT_ANSWERED;
+    private int mReInviteStatus = ImsServiceSession.INVITATION_NOT_ANSWERED;
 
     /**
      * Wait user answer for reInvite invitation
      */
-    private Object waitUserAnswer = new Object();
+    private Object mWaitUserAnswer = new Object();
 
     /**
      * Ringing period (in seconds)
      */
-    private int ringingPeriod = RcsSettings.getInstance().getRingingPeriod();
+    private final int mRingingPeriod;
 
     /**
      * The logger
      */
-    private final Logger logger = Logger.getLogger(this.getClass().getName());
+    private static final Logger sLogger = Logger.getLogger(UpdateSessionManager.class.getName());
 
     /**
      * Constructor
      * 
      * @param session Session to be refreshed
+     * @param rcsSettings
      */
-    public UpdateSessionManager(ImsServiceSession mysession) {
-        this.session = mysession;
+    public UpdateSessionManager(ImsServiceSession session, RcsSettings rcsSettings) {
+        mSession = session;
+        mRingingPeriod = rcsSettings.getRingingPeriod();
     }
 
     /**
@@ -79,49 +81,49 @@ public class UpdateSessionManager {
      * @return reInvite request
      */
     public SipRequest createReInvite(String[] featureTags, String content) {
-        if (logger.isActivated()) {
-            logger.debug("createReInvite()");
+        if (sLogger.isActivated()) {
+            sLogger.debug("createReInvite()");
         }
 
         SipRequest reInvite = null;
 
         try {
             // Increment the Cseq number of the dialog path
-            session.getDialogPath().incrementCseq();
-            if (logger.isActivated()) {
-                logger.info("Increment DialogPath CSeq - DialogPath CSeq ="
-                        + session.getDialogPath().getCseq());
+            mSession.getDialogPath().incrementCseq();
+            if (sLogger.isActivated()) {
+                sLogger.info("Increment DialogPath CSeq - DialogPath CSeq ="
+                        + mSession.getDialogPath().getCseq());
             }
 
             // Increment internal stack CSeq (NIST stack issue?)
-            Dialog dlg = session.getDialogPath().getStackDialog();
-            while ((dlg != null) && (dlg.getLocalSeqNumber() < session.getDialogPath().getCseq())) {
+            Dialog dlg = mSession.getDialogPath().getStackDialog();
+            while ((dlg != null) && (dlg.getLocalSeqNumber() < mSession.getDialogPath().getCseq())) {
                 dlg.incrementLocalSequenceNumber();
-                if (logger.isActivated()) {
-                    logger.info("Increment LocalSequenceNumber -  Dialog local Seq Number ="
+                if (sLogger.isActivated()) {
+                    sLogger.info("Increment LocalSequenceNumber -  Dialog local Seq Number ="
                             + dlg.getLocalSeqNumber());
                 }
             }
 
             // create ReInvite
-            reInvite = SipMessageFactory.createReInvite(session.getDialogPath(), featureTags,
+            reInvite = SipMessageFactory.createReInvite(mSession.getDialogPath(), featureTags,
                     content);
-            if (logger.isActivated()) {
-                logger.info("reInvite created -  reInvite CSeq =" + reInvite.getCSeq());
+            if (sLogger.isActivated()) {
+                sLogger.info("reInvite created -  reInvite CSeq =" + reInvite.getCSeq());
             }
 
             // Set the Authorization header
-            session.getAuthenticationAgent().setAuthorizationHeader(reInvite);
+            mSession.getAuthenticationAgent().setAuthorizationHeader(reInvite);
 
             // Set the Proxy-Authorization header
-            session.getAuthenticationAgent().setProxyAuthorizationHeader(reInvite);
+            mSession.getAuthenticationAgent().setProxyAuthorizationHeader(reInvite);
 
         } catch (SipException e) {
             // Unexpected error
-            session.handleError(new IPCallError(IPCallError.UNEXPECTED_EXCEPTION, e.getMessage()));
+            mSession.handleError(new IPCallError(IPCallError.UNEXPECTED_EXCEPTION, e.getMessage()));
         } catch (CoreException e) {
             // Unexpected error
-            session.handleError(new IPCallError(IPCallError.UNEXPECTED_EXCEPTION, e.getMessage()));
+            mSession.handleError(new IPCallError(IPCallError.UNEXPECTED_EXCEPTION, e.getMessage()));
         }
 
         return reInvite;
@@ -135,8 +137,8 @@ public class UpdateSessionManager {
      * @param serviceContext service context of ReInvite
      */
     public void sendReInvite(SipRequest request, int serviceContext) {
-        if (logger.isActivated()) {
-            logger.debug("sendReInvite()");
+        if (sLogger.isActivated()) {
+            sLogger.debug("sendReInvite()");
         }
 
         final SipRequest reInvite = request;
@@ -147,40 +149,40 @@ public class UpdateSessionManager {
                 SipTransactionContext ctx;
                 try {
                     // Send ReINVITE request
-                    ctx = session.getImsService().getImsModule().getSipManager()
-                            .sendSipMessageAndWait(reInvite, session.getResponseTimeout());
+                    ctx = mSession.getImsService().getImsModule().getSipManager()
+                            .sendSipMessageAndWait(reInvite, mSession.getResponseTimeout());
 
                     if (ctx.isSipResponse()) { // Analyze the received response
                         if (ctx.getStatusCode() == 200) {
 
                             // // set received sdp response as remote sdp content
-                            session.getDialogPath().setRemoteContent(
+                            mSession.getDialogPath().setRemoteContent(
                                     ctx.getSipResponse().getSdpContent());
 
                             // notify session with 200OK response
-                            session.handleReInviteResponse(200, ctx.getSipResponse(),
+                            mSession.handleReInviteResponse(200, ctx.getSipResponse(),
                                     reInviteContext);
 
                             // send SIP ACK
-                            session.getImsService().getImsModule().getSipManager()
-                                    .sendSipAck(session.getDialogPath());
+                            mSession.getImsService().getImsModule().getSipManager()
+                                    .sendSipAck(mSession.getDialogPath());
 
                         } else if (ctx.getStatusCode() == 603) {
                             // notify session with 603 response
-                            session.handleReInviteResponse(ImsServiceSession.INVITATION_REJECTED,
+                            mSession.handleReInviteResponse(ImsServiceSession.INVITATION_REJECTED,
                                     ctx.getSipResponse(), reInviteContext);
                         } else if (ctx.getStatusCode() == 408) {
                             // notify session with 408 response
-                            session.handleReInviteResponse(
+                            mSession.handleReInviteResponse(
                                     ImsServiceSession.TERMINATION_BY_TIMEOUT, ctx.getSipResponse(),
                                     reInviteContext);
                         } else if (ctx.getStatusCode() == 407) {
                             // notify session with 407 Proxy Authent required
-                            session.handleReInvite407ProxyAuthent(ctx.getSipResponse(),
+                            mSession.handleReInvite407ProxyAuthent(ctx.getSipResponse(),
                                     reInviteContext);
                         } else {
                             // Other error response => generate call error
-                            session.handleError(new ImsSessionBasedServiceError(
+                            mSession.handleError(new ImsSessionBasedServiceError(
                                     ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION, ctx
                                             .getSipResponse().getStatusCode()
                                             + " "
@@ -188,15 +190,15 @@ public class UpdateSessionManager {
                         }
                     } else {
                         // No response received: timeout => notify session
-                        session.handleReInviteResponse(ImsServiceSession.TERMINATION_BY_TIMEOUT,
+                        mSession.handleReInviteResponse(ImsServiceSession.TERMINATION_BY_TIMEOUT,
                                 ctx.getSipResponse(), reInviteContext);
                     }
                 } catch (SipException e) {
                     // Unexpected error => generate call error
-                    if (logger.isActivated()) {
-                        logger.error("Send ReInvite has failed", e);
+                    if (sLogger.isActivated()) {
+                        sLogger.error("Send ReInvite has failed", e);
                     }
-                    session.handleError(new ImsSessionBasedServiceError(
+                    mSession.handleError(new ImsSessionBasedServiceError(
                             ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION, e.getMessage()));
                 }
             }
@@ -210,12 +212,13 @@ public class UpdateSessionManager {
      * 
      * @param request RE-INVITE request
      * @param featureTags featureTags to set in request
+     * @param sdpResponse
      * @param serviceContext service context of reInvite request
      */
     public void send200OkReInviteResp(SipRequest request, String[] featureTags, String sdpResponse,
             int serviceContext) {
-        if (logger.isActivated()) {
-            logger.debug("receiveReInvite()");
+        if (sLogger.isActivated()) {
+            sLogger.debug("receiveReInvite()");
         }
 
         final SipRequest reInvite = request;
@@ -226,39 +229,39 @@ public class UpdateSessionManager {
         Thread thread = new Thread() {
             public void run() {
                 try {
-                    if (logger.isActivated()) {
-                        logger.debug("Send 200 OK");
+                    if (sLogger.isActivated()) {
+                        sLogger.debug("Send 200 OK");
                     }
                     // Create 200 OK response
                     SipResponse resp = SipMessageFactory.create200OkReInviteResponse(
-                            session.getDialogPath(), reInvite, respFeatureTags, sdp);
+                            mSession.getDialogPath(), reInvite, respFeatureTags, sdp);
                     // Send 200 OK response
-                    SipTransactionContext ctx = session.getImsService().getImsModule()
+                    SipTransactionContext ctx = mSession.getImsService().getImsModule()
                             .getSipManager().sendSipMessageAndWait(resp);
 
                     // Analyze the received response
                     if (ctx.isSipAck()) {
                         // ACK received
-                        if (logger.isActivated()) {
-                            logger.info("ACK request received");
+                        if (sLogger.isActivated()) {
+                            sLogger.info("ACK request received");
                         }
                         // notify local listener
-                        session.handleReInviteAck(200, reInviteContext);
+                        mSession.handleReInviteAck(200, reInviteContext);
                     } else {
-                        if (logger.isActivated()) {
-                            logger.debug("No ACK received for ReINVITE");
+                        if (sLogger.isActivated()) {
+                            sLogger.debug("No ACK received for ReINVITE");
                         }
                         // No ACK received => generate call error for local client
-                        session.handleError(new ImsSessionBasedServiceError(
+                        mSession.handleError(new ImsSessionBasedServiceError(
                                 ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION,
                                 "ack not received"));
                     }
                 } catch (Exception e) {
                     // Unexpected error => generate call error for local client
-                    if (logger.isActivated()) {
-                        logger.error("Session update refresh has failed", e);
+                    if (sLogger.isActivated()) {
+                        sLogger.error("Session update refresh has failed", e);
                     }
-                    session.handleError(new ImsSessionBasedServiceError(
+                    mSession.handleError(new ImsSessionBasedServiceError(
                             ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION, e.getMessage()));
                 }
             }
@@ -277,11 +280,11 @@ public class UpdateSessionManager {
      */
     public void waitUserAckAndSendReInviteResp(SipRequest request, String[] featureTags,
             int serviceContext) {
-        if (logger.isActivated()) {
-            logger.debug("receiveReInviteAndWait()");
+        if (sLogger.isActivated()) {
+            sLogger.debug("receiveReInviteAndWait()");
         }
 
-        reInviteStatus = ImsServiceSession.INVITATION_NOT_ANSWERED;
+        mReInviteStatus = ImsServiceSession.INVITATION_NOT_ANSWERED;
         final SipRequest reInvite = request;
         final int reInviteContext = serviceContext;
         final String[] respFeatureTags = featureTags;
@@ -294,85 +297,88 @@ public class UpdateSessionManager {
 
                     if (answer == ImsServiceSession.INVITATION_REJECTED) {
                         // Invitation declined by user
-                        if (logger.isActivated()) {
-                            logger.debug("reInvite has been rejected by user");
+                        if (sLogger.isActivated()) {
+                            sLogger.debug("reInvite has been rejected by user");
                         }
 
                         // send error to remote client
-                        session.sendErrorResponse(reInvite, session.getDialogPath().getLocalTag(),
+                        mSession.sendErrorResponse(reInvite,
+                                mSession.getDialogPath().getLocalTag(),
                                 603);
-                        session.handleReInviteUserAnswer(ImsServiceSession.INVITATION_REJECTED,
+                        mSession.handleReInviteUserAnswer(ImsServiceSession.INVITATION_REJECTED,
                                 reInviteContext);
                     } else if (answer == ImsServiceSession.INVITATION_NOT_ANSWERED) {
-                        if (logger.isActivated()) {
-                            logger.debug("Session has been rejected on timeout");
+                        if (sLogger.isActivated()) {
+                            sLogger.debug("Session has been rejected on timeout");
                         }
 
                         // send error to remote client
-                        session.sendErrorResponse(reInvite, session.getDialogPath().getLocalTag(),
+                        mSession.sendErrorResponse(reInvite,
+                                mSession.getDialogPath().getLocalTag(),
                                 603);
-                        session.handleReInviteUserAnswer(ImsServiceSession.INVITATION_NOT_ANSWERED,
+                        mSession.handleReInviteUserAnswer(
+                                ImsServiceSession.INVITATION_NOT_ANSWERED,
                                 reInviteContext);
 
                     } else if (answer == ImsServiceSession.INVITATION_ACCEPTED) {
-                        if (logger.isActivated()) {
-                            logger.debug("Send 200 OK");
+                        if (sLogger.isActivated()) {
+                            sLogger.debug("Send 200 OK");
                         }
 
                         // build sdp response
-                        String sdp = session.buildReInviteSdpResponse(reInvite, reInviteContext);
+                        String sdp = mSession.buildReInviteSdpResponse(reInvite, reInviteContext);
                         if (sdp == null) {
                             // sdp null - terminate session and send error
-                            session.handleError(new ImsSessionBasedServiceError(
+                            mSession.handleError(new ImsSessionBasedServiceError(
                                     ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION,
                                     "error on sdp building, sdp is null "));
                             return;
                         }
 
                         // set sdp response as local content
-                        session.getDialogPath().setLocalContent(sdp);
+                        mSession.getDialogPath().setLocalContent(sdp);
 
-                        session.handleReInviteUserAnswer(ImsServiceSession.INVITATION_ACCEPTED,
+                        mSession.handleReInviteUserAnswer(ImsServiceSession.INVITATION_ACCEPTED,
                                 reInviteContext);
 
                         // create 200OK response
                         SipResponse resp = SipMessageFactory.create200OkReInviteResponse(
-                                session.getDialogPath(), reInvite, respFeatureTags, sdp);
+                                mSession.getDialogPath(), reInvite, respFeatureTags, sdp);
 
                         // Send response
-                        SipTransactionContext ctx = session.getImsService().getImsModule()
+                        SipTransactionContext ctx = mSession.getImsService().getImsModule()
                                 .getSipManager().sendSipMessageAndWait(resp);
 
                         // Analyze the received response
                         if (ctx.isSipAck()) {
                             // ACK received
-                            if (logger.isActivated()) {
-                                logger.info("ACK request received");
-                                logger.info("ACK status code = " + ctx.getStatusCode());
+                            if (sLogger.isActivated()) {
+                                sLogger.info("ACK request received");
+                                sLogger.info("ACK status code = " + ctx.getStatusCode());
                             }
 
                             // notify local listener
-                            session.handleReInviteAck(200, reInviteContext);
+                            mSession.handleReInviteAck(200, reInviteContext);
                         } else {
-                            if (logger.isActivated()) {
-                                logger.debug("No ACK received for INVITE");
+                            if (sLogger.isActivated()) {
+                                sLogger.debug("No ACK received for INVITE");
                             }
                             // No ACK received: send error
-                            session.handleError(new ImsSessionBasedServiceError(
+                            mSession.handleError(new ImsSessionBasedServiceError(
                                     ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION,
                                     "ack not received"));
                         }
                     } else {
-                        session.handleError(new ImsSessionBasedServiceError(
+                        mSession.handleError(new ImsSessionBasedServiceError(
                                 ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION,
                                 "ack not received"));
                     }
                 } catch (Exception e) {
-                    if (logger.isActivated()) {
-                        logger.error("Session update refresh has failed", e);
+                    if (sLogger.isActivated()) {
+                        sLogger.error("Session update refresh has failed", e);
                     }
                     // Unexpected error
-                    session.handleError(new ImsSessionBasedServiceError(
+                    mSession.handleError(new ImsSessionBasedServiceError(
                             ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION, e.getMessage()));
                 }
             }
@@ -387,15 +393,15 @@ public class UpdateSessionManager {
      * @param code Error code
      */
     public void rejectReInvite(int code) {
-        if (logger.isActivated()) {
-            logger.debug("ReInvite  has been rejected");
+        if (sLogger.isActivated()) {
+            sLogger.debug("ReInvite  has been rejected");
         }
 
-        synchronized (waitUserAnswer) {
-            reInviteStatus = ImsServiceSession.INVITATION_REJECTED;
+        synchronized (mWaitUserAnswer) {
+            mReInviteStatus = ImsServiceSession.INVITATION_REJECTED;
 
             // Unblock semaphore
-            waitUserAnswer.notifyAll();
+            mWaitUserAnswer.notifyAll();
         }
 
         // Decline the invitation
@@ -407,15 +413,15 @@ public class UpdateSessionManager {
      * Accept the session invitation
      */
     public void acceptReInvite() {
-        if (logger.isActivated()) {
-            logger.debug("ReInvite has been accepted");
+        if (sLogger.isActivated()) {
+            sLogger.debug("ReInvite has been accepted");
         }
 
-        synchronized (waitUserAnswer) {
-            reInviteStatus = ImsServiceSession.INVITATION_ACCEPTED;
+        synchronized (mWaitUserAnswer) {
+            mReInviteStatus = ImsServiceSession.INVITATION_ACCEPTED;
 
             // Unblock semaphore
-            waitUserAnswer.notifyAll();
+            mWaitUserAnswer.notifyAll();
         }
     }
 
@@ -425,24 +431,24 @@ public class UpdateSessionManager {
      * @return Answer
      */
     public int waitInvitationAnswer() {
-        if (reInviteStatus != ImsServiceSession.INVITATION_NOT_ANSWERED) {
-            return reInviteStatus;
+        if (mReInviteStatus != ImsServiceSession.INVITATION_NOT_ANSWERED) {
+            return mReInviteStatus;
         }
 
-        if (logger.isActivated()) {
-            logger.debug("Wait session invitation answer");
+        if (sLogger.isActivated()) {
+            sLogger.debug("Wait session invitation answer");
         }
 
         try {
-            synchronized (waitUserAnswer) {
+            synchronized (mWaitUserAnswer) {
                 // Wait until received response or received timeout
-                waitUserAnswer.wait(ringingPeriod * 500);
+                mWaitUserAnswer.wait(mRingingPeriod * 500);
             }
         } catch (InterruptedException e) {
 
         }
 
-        return reInviteStatus;
+        return mReInviteStatus;
     }
 
 }

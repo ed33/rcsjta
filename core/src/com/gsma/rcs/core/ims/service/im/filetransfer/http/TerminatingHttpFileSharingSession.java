@@ -87,15 +87,16 @@ public class TerminatingHttpFileSharingSession extends HttpFileTransferSession i
      * @param fileTransferId the File transfer Id
      * @param contact the remote contact Id
      * @param displayName the display name of the remote contact
+     * @param rcsSettings
      */
     public TerminatingHttpFileSharingSession(ImsService parent, ChatSession chatSession,
             FileTransferHttpInfoDocument fileTransferInfo, String fileTransferId,
-            ContactId contact, String displayName) {
+            ContactId contact, String displayName, RcsSettings rcsSettings) {
         super(parent, ContentManager.createMmContent(ContentManager.generateUriForReceivedContent(
                 fileTransferInfo.getFilename(), fileTransferInfo.getFileType()), fileTransferInfo
                 .getFileSize(), fileTransferInfo.getFilename()), contact, PhoneUtils
                 .formatContactIdToUri(contact), null, chatSession.getSessionID(), chatSession
-                .getContributionID(), fileTransferId);
+                .getContributionID(), fileTransferId, rcsSettings);
 
         setRemoteDisplayName(displayName);
         // Build a new dialogPath with this of chatSession and an empty CallId
@@ -111,7 +112,8 @@ public class TerminatingHttpFileSharingSession extends HttpFileTransferSession i
 
         // Instantiate the download manager
         MmContent content = getContent();
-        downloadManager = new HttpDownloadManager(content, this, fileTransferInfo.getFileUri());
+        downloadManager = new HttpDownloadManager(content, this, fileTransferInfo.getFileUri(),
+                rcsSettings);
 
         // Download thumbnail
         if (fileTransferInfo.getFileThumbnail() != null) {
@@ -132,18 +134,19 @@ public class TerminatingHttpFileSharingSession extends HttpFileTransferSession i
      * @param parent IMS service
      * @param content the content to be transferred
      * @param resume the Data Object to access FT HTTP table in DB
+     * @param rcsSettings
      */
     public TerminatingHttpFileSharingSession(ImsService parent, MmContent content,
-            FtHttpResumeDownload resume) {
+            FtHttpResumeDownload resume, RcsSettings rcsSettings) {
         super(parent, content, resume.getContact(), PhoneUtils.formatContactIdToUri(resume
                 .getContact()), resume.getFileicon() != null ? FileTransferUtils
                 .createMmContent(resume.getFileicon()) : null, null, resume.getChatId(), resume
-                .getFileTransferId());
+                .getFileTransferId(), rcsSettings);
         mGroupFileTransfer = resume.isGroupTransfer();
-        this.resumeFT = resume;
+        mResumeFT = resume;
         // Instantiate the download manager
         downloadManager = new HttpDownloadManager(getContent(), this,
-                resume.getDownloadServerAddress());
+                resume.getDownloadServerAddress(), rcsSettings);
 
         if (shouldBeAutoAccepted()) {
             setSessionAccepted();
@@ -158,10 +161,10 @@ public class TerminatingHttpFileSharingSession extends HttpFileTransferSession i
      */
     private boolean shouldBeAutoAccepted() {
         if (getImsService().getImsModule().isInRoaming()) {
-            return RcsSettings.getInstance().isFileTransferAutoAcceptedInRoaming();
+            return mRcsSettings.isFileTransferAutoAcceptedInRoaming();
         }
 
-        return RcsSettings.getInstance().isFileTransferAutoAccepted();
+        return mRcsSettings.isFileTransferAutoAccepted();
     }
 
     protected boolean isGroupFileTransfer() {
@@ -335,11 +338,11 @@ public class TerminatingHttpFileSharingSession extends HttpFileTransferSession i
         if (logger.isActivated()) {
             logger.debug("Session invitation has been rejected");
         }
-        invitationStatus = INVITATION_REJECTED;
+        mInvitationStatus = INVITATION_REJECTED;
 
         // Unblock semaphore
-        synchronized (waitUserAnswer) {
-            waitUserAnswer.notifyAll();
+        synchronized (mWaitUserAnswer) {
+            mWaitUserAnswer.notifyAll();
         }
 
         // Remove the session in the session manager

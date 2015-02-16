@@ -30,6 +30,7 @@ import com.gsma.rcs.platform.AndroidFactory;
 import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.capability.CapabilityService;
+import com.gsma.rcs.provider.LocalContentResolver;
 
 /**
  * External capability monitoring
@@ -47,7 +48,9 @@ public class ExternalCapabilityMonitoring extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         try {
             // Instantiate the settings manager
-            RcsSettings.createInstance(context);
+            LocalContentResolver localContentResolver = new LocalContentResolver(context);
+            RcsSettings.createInstance(localContentResolver);
+            RcsSettings rcsSettings = RcsSettings.getInstance();
 
             // Get Intent parameters
             String action = intent.getAction();
@@ -83,7 +86,7 @@ public class ExternalCapabilityMonitoring extends BroadcastReceiver {
                 }
 
                 // Add the new extension in the supported RCS extensions
-                ServiceExtensionManager.getInstance().addNewSupportedExtensions(
+                ServiceExtensionManager.getInstance(rcsSettings).addNewSupportedExtensions(
                         AndroidFactory.getApplicationContext());
             } else {
                 if (Intent.ACTION_PACKAGE_REMOVED.equals(action)) {
@@ -92,7 +95,7 @@ public class ExternalCapabilityMonitoring extends BroadcastReceiver {
                     }
 
                     // Remove the extensions in the supported RCS extensions
-                    ServiceExtensionManager.getInstance().removeSupportedExtensions(
+                    ServiceExtensionManager.getInstance(rcsSettings).removeSupportedExtensions(
                             AndroidFactory.getApplicationContext());
                 }
             }

@@ -51,6 +51,7 @@ import javax2.sip.header.RouteHeader;
 import javax2.sip.header.ViaHeader;
 import javax2.sip.message.Request;
 import javax2.sip.message.Response;
+
 import android.net.ConnectivityManager;
 
 import com.gsma.rcs.core.ims.network.sip.SipMessageFactory;
@@ -84,117 +85,117 @@ public class SipInterface implements SipListener {
     /**
      * SIP traces activation
      */
-    private boolean sipTraceEnabled = RcsSettings.getInstance().isSipTraceActivated();
+    private boolean mSipTraceEnabled;
 
     /**
      * SIP traces filename
      */
-    private String sipTraceFile = RcsSettings.getInstance().getSipTraceFile();
+    private String mSipTraceFile;
 
     /**
      * Local IP address
      */
-    private String localIpAddress;
+    private String mLocalIpAddress;
 
     /**
      * Outbound proxy address
      */
-    private String outboundProxyAddr;
+    private String mOutboundProxyAddr;
 
     /**
      * Outbound proxy port
      */
-    private int outboundProxyPort;
+    private int mOutboundProxyPort;
 
     /**
      * Default route path
      */
-    private Vector<String> defaultRoutePath;
+    private Vector<String> mDefaultRoutePath;
 
     /**
      * Service route path
      */
-    private Vector<String> serviceRoutePath;
+    private Vector<String> mServiceRoutePath;
 
     /**
      * SIP listening port
      */
-    private int listeningPort;
+    private int mListeningPort;
 
     /**
      * SIP default protocol
      */
-    private String defaultProtocol;
+    private String mDefaultProtocol;
 
     /*
      * TCP fallback according to RFC3261 chapter 18.1.1
      */
-    private boolean tcpFallback;
+    private boolean mTcpFallback;
 
     /**
      * List of current SIP transactions
      */
-    private SipTransactionList transactions = new SipTransactionList();
+    private SipTransactionList mTransactions = new SipTransactionList();
 
     /**
      * SIP interface listeners
      */
-    private Vector<SipEventListener> listeners = new Vector<SipEventListener>();
+    private Vector<SipEventListener> mListeners = new Vector<SipEventListener>();
 
     /**
      * SIP stack
      */
-    private SipStack sipStack;
+    private SipStack mSipStack;
 
     /**
      * Default SIP stack provider
      */
-    private SipProvider defaultSipProvider;
+    private SipProvider mDefaultSipProvider;
 
     /**
      * SIP stack providers
      */
-    private Vector<SipProvider> sipProviders = new Vector<SipProvider>();
+    private Vector<SipProvider> mSipProviders = new Vector<SipProvider>();
 
     /**
      * Keep-alive manager
      */
-    private KeepAliveManager keepAliveManager = new KeepAliveManager(this);
+    private KeepAliveManager mKeepAliveManager;
 
     /**
      * Public GRUU
      */
-    private String publicGruu;
+    private String mPublicGruu;
 
     /**
      * Temporary GRUU
      */
-    private String tempGruu;
+    private String mTempGruu;
 
     /**
      * Instance ID
      */
-    private String instanceId;
+    private String mInstanceId;
 
     /**
      * Base timer T1 (in ms)
      */
-    private int timerT1 = 500;
+    private int mTimerT1 = 500;
 
     /**
      * Base timer T2 (in ms)
      */
-    private int timerT2 = 4000;
+    private int mTimerT2 = 4000;
 
     /**
      * Base timer T4 (in ms)
      */
-    private int timerT4 = 5000;
+    private int mTimerT4 = 5000;
 
     /**
      * The logger
      */
-    private static final Logger logger = Logger.getLogger(SipInterface.class.getSimpleName());
+    private static final Logger sLogger = Logger.getLogger(SipInterface.class.getSimpleName());
 
     /**
      * Constructor
@@ -205,31 +206,37 @@ public class SipInterface implements SipListener {
      * @param defaultProtocol Default protocol
      * @param tcpFallback TCP fallback according to RFC3261 chapter 18.1.1
      * @param networkType Type of network
+     * @param rcsSettings
      * @throws SipException
      */
     public SipInterface(String localIpAddress, String proxyAddr, int proxyPort,
-            String defaultProtocol, boolean tcpFallback, int networkType) throws SipException {
-        this.localIpAddress = localIpAddress;
-        this.defaultProtocol = defaultProtocol;
-        this.tcpFallback = tcpFallback;
-        this.listeningPort = NetworkRessourceManager.generateLocalSipPort();
-        this.outboundProxyAddr = proxyAddr;
-        this.outboundProxyPort = proxyPort;
+            String defaultProtocol, boolean tcpFallback, int networkType, RcsSettings rcsSettings)
+            throws SipException {
+        mLocalIpAddress = localIpAddress;
+        mDefaultProtocol = defaultProtocol;
+        mTcpFallback = tcpFallback;
+        mListeningPort = NetworkRessourceManager.generateLocalSipPort();
+        mOutboundProxyAddr = proxyAddr;
+        mOutboundProxyPort = proxyPort;
+
+        mKeepAliveManager = new KeepAliveManager(this, rcsSettings);
+        mSipTraceEnabled = rcsSettings.isSipTraceActivated();
+        mSipTraceFile = rcsSettings.getSipTraceFile();
 
         // Set timers value from provisioning for 3G or default for Wifi
         if (networkType == ConnectivityManager.TYPE_MOBILE) {
-            this.timerT1 = RcsSettings.getInstance().getSipTimerT1();
-            this.timerT2 = RcsSettings.getInstance().getSipTimerT2();
-            this.timerT4 = RcsSettings.getInstance().getSipTimerT4();
+            mTimerT1 = rcsSettings.getSipTimerT1();
+            mTimerT2 = rcsSettings.getSipTimerT2();
+            mTimerT4 = rcsSettings.getSipTimerT4();
         }
 
         // Set the default route path
-        defaultRoutePath = new Vector<String>();
-        defaultRoutePath.addElement(getDefaultRoute());
+        mDefaultRoutePath = new Vector<String>();
+        mDefaultRoutePath.addElement(getDefaultRoute());
 
         // Set the default service route path
-        serviceRoutePath = new Vector<String>();
-        serviceRoutePath.addElement(getDefaultRoute());
+        mServiceRoutePath = new Vector<String>();
+        mServiceRoutePath.addElement(getDefaultRoute());
 
         try {
             // Init SIP factories
@@ -242,18 +249,18 @@ public class SipInterface implements SipListener {
             Properties properties = new Properties();
             properties.setProperty("javax2.sip.STACK_NAME", localIpAddress);
             properties.setProperty("gov2.nist.javax2.sip.THREAD_POOL_SIZE", "1");
-            if (sipTraceEnabled) {
+            if (mSipTraceEnabled) {
                 // Activate SIP stack traces
                 boolean cleanLog = true;
 
                 // Remove previous log file
-                File fs = new File(sipTraceFile);
+                File fs = new File(mSipTraceFile);
                 if (fs.exists()) {
                     cleanLog = fs.delete();
                 }
                 if (cleanLog) {
                     properties.setProperty("gov2.nist.javax2.sip.TRACE_LEVEL", "DEBUG");
-                    properties.setProperty("gov2.nist.javax2.sip.SERVER_LOG", sipTraceFile);
+                    properties.setProperty("gov2.nist.javax2.sip.SERVER_LOG", mSipTraceFile);
                     properties.setProperty("gov2.nist.javax2.sip.LOG_MESSAGE_CONTENT", "true");
                     properties.setProperty("gov2.nist.javax2.sip.LOG_STACK_TRACE_ON_MESSAGE_SEND",
                             "true");
@@ -278,71 +285,71 @@ public class SipInterface implements SipListener {
             }
 
             // Create the SIP stack
-            sipStack = sipFactory.createSipStack(properties);
+            mSipStack = sipFactory.createSipStack(properties);
 
             // Create UDP provider
-            ListeningPoint udp = sipStack.createListeningPoint(localIpAddress, listeningPort,
+            ListeningPoint udp = mSipStack.createListeningPoint(localIpAddress, mListeningPort,
                     ListeningPoint.UDP);
-            SipProvider udpSipProvider = sipStack.createSipProvider(udp);
+            SipProvider udpSipProvider = mSipStack.createSipProvider(udp);
             udpSipProvider.addSipListener(this);
-            sipProviders.addElement(udpSipProvider);
+            mSipProviders.addElement(udpSipProvider);
 
             // Set the default SIP provider
             if (defaultProtocol.equals(ListeningPoint.TLS)) {
                 // Create TLS provider
-                ListeningPoint tls = sipStack.createListeningPoint(localIpAddress, listeningPort,
+                ListeningPoint tls = mSipStack.createListeningPoint(localIpAddress, mListeningPort,
                         ListeningPoint.TLS);
-                SipProvider tlsSipProvider = sipStack.createSipProvider(tls);
+                SipProvider tlsSipProvider = mSipStack.createSipProvider(tls);
                 tlsSipProvider.addSipListener(this);
-                sipProviders.addElement(tlsSipProvider);
+                mSipProviders.addElement(tlsSipProvider);
 
                 // TLS protocol used by default
-                defaultSipProvider = tlsSipProvider;
+                mDefaultSipProvider = tlsSipProvider;
             } else if (defaultProtocol.equals(ListeningPoint.TCP)) {
                 // Create TCP provider
-                ListeningPoint tcp = sipStack.createListeningPoint(localIpAddress, listeningPort,
+                ListeningPoint tcp = mSipStack.createListeningPoint(localIpAddress, mListeningPort,
                         ListeningPoint.TCP);
-                SipProvider tcpSipProvider = sipStack.createSipProvider(tcp);
+                SipProvider tcpSipProvider = mSipStack.createSipProvider(tcp);
                 tcpSipProvider.addSipListener(this);
-                sipProviders.addElement(tcpSipProvider);
+                mSipProviders.addElement(tcpSipProvider);
 
                 // TCP protocol used by default
-                defaultSipProvider = tcpSipProvider;
+                mDefaultSipProvider = tcpSipProvider;
             } else {
                 // Create TCP provider
-                ListeningPoint tcp = sipStack.createListeningPoint(localIpAddress, listeningPort,
+                ListeningPoint tcp = mSipStack.createListeningPoint(localIpAddress, mListeningPort,
                         ListeningPoint.TCP);
                 // Changed by Deutsche Telekom
-                if (this.tcpFallback == false) {
-                    SipProvider tcpSipProvider = sipStack.createSipProvider(tcp);
+                if (this.mTcpFallback == false) {
+                    SipProvider tcpSipProvider = mSipStack.createSipProvider(tcp);
                     tcpSipProvider.addSipListener(this);
-                    sipProviders.addElement(tcpSipProvider);
+                    mSipProviders.addElement(tcpSipProvider);
                 }
 
                 // UDP protocol used by default
-                defaultSipProvider = udpSipProvider;
+                mDefaultSipProvider = udpSipProvider;
 
                 // Changed by Deutsche Telekom
-                if (this.tcpFallback) {
+                if (this.mTcpFallback) {
                     // prepare 2nd listening point for TCP fallback
-                    defaultSipProvider.addListeningPoint(tcp);
+                    mDefaultSipProvider.addListeningPoint(tcp);
                 }
             }
 
-            if (logger.isActivated()) {
+            if (sLogger.isActivated()) {
                 if (defaultProtocol.equals(ListeningPoint.UDP))
-                    logger.debug("Default SIP provider is UDP (TCP fallback=" + this.tcpFallback
+                    sLogger.debug("Default SIP provider is UDP (TCP fallback=" + this.mTcpFallback
                             + ")");
                 else
-                    logger.debug("Default SIP provider is " + defaultProtocol);
+                    sLogger.debug("Default SIP provider is " + defaultProtocol);
             }
 
             // Start the stack
-            sipStack.start();
+            mSipStack.start();
 
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("SIP stack initialization has failed", e);
+            if (sLogger.isActivated()) {
+                sLogger.error("SIP stack initialization has failed", e);
             }
 
             // discard unusable stack
@@ -351,8 +358,8 @@ public class SipInterface implements SipListener {
             throw new SipException("Can't create the SIP stack");
         }
 
-        if (logger.isActivated()) {
-            logger.debug("SIP stack started at " + localIpAddress + ":" + listeningPort);
+        if (sLogger.isActivated()) {
+            sLogger.debug("SIP stack started at " + localIpAddress + ":" + mListeningPort);
         }
     }
 
@@ -362,36 +369,36 @@ public class SipInterface implements SipListener {
     public void close() {
         try {
             // Stop keep alive
-            keepAliveManager.stop();
+            mKeepAliveManager.stop();
 
             // Remove all application listeners
-            listeners.removeAllElements();
+            mListeners.removeAllElements();
 
             // Delete SIP providers
-            for (int i = 0; i < sipProviders.size(); i++) {
-                SipProvider sipProvider = (SipProvider) sipProviders.elementAt(i);
+            for (int i = 0; i < mSipProviders.size(); i++) {
+                SipProvider sipProvider = (SipProvider) mSipProviders.elementAt(i);
                 sipProvider.removeSipListener(this);
                 sipProvider.removeListeningPoints();
-                sipStack.deleteSipProvider(sipProvider);
+                mSipStack.deleteSipProvider(sipProvider);
             }
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("Can't cleanup SIP stack correctly", e);
+            if (sLogger.isActivated()) {
+                sLogger.error("Can't cleanup SIP stack correctly", e);
             }
         } finally {
             // Stop the stack
             try {
-                if (sipStack != null) {
-                    sipStack.stop();
+                if (mSipStack != null) {
+                    mSipStack.stop();
                 } else {
-                    if (logger.isActivated()) {
-                        logger.debug("SIP stack is null");
+                    if (sLogger.isActivated()) {
+                        sLogger.debug("SIP stack is null");
                     }
                 }
                 SipFactory.getInstance().resetFactory();
             } catch (Exception e) {
-                if (logger.isActivated()) {
-                    logger.error("Can't stop SIP stack correctly", e);
+                if (sLogger.isActivated()) {
+                    sLogger.error("Can't stop SIP stack correctly", e);
                 }
             }
         }
@@ -403,7 +410,7 @@ public class SipInterface implements SipListener {
      * @return SIP provider
      */
     public SipProvider getDefaultSipProvider() {
-        return defaultSipProvider;
+        return mDefaultSipProvider;
     }
 
     // Changed by Deutsche Telekom
@@ -426,12 +433,12 @@ public class SipInterface implements SipListener {
         // as TCP. If this causes a change in the transport protocol from the
         // one indicated in the top Via, the value in the top Via MUST be
         // changed.
-        if (ListeningPoint.UDP.equals(defaultProtocol) && this.tcpFallback
-                && (request.getStackMessage().toString().length() > (sipStack.getMtuSize() - 200))) {
-            if (logger.isActivated()) {
-                logger.debug("Transaction falls back to TCP as request size is "
+        if (ListeningPoint.UDP.equals(mDefaultProtocol) && this.mTcpFallback
+                && (request.getStackMessage().toString().length() > (mSipStack.getMtuSize() - 200))) {
+            if (sLogger.isActivated()) {
+                sLogger.debug("Transaction falls back to TCP as request size is "
                         + request.getStackMessage().toString().length() + " and MTU size is "
-                        + sipStack.getMtuSize());
+                        + mSipStack.getMtuSize());
             }
 
             // Change Via header
@@ -439,8 +446,8 @@ public class SipInterface implements SipListener {
             if (topViaHeader != null) {
                 topViaHeader.setTransport("TCP");
             } else {
-                topViaHeader = SipUtils.HEADER_FACTORY.createViaHeader(localIpAddress,
-                        listeningPort, "TCP", null);
+                topViaHeader = SipUtils.HEADER_FACTORY.createViaHeader(mLocalIpAddress,
+                        mListeningPort, "TCP", null);
             }
             request.getStackMessage().removeFirst(ViaHeader.NAME);
             request.getStackMessage().addFirst(topViaHeader);
@@ -459,16 +466,16 @@ public class SipInterface implements SipListener {
                 } else {
                     // TODO
                     // check whether this could happen anyhow and if so whether this would be valid
-                    logger.error("Update of route header due to TCP fallback failed due to wrong address format!");
+                    sLogger.error("Update of route header due to TCP fallback failed due to wrong address format!");
                 }
                 request.getStackMessage().removeFirst(RouteHeader.NAME);
                 request.getStackMessage().addFirst(topRouteHeader);
             }
         }
 
-        ClientTransaction transaction = defaultSipProvider.getNewClientTransaction(request
+        ClientTransaction transaction = mDefaultSipProvider.getNewClientTransaction(request
                 .getStackMessage());
-        transaction.setRetransmitTimers(timerT1, timerT2, timerT4);
+        transaction.setRetransmitTimers(mTimerT1, mTimerT2, mTimerT4);
         return transaction;
     }
 
@@ -478,7 +485,7 @@ public class SipInterface implements SipListener {
      * @return IP address
      */
     public String getLocalIpAddress() {
-        return localIpAddress;
+        return mLocalIpAddress;
     }
 
     /**
@@ -487,7 +494,7 @@ public class SipInterface implements SipListener {
      * @return Outbound proxy address
      */
     public String getOutboundProxyAddr() {
-        return outboundProxyAddr;
+        return mOutboundProxyAddr;
     }
 
     /**
@@ -496,7 +503,7 @@ public class SipInterface implements SipListener {
      * @return Outbound proxy port
      */
     public int getOutboundProxyPort() {
-        return outboundProxyPort;
+        return mOutboundProxyPort;
     }
 
     /**
@@ -505,7 +512,7 @@ public class SipInterface implements SipListener {
      * @return Outbound proxy protocol
      */
     public String getProxyProtocol() {
-        return defaultProtocol;
+        return mDefaultProtocol;
     }
 
     /**
@@ -514,7 +521,7 @@ public class SipInterface implements SipListener {
      * @return Port number
      */
     public int getListeningPort() {
-        return listeningPort;
+        return mListeningPort;
     }
 
     /**
@@ -523,7 +530,7 @@ public class SipInterface implements SipListener {
      * @return Keep-alive manager
      */
     public KeepAliveManager getKeepAliveManager() {
-        return keepAliveManager;
+        return mKeepAliveManager;
     }
 
     /**
@@ -532,7 +539,7 @@ public class SipInterface implements SipListener {
      * @return GRUU
      */
     public String getPublicGruu() {
-        return publicGruu;
+        return mPublicGruu;
     }
 
     /**
@@ -541,7 +548,7 @@ public class SipInterface implements SipListener {
      * @param gruu GRUU
      */
     public void setPublicGruu(String gruu) {
-        this.publicGruu = gruu;
+        this.mPublicGruu = gruu;
     }
 
     /**
@@ -550,7 +557,7 @@ public class SipInterface implements SipListener {
      * @return GRUU
      */
     public String getTemporaryGruu() {
-        return tempGruu;
+        return mTempGruu;
     }
 
     /**
@@ -559,7 +566,7 @@ public class SipInterface implements SipListener {
      * @param gruu GRUU
      */
     public void setTemporaryGruu(String gruu) {
-        this.tempGruu = gruu;
+        this.mTempGruu = gruu;
     }
 
     /**
@@ -568,7 +575,7 @@ public class SipInterface implements SipListener {
      * @return ID
      */
     public String getInstanceId() {
-        return instanceId;
+        return mInstanceId;
     }
 
     /**
@@ -577,7 +584,7 @@ public class SipInterface implements SipListener {
      * @param id Instance ID
      */
     public void setInstanceId(String id) {
-        this.instanceId = id;
+        this.mInstanceId = id;
     }
 
     /**
@@ -588,7 +595,7 @@ public class SipInterface implements SipListener {
      */
     public ArrayList<ViaHeader> getViaHeaders() throws Exception {
         ArrayList<ViaHeader> viaHeaders = new ArrayList<ViaHeader>();
-        ViaHeader via = SipUtils.HEADER_FACTORY.createViaHeader(localIpAddress, listeningPort,
+        ViaHeader via = SipUtils.HEADER_FACTORY.createViaHeader(mLocalIpAddress, mListeningPort,
                 getProxyProtocol(), null);
         viaHeaders.add(via);
         return viaHeaders;
@@ -601,7 +608,7 @@ public class SipInterface implements SipListener {
      */
     public String generateCallId() {
         // Call-ID value follows RFC 3261, section 25.1
-        return IdGenerator.getIdentifier() + "@" + localIpAddress;
+        return IdGenerator.getIdentifier() + "@" + mLocalIpAddress;
     }
 
     /**
@@ -612,9 +619,9 @@ public class SipInterface implements SipListener {
      */
     public ContactHeader getLocalContact() throws Exception {
         // Set the contact with the terminal IP address, port and transport
-        SipURI contactURI = (SipURI) SipUtils.ADDR_FACTORY.createSipURI(null, localIpAddress);
-        contactURI.setPort(listeningPort);
-        contactURI.setParameter("transport", defaultProtocol);
+        SipURI contactURI = (SipURI) SipUtils.ADDR_FACTORY.createSipURI(null, mLocalIpAddress);
+        contactURI.setPort(mListeningPort);
+        contactURI.setParameter("transport", mDefaultProtocol);
 
         // Create the Contact header
         Address contactAddress = SipUtils.ADDR_FACTORY.createAddress(contactURI);
@@ -631,17 +638,17 @@ public class SipInterface implements SipListener {
      */
     public ContactHeader getContact() throws Exception {
         ContactHeader contactHeader;
-        if (publicGruu != null) {
+        if (mPublicGruu != null) {
             // Create a contact with GRUU
-            SipURI contactURI = (SipURI) SipUtils.ADDR_FACTORY.createSipURI(publicGruu);
+            SipURI contactURI = (SipURI) SipUtils.ADDR_FACTORY.createSipURI(mPublicGruu);
             // Changed by Deutsche Telekom
-            contactURI.setTransportParam(defaultProtocol);
+            contactURI.setTransportParam(mDefaultProtocol);
             Address contactAddress = SipUtils.ADDR_FACTORY.createAddress(contactURI);
             contactHeader = SipUtils.HEADER_FACTORY.createContactHeader(contactAddress);
-        } else if (instanceId != null) {
+        } else if (mInstanceId != null) {
             // Create a local contact with an instance ID
             contactHeader = getLocalContact();
-            contactHeader.setParameter(SipUtils.SIP_INSTANCE_PARAM, instanceId);
+            contactHeader.setParameter(SipUtils.SIP_INSTANCE_PARAM, mInstanceId);
         } else {
             // Create a local contact
             contactHeader = getLocalContact();
@@ -656,12 +663,12 @@ public class SipInterface implements SipListener {
      */
     public String getDefaultRoute() {
         String defaultRoute;
-        if (IpAddressUtils.isIPv6(outboundProxyAddr)) {
-            defaultRoute = String.format("<sip:[%s]:%s;transport=%s;lr>", outboundProxyAddr,
-                    outboundProxyPort, getProxyProtocol());
+        if (IpAddressUtils.isIPv6(mOutboundProxyAddr)) {
+            defaultRoute = String.format("<sip:[%s]:%s;transport=%s;lr>", mOutboundProxyAddr,
+                    mOutboundProxyPort, getProxyProtocol());
         } else {
-            defaultRoute = String.format("<sip:%s:%s;transport=%s;lr>", outboundProxyAddr,
-                    outboundProxyPort, getProxyProtocol());
+            defaultRoute = String.format("<sip:%s:%s;transport=%s;lr>", mOutboundProxyAddr,
+                    mOutboundProxyPort, getProxyProtocol());
         }
         return defaultRoute.toLowerCase();
     }
@@ -672,7 +679,7 @@ public class SipInterface implements SipListener {
      * @return Route path
      */
     public Vector<String> getDefaultRoutePath() {
-        return defaultRoutePath;
+        return mDefaultRoutePath;
     }
 
     /**
@@ -681,7 +688,7 @@ public class SipInterface implements SipListener {
      * @return Route path
      */
     public Vector<String> getServiceRoutePath() {
-        return serviceRoutePath;
+        return mServiceRoutePath;
     }
 
     /**
@@ -690,18 +697,18 @@ public class SipInterface implements SipListener {
      * @param routes List of routes
      */
     public void setServiceRoutePath(ListIterator<Header> routes) {
-        serviceRoutePath.clear();
+        mServiceRoutePath.clear();
 
         // Always add the outbound proxy
-        serviceRoutePath.addElement(getDefaultRoute());
+        mServiceRoutePath.addElement(getDefaultRoute());
 
         if (routes != null) {
             // Add the received service route path
             while (routes.hasNext()) {
                 ExtensionHeader route = (ExtensionHeader) routes.next();
                 String rt = route.getValue().toLowerCase();
-                if (!serviceRoutePath.contains(rt)) {
-                    serviceRoutePath.addElement(rt);
+                if (!mServiceRoutePath.contains(rt)) {
+                    mServiceRoutePath.addElement(rt);
                 }
             }
         }
@@ -713,10 +720,10 @@ public class SipInterface implements SipListener {
      * @param listener Listener
      */
     public void addSipEventListener(SipEventListener listener) {
-        if (logger.isActivated()) {
-            logger.debug("Add a SIP listener");
+        if (sLogger.isActivated()) {
+            sLogger.debug("Add a SIP listener");
         }
-        listeners.addElement(listener);
+        mListeners.addElement(listener);
     }
 
     /**
@@ -725,10 +732,10 @@ public class SipInterface implements SipListener {
      * @param listener Listener
      */
     public void removeSipEventListener(SipEventListener listener) {
-        if (logger.isActivated()) {
-            logger.debug("Remove a SIP listener");
+        if (sLogger.isActivated()) {
+            sLogger.debug("Remove a SIP listener");
         }
-        listeners.removeElement(listener);
+        mListeners.removeElement(listener);
     }
 
     /**
@@ -737,7 +744,7 @@ public class SipInterface implements SipListener {
      * @param id Transaction ID
      */
     public synchronized void removeTransactionContext(String id) {
-        transactions.remove(id);
+        mTransactions.remove(id);
     }
 
     /**
@@ -747,10 +754,10 @@ public class SipInterface implements SipListener {
      * @param msg SIP message
      */
     private void notifyTransactionContext(String transactionId, SipMessage msg) {
-        SipTransactionContext ctx = (SipTransactionContext) transactions.get(transactionId);
+        SipTransactionContext ctx = (SipTransactionContext) mTransactions.get(transactionId);
         if (ctx != null) {
-            if (logger.isActivated()) {
-                logger.debug("Callback object found for transaction " + transactionId);
+            if (sLogger.isActivated()) {
+                sLogger.debug("Callback object found for transaction " + transactionId);
             }
             removeTransactionContext(transactionId);
             ctx.responseReceived(msg);
@@ -785,16 +792,16 @@ public class SipInterface implements SipListener {
                 SipTransactionContext ctx = new SipTransactionContext(transaction,
                         callbackSipProvisionalResponse);
                 String id = SipTransactionContext.getTransactionContextId(req);
-                transactions.put(id, ctx);
-                if (logger.isActivated()) {
-                    logger.debug("Create a transaction context " + id);
+                mTransactions.put(id, ctx);
+                if (sLogger.isActivated()) {
+                    sLogger.debug("Create a transaction context " + id);
                 }
 
                 // Send the SIP message to the network
-                if (logger.isActivated()) {
-                    logger.debug(">>> Send SIP " + req.getMethod());
+                if (sLogger.isActivated()) {
+                    sLogger.debug(">>> Send SIP " + req.getMethod());
                 }
-                if (sipTraceEnabled) {
+                if (mSipTraceEnabled) {
                     System.out.println(">>> " + req.getStackMessage().toString());
                     System.out.println(TRACE_SEPARATOR);
                 }
@@ -810,8 +817,8 @@ public class SipInterface implements SipListener {
                 ServerTransaction transaction = (ServerTransaction) resp.getStackTransaction();
                 if (transaction == null) {
                     // No transaction exist
-                    if (logger.isActivated()) {
-                        logger.warn("No transaction exist for " + resp.getCallId()
+                    if (sLogger.isActivated()) {
+                        sLogger.warn("No transaction exist for " + resp.getCallId()
                                 + ": the response can't be sent");
                     }
                     return null;
@@ -820,16 +827,16 @@ public class SipInterface implements SipListener {
                 // Create a transaction context
                 SipTransactionContext ctx = new SipTransactionContext(transaction);
                 String id = SipTransactionContext.getTransactionContextId(resp);
-                transactions.put(id, ctx);
-                if (logger.isActivated()) {
-                    logger.debug("Create a transaction context " + id);
+                mTransactions.put(id, ctx);
+                if (sLogger.isActivated()) {
+                    sLogger.debug("Create a transaction context " + id);
                 }
 
                 // Send the SIP message to the network
-                if (logger.isActivated()) {
-                    logger.debug(">>> Send SIP " + resp.getStatusCode() + " response");
+                if (sLogger.isActivated()) {
+                    sLogger.debug(">>> Send SIP " + resp.getStatusCode() + " response");
                 }
-                if (sipTraceEnabled) {
+                if (mSipTraceEnabled) {
                     System.out.println(">>> " + resp.getStackMessage().toString());
                     System.out.println(TRACE_SEPARATOR);
                 }
@@ -839,8 +846,8 @@ public class SipInterface implements SipListener {
                 return ctx;
             }
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("Can't send SIP message", e);
+            if (sLogger.isActivated()) {
+                sLogger.error("Can't send SIP message", e);
             }
             throw new SipException("Can't send SIP message");
         }
@@ -869,25 +876,25 @@ public class SipInterface implements SipListener {
             ServerTransaction transaction = (ServerTransaction) response.getStackTransaction();
             if (transaction == null) {
                 // No transaction exist
-                if (logger.isActivated()) {
-                    logger.warn("No transaction exist for " + response.getCallId()
+                if (sLogger.isActivated()) {
+                    sLogger.warn("No transaction exist for " + response.getCallId()
                             + ": the response can't be sent");
                 }
                 throw new SipException("No transaction found");
             }
 
             // Send the SIP message to the network
-            if (logger.isActivated()) {
-                logger.debug(">>> Send SIP " + response.getStatusCode() + " response");
+            if (sLogger.isActivated()) {
+                sLogger.debug(">>> Send SIP " + response.getStatusCode() + " response");
             }
-            if (sipTraceEnabled) {
+            if (mSipTraceEnabled) {
                 System.out.println(">>> " + response.getStackMessage().toString());
                 System.out.println(TRACE_SEPARATOR);
             }
             transaction.sendResponse(response.getStackMessage());
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("Can't send SIP message", e);
+            if (sLogger.isActivated()) {
+                sLogger.error("Can't send SIP message", e);
             }
             throw new SipException("Can't send SIP message");
         }
@@ -905,10 +912,10 @@ public class SipInterface implements SipListener {
             SipRequest ack = SipMessageFactory.createAck(dialog);
 
             // Send the SIP message to the network
-            if (logger.isActivated()) {
-                logger.debug(">>> Send SIP ACK");
+            if (sLogger.isActivated()) {
+                sLogger.debug(">>> Send SIP ACK");
             }
-            if (sipTraceEnabled) {
+            if (mSipTraceEnabled) {
                 System.out.println(">>> " + ack.getStackMessage().toString());
                 System.out.println(TRACE_SEPARATOR);
             }
@@ -916,8 +923,8 @@ public class SipInterface implements SipListener {
             // Re-use INVITE transaction
             dialog.getStackDialog().sendAck(ack.getStackMessage());
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("Can't send SIP message", e);
+            if (sLogger.isActivated()) {
+                sLogger.error("Can't send SIP message", e);
             }
             throw new SipException("Can't send SIP message");
         }
@@ -950,17 +957,17 @@ public class SipInterface implements SipListener {
             ClientTransaction transaction = createNewTransaction(cancel);
 
             // Send the SIP message to the network
-            if (logger.isActivated()) {
-                logger.debug(">>> Send SIP CANCEL");
+            if (sLogger.isActivated()) {
+                sLogger.debug(">>> Send SIP CANCEL");
             }
-            if (sipTraceEnabled) {
+            if (mSipTraceEnabled) {
                 System.out.println(">>> " + cancel.getStackMessage().toString());
                 System.out.println(TRACE_SEPARATOR);
             }
             transaction.sendRequest();
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("Can't send SIP message", e);
+            if (sLogger.isActivated()) {
+                sLogger.error("Can't send SIP message", e);
             }
             throw new SipException("Can't send SIP message");
         }
@@ -973,7 +980,7 @@ public class SipInterface implements SipListener {
      * @throws SipException
      */
     public void sendSipBye(SipDialogPath dialog) throws SipException {
-        boolean loggerActivated = logger.isActivated();
+        boolean loggerActivated = sLogger.isActivated();
         try {
             // Create the SIP request
             SipRequest bye = SipMessageFactory.createBye(dialog);
@@ -990,16 +997,16 @@ public class SipInterface implements SipListener {
 
             // Send the SIP message to the network
             if (loggerActivated) {
-                logger.debug(">>> Send SIP BYE");
+                sLogger.debug(">>> Send SIP BYE");
             }
-            if (sipTraceEnabled) {
+            if (mSipTraceEnabled) {
                 System.out.println(">>> " + bye.getStackMessage().toString());
                 System.out.println(TRACE_SEPARATOR);
             }
             dialog.getStackDialog().sendRequest(transaction);
         } catch (Exception e) {
             if (loggerActivated) {
-                logger.error("Can't send SIP message", e);
+                sLogger.error("Can't send SIP message", e);
             }
             throw new SipException("Can't send SIP message");
         }
@@ -1013,7 +1020,7 @@ public class SipInterface implements SipListener {
      * @throws SipException
      */
     public SipTransactionContext sendSipUpdate(SipDialogPath dialog) throws SipException {
-        boolean loggerActivated = logger.isActivated();
+        boolean loggerActivated = sLogger.isActivated();
         try {
             // Create the SIP request
             SipRequest update = SipMessageFactory.createUpdate(dialog);
@@ -1031,17 +1038,17 @@ public class SipInterface implements SipListener {
             // Create a transaction context
             SipTransactionContext ctx = new SipTransactionContext(transaction);
             String id = SipTransactionContext.getTransactionContextId(update);
-            transactions.put(id, ctx);
+            mTransactions.put(id, ctx);
 
             if (loggerActivated) {
-                logger.debug("Create a transaction context " + id);
+                sLogger.debug("Create a transaction context " + id);
             }
 
             // Send the SIP message to the network
             if (loggerActivated) {
-                logger.debug(">>> Send SIP UPDATE");
+                sLogger.debug(">>> Send SIP UPDATE");
             }
-            if (sipTraceEnabled) {
+            if (mSipTraceEnabled) {
                 System.out.println(">>> " + update.getStackMessage().toString());
                 System.out.println(TRACE_SEPARATOR);
             }
@@ -1051,7 +1058,7 @@ public class SipInterface implements SipListener {
             return ctx;
         } catch (Exception e) {
             if (loggerActivated) {
-                logger.error("Can't send SIP message", e);
+                sLogger.error("Can't send SIP message", e);
             }
             throw new SipException("Can't send SIP message");
         }
@@ -1062,11 +1069,12 @@ public class SipInterface implements SipListener {
      * 
      * @param dialog Dialog path
      * @param request Request
+     * @return SipTransactionContext
      * @throws SipException
      */
     public SipTransactionContext sendSubsequentRequest(SipDialogPath dialog, SipRequest request)
             throws SipException {
-        boolean loggerActivated = logger.isActivated();
+        boolean loggerActivated = sLogger.isActivated();
         try {
             SessionAuthenticationAgent agent = dialog.getAuthenticationAgent();
             // Set the Proxy-Authorization header
@@ -1080,9 +1088,9 @@ public class SipInterface implements SipListener {
 
             // Send the SIP message to the network
             if (loggerActivated) {
-                logger.debug(">>> Send SIP " + request.getMethod().toUpperCase());
+                sLogger.debug(">>> Send SIP " + request.getMethod().toUpperCase());
             }
-            if (sipTraceEnabled) {
+            if (mSipTraceEnabled) {
                 System.out.println(">>> " + request.getStackMessage().toString());
                 System.out.println(TRACE_SEPARATOR);
             }
@@ -1091,13 +1099,13 @@ public class SipInterface implements SipListener {
             // Create a transaction context
             SipTransactionContext ctx = new SipTransactionContext(transaction);
             String id = SipTransactionContext.getTransactionContextId(request);
-            transactions.put(id, ctx);
+            mTransactions.put(id, ctx);
 
             // Returns the created transaction to wait synchronously the response
             return ctx;
         } catch (Exception e) {
             if (loggerActivated) {
-                logger.error("Can't send SIP message", e);
+                sLogger.error("Can't send SIP message", e);
             }
             throw new SipException("Can't send SIP message");
         }
@@ -1109,8 +1117,8 @@ public class SipInterface implements SipListener {
      * @param dialogTerminatedEvent Event
      */
     public void processDialogTerminated(DialogTerminatedEvent dialogTerminatedEvent) {
-        if (logger.isActivated()) {
-            logger.debug("Dialog terminated");
+        if (sLogger.isActivated()) {
+            sLogger.debug("Dialog terminated");
         }
     }
 
@@ -1120,8 +1128,8 @@ public class SipInterface implements SipListener {
      * @param exceptionEvent Event
      */
     public void processIOException(IOExceptionEvent exceptionEvent) {
-        if (logger.isActivated()) {
-            logger.debug("IO Exception on " + exceptionEvent.getTransport() + " transport");
+        if (sLogger.isActivated()) {
+            sLogger.debug("IO Exception on " + exceptionEvent.getTransport() + " transport");
         }
     }
 
@@ -1132,11 +1140,11 @@ public class SipInterface implements SipListener {
      */
     public void processRequest(RequestEvent requestEvent) {
         Request request = requestEvent.getRequest();
-        boolean loggerActivated = logger.isActivated();
+        boolean loggerActivated = sLogger.isActivated();
         if (loggerActivated) {
-            logger.debug("<<< Receive SIP " + request.getMethod());
+            sLogger.debug("<<< Receive SIP " + request.getMethod());
         }
-        if (sipTraceEnabled) {
+        if (mSipTraceEnabled) {
             System.out.println("<<< " + request.toString());
             System.out.println(TRACE_SEPARATOR);
         }
@@ -1150,7 +1158,7 @@ public class SipInterface implements SipListener {
                 transaction = srcSipProvider.getNewServerTransaction(request);
             } catch (Exception e) {
                 if (loggerActivated) {
-                    logger.error("Unable to create a new server transaction for an incoming request");
+                    sLogger.error("Unable to create a new server transaction for an incoming request");
                 }
                 return;
             }
@@ -1168,9 +1176,9 @@ public class SipInterface implements SipListener {
         }
 
         // Notify event listeners
-        for (SipEventListener listener : listeners) {
+        for (SipEventListener listener : mListeners) {
             if (loggerActivated) {
-                logger.debug("Notify a SIP listener");
+                sLogger.debug("Notify a SIP listener");
             }
             listener.receiveSipRequest(req);
         }
@@ -1184,11 +1192,11 @@ public class SipInterface implements SipListener {
     public void processResponse(ResponseEvent responseEvent) {
         Response response = responseEvent.getResponse();
         int responseStatusCode = response.getStatusCode();
-        boolean loggerActivated = logger.isActivated();
+        boolean loggerActivated = sLogger.isActivated();
         if (loggerActivated) {
-            logger.debug("<<< Receive SIP " + responseStatusCode + " response");
+            sLogger.debug("<<< Receive SIP " + responseStatusCode + " response");
         }
-        if (sipTraceEnabled) {
+        if (mSipTraceEnabled) {
             System.out.println("<<< " + response.toString());
             System.out.println(TRACE_SEPARATOR);
         }
@@ -1197,7 +1205,7 @@ public class SipInterface implements SipListener {
         ClientTransaction transaction = responseEvent.getClientTransaction();
         if (transaction == null) {
             if (loggerActivated) {
-                logger.debug("No transaction exist for this response: by-pass it");
+                sLogger.debug("No transaction exist for this response: by-pass it");
             }
             return;
         }
@@ -1226,14 +1234,14 @@ public class SipInterface implements SipListener {
      * @param timeoutEvent Event
      */
     public void processTimeout(TimeoutEvent timeoutEvent) {
-        boolean loggerActivated = logger.isActivated();
+        boolean loggerActivated = sLogger.isActivated();
         if (loggerActivated) {
-            logger.debug("Transaction timeout " + timeoutEvent.getTimeout().toString());
+            sLogger.debug("Transaction timeout " + timeoutEvent.getTimeout().toString());
         }
 
         if (timeoutEvent.isServerTransaction()) {
             if (loggerActivated) {
-                logger.warn("Unexpected timeout for a server transaction: should never arrives");
+                sLogger.warn("Unexpected timeout for a server transaction: should never arrives");
             }
             return;
         }
@@ -1241,7 +1249,7 @@ public class SipInterface implements SipListener {
         ClientTransaction transaction = (ClientTransaction) timeoutEvent.getClientTransaction();
         if (transaction == null) {
             if (loggerActivated) {
-                logger.debug("No transaction exist for this transaction: by-pass it");
+                sLogger.debug("No transaction exist for this transaction: by-pass it");
             }
             return;
         }
@@ -1258,8 +1266,8 @@ public class SipInterface implements SipListener {
      * @param transactionTerminatedEvent Event
      */
     public void processTransactionTerminated(TransactionTerminatedEvent transactionTerminatedEvent) {
-        if (logger.isActivated()) {
-            logger.debug("Transaction terminated");
+        if (sLogger.isActivated()) {
+            sLogger.debug("Transaction terminated");
         }
     }
 
@@ -1270,13 +1278,13 @@ public class SipInterface implements SipListener {
      * @param response
      */
     private void notifyProvisionalResponse(String transactionId, SipResponse response) {
-        SipTransactionContext ctx = (SipTransactionContext) transactions.get(transactionId);
+        SipTransactionContext ctx = (SipTransactionContext) mTransactions.get(transactionId);
         if (ctx == null) {
             return;
         }
-        boolean loggerActivated = logger.isActivated();
+        boolean loggerActivated = sLogger.isActivated();
         if (loggerActivated) {
-            logger.debug("Callback object found for transaction " + transactionId);
+            sLogger.debug("Callback object found for transaction " + transactionId);
         }
         INotifySipProvisionalResponse callback = ctx.getCallbackSipProvisionalResponse();
         // Only consider ringing event
@@ -1284,7 +1292,7 @@ public class SipInterface implements SipListener {
             callback.handle180Ringing(response);
         } else {
             if (loggerActivated) {
-                logger.debug("By pass provisional response");
+                sLogger.debug("By pass provisional response");
             }
         }
     }

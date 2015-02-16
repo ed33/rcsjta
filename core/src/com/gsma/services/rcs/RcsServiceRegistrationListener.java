@@ -24,6 +24,7 @@ package com.gsma.services.rcs;
  * @author Jean-Marc AUFFRET
  */
 public abstract class RcsServiceRegistrationListener extends IRcsServiceRegistrationListener.Stub {
+
     /**
      * Callback called when service is registered to the network platform
      */
@@ -31,6 +32,8 @@ public abstract class RcsServiceRegistrationListener extends IRcsServiceRegistra
 
     /**
      * Callback called when service is unregistered from the network platform
+     * 
+     * @param reasonCode
      */
-    public abstract void onServiceUnregistered();
+    public abstract void onServiceUnregistered(RcsServiceRegistration.ReasonCode reasonCode);
 }

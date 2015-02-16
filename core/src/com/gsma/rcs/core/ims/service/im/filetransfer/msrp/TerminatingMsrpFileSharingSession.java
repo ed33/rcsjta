@@ -74,8 +74,6 @@ public class TerminatingMsrpFileSharingSession extends ImsFileSharingSession imp
      */
     private MsrpManager msrpMgr;
 
-    private RcsSettings mRcsSettings;
-
     /**
      * The logger
      */
@@ -94,7 +92,7 @@ public class TerminatingMsrpFileSharingSession extends ImsFileSharingSession imp
             RcsSettings rcsSettings) throws RcsContactFormatException {
         super(parent, ContentManager.createMmContentFromSdp(invite), ContactUtils
                 .createContactId(SipUtils.getAssertedIdentity(invite)), FileTransferUtils
-                .extractFileIcon(invite), IdGenerator.generateMessageID());
+                .extractFileIcon(invite), IdGenerator.generateMessageID(), rcsSettings);
 
         // Create dialog path
         createTerminatingDialogPath(invite);
@@ -106,7 +104,6 @@ public class TerminatingMsrpFileSharingSession extends ImsFileSharingSession imp
         if (shouldBeAutoAccepted()) {
             setSessionAccepted();
         }
-        mRcsSettings = rcsSettings;
     }
 
     /**
@@ -117,10 +114,10 @@ public class TerminatingMsrpFileSharingSession extends ImsFileSharingSession imp
      */
     private boolean shouldBeAutoAccepted() {
         if (getImsService().getImsModule().isInRoaming()) {
-            return RcsSettings.getInstance().isFileTransferAutoAcceptedInRoaming();
+            return mRcsSettings.isFileTransferAutoAcceptedInRoaming();
         }
 
-        return RcsSettings.getInstance().isFileTransferAutoAccepted();
+        return mRcsSettings.isFileTransferAutoAccepted();
     }
 
     /**
@@ -290,7 +287,7 @@ public class TerminatingMsrpFileSharingSession extends ImsFileSharingSession imp
             // Create the MSRP manager
             String localIpAddress = getImsService().getImsModule().getCurrentNetworkInterface()
                     .getNetworkAccess().getIpAddress();
-            msrpMgr = new MsrpManager(localIpAddress, localMsrpPort, getImsService());
+            msrpMgr = new MsrpManager(localIpAddress, localMsrpPort, getImsService(), mRcsSettings);
             msrpMgr.setSecured(isSecured);
 
             // Build SDP part

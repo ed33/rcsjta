@@ -23,6 +23,7 @@
 package com.gsma.rcs.addressbook;
 
 import com.gsma.rcs.provider.LocalContentResolver;
+import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.service.LauncherUtils;
 import com.gsma.rcs.R;
 
@@ -36,14 +37,16 @@ import android.os.Bundle;
  */
 public class SetupRcsAccount extends android.accounts.AccountAuthenticatorActivity {
 
-    private LocalContentResolver mLocalContentResolver;
-
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         Context ctx = getApplicationContext();
-        mLocalContentResolver = new LocalContentResolver(ctx.getContentResolver());
-        AuthenticationService.createRcsAccount(this, mLocalContentResolver,
-                getString(R.string.rcs_core_account_username), true);
+        LocalContentResolver localContentResolver = new LocalContentResolver(
+                ctx.getContentResolver());
+        RcsSettings.createInstance(localContentResolver);
+        RcsSettings rcsSettings = RcsSettings.getInstance();
+
+        AuthenticationService.createRcsAccount(this, localContentResolver,
+                getString(R.string.rcs_core_account_username), true, RcsSettings.getInstance());
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
@@ -57,7 +60,7 @@ public class SetupRcsAccount extends android.accounts.AccountAuthenticatorActivi
             response.onResult(result);
 
             // Start the service
-            LauncherUtils.launchRcsService(ctx, false, false);
+            LauncherUtils.launchRcsService(ctx, false, false, rcsSettings);
         }
         finish();
     }

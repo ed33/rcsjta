@@ -9,6 +9,7 @@ import com.gsma.services.rcs.chat.IGroupChat;
 import com.gsma.services.rcs.chat.IChatServiceConfiguration;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ICommonServiceConfiguration;
+import com.gsma.services.rcs.RcsServiceRegistration;
 
 /**
  * Chat service API
@@ -16,6 +17,8 @@ import com.gsma.services.rcs.ICommonServiceConfiguration;
 interface IChatService {
 
 	boolean isServiceRegistered();
+	
+	RcsServiceRegistration.ReasonCode getServiceRegistrationReasonCode();
     
 	void addEventListener(IRcsServiceRegistrationListener listener);
 

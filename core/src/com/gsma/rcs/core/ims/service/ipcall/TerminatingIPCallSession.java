@@ -44,6 +44,7 @@ import com.gsma.rcs.core.ims.service.ImsService;
 import com.gsma.rcs.core.ims.service.ImsServiceSession;
 import com.gsma.rcs.core.ims.service.ImsSessionListener;
 import com.gsma.rcs.core.ims.service.SessionTimerManager;
+import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ipcall.AudioCodec;
@@ -66,11 +67,14 @@ public class TerminatingIPCallSession extends IPCallSession {
      * 
      * @param parent IMS service
      * @param invite Initial INVITE request
+     * @param contact
+     * @param rcsSettings
      */
-    public TerminatingIPCallSession(ImsService parent, SipRequest invite, ContactId contact) {
+    public TerminatingIPCallSession(ImsService parent, SipRequest invite, ContactId contact,
+            RcsSettings rcsSettings) {
         super(parent, contact, ContentManager.createLiveAudioContentFromSdp(invite
                 .getContentBytes()), ContentManager.createLiveVideoContentFromSdp(invite
-                .getContentBytes()));
+                .getContentBytes()), rcsSettings);
 
         // Create dialog path
         createTerminatingDialogPath(invite);

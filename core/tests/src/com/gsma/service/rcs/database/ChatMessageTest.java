@@ -39,20 +39,22 @@ import com.gsma.rcs.core.ims.service.im.chat.ChatUtils;
 import com.gsma.rcs.core.ims.userprofile.UserProfile;
 import com.gsma.rcs.provider.LocalContentResolver;
 import com.gsma.rcs.provider.messaging.MessagingLog;
+import com.gsma.rcs.provider.settings.RcsSettings;
 
 public class ChatMessageTest extends AndroidTestCase {
     private ContactId mContact;
-
     private Context mContext;
-
     private ContentResolver mContentResolver;
+    private RcsSettings mRcsSettings;
 
     protected void setUp() throws Exception {
         super.setUp();
         mContext = getContext();
         mContentResolver = mContext.getContentResolver();
         LocalContentResolver localContentResolver = new LocalContentResolver(mContentResolver);
-        MessagingLog.createInstance(mContext, localContentResolver);
+        RcsSettings.createInstance(localContentResolver);
+        mRcsSettings = RcsSettings.getInstance();
+        MessagingLog.createInstance(mContext, localContentResolver, RcsSettings.getInstance());
         ContactUtils contactUtils = ContactUtils.getInstance(mContext);
         try {
             mContact = contactUtils.formatContact("+339000000");
@@ -61,7 +63,7 @@ public class ChatMessageTest extends AndroidTestCase {
         }
         ImsModule.IMS_USER_PROFILE = new UserProfile(mContact, "homeDomain", "privateID",
                 "password", "realm", "xdmServerAddr", "xdmServerLogin", "xdmServerPassword",
-                "imConferenceUri");
+                "imConferenceUri", mRcsSettings);
     }
 
     protected void tearDown() throws Exception {
@@ -76,15 +78,18 @@ public class ChatMessageTest extends AndroidTestCase {
                 "display");
 
         // Add entry
-        MessagingLog.getInstance().addOutgoingOneToOneChatMessage(msg, Message.Status.Content.SENT,
-                Message.ReasonCode.UNSPECIFIED);
+        MessagingLog.getInstance().addOutgoingOneToOneChatMessage(msg,
+                Message.Status.Content.SENT, Message.ReasonCode.UNSPECIFIED);
 
         // Read entry
         Uri uri = Uri.withAppendedPath(Message.CONTENT_URI, msgId);
         Cursor cursor = mContentResolver.query(uri, new String[] {
-                Message.DIRECTION, Message.CONTACT, Message.CONTENT, Message.MIME_TYPE,
+                Message.DIRECTION,
+                Message.CONTACT, Message.CONTENT, Message.MIME_TYPE,
                 Message.MESSAGE_ID, Message.TIMESTAMP
-        }, "(" + Message.MESSAGE_ID + "='" + msgId + "')", null, Message.TIMESTAMP + " ASC");
+        }, "("
+                + Message.MESSAGE_ID + "='" + msgId + "')", null, Message.TIMESTAMP
+                + " ASC");
         assertEquals(cursor.getCount(), 1);
         while (cursor.moveToNext()) {
             Direction direction = Direction.valueOf(cursor.getInt(cursor
@@ -117,9 +122,11 @@ public class ChatMessageTest extends AndroidTestCase {
         // Read entry
         Uri uri = Uri.withAppendedPath(Message.CONTENT_URI, msgId);
         Cursor cursor = mContentResolver.query(uri, new String[] {
-                Message.DIRECTION, Message.CONTACT, Message.CONTENT, Message.MIME_TYPE,
+                Message.DIRECTION,
+                Message.CONTACT, Message.CONTENT, Message.MIME_TYPE,
                 Message.MESSAGE_ID
-        }, "(" + Message.MESSAGE_ID + "='" + msgId + "')", null, Message.TIMESTAMP + " ASC");
+        }, "(" + Message.MESSAGE_ID + "='" + msgId
+                + "')", null, Message.TIMESTAMP + " ASC");
         assertEquals(cursor.getCount(), 1);
         while (cursor.moveToNext()) {
             Direction direction = Direction.valueOf(cursor.getInt(cursor

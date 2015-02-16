@@ -360,7 +360,7 @@ public class GroupChat {
      * Returns true if it is possible to invite the specified participant to the group chat right
      * now, else returns false.
      * 
-     * @param ContactId participant
+     * @param participant
      * @return boolean
      * @throws RcsServiceException
      */

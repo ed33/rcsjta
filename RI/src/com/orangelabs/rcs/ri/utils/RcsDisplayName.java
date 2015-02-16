@@ -26,7 +26,7 @@ import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
 import com.gsma.services.rcs.contacts.ContactsService;
 import com.gsma.services.rcs.contacts.RcsContact;
-import com.orangelabs.rcs.ri.ApiConnectionManager;
+import com.orangelabs.rcs.ri.ConnectionManager;
 import com.orangelabs.rcs.ri.R;
 
 /**
@@ -61,7 +61,7 @@ public class RcsDisplayName {
      */
     private RcsDisplayName(Context context) {
         mContext = context;
-        mService = ApiConnectionManager.getInstance(mContext).getContactsApi();
+        mService = ConnectionManager.getInstance(mContext).getContactsApi();
         mContactUtils = ContactUtils.getInstance(mContext);
         DefaultDisplayName = context.getString(R.string.label_no_contact);
     }
@@ -98,7 +98,7 @@ public class RcsDisplayName {
         }
         try {
             if (mService == null) {
-                mService = ApiConnectionManager.getInstance(mContext).getContactsApi();
+                mService = ConnectionManager.getInstance(mContext).getContactsApi();
             }
             RcsContact rcsContact = mService.getRcsContact(contact);
             String displayName = rcsContact.getDisplayName();

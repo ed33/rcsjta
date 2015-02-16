@@ -39,7 +39,7 @@ import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
 import com.gsma.services.rcs.contacts.ContactsService;
 import com.gsma.services.rcs.contacts.RcsContact;
-import com.orangelabs.rcs.ri.ApiConnectionManager;
+import com.orangelabs.rcs.ri.ConnectionManager;
 import com.orangelabs.rcs.ri.R;
 
 /**
@@ -110,7 +110,7 @@ public class ContactListAdapter extends CursorAdapter {
     public static ContactListAdapter createRcsContactListAdapter(Context context) {
         ContentResolver content = context.getContentResolver();
         Cursor cursor = null;
-        ApiConnectionManager apiConnectionManager = ApiConnectionManager.getInstance(context);
+        ConnectionManager apiConnectionManager = ConnectionManager.getInstance(context);
         ContactUtils contactUtils = ContactUtils.getInstance(context);
         MatrixCursor matrix = new MatrixCursor(PROJECTION);
         ContactsService contactsApi = apiConnectionManager.getContactsApi();

@@ -42,6 +42,8 @@ public abstract class RcsService {
 
     private static final String ERROR_CNX = "Service not connected";
 
+    protected final RcsServiceControl mRcsServiceControl;
+
     /**
      * Information about the current build
      */
@@ -201,6 +203,7 @@ public abstract class RcsService {
     public RcsService(Context ctx, RcsServiceListener listener) {
         mCtx = ctx;
         mListener = listener;
+        mRcsServiceControl = RcsServiceControl.getInstance(ctx);
     }
 
     /**
@@ -293,6 +296,23 @@ public abstract class RcsService {
         } else {
             throw new RcsServiceNotAvailableException(ERROR_CNX);
         }
+    }
+
+    /**
+     * Returns the reason code for the service registration
+     * 
+     * @return RcsServiceRegistration.ReasonCode
+     * @throws RcsServiceException
+     */
+    public RcsServiceRegistration.ReasonCode getServiceRegistrationReasonCode()
+            throws RcsServiceException {
+        if (mApi != null) {
+            return (RcsServiceRegistration.ReasonCode) callApiMethod(
+                    "getServiceRegistrationReasonCode", null, null);
+        } else {
+            throw new RcsServiceNotAvailableException(ERROR_CNX);
+        }
+
     }
 
     /**

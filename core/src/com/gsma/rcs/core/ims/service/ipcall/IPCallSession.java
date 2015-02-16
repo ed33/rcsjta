@@ -44,6 +44,7 @@ import com.gsma.rcs.core.ims.service.ImsServiceError;
 import com.gsma.rcs.core.ims.service.ImsServiceSession;
 import com.gsma.rcs.core.ims.service.ImsSessionBasedServiceError;
 import com.gsma.rcs.core.ims.service.richcall.video.SdpOrientationExtension;
+import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.ContactUtils;
 import com.gsma.rcs.utils.PhoneUtils;
 import com.gsma.rcs.utils.logger.Logger;
@@ -80,27 +81,27 @@ public abstract class IPCallSession extends ImsServiceSession {
     /**
      * Live audio content to be streamed
      */
-    private AudioContent audioContent;
+    private AudioContent mAudioContent;
 
     /**
      * Video content to be streamed
      */
-    private VideoContent videoContent;
+    private VideoContent mVideoContent;
 
     /**
      * IP call renderer
      */
-    private IIPCallRenderer renderer;
+    private IIPCallRenderer mRenderer;
 
     /**
      * IP call player
      */
-    private IIPCallPlayer player;
+    private IIPCallPlayer mPlayer;
 
     /**
      * Call hold manager
      */
-    private CallHoldManager holdMgr;
+    private CallHoldManager mHoldMgr;
 
     /**
      * The logger
@@ -110,18 +111,18 @@ public abstract class IPCallSession extends ImsServiceSession {
     /**
      * Constructor
      * 
-     * @param parent IMS service
+     * @param imsService parent IMS service
      * @param contact Remote contactId
      * @param audioContent Audio content
      * @param videoContent Video content
+     * @param rcsSettings
      */
     public IPCallSession(ImsService imsService, ContactId contact, AudioContent audioContent,
-            VideoContent videoContent) {
-        super(imsService, contact, PhoneUtils.formatContactIdToUri(contact));
+            VideoContent videoContent, RcsSettings rcsSettings) {
+        super(imsService, contact, PhoneUtils.formatContactIdToUri(contact), rcsSettings);
 
-        this.audioContent = audioContent;
-        this.videoContent = videoContent;
-
+        mAudioContent = audioContent;
+        mVideoContent = videoContent;
     }
 
     /**
@@ -130,7 +131,7 @@ public abstract class IPCallSession extends ImsServiceSession {
      * @return Boolean
      */
     public boolean isVideoActivated() {
-        return (videoContent != null);
+        return (mVideoContent != null);
     }
 
     /**
@@ -139,7 +140,7 @@ public abstract class IPCallSession extends ImsServiceSession {
      * @return Video content
      */
     public VideoContent getVideoContent() {
-        return videoContent;
+        return mVideoContent;
     }
 
     /**
@@ -148,7 +149,7 @@ public abstract class IPCallSession extends ImsServiceSession {
      * @param videoContent Video content
      */
     public void setVideoContent(VideoContent videoContent) {
-        this.videoContent = videoContent;
+        this.mVideoContent = videoContent;
     }
 
     /**
@@ -157,7 +158,7 @@ public abstract class IPCallSession extends ImsServiceSession {
      * @return Audio content
      */
     public AudioContent getAudioContent() {
-        return audioContent;
+        return mAudioContent;
     }
 
     /**
@@ -166,7 +167,7 @@ public abstract class IPCallSession extends ImsServiceSession {
      * @param audioContent Audio content
      */
     public void setAudioContent(AudioContent audioContent) {
-        this.audioContent = audioContent;
+        this.mAudioContent = audioContent;
     }
 
     /**
@@ -175,7 +176,7 @@ public abstract class IPCallSession extends ImsServiceSession {
      * @return Renderer
      */
     public IIPCallRenderer getRenderer() {
-        return renderer;
+        return mRenderer;
     }
 
     /**
@@ -184,7 +185,7 @@ public abstract class IPCallSession extends ImsServiceSession {
      * @param renderer Renderer
      */
     public void setRenderer(IIPCallRenderer renderer) {
-        this.renderer = renderer;
+        this.mRenderer = renderer;
     }
 
     /**
@@ -193,7 +194,7 @@ public abstract class IPCallSession extends ImsServiceSession {
      * @return Player
      */
     public IIPCallPlayer getPlayer() {
-        return player;
+        return mPlayer;
     }
 
     /**
@@ -202,7 +203,7 @@ public abstract class IPCallSession extends ImsServiceSession {
      * @param player Player
      */
     public void setPlayer(IIPCallPlayer player) {
-        this.player = player;
+        this.mPlayer = player;
     }
 
     /**
@@ -404,7 +405,7 @@ public abstract class IPCallSession extends ImsServiceSession {
                     VideoContent videocontent = ContentManager
                             .createLiveVideoContentFromSdp(reInvite
                                     .getContentBytes());
-                    setVideoContent(videoContent);
+                    setVideoContent(mVideoContent);
 
                     // processes user Answer and SIP response
                     getUpdateSessionManager().waitUserAckAndSendReInviteResp(reInvite,
@@ -444,10 +445,10 @@ public abstract class IPCallSession extends ImsServiceSession {
                     break;
                 case (2): { // Case Set On Hold Inactive
                     // instanciate Hold Manager
-                    holdMgr = new IPCall_RemoteHoldInactive(this);
+                    mHoldMgr = new IPCall_RemoteHoldInactive(this);
 
                     // launhc callHold
-                    holdMgr.setCallHold(true, reInvite);
+                    mHoldMgr.setCallHold(true, reInvite);
 
                     // Notify listeners
                     for (int i = 0; i < getListeners().size(); i++) {
@@ -459,10 +460,10 @@ public abstract class IPCallSession extends ImsServiceSession {
 
                 case (5): { // Case Set On Resume
                     // instanciate Hold Manager
-                    holdMgr = new IPCall_RemoteHoldInactive(this);
+                    mHoldMgr = new IPCall_RemoteHoldInactive(this);
 
                     // launhc callHold
-                    holdMgr.setCallHold(false, reInvite);
+                    mHoldMgr.setCallHold(false, reInvite);
 
                     // Notify listeners
                     for (int i = 0; i < getListeners().size(); i++) {
@@ -524,10 +525,10 @@ public abstract class IPCallSession extends ImsServiceSession {
 
     public void setOnHold(boolean callHoldAction) {
         // instanciate Hold Manager
-        holdMgr = new IPCall_HoldInactive(this);
+        mHoldMgr = new IPCall_HoldInactive(this);
 
         // launhc callHold
-        holdMgr.setCallHold(callHoldAction);
+        mHoldMgr.setCallHold(callHoldAction);
     }
 
     /**
@@ -597,7 +598,7 @@ public abstract class IPCallSession extends ImsServiceSession {
             }
         } else if (requestType == IPCallSession.SET_ON_HOLD) {
             if (code == 200) { // 200 OK response
-                holdMgr.prepareSession();
+                mHoldMgr.prepareSession();
 
                 // Notify listeners
                 for (int i = 0; i < getListeners().size(); i++) {
@@ -606,7 +607,7 @@ public abstract class IPCallSession extends ImsServiceSession {
                 }
 
                 // release hold
-                holdMgr = null;
+                mHoldMgr = null;
             } else if (code == ImsServiceSession.TERMINATION_BY_TIMEOUT) { // No answer or 408
                                                                            // TimeOut response
                 // Notify listeners
@@ -617,7 +618,7 @@ public abstract class IPCallSession extends ImsServiceSession {
             }
         } else if (requestType == IPCallSession.SET_ON_RESUME) {
             if (code == 200) { // 200 OK response
-                holdMgr.prepareSession();
+                mHoldMgr.prepareSession();
 
                 // Notify listeners
                 for (int i = 0; i < getListeners().size(); i++) {
@@ -625,7 +626,7 @@ public abstract class IPCallSession extends ImsServiceSession {
                             .handleCallResumeAccepted(contact);
                 }
                 // release hold
-                holdMgr = null;
+                mHoldMgr = null;
             } else if (code == ImsServiceSession.TERMINATION_BY_TIMEOUT) { // No answer or 408
                                                                            // TimeOut response
                 // Notify listeners
@@ -707,7 +708,7 @@ public abstract class IPCallSession extends ImsServiceSession {
                         .handleRemoveVideoAccepted(contact);
             }
         } else if ((requestType == IPCallSession.SET_ON_HOLD) && (code == 200)) {// case On Hold
-            holdMgr.prepareSession();
+            mHoldMgr.prepareSession();
 
             // Notify listeners
             for (int i = 0; i < getListeners().size(); i++) {
@@ -715,9 +716,9 @@ public abstract class IPCallSession extends ImsServiceSession {
                         .handleCallHoldAccepted(contact);
             }
             // release hold manager
-            holdMgr = null;
+            mHoldMgr = null;
         } else if ((requestType == IPCallSession.SET_ON_RESUME) && (code == 200)) {// case On Resume
-            holdMgr.prepareSession();
+            mHoldMgr.prepareSession();
 
             // Notify listeners
             for (int i = 0; i < getListeners().size(); i++) {
@@ -725,7 +726,7 @@ public abstract class IPCallSession extends ImsServiceSession {
                         .handleCallResumeAccepted(contact);
             }
             // release hold manager
-            holdMgr = null;
+            mHoldMgr = null;
         }
     }
 
@@ -1069,11 +1070,11 @@ public abstract class IPCallSession extends ImsServiceSession {
             logger.info("Close media session");
         }
 
-        if (renderer != null) {
+        if (mRenderer != null) {
             // Close the video renderer
             try {
-                renderer.stop();
-                renderer.close();
+                mRenderer.stop();
+                mRenderer.close();
                 if (logger.isActivated()) {
                     logger.info("Stop and close video renderer");
                 }
@@ -1083,11 +1084,11 @@ public abstract class IPCallSession extends ImsServiceSession {
                 }
             }
         }
-        if (player != null) {
+        if (mPlayer != null) {
             // Close the video player
             try {
-                player.stop();
-                player.close();
+                mPlayer.stop();
+                mPlayer.close();
                 if (logger.isActivated()) {
                     logger.info("stop and close video player");
                 }

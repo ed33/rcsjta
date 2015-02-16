@@ -6,6 +6,7 @@ import android.test.AndroidTestCase;
 import com.gsma.rcs.platform.network.NetworkFactory;
 import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.NetworkRessourceManager;
+import com.gsma.rcs.provider.LocalContentResolver;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
@@ -19,7 +20,8 @@ public class NetworkRessourceMangerTest extends AndroidTestCase {
 
     protected void setUp() throws Exception {
         super.setUp();
-        RcsSettings.createInstance(getContext());
+        LocalContentResolver localContentResolver = new LocalContentResolver(getContext());
+        RcsSettings.createInstance(localContentResolver);
         NetworkFactory.loadFactory("com.gsma.rcs.platform.network.AndroidNetworkFactory");
     }
 

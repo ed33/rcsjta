@@ -55,12 +55,12 @@ public abstract class ImageTransferSession extends ContentSharingSession {
     /**
      * Image transfered
      */
-    private boolean imageTransfered = false;
+    private boolean mImageTransfered = false;
 
     /**
      * Thumbnail
      */
-    MmContent thumbnail;
+    MmContent mThumbnail;
 
     /**
      * The logger
@@ -75,19 +75,20 @@ public abstract class ImageTransferSession extends ContentSharingSession {
      * @param content Content to be shared
      * @param contact Remote contact Id
      * @param thumbnail The thumbnail content
+     * @param rcsSettings
      */
     public ImageTransferSession(ImsService parent, MmContent content, ContactId contact,
-            MmContent thumbnail) {
-        super(parent, content, contact);
+            MmContent thumbnail, RcsSettings rcsSettings) {
+        super(parent, content, contact, rcsSettings);
 
-        this.thumbnail = thumbnail;
+        mThumbnail = thumbnail;
     }
 
     /**
      * Image has been transfered
      */
     public void imageTransfered() {
-        this.imageTransfered = true;
+        this.mImageTransfered = true;
     }
 
     /**
@@ -96,7 +97,7 @@ public abstract class ImageTransferSession extends ContentSharingSession {
      * @return Boolean
      */
     public boolean isImageTransfered() {
-        return imageTransfered;
+        return mImageTransfered;
     }
 
     /**
@@ -116,7 +117,7 @@ public abstract class ImageTransferSession extends ContentSharingSession {
      */
     public SipRequest createInvite() throws SipException {
 
-        if (thumbnail != null) {
+        if (mThumbnail != null) {
             return SipMessageFactory.createMultipartInvite(getDialogPath(),
                     RichcallService.FEATURE_TAGS_IMAGE_SHARE, getDialogPath().getLocalContent(),
                     BOUNDARY_TAG);
@@ -160,7 +161,7 @@ public abstract class ImageTransferSession extends ContentSharingSession {
      * @return Thumbnail
      */
     public MmContent getThumbnail() {
-        return thumbnail;
+        return mThumbnail;
     }
 
     /**
