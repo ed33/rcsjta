@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2015 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +15,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.gsma.rcs.core;
+
+import android.os.Build;
 
 /**
  * Terminal information
@@ -28,12 +34,29 @@ public class TerminalInfo {
     /**
      * Product name
      */
-    private static final String productName = "OrangeLabs-RCS-client";
+    private static final String productName = "RCS-client";
 
     /**
      * Product version
      */
     private static String productVersion = "v2.2";
+
+    /**
+     * RCS client version. Client Version Value = Platform "-" VersionMajor "." VersionMinor
+     * Platform = Alphanumeric (max 9) VersionMajor = Number (2 char max) VersionMinor = Number (2
+     * char max)
+     */
+    private static final String CLIENT_VERSION = "RCSAndr-1.5";
+
+    private static final String UNKNOWN = "unknown";
+
+    private static final char FORWARD_SLASH = '/';
+
+    private static final char HYPHEN = '-';
+
+    private static String sBuildInfo;
+
+    private static String sClientInfo;
 
     /**
      * Returns the product name
@@ -63,11 +86,34 @@ public class TerminalInfo {
     }
 
     /**
-     * Returns the product name + version
-     * 
-     * @return product information
+     * Get the build info
+     *
+     * @return build info
      */
-    public static String getProductInfo() {
-        return productName + "/" + productVersion;
+    public static String getBuildInfo() {
+        if (sBuildInfo == null) {
+            final String buildVersion = new StringBuilder((Build.DEVICE != null) ? Build.DEVICE
+                    : UNKNOWN).append(HYPHEN)
+                    .append((Build.DISPLAY != null) ? Build.DISPLAY : UNKNOWN).toString();
+            final String terminalVendor = (Build.MANUFACTURER != null) ? Build.MANUFACTURER
+                    : UNKNOWN;
+            sBuildInfo = new StringBuilder(terminalVendor).append(FORWARD_SLASH)
+                    .append(buildVersion).toString();
+        }
+        return sBuildInfo;
+    }
+
+    /**
+     * Returns the client_vendor "-" client_version
+     *
+     * @return client information
+     */
+    public static String getClientInfo() {
+        if (sClientInfo == null) {
+            final String clientVendor = (Build.MANUFACTURER != null) ? Build.MANUFACTURER : UNKNOWN;
+            sClientInfo = new StringBuilder(clientVendor).append(FORWARD_SLASH)
+                    .append(CLIENT_VERSION).toString();
+        }
+        return sClientInfo;
     }
 }
