@@ -150,6 +150,11 @@ public abstract class ImsNetworkInterface {
     private boolean tcpFallback = false;
 
     /**
+     * Holds retry duration value obtained from Retry-After header
+     */
+    private long mRetryDuration;
+
+    /**
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
@@ -271,6 +276,24 @@ public abstract class ImsNetworkInterface {
      */
     public RegistrationManager getRegistrationManager() {
         return registration;
+    }
+
+    /**
+     * Get the Retry header time
+     * 
+     * @return retryHeader Retry-After duration value
+     */
+    public long getRetryAfterHeaderDuration() {
+        return mRetryDuration;
+    }
+
+    /**
+     * Sets the Retry header time
+     * 
+     * @param retryHeader Retry-After duration value
+     */
+    public void setRetryAfterHeaderDuration(long retryValue) {
+        mRetryDuration = retryValue;
     }
 
     /**

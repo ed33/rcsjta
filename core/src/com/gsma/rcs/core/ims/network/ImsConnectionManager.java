@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2015 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.gsma.rcs.core.ims.network;
@@ -646,6 +650,11 @@ public class ImsConnectionManager implements Runnable {
             // Make a pause before the next polling
             try {
                 if (!currentNetworkInterface.isRegistered()) {
+                    final long retryAfterHeaderDuration = currentNetworkInterface
+                            .getRetryAfterHeaderDuration();
+                    if (retryAfterHeaderDuration > 0) {
+                        Thread.sleep(retryAfterHeaderDuration);
+                    }
                     // Pause before the next register attempt
                     double w = Math.min(regMaxTime, (regBaseTime * Math.pow(2, nbFailures)));
                     double coeff = (random.nextInt(51) + 50) / 100.0; // Coeff between 50% and 100%
