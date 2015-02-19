@@ -42,6 +42,7 @@ import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.DeviceUtils;
 import com.gsma.rcs.utils.PeriodicRefresher;
 import com.gsma.rcs.utils.logger.Logger;
+import com.gsma.services.rcs.RcsServiceException;
 
 /**
  * Registration manager (register, re-register, un-register)
@@ -301,8 +302,10 @@ public class RegistrationManager extends PeriodicRefresher {
      * @param register SIP REGISTER
      * @throws SipException
      * @throws CoreException
+     * @throws RcsServiceException
      */
-    private void sendRegister(SipRequest register) throws SipException, CoreException {
+    private void sendRegister(SipRequest register) throws SipException, CoreException,
+            RcsServiceException {
         if (logger.isActivated()) {
             logger.info("Send REGISTER, expire=" + register.getExpires());
         }
@@ -359,8 +362,10 @@ public class RegistrationManager extends PeriodicRefresher {
      * @param ctx SIP transaction context
      * @throws SipException
      * @throws CoreException
+     * @throws RcsServiceException
      */
-    private void handle200OK(SipTransactionContext ctx) throws SipException, CoreException {
+    private void handle200OK(SipTransactionContext ctx) throws SipException, CoreException,
+            RcsServiceException {
         // 200 OK response received
         if (logger.isActivated()) {
             logger.info("200 OK response received");
@@ -470,9 +475,10 @@ public class RegistrationManager extends PeriodicRefresher {
      * @param ctx SIP transaction context
      * @throws SipException
      * @throws CoreException
+     * @throws RcsServiceException
      */
     private void handle302MovedTemporarily(SipTransactionContext ctx) throws SipException,
-            CoreException {
+            CoreException, RcsServiceException {
         // 302 Moved Temporarily response received
         if (logger.isActivated()) {
             logger.info("302 Moved Temporarily response received");
@@ -505,9 +511,10 @@ public class RegistrationManager extends PeriodicRefresher {
      * @param ctx SIP transaction context
      * @throws SipException
      * @throws CoreException
+     * @throws RcsServiceException
      */
     private void handle401Unauthorized(SipTransactionContext ctx) throws SipException,
-            CoreException {
+            CoreException, RcsServiceException {
         // 401 response received
         if (logger.isActivated()) {
             logger.info("401 response received, nbFailures=" + nb401Failures);
@@ -538,9 +545,10 @@ public class RegistrationManager extends PeriodicRefresher {
      * @param ctx SIP transaction context
      * @throws SipException
      * @throws CoreException
+     * @throws RcsServiceException
      */
     private void handle423IntervalTooBrief(SipTransactionContext ctx) throws SipException,
-            CoreException {
+            CoreException, RcsServiceException {
         // 423 response received
         if (logger.isActivated()) {
             logger.info("423 response received");

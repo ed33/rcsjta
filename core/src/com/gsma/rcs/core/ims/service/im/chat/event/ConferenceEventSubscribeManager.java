@@ -53,6 +53,7 @@ import com.gsma.rcs.utils.ContactUtils;
 import com.gsma.rcs.utils.PeriodicRefresher;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.chat.ParticipantInfo;
 import com.gsma.services.rcs.chat.ParticipantInfo.Status;
 import com.gsma.services.rcs.contact.ContactId;
@@ -579,8 +580,9 @@ public class ConferenceEventSubscribeManager extends PeriodicRefresher {
      * Handle 200 0K response
      * 
      * @param ctx SIP transaction context
+     * @throws RcsServiceException
      */
-    private void handle200OK(SipTransactionContext ctx) {
+    private void handle200OK(SipTransactionContext ctx) throws RcsServiceException {
         // 200 OK response received
         if (logger.isActivated()) {
             logger.info("200 OK response received");

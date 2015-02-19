@@ -42,6 +42,7 @@ import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.ContactUtils;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.contact.ContactId;
 
 /**
@@ -934,8 +935,9 @@ public abstract class ImsServiceSession extends Thread {
      * 
      * @param invite SIP INVITE
      * @throws SipException
+     * @throws RcsServiceException
      */
-    public void sendInvite(SipRequest invite) throws SipException {
+    public void sendInvite(SipRequest invite) throws SipException, RcsServiceException {
         // Send INVITE request
         SipTransactionContext ctx = getImsService()
                 .getImsModule()
@@ -1004,8 +1006,9 @@ public abstract class ImsServiceSession extends Thread {
      * Handle 200 0K response
      * 
      * @param resp 200 OK response
+     * @throws RcsServiceException
      */
-    public void handle200OK(SipResponse resp) {
+    public void handle200OK(SipResponse resp) throws RcsServiceException {
         try {
             // 200 OK received
             if (logger.isActivated()) {

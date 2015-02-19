@@ -31,6 +31,7 @@ import com.gsma.rcs.utils.ContactUtils;
 import com.gsma.rcs.utils.PeriodicRefresher;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.contact.ContactId;
 
 /**
@@ -112,8 +113,9 @@ public class SessionTimerManager extends PeriodicRefresher {
      * 
      * @param refresher Refresher role
      * @param expirePeriod Expire period
+     * @throws RcsServiceException
      */
-    public void start(String refresher, int expirePeriod) {
+    public void start(String refresher, int expirePeriod) throws RcsServiceException {
         if (logger.isActivated()) {
             logger.debug("Start session timer for session " + session.getId() + " (role="
                     + refresher + ", expire=" + expirePeriod + ")");
@@ -140,8 +142,10 @@ public class SessionTimerManager extends PeriodicRefresher {
 
     /**
      * Start processing the session timer
+     *
+     * @throws RcsServiceException
      */
-    private void startProcessing() {
+    private void startProcessing() throws RcsServiceException {
         if (refresher.equals(UAC_ROLE)) {
             startTimer(expirePeriod, 0.5);
         } else {
@@ -205,8 +209,10 @@ public class SessionTimerManager extends PeriodicRefresher {
      * 
      * @param reInvite SIP RE-INVITE
      * @throws SipException
+     * @throws RcsServiceException
      */
-    private void sendReInvite(SipRequest reInvite) throws SipException, CoreException {
+    private void sendReInvite(SipRequest reInvite) throws SipException, CoreException,
+            RcsServiceException {
         if (logger.isActivated()) {
             logger.debug("Send RE-INVITE");
         }

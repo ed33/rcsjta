@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2015 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.gsma.rcs.core.ims.protocol.sip;
@@ -21,6 +25,9 @@ package com.gsma.rcs.core.ims.protocol.sip;
 import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.PeriodicRefresher;
 import com.gsma.rcs.utils.logger.Logger;
+import com.gsma.services.rcs.RcsServiceException;
+
+import java.io.IOException;
 
 /**
  * Keep-alive manager (see RFC 5626)
@@ -28,6 +35,9 @@ import com.gsma.rcs.utils.logger.Logger;
  * @author BJ
  */
 public class KeepAliveManager extends PeriodicRefresher {
+
+    private static final String ERROR_SIP_HEARTBEAT_FAILED = "SIP heartbeat has failed";
+
     /**
      * Keep-alive period (in seconds)
      */
@@ -53,8 +63,10 @@ public class KeepAliveManager extends PeriodicRefresher {
 
     /**
      * Start
+     *
+     * @throws RcsServiceException
      */
-    public void start() {
+    public void start() throws RcsServiceException {
         if (logger.isActivated()) {
             logger.debug("Start keep-alive");
         }
@@ -73,23 +85,23 @@ public class KeepAliveManager extends PeriodicRefresher {
 
     /**
      * Keep-alive processing
+     *
+     * @throws RcsServiceException
      */
-    public void periodicProcessing() {
-        try {
-            if (logger.isActivated()) {
-                logger.debug("Send keep-alive");
-            }
+    public void periodicProcessing() throws RcsServiceException {
+        if (logger.isActivated()) {
+            logger.debug("Send keep-alive");
+        }
 
-            // Send a double-CRLF
+        // Send a double-CRLF
+        try {
             sip.getDefaultSipProvider().getListeningPoints()[0].sendHeartbeat(
                     sip.getOutboundProxyAddr(), sip.getOutboundProxyPort());
-
             // Start timer
             startTimer(period, 1);
-        } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("SIP heartbeat has failed", e);
-            }
+        } catch (IOException e) {
+            throw new RcsServiceException(new StringBuilder(ERROR_SIP_HEARTBEAT_FAILED).append(
+                    e.getMessage()).toString());
         }
     }
 

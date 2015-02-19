@@ -21,6 +21,7 @@ package com.gsma.rcs.core.ims.service.im.chat;
 import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.PeriodicRefresher;
 import com.gsma.rcs.utils.logger.Logger;
+import com.gsma.services.rcs.RcsServiceException;
 
 /**
  * Chat activity manager which manages the idle state of the session. It maintains a timer that is
@@ -67,8 +68,10 @@ public class ChatActivityManager extends PeriodicRefresher {
 
     /**
      * Start manager
+     *
+     * @throws RcsServiceException
      */
-    public void start() {
+    public void start() throws RcsServiceException {
         if (logger.isActivated()) {
             logger.info("Start the activity manager for " + timeout + "s");
         }
@@ -94,8 +97,10 @@ public class ChatActivityManager extends PeriodicRefresher {
 
     /**
      * Periodic processing
+     *
+     * @throws RcsServiceException
      */
-    public void periodicProcessing() {
+    public void periodicProcessing() throws RcsServiceException {
         long currentTime = System.currentTimeMillis();
         int inactivityPeriod = (int) ((currentTime - activityTimesamp) / 1000) + 1;
         int remainingPeriod = timeout - inactivityPeriod;

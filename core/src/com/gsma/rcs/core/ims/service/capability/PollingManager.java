@@ -24,6 +24,7 @@ import com.gsma.rcs.provider.eab.ContactsManager;
 import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.PeriodicRefresher;
 import com.gsma.rcs.utils.logger.Logger;
+import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.contact.ContactId;
 
 /**
@@ -60,8 +61,10 @@ public class PollingManager extends PeriodicRefresher {
 
     /**
      * Start polling
+     *
+     * @throws RcsServiceException
      */
-    public void start() {
+    public void start() throws RcsServiceException {
         if (pollingPeriod == 0) {
             return;
         }
@@ -77,8 +80,10 @@ public class PollingManager extends PeriodicRefresher {
 
     /**
      * Update processing
+     *
+     * @throws RcsServiceException
      */
-    public void periodicProcessing() {
+    public void periodicProcessing() throws RcsServiceException {
         // Make a registration
         if (logger.isActivated()) {
             logger.info("Execute new capabilities update");

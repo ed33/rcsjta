@@ -63,6 +63,7 @@ import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.IdGenerator;
 import com.gsma.rcs.utils.NetworkRessourceManager;
 import com.gsma.rcs.utils.logger.Logger;
+import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.chat.ChatLog.Message.MimeType;
 import com.gsma.services.rcs.chat.ParticipantInfo;
 import com.gsma.services.rcs.contact.ContactId;
@@ -1057,8 +1058,9 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
      * Handle 200 0K response
      * 
      * @param resp 200 OK response
+     * @throws RcsServiceException
      */
-    public void handle200OK(SipResponse resp) {
+    public void handle200OK(SipResponse resp) throws RcsServiceException {
         super.handle200OK(resp);
 
         // Check if geolocation push supported by remote

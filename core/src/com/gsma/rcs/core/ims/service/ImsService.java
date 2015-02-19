@@ -29,6 +29,7 @@ import com.gsma.rcs.core.ims.protocol.sip.SipRequest;
 import com.gsma.rcs.core.ims.protocol.sip.SipResponse;
 import com.gsma.rcs.utils.IdGenerator;
 import com.gsma.rcs.utils.logger.Logger;
+import com.gsma.services.rcs.RcsServiceException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -193,8 +194,10 @@ public abstract class ImsService {
 
     /**
      * Start the IMS service
+     *
+     * @throws RcsServiceException
      */
-    public abstract void start();
+    public abstract void start() throws RcsServiceException;
 
     /**
      * Stop the IMS service

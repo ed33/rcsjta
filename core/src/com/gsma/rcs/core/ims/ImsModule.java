@@ -53,6 +53,7 @@ import com.gsma.rcs.provider.eab.ContactsManager;
 import com.gsma.rcs.provider.messaging.MessagingLog;
 import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.logger.Logger;
+import com.gsma.services.rcs.RcsServiceException;
 
 /**
  * IMS module
@@ -277,8 +278,10 @@ public class ImsModule implements SipEventListener {
 
     /**
      * Start IMS services
+     *
+     * @throws RcsServiceException
      */
-    public void startImsServices() {
+    public void startImsServices() throws RcsServiceException {
         // Start each services
         for (int i = 0; i < services.length; i++) {
             if (services[i].isActivated()) {

@@ -2,6 +2,8 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2015 Sony Mobile Communications Inc.
+ *
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +16,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.gsma.rcs.utils;
@@ -24,9 +29,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 
 import com.gsma.rcs.platform.AndroidFactory;
 import com.gsma.rcs.utils.logger.Logger;
+import com.gsma.services.rcs.RcsServiceException;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
  * Periodic refresher
@@ -34,6 +44,25 @@ import com.gsma.rcs.utils.logger.Logger;
  * @author JM. Auffret
  */
 public abstract class PeriodicRefresher {
+
+    private static final int KITKAT_VERSION_CODE = 19;
+
+    private static final int MILLISEC_CONVERSION_RATE = 1000;
+
+    private static final String SET_EXACT_METHOD_NAME = "setExact";
+
+    private static final String ERROR_SET_EXACT_METHOD_NOT_FOUND = "Failed to get setExact method";
+
+    private static final String ERROR_SET_EXACT_METHOD_NO_ACCESS = "No access to the definition of setExact method";
+
+    private static final String ERROR_SET_EXACT_METHOD_INVOKE = "Can't invoke setExact method";
+
+    private static final Class[] SET_EXACT_METHOD_PARAM = new Class[] {
+            int.class,
+            long.class,
+            PendingIntent.class
+    };
+
     /**
      * Keep alive manager
      */
@@ -52,7 +81,7 @@ public abstract class PeriodicRefresher {
     /**
      * Timer state
      */
-    private boolean timerStarted = false;
+    private boolean mTimerStarted = false;
 
     /**
      * Polling period
@@ -76,15 +105,18 @@ public abstract class PeriodicRefresher {
 
     /**
      * Periodic processing
+     *
+     * @throws RcsServiceException
      */
-    public abstract void periodicProcessing();
+    public abstract void periodicProcessing() throws RcsServiceException;
 
     /**
      * Start the timer
      * 
      * @param expirePeriod Expiration period in seconds
+     * @throws RcsServiceException
      */
-    public void startTimer(int expirePeriod) {
+    public void startTimer(int expirePeriod) throws RcsServiceException {
         startTimer(expirePeriod, 1.0);
     }
 
@@ -93,8 +125,9 @@ public abstract class PeriodicRefresher {
      * 
      * @param expirePeriod Expiration period in seconds
      * @param delta Delta to apply on the expire period in percentage
+     * @throws RcsServiceException
      */
-    public synchronized void startTimer(int expirePeriod, double delta) {
+    public synchronized void startTimer(int expirePeriod, double delta) throws RcsServiceException {
         // Check expire period
         if (expirePeriod <= 0) {
             // Expire period is null
@@ -111,25 +144,39 @@ public abstract class PeriodicRefresher {
                     + "s)");
         }
 
-        // Register the alarm receiver
-        AndroidFactory.getApplicationContext().registerReceiver(alarmReceiver,
-                new IntentFilter(action));
-
-        // Start alarm from now to the expire value
-        AlarmManager am = (AlarmManager) AndroidFactory.getApplicationContext().getSystemService(
-                Context.ALARM_SERVICE);
-        am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + pollingPeriod * 1000,
-                alarmIntent);
-
-        // The timer is started
-        timerStarted = true;
+        final Context ctx = AndroidFactory.getApplicationContext();
+        ctx.registerReceiver(alarmReceiver, new IntentFilter(action));
+        AlarmManager alarmManager = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+        if (Build.VERSION.SDK_INT < KITKAT_VERSION_CODE) {
+            alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + pollingPeriod
+                    * MILLISEC_CONVERSION_RATE, alarmIntent);
+            mTimerStarted = true;
+        } else {
+            try {
+                Method setExactMethod = alarmManager.getClass().getDeclaredMethod(
+                        SET_EXACT_METHOD_NAME, SET_EXACT_METHOD_PARAM);
+                setExactMethod.invoke(alarmManager, AlarmManager.RTC_WAKEUP,
+                        System.currentTimeMillis() + pollingPeriod * MILLISEC_CONVERSION_RATE,
+                        alarmIntent);
+                mTimerStarted = true;
+            } catch (NoSuchMethodException e) {
+                throw new RcsServiceException(new StringBuilder(ERROR_SET_EXACT_METHOD_NOT_FOUND)
+                        .append(e.getMessage()).toString());
+            } catch (IllegalAccessException e) {
+                throw new RcsServiceException(new StringBuilder(ERROR_SET_EXACT_METHOD_NO_ACCESS)
+                        .append(e.getMessage()).toString());
+            } catch (InvocationTargetException e) {
+                throw new RcsServiceException(new StringBuilder(ERROR_SET_EXACT_METHOD_INVOKE)
+                        .append(e.getMessage()).toString());
+            }
+        }
     }
 
     /**
      * Stop the timer
      */
     public synchronized void stopTimer() {
-        if (!timerStarted) {
+        if (!mTimerStarted) {
             // Already stopped
             return;
         }
@@ -139,7 +186,7 @@ public abstract class PeriodicRefresher {
         }
 
         // The timer is stopped
-        timerStarted = false;
+        mTimerStarted = false;
 
         // Cancel alarm
         AlarmManager am = (AlarmManager) AndroidFactory.getApplicationContext().getSystemService(
@@ -162,7 +209,11 @@ public abstract class PeriodicRefresher {
             Thread t = new Thread() {
                 public void run() {
                     // Processing
-                    periodicProcessing();
+                    try {
+                        periodicProcessing();
+                    } catch (RcsServiceException e) {
+                        stopTimer();
+                    }
                 }
             };
             t.start();

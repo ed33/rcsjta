@@ -49,6 +49,7 @@ import com.gsma.rcs.core.ims.userprofile.UserProfileInterface;
 import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
 import com.gsma.rcs.utils.logger.Logger;
+import com.gsma.services.rcs.RcsServiceException;
 
 /**
  * Abstract IMS network interface
@@ -586,9 +587,10 @@ public abstract class ImsNetworkInterface {
      * @param dnsResolvedFields The {@link DnsResolvedFields} object containing the DNS resolved
      *            fields.
      * @return Registration result
+     * @throws RcsServiceException
      */
     // Changed by Deutsche Telekom
-    public boolean register(DnsResolvedFields dnsResolvedFields) {
+    public boolean register(DnsResolvedFields dnsResolvedFields) throws RcsServiceException {
         if (logger.isActivated()) {
             logger.debug("Register to IMS");
         }
@@ -636,8 +638,9 @@ public abstract class ImsNetworkInterface {
      * Register to the IMS
      * 
      * @return Registration result
+     * @throws RcsServiceException
      */
-    public boolean register() {
+    public boolean register() throws RcsServiceException {
         return register(null);
     }
 

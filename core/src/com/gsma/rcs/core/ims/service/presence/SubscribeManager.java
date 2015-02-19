@@ -34,6 +34,7 @@ import com.gsma.rcs.platform.registry.RegistryFactory;
 import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.PeriodicRefresher;
 import com.gsma.rcs.utils.logger.Logger;
+import com.gsma.services.rcs.RcsServiceException;
 
 /**
  * Generic subscribe manager
@@ -381,8 +382,9 @@ public abstract class SubscribeManager extends PeriodicRefresher {
      * Handle 200 0K response
      * 
      * @param ctx SIP transaction context
+     * @throws RcsServiceException
      */
-    private void handle200OK(SipTransactionContext ctx) {
+    private void handle200OK(SipTransactionContext ctx) throws RcsServiceException {
         // 200 OK response received
         if (logger.isActivated()) {
             logger.info("200 OK response received");

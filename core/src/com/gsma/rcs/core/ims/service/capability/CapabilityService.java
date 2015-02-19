@@ -43,6 +43,7 @@ import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.ContactUtils;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.contact.ContactId;
 
 /**
@@ -111,8 +112,10 @@ public class CapabilityService extends ImsService implements AddressBookEventLis
 
     /**
      * Start the IMS service
+     *
+     * @throws RcsServiceException
      */
-    public synchronized void start() {
+    public synchronized void start() throws RcsServiceException {
         if (isServiceStarted()) {
             // Already started
             return;
