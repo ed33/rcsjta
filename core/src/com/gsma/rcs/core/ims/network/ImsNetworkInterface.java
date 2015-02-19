@@ -618,8 +618,11 @@ public abstract class ImsNetworkInterface {
                 logger.debug("IMS registration successful");
             }
 
-            // Start keep-alive for NAT if activated
-            if (isBehindNat() && RcsSettings.getInstance().isSipKeepAliveEnabled()) {
+            /**
+             * Even if DUT is not behind NAT (Network Address Translation) it should still send the
+             * keep-Alive (double CRLF).
+             */
+            if (RcsSettings.getInstance().isSipKeepAliveEnabled()) {
                 sip.getSipStack().getKeepAliveManager().start();
             }
         } else {
