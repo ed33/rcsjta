@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2015 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.gsma.rcs.core.ims.network.registration;
@@ -99,6 +103,8 @@ public class RegistrationManager extends PeriodicRefresher {
      */
     private int nb401Failures = 0;
 
+    private RcsSettings mRcsSettings;
+
     /**
      * The logger
      */
@@ -109,16 +115,19 @@ public class RegistrationManager extends PeriodicRefresher {
      * 
      * @param networkInterface IMS network interface
      * @param registrationProcedure Registration procedure
+     * @param rcsSettings
      */
     public RegistrationManager(ImsNetworkInterface networkInterface,
-            RegistrationProcedure registrationProcedure) {
+            RegistrationProcedure registrationProcedure, RcsSettings rcsSettings) {
         this.networkInterface = networkInterface;
         this.registrationProcedure = registrationProcedure;
         this.featureTags = RegistrationUtils.getSupportedFeatureTags();
-        this.expirePeriod = RcsSettings.getInstance().getRegisterExpirePeriod();
+        mRcsSettings = rcsSettings;
+        this.expirePeriod = mRcsSettings.getRegisterExpirePeriod();
 
-        if (RcsSettings.getInstance().isGruuSupported()) {
-            this.instanceId = DeviceUtils.getInstanceId(AndroidFactory.getApplicationContext());
+        if (mRcsSettings.isGruuSupported()) {
+            this.instanceId = DeviceUtils.getInstanceId(AndroidFactory.getApplicationContext(),
+                    mRcsSettings);
         }
     }
 
@@ -207,7 +216,7 @@ public class RegistrationManager extends PeriodicRefresher {
 
             // Create REGISTER request
             SipRequest register = SipMessageFactory.createRegister(dialogPath, featureTags,
-                    RcsSettings.getInstance().getRegisterExpirePeriod(), instanceId);
+                    mRcsSettings.getRegisterExpirePeriod(), instanceId);
 
             // Send REGISTER request
             sendRegister(register);

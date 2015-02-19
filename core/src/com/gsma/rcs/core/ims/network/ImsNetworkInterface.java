@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2015 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +15,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
 
 package com.gsma.rcs.core.ims.network;
@@ -144,6 +148,8 @@ public abstract class ImsNetworkInterface {
      */
     private int natPublicPort = -1;
 
+    private RcsSettings mRcsSettings;
+
     /**
      * TCP fallback according to RFC3261 chapter 18.1.1
      */
@@ -164,10 +170,11 @@ public abstract class ImsNetworkInterface {
      * @param proxyPort IMS proxy port
      * @param proxyProtocol IMS proxy protocol
      * @param authentMode IMS authentication mode
+     * @param rcsSettings
      */
     public ImsNetworkInterface(ImsModule imsModule, int type, NetworkAccess access,
             String proxyAddr, int proxyPort, String proxyProtocol,
-            AuthenticationProcedure authentMode) {
+            AuthenticationProcedure authentMode, RcsSettings rcsSettings) {
         this.imsModule = imsModule;
         this.type = type;
         this.access = access;
@@ -175,8 +182,9 @@ public abstract class ImsNetworkInterface {
         this.imsProxyPort = proxyPort;
         this.imsProxyProtocol = proxyProtocol;
         this.imsAuthentMode = authentMode;
+        mRcsSettings = rcsSettings;
         if (proxyProtocol.equalsIgnoreCase(ListeningPoint.UDP))
-            this.tcpFallback = RcsSettings.getInstance().isTcpFallback();
+            this.tcpFallback = mRcsSettings.isTcpFallback();
 
         // Instantiates the SIP manager
         sip = new SipManager(this);
@@ -185,7 +193,7 @@ public abstract class ImsNetworkInterface {
         loadRegistrationProcedure();
 
         // Instantiates the registration manager
-        registration = new RegistrationManager(this, registrationProcedure);
+        registration = new RegistrationManager(this, registrationProcedure, mRcsSettings);
     }
 
     /**
@@ -619,7 +627,7 @@ public abstract class ImsNetworkInterface {
             }
 
             // Start keep-alive for NAT if activated
-            if (isBehindNat() && RcsSettings.getInstance().isSipKeepAliveEnabled()) {
+            if (isBehindNat() && mRcsSettings.isSipKeepAliveEnabled()) {
                 sip.getSipStack().getKeepAliveManager().start();
             }
         } else {
