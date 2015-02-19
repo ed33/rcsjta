@@ -50,6 +50,14 @@ public class TerminalInfo {
 
     private static final String UNKNOWN = "unknown";
 
+    private static final char FORWARD_SLASH = '/';
+
+    private static final char HYPHEN = '-';
+
+    private static String sBuildInfo;
+
+    private static String sClientInfo;
+
     /**
      * Returns the product name
      * 
@@ -75,15 +83,6 @@ public class TerminalInfo {
      */
     public static void setProductVersion(String version) {
         TerminalInfo.productVersion = version;
-    }
-
-    /**
-     * Returns the product name + version
-     * 
-     * @return product information
-     */
-    public static String getProductInfo() {
-        return productName + "/" + productVersion;
     }
 
     /**
@@ -129,5 +128,33 @@ public class TerminalInfo {
      */
     public static String getTerminalSoftwareVersion() {
         return (Build.DISPLAY != null) ? Build.DISPLAY : UNKNOWN;
+    }
+
+    /**
+     * Get the build info
+     *
+     * @return build info
+     */
+    public static String getBuildInfo() {
+        if (sBuildInfo == null) {
+            final String buildVersion = new StringBuilder(getTerminalModel()).append(HYPHEN)
+                    .append(getTerminalSoftwareVersion()).toString();
+            sBuildInfo = new StringBuilder(getTerminalVendor()).append(FORWARD_SLASH)
+                    .append(buildVersion).toString();
+        }
+        return sBuildInfo;
+    }
+
+    /**
+     * Returns the client_vendor "-" client_version
+     *
+     * @return client information
+     */
+    public static String getClientInfo() {
+        if (sClientInfo == null) {
+            sClientInfo = new StringBuilder(getClientVendor()).append(FORWARD_SLASH)
+                    .append(CLIENT_VERSION).toString();
+        }
+        return sClientInfo;
     }
 }
