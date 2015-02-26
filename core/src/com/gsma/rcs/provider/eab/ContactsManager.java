@@ -509,7 +509,9 @@ public final class ContactsManager {
         support = newCapabilities.isGeolocationPushSupported() && isRegistered;
         values.put(RichAddressBookData.KEY_CAPABILITY_GEOLOCATION_PUSH, support);
 
-        support = newCapabilities.isFileTransferHttpSupported() && isRegistered;
+        support = newCapabilities.isFileTransferHttpSupported() && isRegistered
+                || (mRcsSettings.isFtHttpCapAlwaysOn() && newCapabilities
+                        .isFileTransferHttpSupported());
         values.put(RichAddressBookData.KEY_CAPABILITY_FILE_TRANSFER_HTTP, support);
 
         support = newCapabilities.isFileTransferThumbnailSupported() && isRegistered;
@@ -1875,8 +1877,9 @@ public final class ContactsManager {
                 .isFileTransferThumbnailSupported() && isRegistered);
 
         // FT HTTP
-        capabilities.setFileTransferHttpSupport(capabilities.isFileTransferHttpSupported()
-                && isRegistered);
+        capabilities.setFileTransferHttpSupport((capabilities.isFileTransferHttpSupported() && isRegistered)
+                || (mRcsSettings.isFtHttpCapAlwaysOn() && newInfo.getCapabilities()
+                        .isFileTransferHttpSupported()));
 
         // FT S&F
         capabilities.setFileTransferStoreForwardSupport((capabilities
@@ -2095,7 +2098,7 @@ public final class ContactsManager {
             cursor = mLocalContentResolver.query(uri, PROJECTION_RABP_CAPABILITIES, null, null,
                     null);
             if (!cursor.moveToFirst()) {
-                return caps;
+                return null;
 
             }
             // Get the capabilities infos
@@ -2148,9 +2151,7 @@ public final class ContactsManager {
             if (logger.isActivated()) {
                 logger.error("Internal exception", e);
             }
-            // remove entry from cache
-            mCapabilitiesCache.remove(contact);
-            return caps;
+            return null;
 
         } finally {
             if (cursor != null) {
