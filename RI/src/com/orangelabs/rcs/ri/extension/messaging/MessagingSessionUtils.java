@@ -17,6 +17,11 @@
  ******************************************************************************/
 package com.orangelabs.rcs.ri.extension.messaging;
 
+import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
+
 /**
  * Messaging service utils
  * 
@@ -26,5 +31,31 @@ public class MessagingSessionUtils {
 	/**
 	 * Service ID constant
 	 */
-	public final static String SERVICE_ID = "ext.messaging";
+	//public final static String SERVICE_ID = "ext.messaging";
+	
+	private final static String META_DATA_EXTENSION = "com.gsma.services.rcs.capability.EXTENSION";
+	private final static String SEP = ";";
+		
+	private static String[] serviceIds = null;
+	
+	/**
+	 * Get security extensions from the android manifest file. 
+	 * @param context
+	 * @return String[]
+	 */
+	public static String[] getServicesIds(Context context){
+	
+		if(serviceIds == null){
+			try {
+				PackageInfo info;
+				info = context.getPackageManager().getPackageInfo(context.getPackageName(),PackageManager.GET_META_DATA);
+				serviceIds = info.applicationInfo.metaData.getString(META_DATA_EXTENSION).split(SEP);
+			}
+			catch (NameNotFoundException e) {
+				e.printStackTrace();
+			} 							
+		}
+		return serviceIds;
+	}
+	
 }

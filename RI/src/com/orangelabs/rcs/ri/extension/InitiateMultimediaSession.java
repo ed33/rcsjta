@@ -24,6 +24,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 
@@ -31,6 +32,7 @@ import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
 import com.orangelabs.rcs.ri.R;
+import com.orangelabs.rcs.ri.extension.messaging.MessagingSessionUtils;
 import com.orangelabs.rcs.ri.utils.ContactListAdapter;
 import com.orangelabs.rcs.ri.utils.LogUtils;
 
@@ -45,6 +47,11 @@ public abstract class InitiateMultimediaSession extends Activity {
 	 * Spinner for contact selection
 	 */
 	private Spinner mSpinner;
+
+	/**
+	 * Spinner for contact selection
+	 */
+	private Spinner mSpinnerServiceId;
 
 	/**
 	 * The log tag for this class
@@ -63,6 +70,8 @@ public abstract class InitiateMultimediaSession extends Activity {
 		mSpinner = (Spinner) findViewById(R.id.contact);
 		mSpinner.setAdapter(ContactListAdapter.createContactListAdapter(this));
 
+		mSpinnerServiceId = (Spinner) findViewById(R.id.extension);		
+		mSpinnerServiceId.setAdapter(new ArrayAdapter<String>(this,android.R.layout.simple_spinner_item,MessagingSessionUtils.getServicesIds(this)));
 		// Set buttons callback
 		Button initiateBtn = (Button) findViewById(R.id.initiate_btn);
 		initiateBtn.setOnClickListener(btnInitiateListener);
@@ -91,7 +100,7 @@ public abstract class InitiateMultimediaSession extends Activity {
 				ContactUtils contactUtils = ContactUtils.getInstance(InitiateMultimediaSession.this);
 				ContactId contact = contactUtils.formatContact(phoneNumber);
 				// Initiate session
-				initiateSession(contact);
+				initiateSession(contact, mSpinnerServiceId.getSelectedItem().toString());
 			} catch (RcsContactFormatException e) {
 				if (LogUtils.isActive) {
 					Log.e(LOGTAG, "Cannot parse contact " + phoneNumber);
@@ -109,5 +118,5 @@ public abstract class InitiateMultimediaSession extends Activity {
 	 * @param contact
 	 *            Remote contact
 	 */
-	public abstract void initiateSession(ContactId contact);
+	public abstract void initiateSession(ContactId contact, String serviceId);
 }

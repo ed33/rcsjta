@@ -18,6 +18,7 @@
 package com.orangelabs.rcs.ri.extension.messaging;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -68,8 +69,11 @@ public class MessagingSessionList extends MultimediaSessionList {
 			sessions.clear();
 
 			// Get list of pending sessions
-			Set<MultimediaMessagingSession> currentSessions = connectionManager.getMultimediaSessionApi().getMessagingSessions(
-					MessagingSessionUtils.SERVICE_ID);
+			Set<MultimediaMessagingSession> currentSessions = new HashSet<MultimediaMessagingSession>();
+			for(String serviceId : MessagingSessionUtils.getServicesIds(this)){
+				currentSessions.addAll(connectionManager.getMultimediaSessionApi().getMessagingSessions(serviceId));
+			}
+			
 			sessions = new ArrayList<MultimediaMessagingSession>(currentSessions);
 			if (sessions.size() > 0) {
 				String[] items = new String[sessions.size()];

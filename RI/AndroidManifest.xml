@@ -48,9 +48,13 @@
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            </intent-filter>            
+            <!-- Declare the joyn extension -->
+            <intent-filter>
+                <action android:name="com.gsma.services.rcs.capability.EXTENSION" />
+                <data android:mimeType="com.gsma.services.rcs/*" />
+            </intent-filter>            
         </activity>
         
         <activity
@@ -391,11 +395,13 @@
         <activity
             android:name="com.orangelabs.rcs.ri.extension.streaming.StreamingSessionList"
             android:label="@string/menu_streaming_sessions_list" />
-"
+
         <receiver android:name="com.orangelabs.rcs.ri.extension.SessionInvitationReceiver">
             <intent-filter>
 		    	<action android:name="com.gsma.services.rcs.extension.action.NEW_MESSAGING_SESSION"/>
-                <data android:mimeType="com.gsma.services.rcs/ext.messaging" />
+                <data android:mimeType="com.gsma.services.rcs/mnc099.mcc099.messaging-range-ext0" />
+                <data android:mimeType="com.gsma.services.rcs/mnc099.mcc099.messaging-range-ext1" />
+                <data android:mimeType="com.gsma.services.rcs/ext.NzSzFMKaLAr2ETLhHCvOV121gLO0kKNbUNU0kQ" />      
         		<category android:name="android.intent.category.LAUNCHER" />
         		<category android:name="android.intent.category.DEFAULT" />
 	    	</intent-filter>
@@ -462,7 +468,13 @@
         <activity
             android:name=".upload.InitiateFileUpload"
             android:label="@string/title_initiate_upload" />
+         
+        <!-- Extensions supported by application -->
+         <meta-data
+            android:name="com.gsma.services.rcs.capability.EXTENSION"
+            android:value="mnc099.mcc099.messaging-range-ext0;mnc099.mcc099.messaging-range-ext1;ext.NzSzFMKaLAr2ETLhHCvOV121gLO0kKNbUNU0kQ" />
 	 		 	
+ 
 </application>
 
 </manifest>
