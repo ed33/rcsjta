@@ -13,8 +13,11 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import com.gsma.contrib.javax.xml.crypto.dsig.XMLSignature;
+import com.gsma.iariauth.validator.IARIAuthDocument.AuthType;
 import com.gsma.iariauth.validator.dsig.SignatureInfo;
 
+import java.util.Map;
+import java.util.HashMap;
 /**
  * A class encapsulating relevant properties of an IARI Authorization document
  */
@@ -23,8 +26,34 @@ public class IARIAuthDocument {
 	/**
 	 * The type of this IARI Authorization
 	 */
-	public static enum AuthType { STANDALONE, RANGE }
+	public static enum AuthType {
+		UNSPECIFIED(0), STANDALONE(1), RANGE(2);
+		private int mValue;
 
+		private static Map<Integer,AuthType> mValueToEnum = new HashMap<Integer,AuthType>();
+		static {
+			for (AuthType entry : AuthType.values()) {
+				mValueToEnum.put(entry.toInt(), entry);
+			}
+		}
+
+		private AuthType(int value) {
+			mValue = value;
+		}
+
+		public final int toInt() {
+			return mValue;
+		}
+
+		public static AuthType valueOf(int value) {
+			AuthType entry = mValueToEnum.get(value);
+			if (entry != null) {
+				return entry;
+			}
+			throw new IllegalArgumentException("No enum const class " + AuthType.class.getName() + "." + value);
+
+		}
+	}
 	/**
 	 * Public members
 	 */

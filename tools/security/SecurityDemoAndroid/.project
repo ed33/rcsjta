@@ -30,4 +30,11 @@
 		<nature>com.android.ide.eclipse.adt.AndroidNature</nature>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>Appender.java</name>
+			<type>1</type>
+			<locationURI>PARENT-3-PROJECT_LOC/core/src/com/orangelabs/rcs/utils/logger/Appender.java</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>

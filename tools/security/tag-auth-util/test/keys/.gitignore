@@ -10,3 +10,11 @@
 /iari-standalone-test.jks
 /com.gsma.iariauth0.sample.*
 /com.gsma.iariauth1.sample.*
+/messaging-standalone-ext0.bks
+/messaging-standalone-ext0.jks
+/mnc099.mcc099.messaging-range-ext0.cert
+/mnc099.mcc099.messaging-range-ext0.csr
+/mnc099.mcc099.messaging-range-ext0.jks
+/mnc099.mcc099.messaging-range-ext1.cert
+/mnc099.mcc099.messaging-range-ext1.csr
+/mnc099.mcc099.messaging-range-ext1.jks

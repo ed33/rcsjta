@@ -31,7 +31,9 @@
 		    destdir="${classes.dir}"
 		    excludes="**/android/*"
 		    classpathref="jre-classpath"
-			includeantruntime="false" />
+			debug="true"  
+			includeantruntime="false" />		    
+
 	</target>
 
 	<target name="android-compile">
@@ -41,7 +43,9 @@
 		    destdir="${classes.dir}"
 		    excludes="**/jre/*"
 		    classpathref="android-classpath"
-			includeantruntime="false" />
+			debug="true"		    
+			includeantruntime="false" />		    
+
 	</target>
 
 	<target name="jre-jar" depends="jre-compile">

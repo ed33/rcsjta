@@ -3,5 +3,4 @@ basicConstraints=CA:FALSE
 keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
 subjectAltName = @alt_names
 [alt_names]
-URI.1 = urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.extension1
-URI.2 = urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.extension0
+URI.1 = urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.messaging-range-ext0

@@ -1,4 +1,4 @@
-package com.gsma.iariauth0.sample;
+package com.gsma.iariauth.sample;
 
 import java.io.InputStream;
 import java.security.KeyStore;
