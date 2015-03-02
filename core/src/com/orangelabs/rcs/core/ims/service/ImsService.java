@@ -30,7 +30,6 @@ import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
 import com.orangelabs.rcs.utils.IdGenerator;
 import com.orangelabs.rcs.utils.logger.Logger;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -74,6 +73,11 @@ public abstract class ImsService {
      * SIP service
      */
 	public static final int SIP_SERVICE = 6;
+	
+    /**
+     * System request service
+     */
+	public static final int SYSTEM_SERVICE = 7;
 	
 	/**
 	 * Activation flag

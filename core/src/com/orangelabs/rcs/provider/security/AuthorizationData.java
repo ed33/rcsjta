@@ -37,7 +37,7 @@ public class AuthorizationData {
 	 * Database URI
 	 */
 	public static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.security/authorization");
-	
+
 	/**
 	 * Column name primary key
 	 * <P>
@@ -45,6 +45,14 @@ public class AuthorizationData {
 	 * </P>
 	 */
 	public static final String KEY_ID = "_id";
+
+	/**
+	 * The name of the column containing the package UID
+	 * <P>
+	 * Type: TEXT
+	 * </P>
+	 */
+	public static final String KEY_PACK_UID = "pack_uid";
 
 	/**
 	 * The name of the column containing the IARI tag as the unique ID of certificate
@@ -61,7 +69,7 @@ public class AuthorizationData {
 	 * </P>
 	 */
 	public static final String KEY_PACK_NAME = "pack_name";
-	
+
 	/**
 	 * The name of the column containing the authorization type.
 	 * <P>
@@ -69,7 +77,7 @@ public class AuthorizationData {
 	 * </P>
 	 */
 	public static final String KEY_AUTH_TYPE = "auth_type";
-	
+
 	/**
 	 * The name of the column containing the package signer.
 	 * <P>
@@ -77,7 +85,7 @@ public class AuthorizationData {
 	 * </P>
 	 */
 	public static final String KEY_SIGNER = "signer";
-	
+
 	/**
 	 * The name of the column containing the IARI range.
 	 * <P>
@@ -85,54 +93,49 @@ public class AuthorizationData {
 	 * </P>
 	 */
 	public static final String KEY_RANGE = "range";
-	
-	/**
-	 * The name of the column containing the extension.
-	 * <P>
-	 * Type: TEXT
-	 * </P>
-	 */
-	public static final String KEY_EXT = "ext";
-	
+
 	final private AuthType mAuthType;
+	final private Integer mPackageUid;
 	final private String mIARI;
 	final private String mRange;
 	final private String mPackageName;
 	final private String mPackageSigner;
-	final private String mExtension;
-	
+
 	/**
+	 * @param packageUid
 	 * @param packageName
-	 * @param extension
 	 * @param iari
 	 * @param authType
 	 * @param range
 	 * @param packageSigner
 	 */
-	public AuthorizationData(String packageName, String extension, String iari, AuthType authType, String range, String packageSigner) {
+	public AuthorizationData(Integer packageUid, String packageName, String iari, AuthType authType, String range,
+			String packageSigner) {
+		mPackageUid = packageUid;
 		mAuthType = authType;
 		mIARI = iari;
 		mRange = range;
 		mPackageName = packageName;
 		mPackageSigner = packageSigner;
-		mExtension = extension;
 	}
 
 	/**
+	 * @param packageUid
 	 * @param packageName
-	 * @param extension
+	 * @param iari
 	 */
-	public AuthorizationData(String packageName, String extension) {
+	public AuthorizationData(Integer packageUid, String packageName, String iari) {
 		mAuthType = AuthType.UNSPECIFIED;
+		mPackageUid = packageUid;
 		mPackageName = packageName;
-		mExtension = extension;
-		mIARI = null;
+		mIARI = iari;
 		mPackageSigner = null;
 		mRange = null;
 	}
-	
+
 	/**
 	 * Gets authorization type
+	 * 
 	 * @return authType
 	 */
 	public AuthType getAuthType() {
@@ -141,6 +144,7 @@ public class AuthorizationData {
 
 	/**
 	 * Gets IARI
+	 * 
 	 * @return iari
 	 */
 	public String getIARI() {
@@ -149,6 +153,7 @@ public class AuthorizationData {
 
 	/**
 	 * Gets IARI range
+	 * 
 	 * @return range
 	 */
 	public String getRange() {
@@ -157,6 +162,7 @@ public class AuthorizationData {
 
 	/**
 	 * Gets package name
+	 * 
 	 * @return package name
 	 */
 	public String getPackageName() {
@@ -165,6 +171,7 @@ public class AuthorizationData {
 
 	/**
 	 * Gets package signer
+	 * 
 	 * @return package signer
 	 */
 	public String getPackageSigner() {
@@ -172,11 +179,12 @@ public class AuthorizationData {
 	}
 
 	/**
-	 * Gets extension
-	 * @return extension
+	 * Gets package UID
+	 * 
+	 * @return package UID
 	 */
-	public String getExtension() {
-		return mExtension;
+	public Integer getPackageUid() {
+		return mPackageUid;
 	}
 
 	@Override
@@ -184,10 +192,10 @@ public class AuthorizationData {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((mAuthType == null) ? 0 : mAuthType.hashCode());
-		result = prime * result + ((mExtension == null) ? 0 : mExtension.hashCode());
 		result = prime * result + ((mIARI == null) ? 0 : mIARI.hashCode());
 		result = prime * result + ((mPackageName == null) ? 0 : mPackageName.hashCode());
 		result = prime * result + ((mPackageSigner == null) ? 0 : mPackageSigner.hashCode());
+		result = prime * result + ((mPackageUid == null) ? 0 : mPackageUid.hashCode());
 		result = prime * result + ((mRange == null) ? 0 : mRange.hashCode());
 		return result;
 	}
@@ -202,11 +210,6 @@ public class AuthorizationData {
 			return false;
 		AuthorizationData other = (AuthorizationData) obj;
 		if (mAuthType != other.mAuthType)
-			return false;
-		if (mExtension == null) {
-			if (other.mExtension != null)
-				return false;
-		} else if (!mExtension.equals(other.mExtension))
 			return false;
 		if (mIARI == null) {
 			if (other.mIARI != null)
@@ -223,6 +226,11 @@ public class AuthorizationData {
 				return false;
 		} else if (!mPackageSigner.equals(other.mPackageSigner))
 			return false;
+		if (mPackageUid == null) {
+			if (other.mPackageUid != null)
+				return false;
+		} else if (!mPackageUid.equals(other.mPackageUid))
+			return false;
 		if (mRange == null) {
 			if (other.mRange != null)
 				return false;
@@ -230,5 +238,4 @@ public class AuthorizationData {
 			return false;
 		return true;
 	}
-	
 }

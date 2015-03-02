@@ -75,6 +75,42 @@ public class RcsSettingsData {
 		GIBA, DIGEST
 	};
     
+	
+	/**
+	 * Security extension policy
+	 *
+	 */
+	public enum ExtensionPolicy {
+		ONLY_MNO(0), MNO_THIRD_PARTTY(1);
+
+		private int mValue;
+
+		private static SparseArray<ExtensionPolicy> mValueToEnum = new SparseArray<ExtensionPolicy>();
+		static {
+			for (ExtensionPolicy entry : ExtensionPolicy.values()) {
+				mValueToEnum.put(entry.toInt(), entry);
+			}
+		}
+
+		private ExtensionPolicy(int value) {
+			mValue = value;
+		}
+
+		public final int toInt() {
+			return mValue;
+		}
+
+		public static ExtensionPolicy valueOf(int value) {
+			ExtensionPolicy entry = mValueToEnum.get(value);
+			if (entry != null) {
+				return entry;
+			}
+			throw new IllegalArgumentException("No enum const class " + ExtensionPolicy.class.getName() + "." + value);
+
+		}
+
+	};
+		
 	// TODO replace by API definition CR031
 	public enum MessagingMode {
 		INTEGRATED(0), CONVERGED(1), SEAMLESS(2), NONE(3);
@@ -1194,8 +1230,7 @@ public class RcsSettingsData {
      * RCS extensions policy
      */
 	public static final String EXTENSIONS_POLICY = "ExtensionsPolicy";
-	/* package private */static final Integer DEFAULT_EXTENSIONS_POLICY = 0;
-
+	/* package private */static final Integer DEFAULT_EXTENSIONS_POLICY = ExtensionPolicy.ONLY_MNO.toInt();
 
 	/**
 	 * Validity of the RCS configuration.

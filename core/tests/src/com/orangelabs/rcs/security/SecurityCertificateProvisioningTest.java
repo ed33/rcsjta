@@ -26,9 +26,11 @@ import java.util.Set;
 import android.test.AndroidTestCase;
 
 import com.orangelabs.rcs.core.ims.service.extension.ICertificateProvisioningListener;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.security.CertificateData;
 import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.ExtensionPolicy;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
 import com.orangelabs.rcs.provisioning.ProvisioningParser;
 
@@ -46,7 +48,7 @@ public class SecurityCertificateProvisioningTest extends AndroidTestCase {
 		super.setUp();
 
 		RcsSettings.createInstance(getContext());
-		SecurityLog.createInstance(getContext().getContentResolver());
+		SecurityLog.createInstance(new LocalContentResolver(getContext().getContentResolver()));
 		mRcsSettings = RcsSettings.getInstance();
 	}
 
@@ -148,7 +150,7 @@ public class SecurityCertificateProvisioningTest extends AndroidTestCase {
 		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
-		assertEquals(mRcsSettings.getExtensionspolicy(), 0);
+		assertEquals(mRcsSettings.getExtensionspolicy(), ExtensionPolicy.ONLY_MNO);
 	}
 
 	public void test3ppApp() {
@@ -157,6 +159,6 @@ public class SecurityCertificateProvisioningTest extends AndroidTestCase {
 		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
 		boolean result = parser.parse(gsmaRelease, true);
 		assertTrue(result);
-		assertEquals(mRcsSettings.getExtensionspolicy(), 1);
+		assertEquals(mRcsSettings.getExtensionspolicy(), ExtensionPolicy.MNO_THIRD_PARTTY);
 	}
 }

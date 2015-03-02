@@ -37,12 +37,15 @@ import com.orangelabs.rcs.utils.DatabaseUtils;
  */
 public class SecurityProvider extends ContentProvider {
 	// Database tables
-	private static final String TABLE_CERT = "cert";
-	private static final String TABLE_AUTH = "auth";
+	private static final String TABLE_CERT 	= "cert";
+	private static final String TABLE_AUTH 	= "auth";
+	private static final String TABLE_REV 	= "rev";
 
 	private static final String CERT_SELECT_WITH_ID_ONLY = CertificateData.KEY_ID.concat("=?");
 	
 	private static final String AUTH_SELECT_WITH_ID_ONLY = AuthorizationData.KEY_ID.concat("=?");
+	
+	private static final String REV_SELECT_WITH_ID_ONLY = RevocationData.KEY_ID.concat("=?");
 
 	private static final String DATABASE_NAME = "security.db";
 
@@ -56,7 +59,12 @@ public class SecurityProvider extends ContentProvider {
 		sUriMatcher.addURI(AuthorizationData.CONTENT_URI.getAuthority(),
 				AuthorizationData.CONTENT_URI.getPath().substring(1), UriType.Authorization.AUTH);
 		sUriMatcher.addURI(AuthorizationData.CONTENT_URI.getAuthority(), AuthorizationData.CONTENT_URI.getPath().substring(1)
-				.concat("/*"), UriType.Authorization.AUTH_WITH_ID);
+				.concat("/*"), UriType.Authorization.AUTH_WITH_ID);		
+		sUriMatcher.addURI(RevocationData.CONTENT_URI.getAuthority(),
+				RevocationData.CONTENT_URI.getPath().substring(1), UriType.Revocation.REV);
+		sUriMatcher.addURI(RevocationData.CONTENT_URI.getAuthority(), RevocationData.CONTENT_URI.getPath().substring(1)
+				.concat("/*"), UriType.Revocation.REV_WITH_ID);
+
 	}
 
 	// Class used to differentiate between the different URI requests
@@ -72,6 +80,13 @@ public class SecurityProvider extends ContentProvider {
 
 			private static final int AUTH_WITH_ID = 4;
 		}
+		
+		private static final class Revocation {
+			private static final int REV = 5;
+
+			private static final int REV_WITH_ID = 6;
+		}
+
 	}
 
 	private static final class CursorType {
@@ -85,6 +100,11 @@ public class SecurityProvider extends ContentProvider {
 
 			private static final String TYPE_ITEM = "vnd.android.cursor.item/auth";
 		}
+		private static final class Revocation {
+			private static final String TYPE_DIRECTORY = "vnd.android.cursor.dir/rev";
+
+			private static final String TYPE_ITEM = "vnd.android.cursor.item/rev";
+		}		
 	}
 
 	/**
@@ -115,22 +135,40 @@ public class SecurityProvider extends ContentProvider {
 	                    .append("_").append(CertificateData.KEY_CERT).append("_idx").append(" ON ").append(TABLE_CERT).append("(")
 	                    .append(CertificateData.KEY_IARI_RANGE).append(",")
 	                    .append(CertificateData.KEY_CERT).append(")").toString());
-			 
+			 			 
 			 db.execSQL(new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(TABLE_AUTH).append("(")
 					 	.append(AuthorizationData.KEY_ID).append(" INTEGER PRIMARY KEY AUTOINCREMENT,")
+					 	.append(AuthorizationData.KEY_PACK_UID).append(" INTEGER NOT NULL,")
 					 	.append(AuthorizationData.KEY_PACK_NAME).append(" TEXT NOT NULL,")
-					 	.append(AuthorizationData.KEY_EXT).append(" TEXT NOT NULL,")
 					 	.append(AuthorizationData.KEY_AUTH_TYPE).append(" INTEGER NOT NULL,")
-						.append(AuthorizationData.KEY_IARI).append(" TEXT,")
+						.append(AuthorizationData.KEY_IARI).append(" TEXT NOT NULL,")
 	                    .append(AuthorizationData.KEY_SIGNER).append(" TEXT,")
 	                    .append(AuthorizationData.KEY_RANGE).append(" TEXT,")
-	                    .append("UNIQUE(").append(AuthorizationData.KEY_PACK_NAME).append(",").append(AuthorizationData.KEY_EXT)
+	                    .append("UNIQUE(").append(AuthorizationData.KEY_IARI)
 	                    .append(") ON CONFLICT REPLACE)").toString());
 			 
-			 db.execSQL(new StringBuilder("CREATE INDEX ").append(AuthorizationData.KEY_PACK_NAME)
-	                    .append("_").append(AuthorizationData.KEY_EXT).append("_idx").append(" ON ").append(TABLE_AUTH).append("(")
-	                    .append(AuthorizationData.KEY_PACK_NAME).append(",")
-	                    .append(AuthorizationData.KEY_EXT).append(")").toString());
+			 db.execSQL(new StringBuilder("CREATE INDEX ").append(AuthorizationData.KEY_PACK_UID)
+	                    .append("_").append(AuthorizationData.KEY_IARI).append("_idx").append(" ON ").append(TABLE_AUTH).append("(")	                    
+	                    .append(AuthorizationData.KEY_PACK_UID).append(",")
+	                    .append(AuthorizationData.KEY_IARI).append(")").toString());
+			 db.execSQL(new StringBuilder("CREATE INDEX ").append(AuthorizationData.KEY_PACK_UID)
+	                    .append("_").append("_idx").append(" ON ").append(TABLE_AUTH).append("(")	                    
+	                    .append(AuthorizationData.KEY_PACK_UID).append(")").toString());
+			 db.execSQL(new StringBuilder("CREATE INDEX ").append(AuthorizationData.KEY_IARI)
+	                    .append("_").append("_idx").append(" ON ").append(TABLE_AUTH).append("(")	                    
+	                    .append(AuthorizationData.KEY_IARI).append(")").toString());
+			 
+			 db.execSQL(new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(TABLE_REV).append("(")
+					 	.append(RevocationData.KEY_ID).append(" INTEGER PRIMARY KEY AUTOINCREMENT,")
+					 	.append(RevocationData.KEY_SERVICE_ID).append(" TEXT NOT NULL,")
+					 	.append(RevocationData.KEY_DURATION).append(" INTEGER NOT NULL,")
+	                    .append("UNIQUE(").append(RevocationData.KEY_SERVICE_ID)
+	                    .append(") ON CONFLICT REPLACE)").toString());
+			 
+			 db.execSQL(new StringBuilder("CREATE INDEX ").append(RevocationData.KEY_SERVICE_ID)
+	                    .append("_idx").append(" ON ").append(TABLE_REV).append("(")
+	                    .append(RevocationData.KEY_SERVICE_ID).append(")").toString());
+			 
 			// @formatter:on
 		}
 
@@ -138,6 +176,7 @@ public class SecurityProvider extends ContentProvider {
 		public void onUpgrade(SQLiteDatabase db, int oldVersion, int currentVersion) {
 			db.execSQL("DROP TABLE IF EXISTS ".concat(TABLE_CERT));
 			db.execSQL("DROP TABLE IF EXISTS ".concat(TABLE_AUTH));
+			db.execSQL("DROP TABLE IF EXISTS ".concat(TABLE_REV));
 			onCreate(db);
 		}
 	}
@@ -178,6 +217,24 @@ public class SecurityProvider extends ContentProvider {
 		return DatabaseUtils.appendSelectionArgs(idSelectionArg, selectionArgs);
 	}
 	
+	
+	private String getRevocationSelectionWithId(String selection) {
+		if (TextUtils.isEmpty(selection)) {
+			return REV_SELECT_WITH_ID_ONLY;
+			
+		}
+		return new StringBuilder("(").append(REV_SELECT_WITH_ID_ONLY).append(") AND (").append(selection).append(")").toString();
+	}
+	
+	private String[] getRevocationSelectionArgsWithId(String[] selectionArgs, String id) {
+		String[] idSelectionArg = new String[] { id };
+		if (selectionArgs == null) {
+			return idSelectionArg;
+			
+		}
+		return DatabaseUtils.appendSelectionArgs(idSelectionArg, selectionArgs);
+	}
+	
 	@Override
 	public boolean onCreate() {
 		mOpenHelper = new DatabaseHelper(getContext());
@@ -198,6 +255,12 @@ public class SecurityProvider extends ContentProvider {
 			
 		case UriType.Authorization.AUTH_WITH_ID:
 			return CursorType.Authorization.TYPE_ITEM;
+
+		case UriType.Revocation.REV:
+			return CursorType.Revocation.TYPE_DIRECTORY;
+			
+		case UriType.Revocation.REV_WITH_ID:
+			return CursorType.Revocation.TYPE_ITEM;
 			
 		default:
 			throw new IllegalArgumentException(new StringBuilder("Unsupported URI ").append(uri).append("!").toString());
@@ -230,7 +293,18 @@ public class SecurityProvider extends ContentProvider {
 				cursor = db.query(TABLE_AUTH, projection, selection, selectionArgs, null, null, sort);
 				cursor.setNotificationUri(getContext().getContentResolver(), uri);
 				return cursor;
-
+//
+			case UriType.Revocation.REV_WITH_ID:
+				String revId = uri.getLastPathSegment();
+				selection = getRevocationSelectionWithId(selection);
+				selectionArgs = getRevocationSelectionArgsWithId(selectionArgs, revId);
+				/* Intentional fall through */
+			case UriType.Revocation.REV:
+				db = mOpenHelper.getReadableDatabase();
+				cursor = db.query(TABLE_REV, projection, selection, selectionArgs, null, null, sort);
+				cursor.setNotificationUri(getContext().getContentResolver(), uri);
+				return cursor;
+				
 			default:
 				throw new IllegalArgumentException(new StringBuilder("Unsupported URI ").append(uri).append("!").toString());
 				
@@ -272,6 +346,19 @@ public class SecurityProvider extends ContentProvider {
 			}
 			return count;
 
+		case UriType.Revocation.REV_WITH_ID:
+			String revId = uri.getLastPathSegment();
+			selection = getRevocationSelectionWithId(selection);
+			selectionArgs = getRevocationSelectionArgsWithId(selectionArgs, revId);
+			/* Intentional fall through */
+		case UriType.Revocation.REV:
+			db = mOpenHelper.getWritableDatabase();
+			count = db.update(TABLE_REV, values, selection, selectionArgs);
+			if (count > 0) {
+				getContext().getContentResolver().notifyChange(uri, null);
+			}
+			return count;
+			
 		default:
 			throw new IllegalArgumentException(new StringBuilder("Unsupported URI ").append(uri).append("!").toString());
 		}
@@ -299,6 +386,16 @@ public class SecurityProvider extends ContentProvider {
 			notificationUri = Uri.withAppendedPath(AuthorizationData.CONTENT_URI, iari);
 			getContext().getContentResolver().notifyChange(notificationUri, null);
 			return notificationUri;
+
+		case UriType.Revocation.REV:
+			/* Intentional fall through */
+		case UriType.Revocation.REV_WITH_ID:
+			db = mOpenHelper.getWritableDatabase();
+			String revId = initialValues.getAsString(RevocationData.KEY_SERVICE_ID);
+			db.insert(TABLE_REV, null, initialValues);
+			notificationUri = Uri.withAppendedPath(RevocationData.CONTENT_URI, revId);
+			getContext().getContentResolver().notifyChange(notificationUri, null);
+			return notificationUri;
 			
 		default:
 			throw new IllegalArgumentException(new StringBuilder("Unsupported URI ").append(uri).append("!").toString());
@@ -307,7 +404,7 @@ public class SecurityProvider extends ContentProvider {
 
 	@Override
 	public int delete(Uri uri, String selection, String[] selectionArgs) {
-		switch (sUriMatcher.match(uri)) {
+		switch (sUriMatcher.match(uri)) {		
 		case UriType.Certificate.CERT_WITH_ID:
 			String id = uri.getLastPathSegment();
 			selection = getCertSelectionWithId(selection);
@@ -334,6 +431,19 @@ public class SecurityProvider extends ContentProvider {
 			}
 			return count;
 
+		case UriType.Revocation.REV_WITH_ID:
+			String revId = uri.getLastPathSegment();
+			selection = getRevocationSelectionWithId(selection);
+			selectionArgs = getRevocationSelectionArgsWithId(selectionArgs, revId);
+			/* Intentional fall through */
+		case UriType.Revocation.REV:
+			db = mOpenHelper.getWritableDatabase();
+			count = db.delete(TABLE_REV, selection, selectionArgs);
+			if (count > 0) {
+				getContext().getContentResolver().notifyChange(uri, null);
+			}
+			return count;
+			
 		default:
 			throw new IllegalArgumentException(new StringBuilder("Unsupported URI ").append(uri).append("!").toString());
 		}

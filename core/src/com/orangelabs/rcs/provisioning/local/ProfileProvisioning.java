@@ -32,6 +32,7 @@ import java.io.IOException;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ContentResolver;
 import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -48,6 +49,7 @@ import android.widget.Toast;
 
 import com.orangelabs.rcs.R;
 import com.orangelabs.rcs.core.ims.service.extension.CertificateProvisioning;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData;
@@ -377,7 +379,10 @@ public class ProfileProvisioning extends Activity {
 		 * @return true if loading the provisioning is successful
 		 */
 		private boolean createProvisioning(String mXMLFileContent, String userPhoneNumber) {
-			SecurityLog.createInstance(getContentResolver());
+			ContentResolver contentResolver = getContentResolver();
+      LocalContentResolver localContentResolver = new LocalContentResolver(contentResolver);
+
+			SecurityLog.createInstance(localContentResolver);
 			SecurityLog securityLog = SecurityLog.getInstance();
 			ProvisioningParser parser = new ProvisioningParser(mXMLFileContent, new CertificateProvisioning(securityLog));
 			RcsSettings rcsSettings = RcsSettings.getInstance();

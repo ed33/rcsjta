@@ -37,6 +37,7 @@ import com.orangelabs.rcs.core.ims.service.sip.SipSessionError;
 import com.orangelabs.rcs.core.ims.service.sip.SipSessionListener;
 import com.orangelabs.rcs.core.ims.service.sip.messaging.GenericSipMsrpSession;
 import com.orangelabs.rcs.core.ims.service.sip.messaging.TerminatingSipMsrpSession;
+import com.orangelabs.rcs.service.api.ServerApiUtils.ExtensionCheckType;
 import com.orangelabs.rcs.service.broadcaster.IMultimediaMessagingSessionEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -215,7 +216,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 	 * 
 	 * @throws ServerApiException
 	 */
-	public void acceptInvitation() throws ServerApiException {
+	public void acceptInvitation() throws ServerApiException, ServerPermissionDeniedException {
 		if (logger.isActivated()) {
 			logger.info("Accept session invitation");
 		}
@@ -228,7 +229,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 					+ "' not available.");
 		}
 
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
 		
 		// Accept invitation
         new Thread() {
@@ -243,7 +244,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 	 * 
 	 * @throws ServerApiException
 	 */
-	public void rejectInvitation() throws ServerApiException {
+	public void rejectInvitation() throws ServerPermissionDeniedException, ServerApiException {
 		if (logger.isActivated()) {
 			logger.info("Reject session invitation");
 		}
@@ -258,7 +259,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 		}
 
 		// Test API permission
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
 
 		// Reject invitation
         new Thread() {
@@ -273,7 +274,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 	 * 
 	 * @throws ServerApiException
 	 */
-	public void abortSession() throws ServerApiException {
+	public void abortSession() throws ServerApiException, ServerPermissionDeniedException {
 		if (logger.isActivated()) {
 			logger.info("Cancel session");
 		}
@@ -287,7 +288,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 		}
 
 		// Test API permission
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
 
 		// Abort the session
         new Thread() {
@@ -303,7 +304,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 	 * @param content Message content
 	 * @throws ServerApiException
 	 */
-	public void sendMessage(byte[] content) throws ServerApiException {
+	public void sendMessage(byte[] content) throws ServerApiException, ServerPermissionDeniedException {
 		GenericSipMsrpSession session = mSipService.getGenericSipMsrpSession(mSessionId);
 		if (session == null) {
 			/*
@@ -314,7 +315,7 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
 		}
 
 		// Test API permission
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
 
 		/* TODO: This exception handling is not correct. Will be fixed CR037. */
 		// Do not consider max message size if null

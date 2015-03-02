@@ -46,6 +46,7 @@ import com.orangelabs.rcs.core.ims.service.ipcall.IPCallService;
 import com.orangelabs.rcs.core.ims.service.presence.PresenceService;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
 import com.orangelabs.rcs.core.ims.service.sip.SipService;
+import com.orangelabs.rcs.core.ims.service.system.SystemRequestService;
 import com.orangelabs.rcs.core.ims.service.terms.TermsConditionsService;
 import com.orangelabs.rcs.core.ims.userprofile.UserProfile;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
@@ -149,7 +150,7 @@ public class ImsModule implements SipEventListener {
 		mExtensionManager = ExtensionManager.getInstance();
 		
 		// Instantiates the IMS services
-        services = new ImsService[7];
+        services = new ImsService[8];
         
         // Create terms & conditions service
         services[ImsService.TERMS_SERVICE] = new TermsConditionsService(this,rcsSettings);
@@ -172,6 +173,9 @@ public class ImsModule implements SipEventListener {
         // Create generic SIP service
         services[ImsService.SIP_SERVICE] = new SipService(this);
 
+        // Create system request service
+        services[ImsService.SYSTEM_SERVICE] = new SystemRequestService(this);        
+        
         // Create the service dispatcher
         serviceDispatcher = new ImsServiceDispatcher(this);
 
@@ -418,6 +422,15 @@ public class ImsModule implements SipEventListener {
     public SipService getSipService() {
     	return (SipService)services[ImsService.SIP_SERVICE];
     }
+    
+    /**
+     * Returns the system request service
+     * 
+     * @return System request service
+     */
+    public SystemRequestService getSystemRequestService() {
+    	return (SystemRequestService)services[ImsService.SYSTEM_SERVICE];
+    }    
 
     /**
      * Return the core instance

@@ -27,7 +27,6 @@ import javax2.sip.header.ContactHeader;
 import javax2.sip.header.EventHeader;
 import javax2.sip.message.Request;
 import javax2.sip.message.Response;
-
 import android.content.Intent;
 
 import com.gsma.services.rcs.RcsContactFormatException;
@@ -43,8 +42,11 @@ import com.orangelabs.rcs.core.ims.service.im.chat.ChatUtils;
 import com.orangelabs.rcs.core.ims.service.im.chat.standfw.StoreAndForwardManager;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.FileTransferHttpInfoDocument;
+import com.orangelabs.rcs.core.ims.service.system.SystemRequestService;
 import com.orangelabs.rcs.core.ims.service.terms.TermsConditionsService;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.service.api.ServerApiException;
+import com.orangelabs.rcs.service.api.ServerPermissionDeniedException;
 import com.orangelabs.rcs.utils.FifoBuffer;
 import com.orangelabs.rcs.utils.IdGenerator;
 import com.orangelabs.rcs.utils.logger.Logger;
@@ -428,6 +430,16 @@ public class ImsServiceDispatcher extends Thread {
 			    			if (logger.isActivated()) {
 				    			logger.warn("Cannot parse contact");
 				    		}
+			    		} catch (ServerPermissionDeniedException sae) {
+			    			if (logger.isActivated()) {
+				    			logger.warn("Unsupported Extension");
+				    		}
+			    			sendFinalResponse(request, Response.FORBIDDEN, "Unsupported Extension");
+			    		} catch (ServerApiException sae) {
+			    			if (logger.isActivated()) {
+				    			logger.warn("Unsupported Extension");
+				    		}
+			    			sendFinalResponse(request, Response.FORBIDDEN, "Initialization failed");
 			    		}
 		    		} else
 		    		if (isTagPresent(sdp, "rtp")) {
@@ -440,6 +452,16 @@ public class ImsServiceDispatcher extends Thread {
 			    			if (logger.isActivated()) {
 				    			logger.warn("Cannot parse contact");
 				    		}
+			    		} catch (ServerPermissionDeniedException sae) {
+			    			if (logger.isActivated()) {
+				    			logger.warn("Unsupported Extension");
+				    		}
+			    			sendFinalResponse(request, Response.FORBIDDEN, "Unsupported Extension");
+			    		} catch (ServerApiException sae) {
+			    			if (logger.isActivated()) {
+				    			logger.warn("Unsupported Extension");
+				    		}
+			    			sendFinalResponse(request, Response.FORBIDDEN, "Initialization failed");
 			    		}
 		    		} else {
 			    		if (logger.isActivated()) {
@@ -465,6 +487,10 @@ public class ImsServiceDispatcher extends Thread {
 	    	if (TermsConditionsService.isTermsRequest(request)) {
 	    		// Terms & conditions service
 	    		imsModule.getTermsConditionsService().receiveMessage(request);
+	    	} else
+	    	if (SystemRequestService.isSystemRequest(request)) {
+	    		// System request service
+	    		imsModule.getSystemRequestService().receiveMessage(request);
 	    	} else {
 				// Unknown service: reject the message with a 403 Forbidden
 				if (logger.isActivated()) {

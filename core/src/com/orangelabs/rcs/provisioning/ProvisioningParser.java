@@ -22,6 +22,7 @@ import java.io.ByteArrayInputStream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+
 import javax2.sip.ListeningPoint;
 
 import org.w3c.dom.Document;
@@ -32,6 +33,7 @@ import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.ExtensionPolicy;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.FileTransferProtocol;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.MessagingMode;
@@ -1254,9 +1256,14 @@ public class ProvisioningParser {
                 
                 if (extensionsPolicy == null) {
                     if ((extensionsPolicy = getValueByParamName("extensionsPolicy", childnode, TYPE_TXT)) != null) {
-                        RcsSettings.getInstance().writeInteger(
-                        		RcsSettingsData.EXTENSIONS_POLICY,
-                        		Integer.parseInt(extensionsPolicy));
+						try {
+							ExtensionPolicy extensionPolicy = ExtensionPolicy.valueOf(Integer.parseInt(extensionsPolicy));
+							RcsSettings.getInstance().setExtensionspolicy(extensionPolicy);
+						} catch (IllegalArgumentException e) {
+							if (logger.isActivated()) {
+                    			logger.warn("Cannot parse extension policy ".concat(e.getMessage()));
+                    		}
+						}
                         continue;
                     }
                 }                

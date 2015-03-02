@@ -17,12 +17,21 @@ package com.orangelabs.rcs.security;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-import android.content.ContentResolver;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import android.database.Cursor;
+import android.net.Uri;
 import android.test.AndroidTestCase;
 
+import com.gsma.iariauth.validator.IARIAuthDocument.AuthType;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.security.AuthorizationData;
 import com.orangelabs.rcs.provider.security.CertificateData;
+import com.orangelabs.rcs.provider.security.RevocationData;
+import com.orangelabs.rcs.provider.security.SecurityLog;
 
 public class SecurityLibTest extends AndroidTestCase {
 
@@ -32,6 +41,11 @@ public class SecurityLibTest extends AndroidTestCase {
 
 	private final String[] CERT_PROJECTION_ID = new String[] { CertificateData.KEY_ID };
 
+	private static final String[] AUTH_PROJECTION_ID = new String[] { AuthorizationData.KEY_ID };
+	private static final String AUTH_WHERE_UID_IARI_CLAUSE = new StringBuilder(AuthorizationData.KEY_PACK_UID).append("=? AND ")
+			.append(AuthorizationData.KEY_IARI).append("=?").toString();
+
+			
 	public static final int INVALID_ID = -1;
 
 	/**
@@ -42,7 +56,7 @@ public class SecurityLibTest extends AndroidTestCase {
 	 *            the IARI range and associated certificate
 	 * @return id or INVALID_ID if not found
 	 */
-	int getIdForIariAndCertificate(ContentResolver contentResolver,
+	int getIdForIariAndCertificate(LocalContentResolver contentResolver,
 			CertificateData iariRangeCertificate) {
 		Cursor cursor = null;
 		try {
@@ -64,26 +78,151 @@ public class SecurityLibTest extends AndroidTestCase {
 		}
 		return INVALID_ID;
 	}
+	
+	/**
+	 * Get authorization by id
+	 * 
+	 * @param contentResolver
+	 * @param id
+	 * @return AuthorizationData
+	 */
+	public AuthorizationData getAuthorizationById(LocalContentResolver contentResolver, int id) {		
+		Cursor cursor = null;
+		AuthorizationData authorizationData = null;
+		try {
+			Uri uri = Uri.withAppendedPath(AuthorizationData.CONTENT_URI, Integer.toString(id));
+			cursor = contentResolver.query(uri, null, null, null, null);
+			if (!cursor.moveToFirst()) {
+				return null;
+			}
+			int packageColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_PACK_NAME);
+			int iariColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_IARI);
+			int authTypeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_AUTH_TYPE);
+			int rangeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_RANGE);
+			int signerColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_SIGNER);
+			int packageUidColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_PACK_UID);
+			
+			String iari = cursor.getString(iariColumnIdx);
+			Integer authType = cursor.getInt(authTypeColumnIdx);
+			String range = cursor.getString(rangeColumnIdx);
+			String packageName = cursor.getString(packageColumnIdx);
+			String signer = cursor.getString(signerColumnIdx);
+			AuthType enumAuthType = AuthType.UNSPECIFIED;
+			Integer packageUid = cursor.getInt(packageUidColumnIdx);
+				try {
+					enumAuthType = AuthType.valueOf(authType);
+				} catch (Exception e) {
+					fail("Invalid authorization type:".concat(Integer.toString(authType)));
+				}
+			authorizationData = new AuthorizationData(packageUid,packageName, iari, enumAuthType, range, signer);							
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());		
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return authorizationData;
+	}
 
+	/**
+	 * Get row ID for authorization
+	 * 
+	 * @param packageUid
+	 * @param iari
+	 * @return id or INVALID_ID if not found
+	 */
+	public int getIdForPackageUidAndIari(LocalContentResolver contentResolver, Integer packageUid, String iari) {
+		Cursor cursor = null;
+		try {
+			cursor = contentResolver.query(AuthorizationData.CONTENT_URI, AUTH_PROJECTION_ID, AUTH_WHERE_UID_IARI_CLAUSE, new String[] {
+					String.valueOf(packageUid), iari }, null);
+			if (cursor.moveToFirst()) {
+				return cursor.getInt(cursor.getColumnIndexOrThrow(AuthorizationData.KEY_ID));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return INVALID_ID;
+	}
+	
 	/**
 	 * Remove all IARI certificates
 	 * 
 	 * @param contentResolver
 	 * @return The number of rows deleted.
 	 */
-	int removeAllCertificates(ContentResolver contentResolver) {
+	int removeAllCertificates(LocalContentResolver contentResolver) {
 		return contentResolver.delete(CertificateData.CONTENT_URI, null, null);
 	}
 
 	/**
-	 * Remove all IARI certificates
+	 * Remove all authorizations
+	 * @param contentResolver
+	 * @return The number of rows deleted.
+	 */
+	void removeAllAuthorizations(LocalContentResolver contentResolver) {	
+		Iterator<Entry<AuthorizationData, Integer>> iter = SecurityLog.getInstance().getAllAuthorizations().entrySet().iterator();
+		while(iter.hasNext()){
+			Entry<AuthorizationData, Integer> entry = iter.next();
+			SecurityLog.getInstance().removeAuthorization(entry.getValue(),entry.getKey().getIARI());	
+		}				
+	}
+	
+	/**
+	 * Get all revocations
+	 * 
+	 * @return a map which key set is the RevocationData instance and the value set is the row IDs
+	 */
+	public Map<RevocationData, Integer> getAllRevocations(LocalContentResolver contentResolver) {
+		Map<RevocationData, Integer> result = new HashMap<RevocationData, Integer>();
+		Cursor cursor = null;
+		try {
+			cursor = contentResolver.query(RevocationData.CONTENT_URI, null, null, null, null);
+			if (!cursor.moveToFirst()) {
+				return result;
+			}
+			int idColumnIdx = cursor.getColumnIndexOrThrow(RevocationData.KEY_ID);			
+			int iariColumnIdx = cursor.getColumnIndexOrThrow(RevocationData.KEY_SERVICE_ID);
+			int durationColumnIdx = cursor.getColumnIndexOrThrow(RevocationData.KEY_DURATION);
+			
+			String iari = null;			
+			Long duration = null;
+			Integer id = null;
+
+			do {
+				iari = cursor.getString(iariColumnIdx);
+				duration = cursor.getLong(durationColumnIdx);			
+				id = cursor.getInt(idColumnIdx);
+				RevocationData ad = new RevocationData(iari, duration);
+				result.put(ad, id);
+			} while (cursor.moveToNext());
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * Remove all Revocations
 	 * 
 	 * @param contentResolver
 	 * @return The number of rows deleted.
 	 */
-	int removeAllAuthorizations(ContentResolver contentResolver) {
+	int removeAllRevocations(LocalContentResolver contentResolver) {
 		return contentResolver
-				.delete(AuthorizationData.CONTENT_URI, null, null);
+				.delete(RevocationData.CONTENT_URI, null, null);
 	}
-
+	
 }

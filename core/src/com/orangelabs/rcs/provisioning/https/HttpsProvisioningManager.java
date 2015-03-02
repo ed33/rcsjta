@@ -60,6 +60,7 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 
 import android.app.PendingIntent;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -707,7 +708,9 @@ public class HttpsProvisioningManager {
 				}
 
 				// Parse the received content
-				SecurityLog.createInstance(mCtx.getContentResolver());
+	      ContentResolver contentResolver = mCtx.getContentResolver();
+	      LocalContentResolver localContentResolver = new LocalContentResolver(contentResolver);
+				SecurityLog.createInstance(localContentResolver);
 				SecurityLog securityLog = SecurityLog.getInstance();
 				ProvisioningParser parser = new ProvisioningParser(result.content, new CertificateProvisioning(securityLog));
 				

@@ -93,19 +93,25 @@ public class SupportedExtensionUpdater implements Runnable {
 			PackageManager packageManager = mContext.getPackageManager();
 			Map<String, Set<String>> packageNames = getPackagesManagingExtensions(packageManager);
 			for (String packageName : packageNames.keySet()) {
+				
+				Integer uid = mExtensionManager.getUidForPackage(packageManager, packageName);
+				if(uid == null){
+					continue;
+				}
+				
 				if (!mRcsSettings.isExtensionsControlled()) {
 					if (isLogActivated) {
 						logger.debug("No control on extensions");
-					}
+					}					
 					for (String extension : packageNames.get(packageName)) {
-						AuthorizationData authData = new AuthorizationData(packageName, extension);
+						AuthorizationData authData = new AuthorizationData(uid, packageName, IARIUtils.getIARI(extension));
 						authorizationAfterUpdate.add(authData);
 						continue;
 
 					}
 				}
 				// Check if extensions are supported
-				Set<AuthorizationData> supportedExts = mExtensionManager.checkExtensions(packageManager, packageName, packageNames.get(packageName));
+				Set<AuthorizationData> supportedExts = mExtensionManager.checkExtensions(packageManager, uid, packageName, packageNames.get(packageName));
 				// Save IARI Authorization document in cache to avoid having to re-process the signature each time the
 				// application is loaded
 				authorizationAfterUpdate.addAll(supportedExts);
@@ -121,9 +127,9 @@ public class SupportedExtensionUpdater implements Runnable {
 			for (AuthorizationData authorizationData : authorizationsBeforeUpdate.keySet()) {
 				if (isLogActivated) {
 					logger.debug("Remove authorization for package '" + authorizationData.getPackageName() + "' extension:"
-							+ authorizationData.getExtension());
+							+ authorizationData.getIARI());
 				}
-				mSecurityLog.removeAuthorization(authorizationsBeforeUpdate.get(authorizationData));
+				mSecurityLog.removeAuthorization(authorizationsBeforeUpdate.get(authorizationData), authorizationData.getIARI());
 			}
 			if (isLogActivated) {
 				logger.debug("Register for package installation/removal");
@@ -174,5 +180,30 @@ public class SupportedExtensionUpdater implements Runnable {
 		packagesWithMetaData.keySet().retainAll(packagesWithActivitiesProcessingIntentExtension);
 		return packagesWithMetaData;
 	}
-	
+
+	/**
+	 * Revoke extensions
+	 * 
+	 * @param exts Extensions
+	 */
+	 public static void revokeExtensions(List<String> exts) {
+		for(int i=0; i < exts.size(); i++) {
+        	// <IARI>,duration
+			try {
+				String data [] = exts.get(i).split(",");
+				String iari = data[0];
+				String duration = data[1];
+				
+				// Update security database
+				SecurityLog.getInstance().revokeExtension(iari.trim(), Long.parseLong(duration.trim()));
+				if (logger.isActivated()) {
+					logger.debug("Revoke extension " + iari + " for " + duration);
+				}
+			} catch(Exception e) {
+				if (logger.isActivated()) {
+					logger.error("Bad format", e);
+				}
+			}
+		}
+	 }	
 }

@@ -37,6 +37,7 @@ import com.orangelabs.rcs.core.ims.service.sip.SipSessionError;
 import com.orangelabs.rcs.core.ims.service.sip.SipSessionListener;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.GenericSipRtpSession;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.TerminatingSipRtpSession;
+import com.orangelabs.rcs.service.api.ServerApiUtils.ExtensionCheckType;
 import com.orangelabs.rcs.service.broadcaster.IMultimediaStreamingSessionEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -214,7 +215,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 	 * 
 	 * @throws ServerApiException
 	 */
-	public void acceptInvitation() throws ServerApiException {
+	public void acceptInvitation() throws ServerApiException, ServerPermissionDeniedException {
 		if (logger.isActivated()) {
 			logger.info("Accept session invitation");
 		}
@@ -228,7 +229,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		}
 
 		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
 
 		// Accept invitation
         new Thread() {
@@ -243,7 +244,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 	 * 
 	 * @throws ServerApiException 
 	 */
-	public void rejectInvitation() throws ServerApiException  {
+	public void rejectInvitation() throws ServerApiException, ServerPermissionDeniedException  {
 		if (logger.isActivated()) {
 			logger.info("Reject session invitation");
 		}
@@ -257,7 +258,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		}
 
 		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
 
 		// Reject invitation
         new Thread() {
@@ -272,7 +273,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 	 * 
 	 * @throws ServerApiException
 	 */
-	public void abortSession() throws ServerApiException  {
+	public void abortSession() throws ServerApiException, ServerPermissionDeniedException  {
 		if (logger.isActivated()) {
 			logger.info("Cancel session");
 		}
@@ -286,7 +287,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		}
 
 		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
 
 		// Abort the session
         new Thread() {
@@ -302,7 +303,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 	 * @param content Payload content
 	 * @throws ServerApiException
 	 */
-	public void sendPayload(byte[] content) throws ServerApiException {
+	public void sendPayload(byte[] content) throws ServerApiException, ServerPermissionDeniedException {
 		GenericSipRtpSession session = mSipService.getGenericSipRtpSession(mSessionId);
 		if (session == null) {
 			/*
@@ -313,7 +314,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		}
 
 		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId());
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
 
 		/* TODO: This exception handling is not correct. Will be fixed CR037. */
 		if (!session.sendPlayload(content)) {

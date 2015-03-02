@@ -39,6 +39,7 @@ import com.orangelabs.rcs.provider.security.SecurityLog;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.ConfigurationMode;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
+import com.orangelabs.rcs.provider.settings.RcsSettingsData.ExtensionPolicy;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.FileTransferProtocol;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.GsmaRelease;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.ImageResizeOption;
@@ -2356,9 +2357,16 @@ public class RcsSettings {
      * 
      * @return Integer
      */
-    public int getExtensionspolicy() {
-        return readInteger(RcsSettingsData.EXTENSIONS_POLICY, RcsSettingsData.DEFAULT_EXTENSIONS_POLICY);
+    public ExtensionPolicy getExtensionspolicy() {
+        return ExtensionPolicy.valueOf(readInteger(RcsSettingsData.EXTENSIONS_POLICY, RcsSettingsData.DEFAULT_EXTENSIONS_POLICY));
     }
+    
+	/**
+	 *
+	 */
+	public void setExtensionspolicy(ExtensionPolicy extensionPolicy) {
+		writeInteger(RcsSettingsData.EXTENSIONS_POLICY, extensionPolicy.toInt());
+	}
     
 	/**
 	 * Get max length for extensions using real time messaging (MSRP)

@@ -232,8 +232,9 @@ class PKIXValidationContext extends KeySelector implements ValidationContext {
 					/* add cert as untrusted path cert, or trust anchor, depending on authType */
 					if(authType == AuthType.STANDALONE && isSelfSigned(cert))
 						trustAnchors.add(new TrustAnchor(cert, null));
-					else
-						certificateManager.addCert(cert);
+
+					/* unconditionally add this cert to the CertificateManager */
+					certificateManager.addCert(cert);
 				} else if(item instanceof byte[]) {
 					/* X509 SKI */
 					byte[] ski = (byte[])item;

@@ -34,6 +34,13 @@ import com.orangelabs.rcs.platform.AndroidFactory;
  */
 public class ServerApiUtils {
 	/**
+	 * Two ways for checking an extension :
+	 * 1. : Check with the binded process and the extension.
+	 * 2. : Check with the IARI
+	 */
+	public static enum ExtensionCheckType {WITH_PROCESS_BINDING, WITHOUT_PROCESS_BINDING};
+	
+	/**
 	 * Test core
 	 * 
 	 * @throws ServerApiException
@@ -71,8 +78,7 @@ public class ServerApiUtils {
 	 * 
 	 * @return RunningAppProcessInfo or null
 	 */
-	private static RunningAppProcessInfo getRunningAppProcessInfo() throws ServerApiException {
-
+	private static RunningAppProcessInfo getRunningAppProcessInfo() {
 		// Check extension authorization
 		int pid = Binder.getCallingPid();
 		ActivityManager manager = (ActivityManager) AndroidFactory.getApplicationContext().getSystemService(
@@ -86,20 +92,20 @@ public class ServerApiUtils {
 	}
 	
 	/**
-	 * Checks if extension is authorized.
-	 * @param serviceExtensionManager
-	 * @param extension
-	 * @throws ServerApiException if not authorized
+	 * Checks if extension is authorized
+	 * @param serviceExtensionManager 
+	 * @param serviceId 
+	 * @param extensionCheckType 
+	 * @throws ServerPermissionDeniedException 
 	 */
-	public static void assertExtensionIsAuthorized(ExtensionManager serviceExtensionManager, String extension) throws ServerApiException {
-		if (serviceExtensionManager == null) {
-			throw new ServerApiException("ServiceExtensionManager is null"); 
+	public static void assertExtensionIsAuthorized(ExtensionManager serviceExtensionManager, String serviceId, ExtensionCheckType extensionCheckType) throws ServerPermissionDeniedException {
+		RunningAppProcessInfo appInfo = null;
+		if(extensionCheckType == ExtensionCheckType.WITH_PROCESS_BINDING){
+			appInfo = ServerApiUtils.getRunningAppProcessInfo();
+			if (appInfo == null) {
+				throw new ServerPermissionDeniedException("Cannot get RunningAppProcessInfo"); 
+			}			
 		}
-		// Test API permission
-		RunningAppProcessInfo appInfo = ServerApiUtils.getRunningAppProcessInfo();
-		if (appInfo == null) {
-			throw new ServerApiException("Cannot get RunningAppProcessInfo"); 
-		}
-		serviceExtensionManager.testApiExtensionPermission(extension, appInfo);
+		serviceExtensionManager.testApiExtensionPermission(serviceId, appInfo);									
 	}
 }

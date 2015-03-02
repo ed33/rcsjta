@@ -19,6 +19,8 @@ package com.gsma.iariauth.validator;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
+import java.security.Security;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -175,17 +177,36 @@ public class IARIAuthProcessor implements ProcessingResult {
 
 	private static String hash(byte[] key) {
 		try {
-			MessageDigest sha = MessageDigest.getInstance("SHA-224");
+			MessageDigest sha = MessageDigest.getInstance("SHA-224", sha224Provider);
 			byte[] hash = sha.digest(key);
 			String b64 = new String(Base64.encode(hash));
 			/* make URL-safe, remove trailing = */
 			return b64.replace('+', '-').replace('/', '_').replace("=", "");
 		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
 			return null;
 		}   
 	}
 
+	static {
+		/* find a provider that can do SHA-224 */
+		MessageDigest sha = null;
+		try {
+			sha = MessageDigest.getInstance("SHA-224");
+		} catch(NoSuchAlgorithmException e) {
+			try {
+				Provider provider = (Provider)(Class.forName("com.gsma.iariauth.validator.crypto.android.SHA224").newInstance());
+				Security.addProvider(provider);
+				sha = MessageDigest.getInstance("SHA-224", provider);
+			}
+			catch (InstantiationException e1) {}
+			catch (IllegalAccessException e1) {}
+			catch (ClassNotFoundException e1) {}
+			catch (NoSuchAlgorithmException e1) {}
+		}
+		sha224Provider = sha.getProvider();
+	}
+
+	private static Provider sha224Provider;
 	private TrustStore trustStore;
 	private IARIAuthDocument authDocument;
 	private int status = ProcessingResult.STATUS_NOT_PROCESSED;

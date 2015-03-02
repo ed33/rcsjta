@@ -18,6 +18,7 @@
 package com.orangelabs.rcs.core.ims.service.extension;
 
 import com.gsma.iariauth.validator.Constants;
+import com.orangelabs.rcs.core.ims.network.sip.FeatureTags;
 
 /**
  * IARI utils
@@ -32,6 +33,12 @@ public class IARIUtils {
 	 */
 	private static final String MNO_IARI_PREFIX = "urn:urn-7:3gpp-application.ims.iari.rcs.mnc";
 	
+
+	/**
+	 * Common prefix
+	 */
+	private static final String COMMON_PREFIX = "urn:urn-7:3gpp-application.ims.iari.rcs.";
+		
 	/**
 	 * Is a valid IARI
 	 * 
@@ -61,4 +68,30 @@ public class IARIUtils {
 	public static boolean isThirdPartyIARI(String iari) {
 		return iari.startsWith(Constants.STANDALONE_IARI_PREFIX);
 	}
+	
+	
+	/**
+	 * Build IARI from extension
+	 * @param extension
+	 * @return IARI
+	 */
+	public static String getIARI(String extension){
+		return COMMON_PREFIX.concat(extension);
+	}
+	
+	/**
+	 * Return the serviceId from IARI
+	 * 
+	 * @param iari
+	 * @return serviceId
+	 */
+	public static String getServiceId(String iari) {
+		if (iari.startsWith(COMMON_PREFIX)) {
+			return iari.substring(COMMON_PREFIX.length());
+		}
+		else if(iari.startsWith(FeatureTags.FEATURE_RCSE_EXTENSION)){
+			return iari.substring(FeatureTags.FEATURE_RCSE_EXTENSION.length()+1);
+		}
+		return null;
+	}	
 }

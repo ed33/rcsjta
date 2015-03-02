@@ -238,7 +238,9 @@ public class RcsCoreService extends Service implements CoreListener {
             
             // Instantiate the Security infos provider
             ContentResolver contentResolver = ctx.getContentResolver();
-            SecurityLog.createInstance(contentResolver);
+            LocalContentResolver localContentResolver = new LocalContentResolver(contentResolver);
+            
+            SecurityLog.createInstance(localContentResolver);
             SecurityLog securityLog = SecurityLog.getInstance();
             
             // Instantiate the Security infos provider
@@ -246,8 +248,7 @@ public class RcsCoreService extends Service implements CoreListener {
             
             // Instantiate the contactUtils instance (CountryCode is already set)
             com.gsma.services.rcs.contacts.ContactUtils.getInstance(this);
-
-            LocalContentResolver localContentResolver = new LocalContentResolver(contentResolver);
+         
             ContactsManager.createInstance(ctx, contentResolver, localContentResolver);
             MessagingLog.createInstance(ctx, localContentResolver);
             RichCallHistory.createInstance(localContentResolver);

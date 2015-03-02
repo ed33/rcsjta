@@ -42,7 +42,6 @@ import com.gsma.services.rcs.extension.MultimediaSession;
 import com.gsma.services.rcs.extension.MultimediaSession.ReasonCode;
 import com.gsma.services.rcs.extension.MultimediaSessionServiceConfiguration;
 import com.gsma.services.rcs.extension.MultimediaStreamingSessionIntent;
-import com.orangelabs.rcs.core.Core;
 import com.orangelabs.rcs.core.ims.network.sip.FeatureTags;
 import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.core.ims.service.sip.SipService;
@@ -51,6 +50,7 @@ import com.orangelabs.rcs.core.ims.service.sip.streaming.GenericSipRtpSession;
 import com.orangelabs.rcs.platform.AndroidFactory;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.service.api.ServerApiUtils.ExtensionCheckType;
 import com.orangelabs.rcs.service.broadcaster.MultimediaMessagingSessionEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.MultimediaStreamingSessionEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
@@ -229,8 +229,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 
 	/**
 	 * Receive a new SIP session invitation with MRSP media
-	 * 
-     * @param intent Resolved intent
+	 * @param msrpSessionInvite 
      * @param session SIP session
 	 */
 	public void receiveSipMsrpSessionInvitation(Intent msrpSessionInvite, GenericSipMsrpSession session) {
@@ -247,8 +246,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 	
 	/**
 	 * Receive a new SIP session invitation with RTP media
-	 * 
-     * @param intent Resolved intent
+	 * @param rtpSessionInvite 
      * @param session SIP session
 	 */
 	public void receiveSipRtpSessionInvitation(Intent rtpSessionInvite, GenericSipRtpSession session) {
@@ -293,7 +291,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
      * @return Multimedia messaging session
 	 * @throws ServerApiException
      */
-    public IMultimediaMessagingSession initiateMessagingSession(String serviceId, ContactId contact) throws ServerApiException {
+    public IMultimediaMessagingSession initiateMessagingSession(String serviceId, ContactId contact) throws ServerApiException, ServerPermissionDeniedException {
 		if (logger.isActivated()) {
 			logger.info("Initiate a multimedia messaging session with " + contact);
 		}
@@ -302,7 +300,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 		ServerApiUtils.testIms();
 
 		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, serviceId);
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, serviceId, ExtensionCheckType.WITHOUT_PROCESS_BINDING);
 
 		try {
 			// Initiate a new session
@@ -400,7 +398,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
      * @return Multimedia streaming session
 	 * @throws ServerApiException
      */
-    public IMultimediaStreamingSession initiateStreamingSession(String serviceId, ContactId contact) throws ServerApiException {
+    public IMultimediaStreamingSession initiateStreamingSession(String serviceId, ContactId contact) throws ServerApiException, ServerPermissionDeniedException {
 		if (logger.isActivated()) {
 			logger.info("Initiate a multimedia streaming session with " + contact);
 		}
@@ -409,7 +407,7 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
 		ServerApiUtils.testIms();
 		
 		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, serviceId);
+		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, serviceId, ExtensionCheckType.WITHOUT_PROCESS_BINDING);
 
 		try {
 			// Initiate a new session

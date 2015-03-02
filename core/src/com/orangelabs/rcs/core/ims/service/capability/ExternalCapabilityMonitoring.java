@@ -128,7 +128,7 @@ public class ExternalCapabilityMonitoring extends BroadcastReceiver {
 
 						// Add the new extension in the supported RCS extensions
 						mExtensionManager
-								.addSupportedExtensions(mPackageManager, packageName, ExtensionManager.getExtensions(exts));
+								.addSupportedExtensions(mPackageManager,uid , packageName, ExtensionManager.getExtensions(exts));
 						return;
 
 					}
@@ -137,7 +137,7 @@ public class ExternalCapabilityMonitoring extends BroadcastReceiver {
 							logger.debug("Remove extensions for application " + uid + " package=" + packageName);
 						}
 						// Remove the extensions in the supported RCS extensions
-						mExtensionManager.removeExtensionsForPackage(packageName);
+						mExtensionManager.removeExtensionsForPackage(uid);
 					}
 				} catch (Exception e) {
 					e.printStackTrace();

@@ -220,7 +220,6 @@
             android:exported="true" />
 
 		<provider android:authorities="com.orangelabs.rcs.security"
-			android:exported="true"
 			android:name="com.orangelabs.rcs.provider.security.SecurityProvider"/>
 		
 		<!-- Device events receiver -->	

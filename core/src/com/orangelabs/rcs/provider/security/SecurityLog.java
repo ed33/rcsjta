@@ -19,15 +19,18 @@ package com.orangelabs.rcs.provider.security;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import android.content.ContentResolver;
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 
 import com.gsma.iariauth.validator.IARIAuthDocument.AuthType;
+import com.orangelabs.rcs.core.ims.service.extension.IARIUtils;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
@@ -41,25 +44,34 @@ public class SecurityLog {
 	 * Current instance
 	 */
 	private static volatile SecurityLog sInstance;
+	
+	private CacheAuth mCacheAuth;
+	private Map<String, RevocationData> mCacheRev;
 
 	/**
 	 * Content resolver
 	 */
-	private final ContentResolver mContentResolver;
+	private final LocalContentResolver mLocalContentResolver;
 
+	// certificates definition
 	private static final String[] PROJ_CERTIFICATE = new String[] { CertificateData.KEY_CERT };
+	private static final String CERT_WHERE_IARI_RANGE = CertificateData.KEY_IARI_RANGE.concat("=?");
 
-	private static final String WHERE_IARI_RANGE = CertificateData.KEY_IARI_RANGE.concat("=?");
+	// authorizations definition
+	private static final String[] AUTH_PROJ_IARI = new String[] { AuthorizationData.KEY_IARI };
+	private static final String[] AUTH_PROJECTION_ID = new String[] { AuthorizationData.KEY_ID };
+	private static final String[] AUTH_PROJECTION_ID_IARI = new String[] { AuthorizationData.KEY_ID, AuthorizationData.KEY_IARI };
+	private static final String AUTH_WHERE_UID = AuthorizationData.KEY_PACK_UID.concat("=?");
+	private static final String AUTH_WHERE_IARI = AuthorizationData.KEY_IARI.concat("=?");
+	private static final String AUTH_WHERE_UID_IARI = new StringBuilder(AuthorizationData.KEY_PACK_UID).append("=? AND ")
+			.append(AuthorizationData.KEY_IARI).append("=?").toString();
 
-	private static final String[] PROJ_EXTENSION = new String[] { AuthorizationData.KEY_EXT };
-
-	private static final String WHERE_PACKAGE = AuthorizationData.KEY_PACK_NAME.concat("=?");
-
-	private final String WHERE_PACK_EXT_CLAUSE = new StringBuilder(AuthorizationData.KEY_PACK_NAME).append("=? AND ")
-			.append(AuthorizationData.KEY_EXT).append("=?").toString();
-
-	private final String[] AUTH_PROJECTION_ID = new String[] { AuthorizationData.KEY_ID };
-
+	// revocation definitions
+	private static final String[] REV_PROJECTION_ID = new String[] { RevocationData.KEY_ID };
+	private final String REV_WHERE_SERVICEID_CLAUSE = new StringBuilder(RevocationData.KEY_SERVICE_ID).append("=?").toString();
+	
+	private final static int MILLISECONDS = 1000; 
+	
 	/**
 	 * Invalid ID
 	 */
@@ -69,21 +81,20 @@ public class SecurityLog {
 	 * The logger
 	 */
 	private static final Logger logger = Logger.getLogger(SecurityLog.class.getSimpleName());
-
+	
 	/**
 	 * Create instance
+	 * @param localContentResolver 
 	 * 
-	 * @param ContentResolver
-	 *            content resolver
 	 */
-	public static void createInstance(ContentResolver ContentResolver) {
+	public static void createInstance(LocalContentResolver localContentResolver) {
 		if (sInstance != null) {
 			return;
 
 		}
 		synchronized (SecurityLog.class) {
 			if (sInstance == null) {
-				sInstance = new SecurityLog(ContentResolver);
+				sInstance = new SecurityLog(localContentResolver);
 			}
 		}
 	}
@@ -96,23 +107,16 @@ public class SecurityLog {
 	public static SecurityLog getInstance() {
 		return sInstance;
 	}
-
-	/**
-	 * Empty constructor : prevent caller from creating multiple instances
-	 */
-	@SuppressWarnings("unused")
-	private SecurityLog() {
-		mContentResolver = null;
-	}
-
+			
 	/**
 	 * Constructor
+	 * @param localContentResolver 
 	 * 
-	 * @param ContentResolver
-	 *            content resolver
 	 */
-	public SecurityLog(ContentResolver ContentResolver) {
-		mContentResolver = ContentResolver;
+	private SecurityLog(LocalContentResolver localContentResolver) {
+		mLocalContentResolver = localContentResolver;
+		mCacheAuth = new CacheAuth();
+		mCacheRev = new HashMap<String, RevocationData>(); 
 	}
 
 	/**
@@ -128,7 +132,7 @@ public class SecurityLog {
 		ContentValues values = new ContentValues();
 		values.put(CertificateData.KEY_IARI_RANGE, iari);
 		values.put(CertificateData.KEY_CERT, certificateData.getCertificate());
-		mContentResolver.insert(CertificateData.CONTENT_URI, values);
+		mLocalContentResolver.insert(CertificateData.CONTENT_URI, values);
 	}
 
 	/**
@@ -140,7 +144,7 @@ public class SecurityLog {
 	 */
 	public int removeCertificate(int id) {
 		Uri uri = Uri.withAppendedPath(CertificateData.CONTENT_URI, Integer.toString(id));
-		return mContentResolver.delete(uri, null, null);
+		return mLocalContentResolver.delete(uri, null, null);
 	}
 
 	/**
@@ -152,7 +156,7 @@ public class SecurityLog {
 		Map<CertificateData, Integer> result = new HashMap<CertificateData, Integer>();
 		Cursor cursor = null;
 		try {
-			cursor = mContentResolver.query(CertificateData.CONTENT_URI, null, null, null, null);
+			cursor = mLocalContentResolver.query(CertificateData.CONTENT_URI, null, null, null, null);
 			if (!cursor.moveToFirst()) {
 				return result;
 
@@ -192,7 +196,7 @@ public class SecurityLog {
 		Set<String> result = new HashSet<String>();
 		Cursor cursor = null;
 		try {
-			cursor = mContentResolver.query(CertificateData.CONTENT_URI, PROJ_CERTIFICATE, WHERE_IARI_RANGE,
+			cursor = mLocalContentResolver.query(CertificateData.CONTENT_URI, PROJ_CERTIFICATE, CERT_WHERE_IARI_RANGE,
 					new String[] { iariRange }, null);
 			if (!cursor.moveToFirst()) {
 				return result;
@@ -222,94 +226,137 @@ public class SecurityLog {
 	 * @param authData
 	 */
 	public void addAuthorization(AuthorizationData authData) {
-		String extension = authData.getExtension();
+		boolean logActivated = logger.isActivated();
 		String packageName = authData.getPackageName();
+		Integer packageUid = authData.getPackageUid();
+		String iari = authData.getIARI();
 
 		ContentValues values = new ContentValues();
 		values.put(AuthorizationData.KEY_AUTH_TYPE, authData.getAuthType().toInt());
 		values.put(AuthorizationData.KEY_SIGNER, authData.getPackageSigner());
 		values.put(AuthorizationData.KEY_RANGE, authData.getRange());
 		values.put(AuthorizationData.KEY_IARI, authData.getIARI());
-		Integer id = getIdForPackageNameAndExtension(packageName, extension);
+		Integer id = getAuthorizationIdByIARI(iari);
+		mCacheAuth.add(authData);
 		if (INVALID_ID == id) {
-			if (logger.isActivated()) {
-				logger.debug("Add authorization for package '" + authData.getPackageName() + "' extension:" + extension);
+			if (logActivated) {
+				logger.debug(new StringBuilder("Add authorization for package '").append(authData.getPackageName()).append("'/").append(packageUid).append(" iari:").append(iari).toString());
 			}
 			values.put(AuthorizationData.KEY_PACK_NAME, packageName);
-			values.put(AuthorizationData.KEY_EXT, extension);
-			mContentResolver.insert(AuthorizationData.CONTENT_URI, values);
+			values.put(AuthorizationData.KEY_PACK_UID, packageUid);
+			mLocalContentResolver.insert(AuthorizationData.CONTENT_URI, values);			
 			return;
 
 		}
-		if (logger.isActivated()) {
-			logger.debug("Update authorization for package '" + authData.getPackageName() + "' extension:" + extension);
+		if (logActivated) {
+			logger.debug(new StringBuilder("Update authorization for package '").append(authData.getPackageName()).append("'/").append(packageUid).append(" iari:").append(iari).toString());
 		}
 		Uri uri = Uri.withAppendedPath(AuthorizationData.CONTENT_URI, id.toString());
-		mContentResolver.update(uri, values, null, null);
+		mLocalContentResolver.update(uri, values, null, null);		
 	}
 
+	/**
+	 * Add authorization
+	 * @param revocation 
+	 */
+	public void addRevocation(RevocationData revocation) {
+		boolean logActivated = logger.isActivated();
+		ContentValues values = new ContentValues();
+		values.put(RevocationData.KEY_DURATION, revocation.getDuration());
+		values.put(RevocationData.KEY_SERVICE_ID, revocation.getServiceId());
+		
+		Integer id = getIdForRevocation(revocation.getServiceId());
+		mCacheRev.put(revocation.getServiceId(),revocation);
+		if (INVALID_ID == id) {
+			if (logActivated) {
+				logger.debug("Add revocation for serviceId '".concat(revocation.getServiceId()));				
+			}					
+			mLocalContentResolver.insert(RevocationData.CONTENT_URI, values);
+			return;
+		}
+		if (logActivated) {
+			logger.debug("Update revocation for serviceId '".concat(revocation.getServiceId()));			
+		}
+		Uri uri = Uri.withAppendedPath(RevocationData.CONTENT_URI, id.toString());
+		mLocalContentResolver.update(uri, values, null, null);		
+	}
 	/**
 	 * Remove a authorization
 	 * 
 	 * @param id
 	 *            the row ID
+	 * @param iari 
 	 * @return The number of rows deleted.
 	 */
-	public int removeAuthorization(int id) {
+	public int removeAuthorization(int id, String iari) {
+		mCacheAuth.remove(iari);
 		Uri uri = Uri.withAppendedPath(AuthorizationData.CONTENT_URI, Integer.toString(id));
-		return mContentResolver.delete(uri, null, null);
+		return mLocalContentResolver.delete(uri, null, null);
 	}
 
+	/**
+	 * Remove a revocation
+	 * 
+	 * @param serviceId
+	 *            
+	 * @return The number of rows deleted.
+	 */
+	public int removeRevocation(String serviceId) {
+		mCacheRev.remove(serviceId);
+		return mLocalContentResolver.delete(RevocationData.CONTENT_URI, REV_WHERE_SERVICEID_CLAUSE , new String[]{serviceId});
+	}
+	
 	/**
 	 * Get all authorizations
 	 * 
 	 * @return a map which key set is the AuthorizationData instance and the value set is the row IDs
 	 */
 	public Map<AuthorizationData, Integer> getAllAuthorizations() {
+		boolean logActivated = logger.isActivated();
 		Map<AuthorizationData, Integer> result = new HashMap<AuthorizationData, Integer>();
 		Cursor cursor = null;
 		try {
-			cursor = mContentResolver.query(AuthorizationData.CONTENT_URI, null, null, null, null);
+			cursor = mLocalContentResolver.query(AuthorizationData.CONTENT_URI, null, null, null, null);
 			if (!cursor.moveToFirst()) {
 				return result;
 
 			}
-			int idColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_ID);
+			int idColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_ID);			
 			int packageColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_PACK_NAME);
-			int extensionColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_EXT);
 			int iariColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_IARI);
 			int authTypeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_AUTH_TYPE);
 			int rangeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_RANGE);
 			int signerColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_SIGNER);
-
+			int packageUidColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_PACK_UID);
+			
 			String iari = null;
 			Integer authType = null;
 			String range = null;
 			String packageName = null;
 			String signer = null;
-			String extension = null;
 			Integer id = null;
+			Integer packageUid = null;
 			do {
 				iari = cursor.getString(iariColumnIdx);
 				authType = cursor.getInt(authTypeColumnIdx);
 				range = cursor.getString(rangeColumnIdx);
 				packageName = cursor.getString(packageColumnIdx);
 				signer = cursor.getString(signerColumnIdx);
-				extension = cursor.getString(extensionColumnIdx);
 				AuthType enumAuthType = AuthType.UNSPECIFIED;
+				packageUid = cursor.getInt(packageUidColumnIdx);
 				try {
 					enumAuthType = AuthType.valueOf(authType);
 				} catch (Exception e) {
-					if (logger.isActivated()) {
+					if (logActivated) {
 						logger.error("Invalid authorization type:".concat(Integer.toString(authType)), e);
 					}
 				}
 				id = cursor.getInt(idColumnIdx);
-				AuthorizationData ad = new AuthorizationData(packageName, extension, iari, enumAuthType, range, signer);
+				AuthorizationData ad = new AuthorizationData(packageUid,packageName, iari, enumAuthType, range, signer);
 				result.put(ad, id);
 			} while (cursor.moveToNext());
 		} catch (Exception e) {
-			if (logger.isActivated()) {
+			if (logActivated) {
 				logger.error("Exception occurred", e);
 			}
 		} finally {
@@ -321,29 +368,45 @@ public class SecurityLog {
 	}
 
 	/**
-	 * Get authorization IDs for a package name
+	 * Get authorization by uid and extension
 	 * 
-	 * @param packageName
-	 * @return set of authorization IDs
+	 * @param uid
+	 * @param iari
+	 * @return AuthorizationData or null if there is no authorization
 	 */
-	public Set<Integer> getAuthorizationIDsForPackageName(String packageName) {
-		Set<Integer> result = new HashSet<Integer>();
+	public AuthorizationData getAuthorizationByUidAndIari(Integer uid, String iari) {
+		boolean logActivated = logger.isActivated();
+		AuthorizationData authorizationData = mCacheAuth.get(uid, iari);
+		if (authorizationData != null) {
+			return authorizationData;
+		}
 		Cursor cursor = null;
 		try {
-			cursor = mContentResolver.query(AuthorizationData.CONTENT_URI, AUTH_PROJECTION_ID, WHERE_PACKAGE,
-					new String[] { packageName }, null);
+			cursor = mLocalContentResolver.query(AuthorizationData.CONTENT_URI, null, AUTH_WHERE_UID_IARI, new String[]{String.valueOf(uid),iari}, null);
 			if (!cursor.moveToFirst()) {
-				return result;
-
+				return null;
 			}
-			int idColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_ID);
-			Integer id = null;
-			do {
-				id = cursor.getInt(idColumnIdx);
-				result.add(id);
-			} while (cursor.moveToNext());
+			int packageColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_PACK_NAME);			
+			int authTypeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_AUTH_TYPE);
+			int rangeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_RANGE);
+			int signerColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_SIGNER);
+			
+			Integer authType = cursor.getInt(authTypeColumnIdx);
+			String range = cursor.getString(rangeColumnIdx);
+			String packageName = cursor.getString(packageColumnIdx);
+			String signer = cursor.getString(signerColumnIdx);			
+			AuthType enumAuthType = AuthType.UNSPECIFIED;
+				try {
+					enumAuthType = AuthType.valueOf(authType);
+				} catch (Exception e) {
+					if (logActivated) {
+						logger.error("Invalid authorization type:".concat(Integer.toString(authType)), e);
+					}
+				}
+			authorizationData = new AuthorizationData(uid,packageName, iari, enumAuthType, range, signer);
+			mCacheAuth.add(authorizationData);
 		} catch (Exception e) {
-			if (logger.isActivated()) {
+			if (logActivated) {
 				logger.error("Exception occurred", e);
 			}
 		} finally {
@@ -351,55 +414,26 @@ public class SecurityLog {
 				cursor.close();
 			}
 		}
-		return result;
+		return authorizationData;
 	}
+	
 
+	
+	
 	/**
-	 * Get all supported extensions
+	 * Get authorization ID for a IARI
 	 * 
-	 * @return set of supported extensions
+	 * @param iari
+	 * @return id
 	 */
-	public Set<String> getSupportedExtensions() {
-		Set<String> result = new HashSet<String>();
+	public Integer getAuthorizationIdByIARI(String iari) {
 		Cursor cursor = null;
 		try {
-			cursor = mContentResolver.query(AuthorizationData.CONTENT_URI, PROJ_EXTENSION, null, null, null);
-			if (!cursor.moveToFirst()) {
-				return result;
-
-			}
-			int extensionColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_EXT);
-			String extension = null;
-			do {
-				extension = cursor.getString(extensionColumnIdx);
-				result.add(extension);
-			} while (cursor.moveToNext());
-		} catch (Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Exception occurred", e);
-			}
-		} finally {
-			if (cursor != null) {
-				cursor.close();
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * Get row ID for authorization
-	 * 
-	 * @param packageName
-	 * @param extension
-	 * @return id or INVALID_ID if not found
-	 */
-	public int getIdForPackageNameAndExtension(String packageName, String extension) {
-		Cursor cursor = null;
-		try {
-			cursor = mContentResolver.query(AuthorizationData.CONTENT_URI, AUTH_PROJECTION_ID, WHERE_PACK_EXT_CLAUSE, new String[] {
-					packageName, extension }, null);
+			cursor = mLocalContentResolver.query(AuthorizationData.CONTENT_URI, AUTH_PROJECTION_ID, AUTH_WHERE_IARI,
+					new String[] { iari }, null);
 			if (cursor.moveToFirst()) {
-				return cursor.getInt(cursor.getColumnIndexOrThrow(AuthorizationData.KEY_ID));
+				int idColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_ID);
+				return cursor.getInt(idColumnIdx);				
 			}
 		} catch (Exception e) {
 			if (logger.isActivated()) {
@@ -413,4 +447,206 @@ public class SecurityLog {
 		return INVALID_ID;
 	}
 
+	/**
+	 * Get authorization by iari
+	 * @param iari
+	 * @return AuthorizationData or null if there is no authorization
+	 */
+	public AuthorizationData getAuthorizationByIARI(String iari) {
+		boolean logActivated = logger.isActivated();
+		AuthorizationData authorizationData = mCacheAuth.get(iari);
+		if (authorizationData != null) {
+			return authorizationData;
+		}
+		Cursor cursor = null;
+		try {
+			cursor = mLocalContentResolver.query(AuthorizationData.CONTENT_URI, null, AUTH_WHERE_IARI, new String[]{iari}, null);
+			if (!cursor.moveToFirst()) {
+				return null;
+			}
+			int uidColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_PACK_UID);
+			int packageColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_PACK_NAME);			
+			int authTypeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_AUTH_TYPE);
+			int rangeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_RANGE);
+			int signerColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_SIGNER);
+			
+			Integer uid = cursor.getInt(uidColumnIdx);
+			Integer authType = cursor.getInt(authTypeColumnIdx);
+			String range = cursor.getString(rangeColumnIdx);
+			String packageName = cursor.getString(packageColumnIdx);
+			String signer = cursor.getString(signerColumnIdx);			
+			AuthType enumAuthType = AuthType.UNSPECIFIED;
+				try {
+					enumAuthType = AuthType.valueOf(authType);
+				} catch (Exception e) {
+					if (logActivated) {
+						logger.error("Invalid authorization type:".concat(Integer.toString(authType)), e);
+					}
+				}
+			authorizationData = new AuthorizationData(uid,packageName, iari, enumAuthType, range, signer);
+			mCacheAuth.add(authorizationData);
+		} catch (Exception e) {
+			if (logActivated) {
+				logger.error("Exception occurred", e);
+			}
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return authorizationData;
+	}	
+	/**
+	 * Get authorization IDs for a package UID
+	 * @param packageUid 
+	 * @return Map containing id as key, and IARI as value
+	 */
+	@SuppressLint("UseSparseArrays")
+	public Map<Integer,String> getAuthorizationIdAndIARIForPackageUid(Integer packageUid) {
+		Map<Integer,String> result = new HashMap<Integer,String>();
+		Cursor cursor = null;
+		try {
+			cursor = mLocalContentResolver.query(AuthorizationData.CONTENT_URI, AUTH_PROJECTION_ID_IARI, AUTH_WHERE_UID,
+					new String[] { String.valueOf(packageUid) }, null);
+			if (!cursor.moveToFirst()) {
+				return result;
+
+			}
+			int idColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_ID);
+			int extColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_IARI);
+			Integer id = null;
+			String extension = null;
+			do {
+				id = cursor.getInt(idColumnIdx);
+				extension = cursor.getString(extColumnIdx);
+				result.put(id, extension);
+			} while (cursor.moveToNext());
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * Get all supported extensions (serviceId)
+	 * 
+	 * @return set of supported extensions
+	 */
+	public Set<String> getSupportedExtensions() {
+		Set<String> result = new HashSet<String>();
+		Cursor cursor = null;
+		try {
+			cursor = mLocalContentResolver.query(AuthorizationData.CONTENT_URI, AUTH_PROJ_IARI, null, null, null);
+			if (!cursor.moveToFirst()) {
+				return result;
+
+			}
+			int iariColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_IARI);
+			String iari = null;
+			do {
+				iari = cursor.getString(iariColumnIdx);
+				result.add(IARIUtils.getServiceId(iari));
+			} while (cursor.moveToNext());
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		
+		// remove revoked extension from results
+		for (Iterator<String>i=result.iterator(); i.hasNext();) {
+		    String iari = i.next();
+		    RevocationData revocation = getRevocationByServiceId(iari);  
+		    if(revocation!=null && !revocation.isAuthorized()){
+		    	i.remove();
+		    }
+		}
+		return result;
+	}
+		
+	/**
+	 * Get row ID for revocation
+	 * 
+	 * @param serviceId
+	 * @return id or INVALID_ID if not found
+	 */
+	public int getIdForRevocation(String serviceId) {
+		Cursor cursor = null;
+		try {
+			cursor = mLocalContentResolver.query(RevocationData.CONTENT_URI, REV_PROJECTION_ID, REV_WHERE_SERVICEID_CLAUSE, new String[] {
+					serviceId }, null);
+			if (cursor.moveToFirst()) {
+				return cursor.getInt(cursor.getColumnIndexOrThrow(RevocationData.KEY_ID));
+			}
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+		return INVALID_ID;
+	}
+
+	/**
+	 * Get revocation by IARI 
+	 * @param serviceId
+	 * @return RevocationData
+	 */
+	public RevocationData getRevocationByServiceId(String serviceId) {				
+		RevocationData revocationData = mCacheRev.get(serviceId);
+		if(revocationData != null){
+			return revocationData;
+		}
+		Cursor cursor = null;
+		try {						
+			cursor = mLocalContentResolver.query(RevocationData.CONTENT_URI, null, REV_WHERE_SERVICEID_CLAUSE, new String[]{serviceId}, null);
+			if (!cursor.moveToFirst()) {
+				return null;
+			}
+			int durationIdx = cursor.getColumnIndexOrThrow(RevocationData.KEY_DURATION);			
+			Long duration = cursor.getLong(durationIdx);
+			revocationData = new RevocationData(serviceId,duration);
+			mCacheRev.put(serviceId, revocationData);
+			return revocationData;
+		} catch (Exception e) {
+			if (logger.isActivated()) {
+				logger.error("Exception occurred", e);
+			}
+			return null;
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+		}
+	}
+	
+	/**
+	 * Revoke an extension
+	 * 
+	 * @param iari
+	 * @param duration Duration in seconds
+	 */ 
+	public void revokeExtension(String iari, long duration) {
+		String serviceId = IARIUtils.getServiceId(iari);
+		if (logger.isActivated()) {
+			logger.debug("Revoke extension " + serviceId + " for " + duration + "s");
+		}
+		if(duration>0){
+			duration*= MILLISECONDS;
+		}
+		addRevocation(new RevocationData(serviceId, duration));		
+	}	
 }

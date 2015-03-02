@@ -17,12 +17,12 @@ package com.orangelabs.rcs.security;
 import java.io.IOException;
 import java.io.InputStream;
 
-import android.content.ContentResolver;
 import android.test.AndroidTestCase;
 
 import com.gsma.iariauth.validator.PackageProcessor;
 import com.gsma.iariauth.validator.ProcessingResult;
 import com.orangelabs.rcs.core.ims.service.extension.BKSTrustStore;
+import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.security.CertificateData;
 import com.orangelabs.rcs.provider.security.SecurityLog;
 
@@ -33,13 +33,13 @@ import com.orangelabs.rcs.provider.security.SecurityLog;
  */
 public class SecurityBKSTrustStoreTest extends AndroidTestCase {
 
-	private ContentResolver mContentResolver;
+	private LocalContentResolver mContentResolver;
 	private SecurityLog mSecurityInfos;
 	private SecurityLibTest mSecurityInfosTest;
-	
+		
 	protected void setUp() throws Exception {
 		super.setUp();
-		mContentResolver = getContext().getContentResolver();
+		mContentResolver = new LocalContentResolver(getContext().getContentResolver());
 		SecurityLog.createInstance(mContentResolver);
 		mSecurityInfos = SecurityLog.getInstance();
 		mSecurityInfosTest = new SecurityLibTest();
