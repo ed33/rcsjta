@@ -82,7 +82,6 @@ public class SupportedExtensionUpdater implements Runnable {
 				logger.debug("Extensions are NOT allowed");
 			}
 			return;
-			// ---
 		}
 		try {
 			// Save authorizations before update
