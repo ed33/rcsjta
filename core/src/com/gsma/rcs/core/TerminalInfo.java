@@ -86,12 +86,35 @@ public class TerminalInfo {
     }
 
     /**
-     * Returns the product name + version
-     * 
-     * @return product information
+     * Get the build info
+     *
+     * @return build info
      */
-    public static String getProductInfo() {
-        return productName + "/" + productVersion;
+    public static String getBuildInfo() {
+        if (sBuildInfo == null) {
+            final String buildVersion = new StringBuilder((Build.DEVICE != null) ? Build.DEVICE
+                    : UNKNOWN).append(HYPHEN)
+                    .append((Build.DISPLAY != null) ? Build.DISPLAY : UNKNOWN).toString();
+            final String terminalVendor = (Build.MANUFACTURER != null) ? Build.MANUFACTURER
+                    : UNKNOWN;
+            sBuildInfo = new StringBuilder(terminalVendor).append(FORWARD_SLASH)
+                    .append(buildVersion).toString();
+        }
+        return sBuildInfo;
+    }
+
+    /**
+     * Returns the client_vendor "-" client_version
+     *
+     * @return client information
+     */
+    public static String getClientInfo() {
+        if (sClientInfo == null) {
+            final String clientVendor = (Build.MANUFACTURER != null) ? Build.MANUFACTURER : UNKNOWN;
+            sClientInfo = new StringBuilder(clientVendor).append(FORWARD_SLASH)
+                    .append(CLIENT_VERSION).toString();
+        }
+        return sClientInfo;
     }
 
     /**
