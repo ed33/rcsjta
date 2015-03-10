@@ -619,10 +619,11 @@ public abstract class ImsNetworkInterface {
             }
 
             /**
-             * Even if DUT is not behind NAT (Network Address Translation) it should still send the
-             * keep-Alive (double CRLF).
+             * Even if DUT is not behind NAT (Network Address Translation) and PROTOCOL !=
+             * ListeningPoint.UDP, it should still send the keep-Alive (double CRLF).
              */
-            if (RcsSettings.getInstance().isSipKeepAliveEnabled()) {
+            if (RcsSettings.getInstance().isSipKeepAliveEnabled()
+                    && !ListeningPoint.UDP.equalsIgnoreCase(imsProxyProtocol)) {
                 sip.getSipStack().getKeepAliveManager().start();
             }
         } else {
