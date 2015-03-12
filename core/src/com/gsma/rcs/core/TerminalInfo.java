@@ -22,6 +22,10 @@
 
 package com.gsma.rcs.core;
 
+import com.gsma.rcs.utils.logger.Logger;
+
+import android.content.Context;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Build;
 
 /**
@@ -31,6 +35,9 @@ import android.os.Build;
  * @author Deutsche Telekom AG
  */
 public class TerminalInfo {
+
+    private static final Logger sLogger = Logger.getLogger(TerminalInfo.class.getName());
+
     /**
      * Product name
      */
@@ -49,9 +56,16 @@ public class TerminalInfo {
      * VersionMajor = Number (2 char max)
      * VersionMinor = Number (2 char max)
      */
-    private static final String CLIENT_VERSION = "RCSAndr-1.5";
+    private static final String CLIENT_VERSION_PREFIX = "RCSAndr-";
+
+    /**
+     * Default client version set to "3.1.1" as base version.
+     */
+    private static final String DEFAULT_CLIENT_VERSION = "3.1.1";
 
     private static final String UNKNOWN = "unknown";
+
+    private static String sClientVersion;
 
     /**
      * Returns the product name
@@ -90,12 +104,31 @@ public class TerminalInfo {
     }
 
     /**
-     * Returns the client version
+     * Returns the client version as mentioned under versionName in AndroidManifest, prefixed with
+     * CLIENT_VERSION_PREFIX.
+     * <p>
+     * In case versionName is not found under AndroidManifest it will default to
+     * DEFAULT_CLIENT_VERSION.
+     * </p>
      * 
-     * @return CLIENT_VERSION
+     * @return Client version
      */
-    public static String getClientVersion() {
-        return CLIENT_VERSION;
+    public static String getClientVersion(Context ctx) {
+        if (sClientVersion == null) {
+            try {
+                final String versionFromManifest = ctx.getPackageManager().getPackageInfo(
+                        ctx.getPackageName(), 0).versionName;
+                sClientVersion = new StringBuilder(CLIENT_VERSION_PREFIX).append(
+                        versionFromManifest).toString();
+            } catch (NameNotFoundException e) {
+                if (sLogger.isActivated()) {
+                    sLogger.error("Version Name not defined in Manifest", e);
+                }
+                sClientVersion = new StringBuilder(CLIENT_VERSION_PREFIX).append(
+                        DEFAULT_CLIENT_VERSION).toString();
+            }
+        }
+        return sClientVersion;
     }
 
     /**
