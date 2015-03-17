@@ -31,7 +31,6 @@ import com.gsma.services.rcs.sharing.image.ImageSharingLog;
  */
 public class ImageSharingData {
 
-
     /**
      * History log member id
      */

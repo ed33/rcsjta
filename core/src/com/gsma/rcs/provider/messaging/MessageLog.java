@@ -500,13 +500,12 @@ public class MessageLog implements IMessageLog {
 
     /*
      * (non-Javadoc)
-     * @see com.orangelabs.rcs.provider.messaging.IMessageLog#
-     * getQueuedChatMessages(ContactId)
+     * @see com.orangelabs.rcs.provider.messaging.IMessageLog# getQueuedChatMessages(ContactId)
      */
     @Override
     public Cursor getQueuedOneToOneChatMessages(ContactId contact) {
         String[] selectionArgs = new String[] {
-                contact.toString()
+            contact.toString()
         };
         return mLocalContentResolver.query(Message.CONTENT_URI, null,
                 SELECTION_QUEUED_ONETOONE_CHAT_MESSAGES, selectionArgs, ORDER_BY_TIMESTAMP_ASC);

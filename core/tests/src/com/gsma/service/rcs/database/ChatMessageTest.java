@@ -18,21 +18,6 @@
 
 package com.gsma.service.rcs.database;
 
-import java.util.Date;
-
-import android.content.ContentResolver;
-import android.content.Context;
-import android.database.Cursor;
-import android.net.Uri;
-import android.test.AndroidTestCase;
-
-import com.gsma.services.rcs.Geoloc;
-import com.gsma.services.rcs.RcsContactFormatException;
-import com.gsma.services.rcs.RcsService.Direction;
-import com.gsma.services.rcs.chat.ChatLog.Message;
-import com.gsma.services.rcs.chat.ChatLog.Message.MimeType;
-import com.gsma.services.rcs.contact.ContactId;
-import com.gsma.services.rcs.contact.ContactUtil;
 import com.gsma.rcs.core.ims.ImsModule;
 import com.gsma.rcs.core.ims.service.im.chat.ChatMessage;
 import com.gsma.rcs.core.ims.service.im.chat.ChatUtils;
@@ -40,20 +25,37 @@ import com.gsma.rcs.core.ims.userprofile.UserProfile;
 import com.gsma.rcs.provider.LocalContentResolver;
 import com.gsma.rcs.provider.messaging.MessagingLog;
 import com.gsma.rcs.provider.settings.RcsSettings;
+import com.gsma.services.rcs.Geoloc;
+import com.gsma.services.rcs.RcsContactFormatException;
+import com.gsma.services.rcs.RcsService.Direction;
+import com.gsma.services.rcs.chat.ChatLog.Message;
+import com.gsma.services.rcs.chat.ChatLog.Message.MimeType;
+import com.gsma.services.rcs.contact.ContactId;
+import com.gsma.services.rcs.contact.ContactUtil;
+
+import android.content.ContentResolver;
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.test.AndroidTestCase;
+
+import java.util.Date;
 
 public class ChatMessageTest extends AndroidTestCase {
     private ContactId mContact;
     private Context mContext;
     private ContentResolver mContentResolver;
     private RcsSettings mRcsSettings;
+    private MessagingLog mMessagingLog;
+    private LocalContentResolver mLocalContentResolver;
 
     protected void setUp() throws Exception {
         super.setUp();
         mContext = getContext();
         mContentResolver = mContext.getContentResolver();
-        LocalContentResolver localContentResolver = new LocalContentResolver(mContentResolver);
-        mRcsSettings = RcsSettings.createInstance(localContentResolver);
-        MessagingLog.createInstance(mContext, localContentResolver, mRcsSettings);
+        mLocalContentResolver = new LocalContentResolver(mContentResolver);
+        mRcsSettings = RcsSettings.createInstance(mLocalContentResolver);
+        mMessagingLog = MessagingLog.createInstance(mContext, mLocalContentResolver, mRcsSettings);
         ContactUtil contactUtils = ContactUtil.getInstance(mContext);
         try {
             mContact = contactUtils.formatContact("+339000000");
@@ -70,14 +72,14 @@ public class ChatMessageTest extends AndroidTestCase {
     }
 
     public void testTextMessage() {
-        String msgId = "" + System.currentTimeMillis();
+        String msgId = Long.toString(System.currentTimeMillis());
         String txt = "Hello";
         Date now = new Date();
         ChatMessage msg = new ChatMessage(msgId, mContact, txt, MimeType.TEXT_MESSAGE, now,
                 "display");
 
         // Add entry
-        MessagingLog.getInstance().addOutgoingOneToOneChatMessage(msg, Message.Content.Status.SENT,
+        mMessagingLog.addOutgoingOneToOneChatMessage(msg, Message.Content.Status.SENT,
                 Message.Content.ReasonCode.UNSPECIFIED);
 
         // Read entry
@@ -104,16 +106,17 @@ public class ChatMessageTest extends AndroidTestCase {
             assertEquals(mimeType, Message.MimeType.TEXT_MESSAGE);
             assertEquals(id, msgId);
         }
+        mLocalContentResolver.delete(Uri.withAppendedPath(Message.CONTENT_URI, msgId), null, null);
+        assertFalse(mMessagingLog.isMessagePersisted(msgId));
     }
 
     public void testGeolocMessage() {
-
         Geoloc geoloc = new Geoloc("test", 10.0, 11.0, 2000, 2);
         ChatMessage chatMsg = ChatUtils.createGeolocMessage(mContact, geoloc);
         String msgId = chatMsg.getMessageId();
         // Add entry
-        MessagingLog.getInstance().addOutgoingOneToOneChatMessage(chatMsg,
-                Message.Content.Status.SENT, Message.Content.ReasonCode.UNSPECIFIED);
+        mMessagingLog.addOutgoingOneToOneChatMessage(chatMsg, Message.Content.Status.SENT,
+                Message.Content.ReasonCode.UNSPECIFIED);
 
         // Read entry
         Uri uri = Uri.withAppendedPath(Message.CONTENT_URI, msgId);
@@ -144,5 +147,7 @@ public class ChatMessageTest extends AndroidTestCase {
             assertEquals(contentType, Message.MimeType.GEOLOC_MESSAGE);
             assertEquals(id, msgId);
         }
+        mLocalContentResolver.delete(Uri.withAppendedPath(Message.CONTENT_URI, msgId), null, null);
+        assertFalse(mMessagingLog.isMessagePersisted(msgId));
     }
 }

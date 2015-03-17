@@ -463,7 +463,8 @@ public class ChatServiceImpl extends IChatService.Stub {
             GroupChatPersistedStorageAccessor storageAccessor = new GroupChatPersistedStorageAccessor(
                     chatId, subject, Direction.OUTGOING, mMessagingLog, mRcsSettings);
             GroupChatImpl groupChat = new GroupChatImpl(chatId, mGroupChatEventBroadcaster,
-                    mImService, storageAccessor, mRcsSettings, mContactManager, this, mMessagingLog, mCore);
+                    mImService, storageAccessor, mRcsSettings, mContactManager, this,
+                    mMessagingLog, mCore);
             session.addListener(groupChat);
 
             mMessagingLog.addGroupChat(session.getContributionID(), session.getRemoteContact(),

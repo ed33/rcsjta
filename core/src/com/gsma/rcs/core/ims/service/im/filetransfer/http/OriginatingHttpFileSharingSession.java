@@ -36,7 +36,6 @@ import com.gsma.rcs.core.ims.service.im.chat.OneToOneChatSession;
 import com.gsma.rcs.core.ims.service.im.chat.cpim.CpimMessage;
 import com.gsma.rcs.core.ims.service.im.filetransfer.FileSharingError;
 import com.gsma.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
-import com.gsma.rcs.provider.fthttp.FtHttpResumeDaoImpl;
 import com.gsma.rcs.provider.fthttp.FtHttpResumeUpload;
 import com.gsma.rcs.provider.messaging.MessagingLog;
 import com.gsma.rcs.provider.settings.RcsSettings;
@@ -44,6 +43,7 @@ import com.gsma.rcs.utils.IdGenerator;
 import com.gsma.rcs.utils.PhoneUtils;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.contact.ContactId;
+import com.gsma.services.rcs.filetransfer.FileTransferLog;
 
 /**
  * Originating file transfer HTTP session
@@ -58,12 +58,12 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
     /**
      * HTTP upload manager
      */
-    protected HttpUploadManager uploadManager;
+    protected HttpUploadManager mUploadManager;
 
     /**
      * The logger
      */
-    private final static Logger logger = Logger.getLogger(OriginatingHttpFileSharingSession.class
+    private final static Logger LOGGER = Logger.getLogger(OriginatingHttpFileSharingSession.class
             .getSimpleName());
 
     /**
@@ -83,13 +83,14 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
             MmContent content, ContactId contact, MmContent fileIcon, String tId, Core core,
             MessagingLog messagingLog, RcsSettings rcsSettings) {
         super(parent, content, contact, PhoneUtils.formatContactIdToUri(contact), fileIcon, null,
-                null, fileTransferId, rcsSettings, messagingLog);
+                null, fileTransferId, rcsSettings, FileTransferLog.UNKNOWN_EXPIRATION,
+                FileTransferLog.UNKNOWN_EXPIRATION, messagingLog);
         mCore = core;
-        if (logger.isActivated()) {
-            logger.debug("OriginatingHttpFileSharingSession contact=" + contact);
+        if (LOGGER.isActivated()) {
+            LOGGER.debug("OriginatingHttpFileSharingSession contact=".concat(contact.toString()));
         }
 
-        uploadManager = new HttpUploadManager(getContent(), fileIcon, this, tId, rcsSettings);
+        mUploadManager = new HttpUploadManager(getContent(), fileIcon, this, tId, rcsSettings);
     }
 
     /**
@@ -97,15 +98,15 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
      */
     public void run() {
         try {
-            if (logger.isActivated()) {
-                logger.info("Initiate a new HTTP file transfer session as originating");
+            if (LOGGER.isActivated()) {
+                LOGGER.info("Initiate a new HTTP file transfer session as originating");
             }
             // Upload the file to the HTTP server
-            byte[] result = uploadManager.uploadFile();
+            byte[] result = mUploadManager.uploadFile();
             sendResultToContact(result);
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("File transfer has failed", e);
+            if (LOGGER.isActivated()) {
+                LOGGER.error("File transfer has failed", e);
             }
             // Unexpected error
             handleError(new FileSharingError(FileSharingError.UNEXPECTED_EXCEPTION, e.getMessage()));
@@ -114,75 +115,85 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
 
     protected void sendResultToContact(byte[] result) {
         // Check if upload has been cancelled
-        if (uploadManager.isCancelled()) {
+        if (mUploadManager.isCancelled()) {
             return;
         }
-
-        if (result != null && FileTransferUtils.parseFileTransferHttpDocument(result) != null) {
-            String fileInfo = new String(result, UTF8);
-            if (logger.isActivated()) {
-                logger.debug(new StringBuilder("Upload done with success: ").append(fileInfo)
-                        .append(".").toString());
-            }
-
-            OneToOneChatSession chatSession = mCore.getImService().getOneToOneChatSession(
-                    getRemoteContact());
-            // Note: FileTransferId is always generated to equal the associated msgId of a
-            // FileTransfer invitation message.
-            String msgId = getFileTransferId();
-            if (chatSession != null) {
-                if (logger.isActivated()) {
-                    logger.debug("Send file transfer info via an existing chat session.");
-                }
-                if (chatSession.isMediaEstablished()) {
-                    setChatSessionID(chatSession.getSessionID());
-                    setContributionID(chatSession.getContributionID());
-                }
-                String mime = CpimMessage.MIME_TYPE;
-                String from = ChatUtils.ANOMYNOUS_URI;
-                String to = ChatUtils.ANOMYNOUS_URI;
-                String content = ChatUtils.buildCpimMessageWithImdn(from, to, msgId, fileInfo,
-                        FileTransferHttpInfoDocument.MIME_TYPE);
-                chatSession.sendDataChunks(IdGenerator.generateMessageID(), content, mime,
-                        MsrpSession.TypeMsrpChunk.HttpFileSharing);
-            } else {
-                if (logger.isActivated()) {
-                    logger.debug("Send file transfer info via a new chat session.");
-                }
-                ChatMessage firstMsg = ChatUtils.createFileTransferMessage(getRemoteContact(),
-                        fileInfo, false, msgId);
-                try {
-                    chatSession = mCore.getImService().initiateOneToOneChatSession(
-                            getRemoteContact(), firstMsg);
-                } catch (CoreException e) {
-                    if (logger.isActivated()) {
-                        logger.debug("Couldn't initiate One to one session :" + e);
-                    }
-                    // Upload error
-                    handleError(new FileSharingError(FileSharingError.MEDIA_UPLOAD_FAILED));
-                    return;
-                }
-                setChatSessionID(chatSession.getSessionID());
-                setContributionID(chatSession.getContributionID());
-
-                chatSession.startSession();
-                mCore.getListener().handleOneOneChatSessionInitiation(chatSession);
-            }
-
-            // File transfered
-            handleFileTransfered();
-        } else {
+        boolean logActivated = LOGGER.isActivated();
+        FileTransferHttpInfoDocument infoDocument;
+        if (result == null
+                || (infoDocument = FileTransferUtils.parseFileTransferHttpDocument(result)) == null) {
             // Don't call handleError in case of Pause or Cancel
-            if (uploadManager.isCancelled() || uploadManager.isPaused()) {
+            if (mUploadManager.isCancelled() || mUploadManager.isPaused()) {
                 return;
             }
 
-            if (logger.isActivated()) {
-                logger.debug("Upload has failed");
+            if (LOGGER.isActivated()) {
+                LOGGER.debug("Upload has failed");
             }
             // Upload error
             handleError(new FileSharingError(FileSharingError.MEDIA_UPLOAD_FAILED));
+            return;
+
         }
+        String fileInfo = new String(result, UTF8);
+        if (logActivated) {
+            LOGGER.debug("Upload done with success: ".concat(fileInfo));
+        }
+
+        setFileExpiration(infoDocument.getTransferValidity());
+        FileTransferHttpThumbnail thumbnail = infoDocument.getFileThumbnail();
+        if (thumbnail != null) {
+            setIconExpiration(thumbnail.getValidity());
+        } else {
+            setIconExpiration(FileTransferLog.NOT_APPLICABLE_EXPIRATION);
+        }
+
+        OneToOneChatSession chatSession = mCore.getImService().getOneToOneChatSession(
+                getRemoteContact());
+        // Note: FileTransferId is always generated to equal the associated msgId of a
+        // FileTransfer invitation message.
+        String msgId = getFileTransferId();
+        if (chatSession != null) {
+            if (logActivated) {
+                LOGGER.debug("Send file transfer info via an existing chat session");
+            }
+            if (chatSession.isMediaEstablished()) {
+                setChatSessionID(chatSession.getSessionID());
+                setContributionID(chatSession.getContributionID());
+            }
+            String mime = CpimMessage.MIME_TYPE;
+            String from = ChatUtils.ANOMYNOUS_URI;
+            String to = ChatUtils.ANOMYNOUS_URI;
+            String content = ChatUtils.buildCpimMessageWithImdn(from, to, msgId, fileInfo,
+                    FileTransferHttpInfoDocument.MIME_TYPE);
+            chatSession.sendDataChunks(IdGenerator.generateMessageID(), content, mime,
+                    MsrpSession.TypeMsrpChunk.HttpFileSharing);
+        } else {
+            if (logActivated) {
+                LOGGER.debug("Send file transfer info via a new chat session.");
+            }
+            ChatMessage firstMsg = ChatUtils.createFileTransferMessage(getRemoteContact(),
+                    fileInfo, false, msgId);
+            try {
+                chatSession = mCore.getImService().initiateOneToOneChatSession(getRemoteContact(),
+                        firstMsg);
+            } catch (CoreException e) {
+                if (logActivated) {
+                    LOGGER.debug("Couldn't initiate One to one session :" + e);
+                }
+                // Upload error
+                handleError(new FileSharingError(FileSharingError.MEDIA_UPLOAD_FAILED));
+                return;
+            }
+            setChatSessionID(chatSession.getSessionID());
+            setContributionID(chatSession.getContributionID());
+
+            chatSession.startSession();
+            mCore.getListener().handleOneOneChatSessionInitiation(chatSession);
+        }
+
+        // File transfered
+        handleFileTransfered();
     }
 
     @Override
@@ -203,7 +214,7 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
         super.interrupt();
 
         // Interrupt the upload
-        uploadManager.interrupt();
+        mUploadManager.interrupt();
     }
 
     /**
@@ -213,7 +224,7 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
     public void pauseFileTransfer() {
         fileTransferPaused();
         interruptSession();
-        uploadManager.pauseTransferByUser();
+        mUploadManager.pauseTransferByUser();
     }
 
     /**
@@ -225,10 +236,10 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    FtHttpResumeUpload upload = FtHttpResumeDaoImpl.getInstance().queryUpload(
-                            uploadManager.getTId());
+                    FtHttpResumeUpload upload = mMessagingLog
+                            .retrieveFtHttpResumeUpload(mUploadManager.getTId());
                     if (upload != null) {
-                        sendResultToContact(uploadManager.resumeUpload());
+                        sendResultToContact(mUploadManager.resumeUpload());
                     } else {
                         sendResultToContact(null);
                     }
@@ -241,7 +252,7 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
 
     @Override
     public void uploadStarted() {
-        mMessagingLog.setFileUploadTId(getFileTransferId(), uploadManager.getTId());
+        mMessagingLog.setFileUploadTId(getFileTransferId(), mUploadManager.getTId());
     }
 
     /**
@@ -250,7 +261,7 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
      * @return upload manager
      */
     public HttpUploadManager getUploadManager() {
-        return uploadManager;
+        return mUploadManager;
     }
 
     @Override

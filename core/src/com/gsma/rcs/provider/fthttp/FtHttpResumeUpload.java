@@ -23,7 +23,6 @@
 package com.gsma.rcs.provider.fthttp;
 
 import com.gsma.rcs.core.content.MmContent;
-import com.gsma.rcs.core.ims.service.im.filetransfer.http.HttpFileTransferSession;
 import com.gsma.services.rcs.RcsService.Direction;
 import com.gsma.services.rcs.contact.ContactId;
 
@@ -42,20 +41,6 @@ public class FtHttpResumeUpload extends FtHttpResume {
     /**
      * Creates a FT HTTP resume upload data object
      * 
-     * @param session the {@code session} value.
-     * @param tId the {@code tId} value.
-     * @param fileIcon the {@code fileIcon} value.
-     * @param isGroup the {@code isGroup} value.
-     */
-    public FtHttpResumeUpload(HttpFileTransferSession session, String tId, Uri fileIcon,
-            boolean isGroup) {
-        this(session.getContent(), fileIcon, tId, (isGroup) ? null : session.getRemoteContact(),
-                session.getContributionID(), session.getFileTransferId(), isGroup);
-    }
-
-    /**
-     * Creates a FT HTTP resume upload data object
-     * 
      * @param file the {@code file} value.
      * @param fileIcon the {@code fileIcon} value.
      * @param tId the {@code tId} value.
@@ -66,13 +51,18 @@ public class FtHttpResumeUpload extends FtHttpResume {
      */
     public FtHttpResumeUpload(MmContent file, Uri fileIcon, String tId, ContactId contact,
             String chatId, String fileTransferId, boolean isGroup) {
-        super(Direction.OUTGOING, file.getUri(), file.getName(), file.getEncoding(),
-                file.getSize(), fileIcon, contact, chatId, fileTransferId, isGroup);
+        super(Direction.OUTGOING, file.getUri(), file.getName(), file.getSize(), fileIcon, contact,
+                chatId, fileTransferId, isGroup);
         if (tId == null)
             throw new IllegalArgumentException("Null tId");
         mTId = tId;
     }
 
+    /**
+     * Gets the HTTP File Transfer ID
+     * 
+     * @return the HTTP File Transfer ID
+     */
     public String getTId() {
         return mTId;
     }

@@ -56,11 +56,11 @@ import com.gsma.rcs.core.ims.service.im.filetransfer.FileSharingError;
 import com.gsma.rcs.core.ims.service.im.filetransfer.FileSharingSession;
 import com.gsma.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
 import com.gsma.rcs.core.ims.service.im.filetransfer.ImsFileSharingSession;
+import com.gsma.rcs.core.ims.service.im.filetransfer.http.DownloadFromInviteFileSharingSession;
 import com.gsma.rcs.core.ims.service.im.filetransfer.http.FileTransferHttpInfoDocument;
 import com.gsma.rcs.core.ims.service.im.filetransfer.http.HttpFileTransferSession;
 import com.gsma.rcs.core.ims.service.im.filetransfer.http.OriginatingHttpFileSharingSession;
 import com.gsma.rcs.core.ims.service.im.filetransfer.http.OriginatingHttpGroupFileSharingSession;
-import com.gsma.rcs.core.ims.service.im.filetransfer.http.TerminatingHttpFileSharingSession;
 import com.gsma.rcs.core.ims.service.im.filetransfer.msrp.OriginatingMsrpFileSharingSession;
 import com.gsma.rcs.core.ims.service.im.filetransfer.msrp.TerminatingMsrpFileSharingSession;
 import com.gsma.rcs.core.ims.service.upload.FileUploadSession;
@@ -77,6 +77,7 @@ import com.gsma.services.rcs.chat.GroupChat.ParticipantStatus;
 import com.gsma.services.rcs.chat.GroupChat.ReasonCode;
 import com.gsma.services.rcs.contact.ContactId;
 import com.gsma.services.rcs.filetransfer.FileTransfer;
+import com.gsma.services.rcs.filetransfer.FileTransferLog;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -217,7 +218,7 @@ public class InstantMessagingService extends ImsService {
         setServiceStarted(true);
 
         // Start IMDN manager
-        mImdnMgr = new ImdnManager(this, mRcsSettings);
+        mImdnMgr = new ImdnManager(this, mRcsSettings, mMessagingLog);
         mImdnMgr.start();
 
         mCore.getListener().tryToStartImServiceTasks(this);
@@ -359,7 +360,8 @@ public class InstantMessagingService extends ImsService {
         }
     }
 
-    public void removeSession(final TerminatingStoreAndForwardOneToOneChatNotificationSession session) {
+    public void removeSession(
+            final TerminatingStoreAndForwardOneToOneChatNotificationSession session) {
         final ContactId contact = session.getRemoteContact();
         if (sLogger.isActivated()) {
             sLogger.debug(new StringBuilder(
@@ -730,7 +732,6 @@ public class InstantMessagingService extends ImsService {
      * Initiate a group file transfer session
      * 
      * @param fileTransferId File transfer Id
-     * @param participants Set of remote contacts
      * @param content The file content to be sent
      * @param fileIcon Content of fileicon
      * @param groupChatId Chat contribution ID
@@ -745,7 +746,8 @@ public class InstantMessagingService extends ImsService {
 
         FileSharingSession session = new OriginatingHttpGroupFileSharingSession(fileTransferId,
                 this, content, fileIcon, ImsModule.IMS_USER_PROFILE.getImConferenceUri(),
-                groupChatSessionId, groupChatId, UUID.randomUUID().toString(), mCore, mRcsSettings, mMessagingLog);
+                groupChatSessionId, groupChatId, UUID.randomUUID().toString(), mCore, mRcsSettings,
+                mMessagingLog);
 
         return session;
     }
@@ -797,7 +799,8 @@ public class InstantMessagingService extends ImsService {
                     .getCore()
                     .getListener()
                     .handleFileTransferInvitation(session, false, remote,
-                            session.getRemoteDisplayName());
+                            session.getRemoteDisplayName(),
+                            FileTransferLog.NOT_APPLICABLE_EXPIRATION);
 
             session.startSession();
 
@@ -1184,7 +1187,7 @@ public class InstantMessagingService extends ImsService {
      * 
      * @param chatId Chat Id
      * @param contact Contact identifier
-     * @param ImdnDocument imdn Imdn document
+     * @param imdn IM delivery notification document
      */
     public void receiveGroupFileDeliveryStatus(String chatId, ContactId contact, ImdnDocument imdn) {
         getImsModule().getCore().getListener().handleGroupFileDeliveryStatus(chatId, contact, imdn);
@@ -1343,18 +1346,18 @@ public class InstantMessagingService extends ImsService {
             oneToOneChatSession.startSession();
 
             // Create and start a new HTTP file transfer session
-            TerminatingHttpFileSharingSession httpFiletransferSession = new TerminatingHttpFileSharingSession(
-                    this, oneToOneChatSession, ftinfo, ChatUtils.getMessageId(invite),
+            FileSharingSession fileSharingSession = new DownloadFromInviteFileSharingSession(this,
+                    oneToOneChatSession, ftinfo, ChatUtils.getMessageId(invite),
                     oneToOneChatSession.getRemoteContact(),
                     oneToOneChatSession.getRemoteDisplayName(), mRcsSettings, mMessagingLog);
 
             getImsModule()
                     .getCore()
                     .getListener()
-                    .handleOneToOneFileTransferInvitation(httpFiletransferSession,
-                            oneToOneChatSession);
+                    .handleOneToOneFileTransferInvitation(fileSharingSession, oneToOneChatSession,
+                            ftinfo.getTransferValidity());
 
-            httpFiletransferSession.startSession();
+            fileSharingSession.startSession();
 
         } catch (RcsContactFormatException e) {
             if (sLogger.isActivated()) {
@@ -1407,15 +1410,18 @@ public class InstantMessagingService extends ImsService {
         }
 
         // Create and start a new HTTP file transfer session
-        TerminatingHttpFileSharingSession httpFiletransferSession = new TerminatingHttpFileSharingSession(
-                this, one2oneChatSession, ftinfo, ChatUtils.getMessageId(invite),
+        FileSharingSession filetransferSession = new DownloadFromInviteFileSharingSession(this,
+                one2oneChatSession, ftinfo, ChatUtils.getMessageId(invite),
                 one2oneChatSession.getRemoteContact(), one2oneChatSession.getRemoteDisplayName(),
                 mRcsSettings, mMessagingLog);
 
-        getImsModule().getCore().getListener()
-                .handleOneToOneFileTransferInvitation(httpFiletransferSession, one2oneChatSession);
+        getImsModule()
+                .getCore()
+                .getListener()
+                .handleOneToOneFileTransferInvitation(filetransferSession, one2oneChatSession,
+                        ftinfo.getTransferValidity());
 
-        httpFiletransferSession.startSession();
+        filetransferSession.startSession();
     }
 
     /**

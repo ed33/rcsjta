@@ -32,6 +32,7 @@ import com.gsma.services.rcs.chat.ChatLog.Message.MimeType;
 import com.gsma.services.rcs.contact.ContactId;
 import com.gsma.services.rcs.contact.ContactUtil;
 import com.gsma.services.rcs.filetransfer.FileTransfer;
+import com.gsma.services.rcs.filetransfer.FileTransferLog;
 import com.gsma.services.rcs.history.HistoryLog;
 import com.gsma.services.rcs.history.HistoryUriBuilder;
 import com.gsma.services.rcs.history.IHistoryService;
@@ -239,12 +240,10 @@ public class HistoryLogTest extends AndroidTestCase {
 
         if (sLocalContentResolver == null) {
             sLocalContentResolver = new LocalContentResolver(mockResolver);
-            MessagingLog.createInstance(getContext(), sLocalContentResolver,
-
-            RcsSettings.createInstance(sLocalContentResolver));
-            RichCallHistory.createInstance(sLocalContentResolver);
         }
-        mMessagingLog = MessagingLog.getInstance();
+        mMessagingLog = MessagingLog.createInstance(getContext(), sLocalContentResolver,
+                RcsSettings.createInstance(sLocalContentResolver));
+        RichCallHistory.createInstance(sLocalContentResolver);
         mRichCallHistory = RichCallHistory.getInstance();
         ContactUtil.getInstance(getContext());
 
@@ -291,9 +290,10 @@ public class HistoryLogTest extends AndroidTestCase {
     }
 
     private void addOutgoingFileTransferSharing() {
-        mMessagingLog
-                .addFileTransfer(FILE_TRANSFER_ID, getRemoteContact(), Direction.INCOMING, CONTENT,
-                        THUMBNAIL, FileTransfer.State.INVITED, FileTransfer.ReasonCode.UNSPECIFIED);
+        mMessagingLog.addFileTransfer(FILE_TRANSFER_ID, getRemoteContact(), Direction.INCOMING,
+                CONTENT, THUMBNAIL, FileTransfer.State.INVITED,
+                FileTransfer.ReasonCode.UNSPECIFIED, FileTransferLog.UNKNOWN_EXPIRATION,
+                FileTransferLog.UNKNOWN_EXPIRATION);
     }
 
     private void addOutgoingOneToOneChatMessages(String... ids) {

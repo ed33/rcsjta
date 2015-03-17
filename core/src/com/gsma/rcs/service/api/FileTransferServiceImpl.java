@@ -58,6 +58,7 @@ import com.gsma.services.rcs.contact.ContactId;
 import com.gsma.services.rcs.filetransfer.FileTransfer;
 import com.gsma.services.rcs.filetransfer.FileTransfer.ReasonCode;
 import com.gsma.services.rcs.filetransfer.FileTransfer.State;
+import com.gsma.services.rcs.filetransfer.FileTransferLog;
 import com.gsma.services.rcs.filetransfer.IFileTransfer;
 import com.gsma.services.rcs.filetransfer.IFileTransferService;
 import com.gsma.services.rcs.filetransfer.IFileTransferServiceConfiguration;
@@ -74,7 +75,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * File transfer service implementation
@@ -314,13 +314,14 @@ public class FileTransferServiceImpl extends IFileTransferService.Stub {
      * @param fileTransferId File transfer ID
      * @param contact ContactId
      * @param content Content of file
-     * @param fileicon Content of fileicon
+     * @param fileicon Content of file icon
      * @param state state of the file transfer
      */
     private void addOutgoingFileTransfer(String fileTransferId, ContactId contact,
             MmContent content, MmContent fileicon, State state) {
         mMessagingLog.addFileTransfer(fileTransferId, contact, Direction.OUTGOING, content,
-                fileicon, state, ReasonCode.UNSPECIFIED);
+                fileicon, state, ReasonCode.UNSPECIFIED, FileTransferLog.UNKNOWN_EXPIRATION,
+                FileTransferLog.UNKNOWN_EXPIRATION);
         mOneToOneFileTransferBroadcaster.broadcastStateChanged(contact, fileTransferId, state,
                 ReasonCode.UNSPECIFIED);
     }
@@ -788,7 +789,6 @@ public class FileTransferServiceImpl extends IFileTransferService.Stub {
      * Dequeue group file transfer
      * 
      * @param fileTransferId
-     * @param participants
      * @param content
      * @param fileIcon
      * @param chatId
@@ -1245,7 +1245,8 @@ public class FileTransferServiceImpl extends IFileTransferService.Stub {
             MmContent fileIcon, ReasonCode reasonCode) {
         String fileTransferId = IdGenerator.generateMessageID();
         mMessagingLog.addFileTransfer(fileTransferId, contact, Direction.INCOMING, content,
-                fileIcon, FileTransfer.State.REJECTED, reasonCode);
+                fileIcon, FileTransfer.State.REJECTED, reasonCode,
+                FileTransferLog.UNKNOWN_EXPIRATION, FileTransferLog.UNKNOWN_EXPIRATION);
 
         mOneToOneFileTransferBroadcaster.broadcastInvitation(fileTransferId);
     }

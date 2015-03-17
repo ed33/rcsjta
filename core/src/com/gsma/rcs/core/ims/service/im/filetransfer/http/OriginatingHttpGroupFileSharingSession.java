@@ -35,12 +35,12 @@ import com.gsma.rcs.core.ims.service.im.chat.ChatUtils;
 import com.gsma.rcs.core.ims.service.im.chat.cpim.CpimMessage;
 import com.gsma.rcs.core.ims.service.im.filetransfer.FileSharingError;
 import com.gsma.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
-import com.gsma.rcs.provider.fthttp.FtHttpResumeDaoImpl;
 import com.gsma.rcs.provider.fthttp.FtHttpResumeUpload;
 import com.gsma.rcs.provider.messaging.MessagingLog;
 import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.utils.IdGenerator;
 import com.gsma.rcs.utils.logger.Logger;
+import com.gsma.services.rcs.filetransfer.FileTransferLog;
 
 /**
  * Originating file transfer HTTP session
@@ -55,7 +55,7 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
     /**
      * HTTP upload manager
      */
-    private HttpUploadManager uploadManager;
+    private HttpUploadManager mUploadManager;
 
     /**
      * File information to send via chat
@@ -70,7 +70,7 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
     /**
      * The logger
      */
-    private static final Logger logger = Logger
+    private static final Logger LOGGER = Logger
             .getLogger(OriginatingHttpGroupFileSharingSession.class.getName());
 
     /**
@@ -90,29 +90,31 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
      */
     public OriginatingHttpGroupFileSharingSession(String fileTransferId, ImsService parent,
             MmContent content, MmContent fileIcon, String conferenceId, String chatSessionId,
-            String chatContributionId, String tId, Core core, RcsSettings rcsSettings, MessagingLog messagingLog) {
+            String chatContributionId, String tId, Core core, RcsSettings rcsSettings,
+            MessagingLog messagingLog) {
         super(parent, content, null, conferenceId, fileIcon, chatSessionId, chatContributionId,
-                fileTransferId, rcsSettings, messagingLog);
+                fileTransferId, rcsSettings, FileTransferLog.UNKNOWN_EXPIRATION,
+                FileTransferLog.UNKNOWN_EXPIRATION, messagingLog);
         mCore = core;
 
         // Instantiate the upload manager
-        uploadManager = new HttpUploadManager(getContent(), fileIcon, this, tId, rcsSettings);
+        mUploadManager = new HttpUploadManager(getContent(), fileIcon, this, tId, rcsSettings);
     }
 
     /**
      * Background processing
      */
     public void run() {
+        if (LOGGER.isActivated()) {
+            LOGGER.info("Initiate a new HTTP group file transfer session as originating");
+        }
         try {
-            if (logger.isActivated()) {
-                logger.info("Initiate a new HTTP group file transfer session as originating");
-            }
             // Upload the file to the HTTP server
-            byte[] result = uploadManager.uploadFile();
+            byte[] result = mUploadManager.uploadFile();
             sendResultToContact(result);
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("File transfer has failed", e);
+            if (LOGGER.isActivated()) {
+                LOGGER.error("File transfer has failed", e);
             }
 
             // Unexpected error
@@ -133,7 +135,7 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
     @Override
     public void interrupt() {
         super.interrupt();
-        uploadManager.interrupt();
+        mUploadManager.interrupt();
     }
 
     /**
@@ -160,31 +162,42 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
      * @param result byte[] which contains the result of the 200 OK from the content server
      */
     private void sendResultToContact(byte[] result) {
-        if (uploadManager.isCancelled()) {
+        if (mUploadManager.isCancelled()) {
             return;
         }
-        if (result != null && FileTransferUtils.parseFileTransferHttpDocument(result) != null) {
-            mFileInfo = new String(result, UTF8);
-            if (logger.isActivated()) {
-                logger.debug(new StringBuilder("Upload done with success: ").append(mFileInfo)
-                        .append(".").toString());
-            }
-            mChatSession = mCore.getImService().getGroupChatSession(getContributionID());
-            if (mChatSession != null) {
-                if (logger.isActivated()) {
-                    logger.debug("Send file transfer info via an existing chat session");
-                }
-                sendFileTransferInfo();
-                handleFileTransfered();
-
-            } else {
-                handleError(new FileSharingError(FileSharingError.NO_CHAT_SESSION));
-            }
-        } else {
-            if (logger.isActivated()) {
-                logger.debug("Upload has failed");
+        FileTransferHttpInfoDocument infoDocument;
+        boolean logActivated = LOGGER.isActivated();
+        if (result == null
+                || (infoDocument = FileTransferUtils.parseFileTransferHttpDocument(result)) == null) {
+            if (logActivated) {
+                LOGGER.debug("Upload has failed");
             }
             handleError(new FileSharingError(FileSharingError.MEDIA_UPLOAD_FAILED));
+            return;
+
+        }
+        mFileInfo = new String(result, UTF8);
+        if (logActivated) {
+            LOGGER.debug("Upload done with success: ".concat(mFileInfo.toString()));
+        }
+        setFileExpiration(infoDocument.getTransferValidity());
+        FileTransferHttpThumbnail thumbnail = infoDocument.getFileThumbnail();
+        if (thumbnail != null) {
+            setIconExpiration(thumbnail.getValidity());
+        } else {
+            setIconExpiration(FileTransferLog.NOT_APPLICABLE_EXPIRATION);
+        }
+
+        mChatSession = mCore.getImService().getGroupChatSession(getContributionID());
+        if (mChatSession != null) {
+            if (logActivated) {
+                LOGGER.debug("Send file transfer info via an existing chat session");
+            }
+            sendFileTransferInfo();
+            handleFileTransfered();
+
+        } else {
+            handleError(new FileSharingError(FileSharingError.NO_CHAT_SESSION));
         }
     }
 
@@ -195,7 +208,7 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
     public void pauseFileTransfer() {
         fileTransferPaused();
         interruptSession();
-        uploadManager.pauseTransferByUser();
+        mUploadManager.pauseTransferByUser();
     }
 
     /**
@@ -206,10 +219,10 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
         new Thread(new Runnable() {
             public void run() {
                 try {
-                    FtHttpResumeUpload upload = FtHttpResumeDaoImpl.getInstance().queryUpload(
-                            uploadManager.getTId());
+                    FtHttpResumeUpload upload = mMessagingLog
+                            .retrieveFtHttpResumeUpload(mUploadManager.getTId());
                     if (upload != null) {
-                        sendResultToContact(uploadManager.resumeUpload());
+                        sendResultToContact(mUploadManager.resumeUpload());
                     } else {
                         sendResultToContact(null);
                     }
@@ -223,10 +236,6 @@ public class OriginatingHttpGroupFileSharingSession extends HttpFileTransferSess
 
     @Override
     public void uploadStarted() {
-        // TODO restriction : FT HTTP upload resume is not managed
-        // // Create upload entry in fthttp table
-        // resumeFT = new FtHttpResumeUpload(this, uploadManager.getTid(),getThumbnail(),false);
-        // FtHttpResumeDaoImpl.getInstance().insert(resumeFT);
     }
 
     @Override

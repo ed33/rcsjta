@@ -87,7 +87,6 @@ public interface IMessageLog {
      * Update chat message read status
      * 
      * @param msgId Message ID
-     * @param status Message status
      */
     public void markMessageAsRead(String msgId);
 
@@ -180,8 +179,8 @@ public interface IMessageLog {
     public String getChatMessageContent(String msgId);
 
     /**
-     * Get all one-to-one and group chat messages that are in queued state in
-     * ascending order of timestamp
+     * Get all one-to-one and group chat messages that are in queued state in ascending order of
+     * timestamp
      * 
      * @param contact
      * @return Cursor

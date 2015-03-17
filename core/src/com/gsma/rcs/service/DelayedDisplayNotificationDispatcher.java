@@ -50,8 +50,8 @@ import android.database.Cursor;
 
     private ChatServiceImpl mChatApi;
 
-    /* package private */DelayedDisplayNotificationDispatcher(LocalContentResolver localContentResolver,
-            ChatServiceImpl chatApi) {
+    /* package private */DelayedDisplayNotificationDispatcher(
+            LocalContentResolver localContentResolver, ChatServiceImpl chatApi) {
         mLocalContentResolver = localContentResolver;
         mChatApi = chatApi;
     }

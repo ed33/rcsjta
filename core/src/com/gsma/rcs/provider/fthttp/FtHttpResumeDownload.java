@@ -23,7 +23,6 @@
 package com.gsma.rcs.provider.fthttp;
 
 import com.gsma.rcs.core.content.MmContent;
-import com.gsma.rcs.core.ims.service.im.filetransfer.http.HttpFileTransferSession;
 import com.gsma.services.rcs.RcsService.Direction;
 import com.gsma.services.rcs.contact.ContactId;
 
@@ -37,23 +36,15 @@ public final class FtHttpResumeDownload extends FtHttpResume {
     /**
      * The URI to download file from
      */
-    final private Uri mDownloadServerAddress;
+    private final Uri mServerAddress;
 
-    /**
-     * Creates a FT HTTP resume download data object (immutable)
-     * 
-     * @param session the {@code session} instance.
-     * @param downloadServerAddress the {@code downloadServerAddress} instance.
-     * @param file the {@code file} value.
-     * @param filetransferId the {@code filetransferId} value.
-     * @param fileIcon the {@code fileIcon} value.
-     * @param isGroup the {@code isGroup} value.
-     */
-    public FtHttpResumeDownload(HttpFileTransferSession session, Uri downloadServerAddress,
-            Uri file, String filetransferId, Uri fileIcon, boolean isGroup) {
-        this(downloadServerAddress, file, fileIcon, session.getContent(), session
-                .getRemoteContact(), session.getContributionID(), filetransferId, isGroup);
-    }
+    private final long mFileExpiration;
+
+    private final long mIconExpiration;
+
+    private final boolean mAccepted;
+
+    private final String mRemoteSipInstance;
 
     /**
      * Creates a FT HTTP resume download data object
@@ -66,28 +57,78 @@ public final class FtHttpResumeDownload extends FtHttpResume {
      * @param chatId the {@code chatId} value.
      * @param filetransferId the {@code filetransferId} value.
      * @param isGroup the {@code isGroup} value.
+     * @param fileExpiration the {@code fileExpiration} value.
+     * @param iconExpiration the {@code iconExpiration} value.
+     * @param accepted the {@code accepted} value.
+     * @param remoteSipInstance the {@code remoteSipInstance} value.
      */
     public FtHttpResumeDownload(Uri downloadServerAddress, Uri file, Uri fileIcon,
             MmContent content, ContactId contact, String chatId, String filetransferId,
-            boolean isGroup) {
-        super(Direction.INCOMING, file, content.getName(), content.getEncoding(),
-                content.getSize(), fileIcon, contact, chatId, filetransferId, isGroup);
-        mDownloadServerAddress = downloadServerAddress;
+            boolean isGroup, long fileExpiration, long iconExpiration, boolean accepted,
+            String remoteSipInstance) {
+        super(Direction.INCOMING, file, content.getName(), content.getSize(), fileIcon, contact,
+                chatId, filetransferId, isGroup);
+        mServerAddress = downloadServerAddress;
+        mFileExpiration = fileExpiration;
+        mIconExpiration = iconExpiration;
+        mAccepted = accepted;
+        mRemoteSipInstance = remoteSipInstance;
         if (downloadServerAddress == null || filetransferId == null)
             throw new IllegalArgumentException("Invalid argument");
     }
 
-    public Uri getDownloadServerAddress() {
-        return mDownloadServerAddress;
+    /**
+     * Returns the download server URI
+     * 
+     * @return the download server URI
+     */
+    public Uri getServerAddress() {
+        return mServerAddress;
+    }
+
+    /**
+     * Returns the time when the file on the content server is no longer valid to download.
+     * 
+     * @return time
+     */
+    public long getFileExpiration() {
+        return mFileExpiration;
+    }
+
+    /**
+     * Returns the time when the file icon on the content server is no longer valid to download.
+     * 
+     * @return time
+     */
+    public long getIconExpiration() {
+        return mIconExpiration;
+    }
+
+    /**
+     * Checks if download is accepted
+     * 
+     * @return True if accepted
+     */
+    public boolean isAccepted() {
+        return mAccepted;
+    }
+
+    /**
+     * Gets remote SIP instance
+     * 
+     * @return remote SIP instance
+     */
+    public String getRemoteSipInstance() {
+        return mRemoteSipInstance;
     }
 
     @Override
     public String toString() {
-        return "FtHttpResumeDownload [downloadServerAddress=" + mDownloadServerAddress + ", file="
-                + getFile() + ",getFileName()=" + getFileName() + ", getSize()=" + getSize()
-                + ", getFileicon()=" + getFileicon() + ", getContact()=" + getContact()
-                + ", getChatId()=" + getChatId() + ", getFileTransferId()=" + getFileTransferId()
-                + ", isGroup()=" + isGroupTransfer() + "]";
+        return "FtHttpResumeDownload [serverAddress=" + mServerAddress + ", file=" + getFile()
+                + ",fileName=" + getFileName() + ", size=" + getSize() + ", fileicon="
+                + getFileicon() + ", contact=" + getContact() + ", chatId=" + getChatId()
+                + ", fileTransferId=" + getFileTransferId() + ", isGroup=" + isGroupTransfer()
+                + "]";
     }
 
 }

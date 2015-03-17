@@ -22,22 +22,15 @@
 
 package com.gsma.rcs.provider.fthttp;
 
-import android.net.Uri;
-
-import java.util.Date;
-
 import com.gsma.services.rcs.RcsService.Direction;
 import com.gsma.services.rcs.contact.ContactId;
+
+import android.net.Uri;
 
 /**
  * @author YPLO6403 FtHttpResume is the abstract base class for all FT HTTP resume classes
  */
 public abstract class FtHttpResume {
-
-    /**
-     * The date of creation
-     */
-    final private Date mDate;
 
     /**
      * The direction of transfer
@@ -53,11 +46,6 @@ public abstract class FtHttpResume {
      * The file name
      */
     final private String mFileName;
-
-    /**
-     * The mime type of the file to download
-     */
-    final private String mMimeType;
 
     /**
      * The size of the file to download
@@ -90,44 +78,27 @@ public abstract class FtHttpResume {
     final private boolean mGroupTransfer;
 
     /**
-     * Works just like
-     * FtHttpResume(int,Uri,String,String,long,Uri,ContactId,String,String,String,String
-     * ,boolean,Date) except the date is always null
-     * 
-     * @see #FtHttpResume(int,Uri,String,String,long,Uri,ContactId,String,String,String,String,boolean,Date)
-     */
-    public FtHttpResume(Direction direction, Uri file, String fileName, String mimeType, long size,
-            Uri fileIcon, ContactId contact, String chatId, String fileTransferId,
-            boolean groupTransfer) {
-        this(direction, file, fileName, mimeType, size, fileIcon, contact, chatId, fileTransferId,
-                groupTransfer, null);
-    }
-
-    /**
      * Creates an instance of FtHttpResume Data Object
      * 
      * @param direction the {@code direction} value.
      * @param file the {@code Uri of file} value.
      * @param fileName the {@code fileName} value.
-     * @param mimeType the {@code mimeType} value.
      * @param size the {@code size} value.
      * @param fileIcon the {@code fileIcon} value.
      * @param contact the {@code contactId} value.
      * @param chatId the {@code chatId} value.
      * @param fileTransferId the {@code fileTransferId} value.
      * @param groupTransfer the {@code groupTransfer} value.
-     * @param date the {@code date} value.
      */
-    public FtHttpResume(Direction direction, Uri file, String fileName, String mimeType, long size,
-            Uri fileIcon, ContactId contact, String chatId, String fileTransferId,
-            boolean groupTransfer, Date date) {
-        if (size <= 0 || mimeType == null || file == null || fileName == null)
-            throw new IllegalArgumentException("Null argument");
-        mDate = date;
+    public FtHttpResume(Direction direction, Uri file, String fileName, long size, Uri fileIcon,
+            ContactId contact, String chatId, String fileTransferId, boolean groupTransfer) {
+        if (size <= 0 || file == null || fileName == null)
+            throw new IllegalArgumentException(new StringBuilder("size invalid arguments (size=")
+                    .append(size).append(") (file=").append(file).append(") (fileName=")
+                    .append(fileName).append(")").toString());
         mDirection = direction;
         mFile = file;
         mFileName = fileName;
-        mMimeType = mimeType;
         mSize = size;
         mFileIcon = fileIcon;
         mContact = contact;
@@ -136,54 +107,91 @@ public abstract class FtHttpResume {
         mGroupTransfer = groupTransfer;
     }
 
-    public Date getDate() {
-        return mDate;
-    }
-
+    /**
+     * Gets direction
+     * 
+     * @return direction
+     */
     public Direction getDirection() {
         return mDirection;
     }
 
+    /**
+     * Gets file URI
+     * 
+     * @return file URI
+     */
     public Uri getFile() {
         return mFile;
     }
 
+    /**
+     * Get file name
+     * 
+     * @return file name
+     */
     public String getFileName() {
         return mFileName;
     }
 
-    public String getMimetype() {
-        return mMimeType;
-    }
-
+    /**
+     * Gets file size
+     * 
+     * @return file size
+     */
     public long getSize() {
         return mSize;
     }
 
+    /**
+     * Gets file icon URI
+     * 
+     * @return file icon URI
+     */
     public Uri getFileicon() {
         return mFileIcon;
     }
 
+    /**
+     * Gets remote contact
+     * 
+     * @return remote contact
+     */
     public ContactId getContact() {
         return mContact;
     }
 
+    /**
+     * Gets chat ID
+     * 
+     * @return chat ID
+     */
     public String getChatId() {
         return mChatId;
     }
 
+    /**
+     * Gets file transfer ID
+     * 
+     * @return file transfer ID
+     */
     public String getFileTransferId() {
         return mFileTransferId;
     }
 
+    /**
+     * Checks if group transfer
+     * 
+     * @return True if group transfer
+     */
     public boolean isGroupTransfer() {
         return mGroupTransfer;
     }
 
     @Override
     public String toString() {
-        return "FtHttpResume [date=" + mDate + ", dir=" + mDirection + ", file=" + mFile
-                + ", fileName=" + mFileName + ",fileIcon=" + mFileIcon + "]";
+        return "FtHttpResume [dir=" + mDirection + ", file=" + mFile + ", fileName=" + mFileName
+                + ",fileIcon=" + mFileIcon + "]";
     }
 
 }

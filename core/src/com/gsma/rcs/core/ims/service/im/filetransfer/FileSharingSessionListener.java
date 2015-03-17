@@ -63,8 +63,12 @@ public interface FileSharingSessionListener extends ImsSessionListener {
      * 
      * @param content MmContent associated to the received file
      * @param contact Remote contact
+     * @param fileExpiration the time when file on the content server is no longer valid to download
+     * @param fileIconExpiration the time when file icon on the content server is no longer valid to
+     *            download
      */
-    public void handleFileTransfered(MmContent content, ContactId contact);
+    public void handleFileTransfered(MmContent content, ContactId contact, long fileExpiration,
+            long fileIconExpiration);
 
     /**
      * File transfer has been paused by user
@@ -93,8 +97,11 @@ public interface FileSharingSessionListener extends ImsSessionListener {
      * @param contact Remote contact
      * @param file
      * @param fileIcon
+     * @param fileExpiration
+     * @param fileIconExpiration
      */
-    public void handleSessionInvited(ContactId contact, MmContent file, MmContent fileIcon);
+    public void handleSessionInvited(ContactId contact, MmContent file, MmContent fileIcon,
+            long fileExpiration, long fileIconExpiration);
 
     /**
      * Session is auto-accepted and the session is in the process of being started
@@ -102,6 +109,9 @@ public interface FileSharingSessionListener extends ImsSessionListener {
      * @param contact Remote contact
      * @param file
      * @param fileIcon
+     * @param fileExpiration
+     * @param fileIconExpiration
      */
-    public void handleSessionAutoAccepted(ContactId contact, MmContent file, MmContent fileIcon);
+    public void handleSessionAutoAccepted(ContactId contact, MmContent file, MmContent fileIcon,
+            long fileExpiration, long fileIconExpiration);
 }

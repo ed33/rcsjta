@@ -59,6 +59,9 @@ public class RichAddressBookProvider extends ContentProvider {
 
     private static final String AGGREGATION_TABLE = "aggregation";
 
+    /**
+     * Database filename
+     */
     public static final String DATABASE_NAME = "capability.db";
 
     private static final String RICH_ADDRESS_BOOK_SELECTION_WITH_CONTACT_ONLY = RichAddressBookData.KEY_CONTACT
@@ -192,16 +195,14 @@ public class RichAddressBookProvider extends ContentProvider {
 
     private static class DatabaseHelper extends SQLiteOpenHelper {
 
-
         private static final int DATABASE_VERSION = 27;
 
         private void createDb(SQLiteDatabase db) {
             db.execSQL(new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(CAPABILITY_TABLE)
-                    .append("(")
-                    .append(RichAddressBookData.KEY_CONTACT).append(" TEXT PRIMARY KEY,")
-                    .append(RichAddressBookData.KEY_BASECOLUMN_ID).append(" INTEGER NOT NULL,")
-                    .append(RichAddressBookData.KEY_DISPLAY_NAME).append(" TEXT,")
-                    .append(RichAddressBookData.KEY_RCS_STATUS).append(" TEXT,")
+                    .append("(").append(RichAddressBookData.KEY_CONTACT)
+                    .append(" TEXT PRIMARY KEY,").append(RichAddressBookData.KEY_BASECOLUMN_ID)
+                    .append(" INTEGER NOT NULL,").append(RichAddressBookData.KEY_DISPLAY_NAME)
+                    .append(" TEXT,").append(RichAddressBookData.KEY_RCS_STATUS).append(" TEXT,")
                     .append(RichAddressBookData.KEY_RCS_STATUS_TIMESTAMP).append(" INTEGER,")
                     .append(RichAddressBookData.KEY_REGISTRATION_STATE).append(" INTEGER,")
                     .append(RichAddressBookData.KEY_PRESENCE_SHARING_STATUS).append(" TEXT,")
@@ -242,8 +243,9 @@ public class RichAddressBookProvider extends ContentProvider {
                     .append(RichAddressBookData.KEY_AUTOMATA).append(" TEXT,")
                     .append(RichAddressBookData.KEY_CAPABILITY_TIME_LAST_REFRESH)
                     .append(" INTEGER)").toString());
-            db.execSQL(new StringBuilder("CREATE INDEX ").append(RichAddressBookData.KEY_BASECOLUMN_ID)
-                    .append("_idx").append(" ON ").append(CAPABILITY_TABLE).append("(")
+            db.execSQL(new StringBuilder("CREATE INDEX ")
+                    .append(RichAddressBookData.KEY_BASECOLUMN_ID).append("_idx").append(" ON ")
+                    .append(CAPABILITY_TABLE).append("(")
                     .append(RichAddressBookData.KEY_BASECOLUMN_ID).append(")").toString());
             db.execSQL(new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(AGGREGATION_TABLE)
                     .append("(").append(AggregationData.KEY_ID)
