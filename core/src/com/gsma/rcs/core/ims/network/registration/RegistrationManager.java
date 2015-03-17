@@ -220,14 +220,10 @@ public class RegistrationManager extends PeriodicRefresher {
             // Reset the number of 401 failures
             mNb401Failures = 0;
 
-            /**
-             * Reset the number of 4xx5xx6xx failures
-             */
+            // Reset the number of 4xx5xx6xx failures
             mNb4xx5xx6xxFailures = 0;
 
-            /**
-             * Create REGISTER request
-             */
+            // Create REGISTER request
             SipRequest register = SipMessageFactory.createRegister(dialogPath, featureTags,
                     RcsSettings.getInstance().getRegisterExpirePeriod(), instanceId);
 
@@ -294,9 +290,7 @@ public class RegistrationManager extends PeriodicRefresher {
             // Increment the Cseq number of the dialog path
             dialogPath.incrementCseq();
 
-            /**
-             * Reset the number of 4xx5xx6xx failures
-             */
+            // Reset the number of 4xx5xx6xx failures
             mNb4xx5xx6xxFailures = 0;
 
             // Create REGISTER request with expire 0
@@ -732,6 +726,8 @@ public class RegistrationManager extends PeriodicRefresher {
             return;
         } else {
             mNb4xx5xx6xxFailures++;
+            // Reset RetryAfterHeaderDuration incase there is no such header
+            networkInterface.setRetryAfterHeaderDuration(0);
             if (mNb4xx5xx6xxFailures >= MAX_REGISTRATION_FAILURES) {
                 /**
                  * We reached MAX_REGISTRATION_FAILURES, stop registration retries

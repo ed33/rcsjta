@@ -654,17 +654,19 @@ public class ImsConnectionManager implements Runnable {
                             .getRetryAfterHeaderDuration();
                     if (retryAfterHeaderDuration > 0) {
                         Thread.sleep(retryAfterHeaderDuration);
+                    } else {
+                        // Pause before the next register attempt
+                        double w = Math.min(regMaxTime, (regBaseTime * Math.pow(2, nbFailures)));
+                        double coeff = (random.nextInt(51) + 50) / 100.0; // Coeff between 50% and
+                                                                          // 100%
+                        int retryPeriod = (int) (coeff * w);
+                        if (logger.isActivated()) {
+                            logger.debug("Wait " + retryPeriod
+                                    + "s before retry registration (failures=" + nbFailures
+                                    + ", coeff=" + coeff + ")");
+                        }
+                        Thread.sleep(retryPeriod * 1000);
                     }
-                    // Pause before the next register attempt
-                    double w = Math.min(regMaxTime, (regBaseTime * Math.pow(2, nbFailures)));
-                    double coeff = (random.nextInt(51) + 50) / 100.0; // Coeff between 50% and 100%
-                    int retryPeriod = (int) (coeff * w);
-                    if (logger.isActivated()) {
-                        logger.debug("Wait " + retryPeriod
-                                + "s before retry registration (failures=" + nbFailures
-                                + ", coeff=" + coeff + ")");
-                    }
-                    Thread.sleep(retryPeriod * 1000);
                 } else if (!imsServicesStarted) {
                     int retryPeriod = 5;
                     if (logger.isActivated()) {

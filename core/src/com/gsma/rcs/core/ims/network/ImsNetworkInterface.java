@@ -151,6 +151,9 @@ public abstract class ImsNetworkInterface {
 
     /**
      * Holds retry duration value obtained from Retry-After header
+     * <p>
+     * Default value = 0L
+     * </p>
      */
     private long mRetryDuration;
 
