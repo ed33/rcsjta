@@ -58,11 +58,6 @@ public class TerminalInfo {
      */
     private static final String CLIENT_VERSION_PREFIX = "RCSAndr-";
 
-    /**
-     * Default client version set to "3.1.1" as base version.
-     */
-    private static final String DEFAULT_CLIENT_VERSION = "3.1.1";
-
     private static final String UNKNOWN = "unknown";
 
     private static String sClientVersion;
@@ -124,8 +119,7 @@ public class TerminalInfo {
                 if (sLogger.isActivated()) {
                     sLogger.error("Version Name not defined in Manifest", e);
                 }
-                sClientVersion = new StringBuilder(CLIENT_VERSION_PREFIX).append(
-                        DEFAULT_CLIENT_VERSION).toString();
+                sClientVersion = UNKNOWN;
             }
         }
         return sClientVersion;
