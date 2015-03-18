@@ -223,6 +223,9 @@ public class RegistrationManager extends PeriodicRefresher {
             // Reset the number of 4xx5xx6xx failures
             mNb4xx5xx6xxFailures = 0;
 
+            // Reset retry after header duration
+            networkInterface.setRetryAfterHeaderDuration(0);
+
             // Create REGISTER request
             SipRequest register = SipMessageFactory.createRegister(dialogPath, featureTags,
                     RcsSettings.getInstance().getRegisterExpirePeriod(), instanceId);
@@ -726,8 +729,6 @@ public class RegistrationManager extends PeriodicRefresher {
             return;
         } else {
             mNb4xx5xx6xxFailures++;
-            // Reset RetryAfterHeaderDuration incase there is no such header
-            networkInterface.setRetryAfterHeaderDuration(0);
             if (mNb4xx5xx6xxFailures >= MAX_REGISTRATION_FAILURES) {
                 /**
                  * We reached MAX_REGISTRATION_FAILURES, stop registration retries

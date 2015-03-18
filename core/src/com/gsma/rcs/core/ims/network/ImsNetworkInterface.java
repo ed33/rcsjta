@@ -155,7 +155,7 @@ public abstract class ImsNetworkInterface {
      * Default value = 0L
      * </p>
      */
-    private long mRetryDuration;
+    private long mRetryDuration = 0;
 
     /**
      * The logger
