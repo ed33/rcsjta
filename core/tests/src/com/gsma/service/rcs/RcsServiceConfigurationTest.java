@@ -20,12 +20,12 @@ package com.gsma.service.rcs;
 
 import junit.framework.Assert;
 
+import com.gsma.rcs.provider.settings.RcsSettings;
+import com.gsma.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
+import com.gsma.rcs.provider.settings.RcsSettingsData.MessagingMode;
 import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.RcsServiceConfiguration;
 import com.gsma.services.rcs.contacts.ContactUtils;
-import com.orangelabs.rcs.provider.settings.RcsSettings;
-import com.orangelabs.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
-import com.orangelabs.rcs.provider.settings.RcsSettingsData.MessagingMode;
 
 import android.content.Context;
 import android.test.AndroidTestCase;

@@ -20,7 +20,7 @@ package com.gsma.service.rcs.sharing.image;
 
 import java.util.Random;
 
-import com.gsma.services.rcs.ish.ImageSharingServiceConfiguration;
+import com.gsma.services.rcs.sharing.image.ImageSharingServiceConfiguration;
 
 import android.os.Parcel;
 import android.test.AndroidTestCase;

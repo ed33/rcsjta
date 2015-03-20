@@ -24,17 +24,17 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.test.AndroidTestCase;
 
+import com.gsma.rcs.core.ims.service.im.chat.GeolocMessage;
+import com.gsma.rcs.core.ims.service.im.chat.GeolocPush;
+import com.gsma.rcs.core.ims.service.im.chat.InstantMessage;
+import com.gsma.rcs.provider.LocalContentResolver;
+import com.gsma.rcs.provider.messaging.MessagingLog;
 import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.RcsCommon;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.contacts.ContactUtils;
 import com.gsma.services.rcs.chat.ChatLog;
 import com.gsma.services.rcs.Geoloc;
-import com.orangelabs.rcs.core.ims.service.im.chat.GeolocMessage;
-import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
-import com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage;
-import com.orangelabs.rcs.provider.LocalContentResolver;
-import com.orangelabs.rcs.provider.messaging.MessagingLog;
 
 public class ChatMessageTest extends AndroidTestCase {
     private ContactId mContact;

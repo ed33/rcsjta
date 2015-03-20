@@ -19,8 +19,11 @@
 package com.gsma.service.rcs.sharing.video;
 
 import android.test.AndroidTestCase;
+
 import java.util.Random;
-import com.gsma.services.rcs.vsh.VideoSharingServiceConfiguration;
+
+import com.gsma.services.rcs.sharing.video.VideoSharingServiceConfiguration;
+
 import android.os.Parcel;
 
 public class VideoSharingServiceConfigurationTest extends AndroidTestCase {

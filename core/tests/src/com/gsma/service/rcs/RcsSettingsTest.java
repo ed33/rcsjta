@@ -28,10 +28,10 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.test.AndroidTestCase;
 
+import com.gsma.rcs.provider.settings.RcsSettings;
+import com.gsma.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
 import com.gsma.services.rcs.RcsServiceConfiguration;
 import com.gsma.services.rcs.RcsServiceConfiguration.Settings;
-import com.orangelabs.rcs.provider.settings.RcsSettings;
-import com.orangelabs.rcs.provider.settings.RcsSettingsData.DefaultMessagingMethod;
 
 public class RcsSettingsTest extends AndroidTestCase {
     private ContentResolver cr;

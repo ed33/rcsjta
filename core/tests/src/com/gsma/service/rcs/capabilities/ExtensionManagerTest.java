@@ -18,12 +18,12 @@
 
 package com.gsma.service.rcs.capabilities;
 
+import com.gsma.rcs.core.ims.service.extension.ExtensionManager;
+
 import java.util.HashSet;
 import java.util.Set;
 
 import android.test.AndroidTestCase;
-
-import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 
 public class ExtensionManagerTest extends AndroidTestCase {
 
