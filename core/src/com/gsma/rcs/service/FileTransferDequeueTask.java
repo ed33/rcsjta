@@ -64,7 +64,7 @@ import android.net.Uri;
                     String contactNumber = cursor.getString(contactIdx);
                     ContactId contact = contactNumber != null ? ContactUtils
                             .createContactId(contactNumber) : null;
-                    boolean isGroupFileTransfer = !chatId.equals(contactNumber); 
+                    boolean isGroupFileTransfer = !chatId.equals(contactNumber);
                     try {
                         Uri file = Uri.parse(cursor.getString(fileIdx));
                         MmContent content = FileTransferUtils.createMmContent(file);

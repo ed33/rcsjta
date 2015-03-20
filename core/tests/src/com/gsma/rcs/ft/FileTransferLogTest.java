@@ -137,7 +137,7 @@ public class FileTransferLogTest extends AndroidTestCase {
             assertEquals(IMAGE_FILESIZE, size);
             assertEquals(null, icon);
             assertEquals(null, iconMimeType);
-            assertEquals(FileTransferLog.NOT_APPLICABLE_EXPIRATION, iconExpiration);
+            assertEquals(FileTransferLog.UNKNOWN_EXPIRATION, iconExpiration);
             assertEquals(ReadStatus.UNREAD.toInt(), readStatus);
             assertEquals(FileTransfer.State.INITIATING.toInt(), state);
             assertEquals(FileTransfer.ReasonCode.UNSPECIFIED.toInt(), reason);

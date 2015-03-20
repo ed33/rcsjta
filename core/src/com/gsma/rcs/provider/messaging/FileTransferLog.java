@@ -83,7 +83,8 @@ public class FileTransferLog implements IFileTransferLog {
             .append(FileTransferData.KEY_TRANSFERRED).append("<>")
             .append(FileTransferData.KEY_FILESIZE).toString();
 
-    private static final String ORDER_BY_TIMESTAMP_ASC = FileTransferData.KEY_TIMESTAMP.concat(" ASC");
+    private static final String ORDER_BY_TIMESTAMP_ASC = FileTransferData.KEY_TIMESTAMP
+            .concat(" ASC");
 
     private final static String[] SELECTION_FILE_TRANSFER_ID = new String[] {
         FileTransferData.KEY_FT_ID
@@ -140,7 +141,7 @@ public class FileTransferLog implements IFileTransferLog {
             values.put(FileTransferData.KEY_FILEICON_EXPIRATION, fileIconExpiration);
         } else {
             values.put(FileTransferData.KEY_FILEICON_EXPIRATION,
-                    FileTransferData.NOT_APPLICABLE_EXPIRATION);
+                    FileTransferData.UNKNOWN_EXPIRATION);
         }
 
         long date = System.currentTimeMillis();
@@ -198,7 +199,7 @@ public class FileTransferLog implements IFileTransferLog {
                     FileTransferData.UNKNOWN_EXPIRATION);
         } else {
             values.put(FileTransferData.KEY_FILEICON_EXPIRATION,
-                    FileTransferData.NOT_APPLICABLE_EXPIRATION);
+                    FileTransferData.UNKNOWN_EXPIRATION);
         }
         values.put(FileTransferData.KEY_FILE_EXPIRATION, FileTransferData.UNKNOWN_EXPIRATION);
         mLocalContentResolver.insert(FileTransferData.CONTENT_URI, values);
@@ -277,7 +278,7 @@ public class FileTransferLog implements IFileTransferLog {
             values.put(FileTransferData.KEY_FILEICON_EXPIRATION, fileIconExpiration);
         } else {
             values.put(FileTransferData.KEY_FILEICON_EXPIRATION,
-                    FileTransferData.NOT_APPLICABLE_EXPIRATION);
+                    FileTransferData.UNKNOWN_EXPIRATION);
         }
         values.put(FileTransferData.KEY_FILE_EXPIRATION, fileExpiration);
         mLocalContentResolver.insert(FileTransferData.CONTENT_URI, values);

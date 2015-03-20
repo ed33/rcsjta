@@ -111,7 +111,7 @@ public class FileTransferData {
     /**
      * URI of the file
      */
-    /* package private */static final String KEY_FILE = FileTransferLog.FILE;
+    public static final String KEY_FILE = FileTransferLog.FILE;
 
     /**
      * Filename
@@ -138,7 +138,7 @@ public class FileTransferData {
     /**
      * Column name KEY_FILEICON : the URI of the file icon
      */
-    /* package private */static final String KEY_FILEICON = FileTransferLog.FILEICON;
+    public static final String KEY_FILEICON = FileTransferLog.FILEICON;
 
     /**
      * URI of the file icon
@@ -164,11 +164,6 @@ public class FileTransferData {
      * The time for when file icon on the content server is no longer valid to download.
      */
     /* package private */static final String KEY_FILEICON_EXPIRATION = FileTransferLog.FILEICON_EXPIRATION;
-
-    /**
-     * @see FileTransferLog#NOT_APPLICABLE_EXPIRATION
-     */
-    public static final long NOT_APPLICABLE_EXPIRATION = FileTransferLog.NOT_APPLICABLE_EXPIRATION;
 
     /**
      * @see FileTransferLog#UNKNOWN_EXPIRATION
