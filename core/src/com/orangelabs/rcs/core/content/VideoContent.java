@@ -24,14 +24,13 @@ package com.orangelabs.rcs.core.content;
 
 import android.net.Uri;
 
-
 /**
  * Video content
  * 
  * @author jexa7410
  */
 public class VideoContent extends MmContent {
-	
+
     /**
      * Height
      */
@@ -42,26 +41,26 @@ public class VideoContent extends MmContent {
      */
     private int width = 0;
 
-	/**
-	 * Constructor
-	 * 
-	 * @aparam encoding Encoding
-	 */
-	public VideoContent(String encoding) {
-		super(encoding);
-	}
+    /**
+     * Constructor
+     * 
+     * @aparam encoding Encoding
+     */
+    public VideoContent(String encoding) {
+        super(encoding);
+    }
 
-	/**
-	 * Constructor
-	 *
-	 * @param videoFile URI
-	 * @param encoding Encoding
-	 * @param size Content size
-	 * @param fileName Filename
-	 */
-	public VideoContent(Uri videoFile, String encoding, long size, String fileName) {
-		super(videoFile, encoding, size, fileName);
-	}
+    /**
+     * Constructor
+     *
+     * @param videoFile URI
+     * @param encoding Encoding
+     * @param size Content size
+     * @param fileName Filename
+     */
+    public VideoContent(Uri videoFile, String encoding, long size, String fileName) {
+        super(videoFile, encoding, size, fileName);
+    }
 
     /**
      * Set the width

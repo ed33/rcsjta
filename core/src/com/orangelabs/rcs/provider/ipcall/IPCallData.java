@@ -19,52 +19,53 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.provider.ipcall;
 
 import com.gsma.services.rcs.ipcall.IPCallLog;
 
 /**
-* IP call history provider data 
-* 
-* @author owom5460
-*/
+ * IP call history provider data
+ * 
+ * @author owom5460
+ */
 public class IPCallData {
 
-	/**
-	 * Column name
-	 */
-	static final String KEY_CONTACT = IPCallLog.CONTACT;
+    /**
+     * Column name
+     */
+    static final String KEY_CONTACT = IPCallLog.CONTACT;
 
-	/**
-	 * Column name
-	 */
-	static final String KEY_DIRECTION = IPCallLog.DIRECTION;	
+    /**
+     * Column name
+     */
+    static final String KEY_DIRECTION = IPCallLog.DIRECTION;
 
-	/**
-	 * Column name
-	 */
-	static final String KEY_TIMESTAMP = IPCallLog.TIMESTAMP;
+    /**
+     * Column name
+     */
+    static final String KEY_TIMESTAMP = IPCallLog.TIMESTAMP;
 
-	/**
-	 * Column name
-	 */
-	static final String KEY_STATE = IPCallLog.STATE;
+    /**
+     * Column name
+     */
+    static final String KEY_STATE = IPCallLog.STATE;
 
-	/**
-	 * Column name
-	 */
-	static final String KEY_REASON_CODE = IPCallLog.REASON_CODE;
+    /**
+     * Column name
+     */
+    static final String KEY_REASON_CODE = IPCallLog.REASON_CODE;
 
-	/**
-	 * Column name
-	 */
-	static final String KEY_CALL_ID = IPCallLog.CALL_ID;
+    /**
+     * Column name
+     */
+    static final String KEY_CALL_ID = IPCallLog.CALL_ID;
 
-	static final String KEY_VIDEO_ENCODING = IPCallLog.VIDEO_ENCODING;
+    static final String KEY_VIDEO_ENCODING = IPCallLog.VIDEO_ENCODING;
 
-	static final String KEY_AUDIO_ENCODING = IPCallLog.AUDIO_ENCODING;
+    static final String KEY_AUDIO_ENCODING = IPCallLog.AUDIO_ENCODING;
 
-	static final String KEY_WIDTH = IPCallLog.WIDTH;
+    static final String KEY_WIDTH = IPCallLog.WIDTH;
 
-	static final String KEY_HEIGHT = IPCallLog.HEIGHT;
+    static final String KEY_HEIGHT = IPCallLog.HEIGHT;
 }

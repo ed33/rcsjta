@@ -29,20 +29,20 @@ import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
  * 
  * @author opob7414
  */
-public interface IPCallStreamingSessionListener extends ImsSessionListener  {
-    
-	/**
-     * 486 Busy 
+public interface IPCallStreamingSessionListener extends ImsSessionListener {
+
+    /**
+     * 486 Busy
      */
     public void handle486Busy();
 
-	/**
+    /**
      * Call error
      * 
      * @param error Error
      */
     public void handleCallError(IPCallError error);
-    
+
     /**
      * Video stream has been resized
      *
@@ -50,7 +50,7 @@ public interface IPCallStreamingSessionListener extends ImsSessionListener  {
      * @param height Video height
      */
     public void handleVideoResized(int width, int height);
-    
+
     /**
      * Add Video Invitation
      *
@@ -62,70 +62,60 @@ public interface IPCallStreamingSessionListener extends ImsSessionListener  {
 
     /**
      * Remove Video Invitation
-     *
      */
-    public void handleRemoveVideo();  
-	
-	/**
-     * Add Video accepted by user
-     *
-     */
-	public void handleAddVideoAccepted();
+    public void handleRemoveVideo();
 
-	 /**
-     * Add Video aborted 
+    /**
+     * Add Video accepted by user
+     */
+    public void handleAddVideoAccepted();
+
+    /**
+     * Add Video aborted
      *
      * @param errorCode
      */
-	public void handleAddVideoAborted(int errorCode);
-	
-	/**
+    public void handleAddVideoAborted(int errorCode);
+
+    /**
      * Remove Video accepted (200OK response)
-     *
      */
-	public void handleRemoveVideoAccepted();
+    public void handleRemoveVideoAccepted();
 
-	/**
-     * Remove Video aborted 
-     *
+    /**
+     * Remove Video aborted
      */
-	public void handleRemoveVideoAborted(int code);
-	
+    public void handleRemoveVideoAborted(int code);
 
-	/**
+    /**
      * Call hold
-     *
      */
     public void handleCallHold();
 
     /**
      * Call resume
-     *
      */
-    public void handleCallResume();  
-	
-	/**
-     * Call Hold accepted 
-     *
-     */
-	public void handleCallHoldAccepted();
+    public void handleCallResume();
 
-	 /**
-     * Call Hold aborted 
+    /**
+     * Call Hold accepted
+     */
+    public void handleCallHoldAccepted();
+
+    /**
+     * Call Hold aborted
      *
      * @param errorCode
      */
-	public void handleCallHoldAborted(int errorCode);
-	
-	/**
-     * Call resume accepted (200OK response)
-     *
-     */
-	public void handleCallResumeAccepted();
+    public void handleCallHoldAborted(int errorCode);
 
-	/**
-     * Call resume aborted 
-     *
+    /**
+     * Call resume accepted (200OK response)
      */
-	public void handleCallResumeAborted();
+    public void handleCallResumeAccepted();
+
+    /**
+     * Call resume aborted
+     */
+    public void handleCallResumeAborted();
 }

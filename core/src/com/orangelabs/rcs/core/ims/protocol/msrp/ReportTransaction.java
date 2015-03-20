@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.protocol.msrp;
 
 import java.util.Hashtable;
@@ -51,79 +52,80 @@ public class ReportTransaction extends Object {
     private boolean isNotified = false;
 
     /**
-	 * Constructor
-	 */
-	public ReportTransaction() {
-	}
-	
-	/**
-	 * Notify report
-	 * 
-	 * @param status Status code
-	 * @param headers MSRP headers
-	 */
-	public void notifyReport(int status, Hashtable<String, String> headers) {
-		synchronized(this) {
+     * Constructor
+     */
+    public ReportTransaction() {
+    }
+
+    /**
+     * Notify report
+     * 
+     * @param status Status code
+     * @param headers MSRP headers
+     */
+    public void notifyReport(int status, Hashtable<String, String> headers) {
+        synchronized (this) {
             receivedByteRangeHeader = false;
             isNotified = true;
             statusCode = status;
 
-			// Get reported size
-			String byteRange = headers.get(MsrpConstants.HEADER_BYTE_RANGE);
-			if (byteRange != null) {
-				reportedSize = MsrpUtils.getChunkSize(byteRange);
+            // Get reported size
+            String byteRange = headers.get(MsrpConstants.HEADER_BYTE_RANGE);
+            if (byteRange != null) {
+                reportedSize = MsrpUtils.getChunkSize(byteRange);
                 receivedByteRangeHeader = true;
-			}
+            }
 
-			// Unblock semaphore
-			super.notify();
-		}
-	}
-	
-	/**
-	 * Wait report
-	 */
-	public void waitReport() {
-		synchronized(this) {
-			try {
-				// Wait semaphore
-				super.wait(TIMEOUT * 1000);
-			} catch(InterruptedException e) {
-			    // Nothing to do
-			}
-		}
-	}
-	
-	/**
-	 * Terminate transaction
-	 */
-	public void terminate() {
-		synchronized(this) {
-			// Unblock semaphore
-			super.notify();
-		}
-	}
-	
-	/**
-	 * Returns the reported data size
-	 * 
-	 * @return Size in bytes
-	 */
-	public long getReportedSize() {
-		return reportedSize;
-	}
+            // Unblock semaphore
+            super.notify();
+        }
+    }
 
-	/**
-	 * Returns the status
-	 * 
-	 * @return Status or -1 in case of error
-	 */
-	public int getStatusCode() {
-		return statusCode;
-	}
+    /**
+     * Wait report
+     */
+    public void waitReport() {
+        synchronized (this) {
+            try {
+                // Wait semaphore
+                super.wait(TIMEOUT * 1000);
+            } catch (InterruptedException e) {
+                // Nothing to do
+            }
+        }
+    }
+
+    /**
+     * Terminate transaction
+     */
+    public void terminate() {
+        synchronized (this) {
+            // Unblock semaphore
+            super.notify();
+        }
+    }
+
+    /**
+     * Returns the reported data size
+     * 
+     * @return Size in bytes
+     */
+    public long getReportedSize() {
+        return reportedSize;
+    }
+
+    /**
+     * Returns the status
+     * 
+     * @return Status or -1 in case of error
+     */
+    public int getStatusCode() {
+        return statusCode;
+    }
 
     /**
      * Verifies if the transaction is finished.
+     * 
      * @param totalSize Transaction total size.
      * @return <code>True</code> if transaction is finished, <code>false</code> otherwise.
      */
@@ -143,17 +145,17 @@ public class ReportTransaction extends Object {
      * Get the status code
      *
      * @param headers
-     * @return 
+     * @return
      */
     public static int parseStatusCode(Hashtable<String, String> headers) {
         int statusCode = -1;
         String status = headers.get(MsrpConstants.HEADER_STATUS);
         if ((status != null) && (status.startsWith("000 "))) {
-            String[] parts = status.split(" "); 
+            String[] parts = status.split(" ");
             if (parts.length > 0) {
                 try {
                     statusCode = Integer.parseInt(parts[1]);
-                } catch(NumberFormatException e) {
+                } catch (NumberFormatException e) {
                     // Nothing to do
                 }
             }

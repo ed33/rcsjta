@@ -24,26 +24,25 @@ package com.orangelabs.rcs.core.content;
 
 import android.net.Uri;
 
-
 /**
  * File content
  * 
  * @author jexa7410
  */
 public class FileContent extends MmContent {
-	/**
-	 * Encoding type
-	 */
-	public static final String ENCODING = "application/octet-stream";
+    /**
+     * Encoding type
+     */
+    public static final String ENCODING = "application/octet-stream";
 
-	/**
-	 * Constructor
-	 *
-	 * @param file URI
-	 * @param size Content size
-	 * @param fileName Filename
-	 */
-	public FileContent(Uri file, long size, String fileName) {
-		super(file, ENCODING, size, fileName);
-	}
+    /**
+     * Constructor
+     *
+     * @param file URI
+     * @param size Content size
+     * @param fileName Filename
+     */
+    public FileContent(Uri file, long size, String fileName) {
+        super(file, ENCODING, size, fileName);
+    }
 }

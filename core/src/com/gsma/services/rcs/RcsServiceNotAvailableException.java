@@ -15,20 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs;
 
 /**
  * Rcs service not available exception
- *  
+ * 
  * @author Jean-Marc AUFFRET
  */
 public class RcsServiceNotAvailableException extends RcsServiceException {
-	static final long serialVersionUID = 1L;
-	
-	/**
-	 * Constructor
-	 */
-	public RcsServiceNotAvailableException() {
-		super("rcs service not available");
-	}
+    static final long serialVersionUID = 1L;
+
+    /**
+     * Constructor
+     */
+    public RcsServiceNotAvailableException() {
+        super("rcs service not available");
+    }
 }

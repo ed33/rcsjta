@@ -19,32 +19,15 @@
 package com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264;
 
 /**
- * RFC 6184 RTP Payload Format for H.264 Video
- *
- * The first byte of the H264 payload represents the NAL Unit which has the following format:
- *
- *     +---------------+
- *     |0|1|2|3|4|5|6|7|
- *     +-+-+-+-+-+-+-+-+
- *     |F|NRI|  Type   |
- *     +---------------+
- *
- *  F:       1 bit
- *           forbidden_zero_bit.  The H.264 specification declares a
- *           value of 1 as a syntax violation.
- *
- *  NRI:     2 bits
- *           nal_ref_idc.  A value of 00 indicates that the content of
- *           the NAL unit is not used to reconstruct reference pictures
- *           for inter picture prediction.  Such NAL units can be
- *           discarded without risking the integrity of the reference
- *           pictures.  Values greater than 00 indicate that the decoding
- *           of the NAL unit is required to maintain the integrity of the
- *           reference pictures.
- *
- *   Type:   5 bits
- *           nal_unit_type.  This component specifies the NAL unit
- *           payload type
+ * RFC 6184 RTP Payload Format for H.264 Video The first byte of the H264 payload represents the NAL
+ * Unit which has the following format: +---------------+ |0|1|2|3|4|5|6|7| +-+-+-+-+-+-+-+-+
+ * |F|NRI| Type | +---------------+ F: 1 bit forbidden_zero_bit. The H.264 specification declares a
+ * value of 1 as a syntax violation. NRI: 2 bits nal_ref_idc. A value of 00 indicates that the
+ * content of the NAL unit is not used to reconstruct reference pictures for inter picture
+ * prediction. Such NAL units can be discarded without risking the integrity of the reference
+ * pictures. Values greater than 00 indicate that the decoding of the NAL unit is required to
+ * maintain the integrity of the reference pictures. Type: 5 bits nal_unit_type. This component
+ * specifies the NAL unit payload type
  *
  * @author Deutsche Telekom
  */
@@ -160,13 +143,12 @@ public class NalUnitHeader {
     }
 
     /**
-     * Extracts the NAL Unit header from a H264 Packet. Puts the extracted info
-     * in the given header object
+     * Extracts the NAL Unit header from a H264 Packet. Puts the extracted info in the given header
+     * object
      *
      * @param h264Packet H264 packet
      * @param header Header object to fill with data
-     * @throws {@link RuntimeException} If the H264 packet data is null or the
-     *         header is null;
+     * @throws {@link RuntimeException} If the H264 packet data is null or the header is null;
      */
     public static void extract(byte[] h264Packet, NalUnitHeader header) {
         if (h264Packet == null) {
@@ -204,13 +186,12 @@ public class NalUnitHeader {
     }
 
     /**
-     * Extracts the NAL Unit header from a H264 Packet. Puts the extracted info
-     * in the given header object
+     * Extracts the NAL Unit header from a H264 Packet. Puts the extracted info in the given header
+     * object
      *
      * @param h264Packet H264 packet
      * @param header Header object to fill with data
-     * @throws {@link RuntimeException} If the H264 packet data is null or the
-     *         header is null;
+     * @throws {@link RuntimeException} If the H264 packet data is null or the header is null;
      */
     public static void extract(int position, byte[] h264Packet, NalUnitHeader header) {
         if (h264Packet == null) {

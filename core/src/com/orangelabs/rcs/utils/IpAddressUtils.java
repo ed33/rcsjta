@@ -48,11 +48,9 @@ public class IpAddressUtils {
 
         // Remove zone id from address
         /*
-         * RFC4007:
-         * <address>%<zone_id> where: 
-         * <address> is a literal IPv6 address, 
-         * <zone_id> is a string identifying the zone of the address,
-         * and `%' is a delimiter character to distinguish between <address> and <zone_id>.
+         * RFC4007: <address>%<zone_id> where: <address> is a literal IPv6 address, <zone_id> is a
+         * string identifying the zone of the address, and `%' is a delimiter character to
+         * distinguish between <address> and <zone_id>.
          */
         index = host.indexOf("%");
         if (index != -1) {

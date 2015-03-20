@@ -82,8 +82,7 @@ public class SdpOrientationExtension {
     /**
      * Verifies if is a valid SDP Orientation header
      *
-     * @return <code>True</code> if is a valid header, <code>false</code>
-     *         otherwise.
+     * @return <code>True</code> if is a valid header, <code>false</code> otherwise.
      */
     public boolean isValid() {
         return (extensionId >= MIN_ID_VALUE && extensionId <= MAX_ID_VALUE)
@@ -91,8 +90,7 @@ public class SdpOrientationExtension {
     }
 
     /**
-     * Creates a {@link SdpOrientationExtension} from the "extmap" media
-     * attribute
+     * Creates a {@link SdpOrientationExtension} from the "extmap" media attribute
      *
      * @param mediaAttribute Extmap media attribute
      * @return A SdpOrientationExtension.

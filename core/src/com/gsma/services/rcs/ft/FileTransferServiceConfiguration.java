@@ -19,11 +19,11 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.ft;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-
 
 /**
  * File transfer service configuration
@@ -31,122 +31,117 @@ import android.os.Parcelable;
  * @author Jean-Marc AUFFRET
  */
 public class FileTransferServiceConfiguration implements Parcelable {
-	/**
-	 * File transfer size threshold
-	 */
-	private long warnSize;
-		
-	/**
-	 * File transfer size limit
-	 */
-	private long maxSize;
-	
-	/**
-	 * File transfer auto accept mode
-	 */
-	private boolean autoAcceptMode;
-	
-	/**
-	 * File transfer auto accept mode in roaming
-	 */
-	private boolean autoAcceptModeInRoaming;
+    /**
+     * File transfer size threshold
+     */
+    private long warnSize;
 
-	/**
-	 * File transfer default auto accept mode changeable
-	 */
-	private boolean autoAcceptModeChangeable;
-	
-	/**
-	 * 
-	 */
-	private int maxFileTransfers;
+    /**
+     * File transfer size limit
+     */
+    private long maxSize;
 
-	/**
-	 * the image resize option for file transfer in the range: ALWAYS_PERFORM, ONLY_ABOVE_MAX_SIZE, ASK
-	 */
-	private int imageResizeOption;
-	
-	/**
-	 * Constructor
+    /**
+     * File transfer auto accept mode
+     */
+    private boolean autoAcceptMode;
+
+    /**
+     * File transfer auto accept mode in roaming
+     */
+    private boolean autoAcceptModeInRoaming;
+
+    /**
+     * File transfer default auto accept mode changeable
+     */
+    private boolean autoAcceptModeChangeable;
+
+    /**
 	 * 
-	 * @param warnSize
-	 *            File transfer size threshold
-	 * @param maxSize
-	 *            File transfer size limit
-	 * @param autoAcceptModeChangeable
-	 *            File transfer default auto accept mode changeable
-	 * @param autoAcceptMode
-	 *            File transfer auto accept mode
-	 * @param autoAcceptModeInRoaming
-	 *            File transfer auto accept mode in roaming
-	 * @param maxFileTransfers
-	 * 			the maximum number of simultaneous file transfers
-	 * @param imageResizeOption
-	 * 			the image resize option for file transfer in the range: ALWAYS_PERFORM, ONLY_ABOVE_MAX_SIZE, ASK
-	 * @hide
 	 */
-	public FileTransferServiceConfiguration(long warnSize, long maxSize, boolean autoAcceptModeChangeable, boolean autoAcceptMode,
-			boolean autoAcceptModeInRoaming, int maxFileTransfers, int imageResizeOption) {
-		this.warnSize = warnSize;
-		this.maxSize = maxSize;
-		this.autoAcceptModeChangeable = autoAcceptModeChangeable;
-		this.autoAcceptMode = autoAcceptMode;
-		this.autoAcceptModeInRoaming = autoAcceptModeInRoaming;
-		this.maxFileTransfers = maxFileTransfers;
-		this.imageResizeOption = imageResizeOption;
-	}
-	
-	/**
-	 * Constructor
-	 * 
-	 * @param source Parcelable source
+    private int maxFileTransfers;
+
+    /**
+     * the image resize option for file transfer in the range: ALWAYS_PERFORM, ONLY_ABOVE_MAX_SIZE,
+     * ASK
+     */
+    private int imageResizeOption;
+
+    /**
+     * Constructor
+     * 
+     * @param warnSize File transfer size threshold
+     * @param maxSize File transfer size limit
+     * @param autoAcceptModeChangeable File transfer default auto accept mode changeable
+     * @param autoAcceptMode File transfer auto accept mode
+     * @param autoAcceptModeInRoaming File transfer auto accept mode in roaming
+     * @param maxFileTransfers the maximum number of simultaneous file transfers
+     * @param imageResizeOption the image resize option for file transfer in the range:
+     *            ALWAYS_PERFORM, ONLY_ABOVE_MAX_SIZE, ASK
      * @hide
-	 */
-	public FileTransferServiceConfiguration(Parcel source) {
-		this.warnSize = source.readLong();
-		this.maxSize = source.readLong();
-		this.autoAcceptMode = source.readInt() != 0;
-		this.autoAcceptModeInRoaming = source.readInt() != 0;
-		this.autoAcceptModeChangeable = source.readInt() != 0;
-		this.maxFileTransfers = source.readInt();
-		this.imageResizeOption = source.readInt();
+     */
+    public FileTransferServiceConfiguration(long warnSize, long maxSize,
+            boolean autoAcceptModeChangeable, boolean autoAcceptMode,
+            boolean autoAcceptModeInRoaming, int maxFileTransfers, int imageResizeOption) {
+        this.warnSize = warnSize;
+        this.maxSize = maxSize;
+        this.autoAcceptModeChangeable = autoAcceptModeChangeable;
+        this.autoAcceptMode = autoAcceptMode;
+        this.autoAcceptModeInRoaming = autoAcceptModeInRoaming;
+        this.maxFileTransfers = maxFileTransfers;
+        this.imageResizeOption = imageResizeOption;
     }
 
-	/**
-	 * Describe the kinds of special objects contained in this Parcelable's
-	 * marshalled representation
-	 * 
-	 * @return Integer
+    /**
+     * Constructor
+     * 
+     * @param source Parcelable source
      * @hide
-	 */
-	public int describeContents() {
+     */
+    public FileTransferServiceConfiguration(Parcel source) {
+        this.warnSize = source.readLong();
+        this.maxSize = source.readLong();
+        this.autoAcceptMode = source.readInt() != 0;
+        this.autoAcceptModeInRoaming = source.readInt() != 0;
+        this.autoAcceptModeChangeable = source.readInt() != 0;
+        this.maxFileTransfers = source.readInt();
+        this.imageResizeOption = source.readInt();
+    }
+
+    /**
+     * Describe the kinds of special objects contained in this Parcelable's marshalled
+     * representation
+     * 
+     * @return Integer
+     * @hide
+     */
+    public int describeContents() {
         return 0;
     }
 
-	/**
-	 * Write parcelable object
-	 * 
-	 * @param dest The Parcel in which the object should be written
-	 * @param flags Additional flags about how the object should be written
+    /**
+     * Write parcelable object
+     * 
+     * @param dest The Parcel in which the object should be written
+     * @param flags Additional flags about how the object should be written
      * @hide
-	 */
-	public void writeToParcel(Parcel dest, int flags) {
-		dest.writeLong(warnSize);
-		dest.writeLong(maxSize);
-		dest.writeInt(autoAcceptMode ? 1 : 0);
-		dest.writeInt(autoAcceptModeInRoaming ? 1 : 0);
-		dest.writeInt(autoAcceptModeChangeable ? 1 : 0);
-		dest.writeInt(maxFileTransfers);
-		dest.writeInt(imageResizeOption);
-	}
+     */
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeLong(warnSize);
+        dest.writeLong(maxSize);
+        dest.writeInt(autoAcceptMode ? 1 : 0);
+        dest.writeInt(autoAcceptModeInRoaming ? 1 : 0);
+        dest.writeInt(autoAcceptModeChangeable ? 1 : 0);
+        dest.writeInt(maxFileTransfers);
+        dest.writeInt(imageResizeOption);
+    }
 
     /**
      * Parcelable creator
      * 
      * @hide
      */
-    public static final Parcelable.Creator<FileTransferServiceConfiguration> CREATOR
-            = new Parcelable.Creator<FileTransferServiceConfiguration>() {
+    public static final Parcelable.Creator<FileTransferServiceConfiguration> CREATOR = new Parcelable.Creator<FileTransferServiceConfiguration>() {
         public FileTransferServiceConfiguration createFromParcel(Parcel source) {
             return new FileTransferServiceConfiguration(source);
         }
@@ -154,68 +149,71 @@ public class FileTransferServiceConfiguration implements Parcelable {
         public FileTransferServiceConfiguration[] newArray(int size) {
             return new FileTransferServiceConfiguration[size];
         }
-    };	
-	
-	/**
-	 * Returns the file transfer size threshold when the user should be warned about
-	 * the potential charges associated to the transfer of a large file. It returns
-	 * 0 if there no need to warn.
-	 * 
-	 * @return Size in kilobytes 
-	 */
-	public long getWarnSize() {
-		return warnSize;
-	}
-			
-	/**
-	 * Returns the file transfer size limit. It returns 0 if there is no limitation.
-	 * 
-	 * @return Size in kilobytes
-	 */
-	public long getMaxSize() {
-		return maxSize;
-	}
-	
-	/**
-	 * Is file transfer invitation automatically accepted 
-	 * 
-	 * @return Returns true if File Transfer is automatically accepted else returns false
-	 */
-	public boolean isAutoAcceptEnabled() {
-		return autoAcceptMode;
-	}
+    };
 
-	/**
-	 * Is file transfer invitation automatically accepted while in roaming.
-	 * <p>
-	 * This parameter is only applicable if auto accept is active for File Transfer in normal conditions (see isAutoAcceptEnabled).
-	 * 
-	 * @return Returns true if File Transfer is automatically accepted while in roaming else returns false
-	 */
-	public boolean isAutoAcceptInRoamingEnabled() {
-		return autoAcceptModeInRoaming;
-	}
-	
-	/**
-	 * is default Auto Accept mode (both in normal or roaming modes) changeable
-	 * 
-	 * @return True if client is allowed to change the default Auto Accept mode (both in normal or roaming modes)
-	 */
-	public boolean isAutoAcceptModeChangeable() {
-		return autoAcceptModeChangeable;
-	}
+    /**
+     * Returns the file transfer size threshold when the user should be warned about the potential
+     * charges associated to the transfer of a large file. It returns 0 if there no need to warn.
+     * 
+     * @return Size in kilobytes
+     */
+    public long getWarnSize() {
+        return warnSize;
+    }
 
-	/**
-	 * @return returns the max number of simultaneous file transfers
-	 */
-	public int getMaxFileTransfers() {
-		return maxFileTransfers;
-	}
-	
-	/**
-	 * @return the image resize option for file transfer in the range: ALWAYS_PERFORM, ONLY_ABOVE_MAX_SIZE, ASK
-	 */
-	public int getImageResizeOption() {
-		return imageResizeOption;
-	}
+    /**
+     * Returns the file transfer size limit. It returns 0 if there is no limitation.
+     * 
+     * @return Size in kilobytes
+     */
+    public long getMaxSize() {
+        return maxSize;
+    }
+
+    /**
+     * Is file transfer invitation automatically accepted
+     * 
+     * @return Returns true if File Transfer is automatically accepted else returns false
+     */
+    public boolean isAutoAcceptEnabled() {
+        return autoAcceptMode;
+    }
+
+    /**
+     * Is file transfer invitation automatically accepted while in roaming.
+     * <p>
+     * This parameter is only applicable if auto accept is active for File Transfer in normal
+     * conditions (see isAutoAcceptEnabled).
+     * 
+     * @return Returns true if File Transfer is automatically accepted while in roaming else returns
+     *         false
+     */
+    public boolean isAutoAcceptInRoamingEnabled() {
+        return autoAcceptModeInRoaming;
+    }
+
+    /**
+     * is default Auto Accept mode (both in normal or roaming modes) changeable
+     * 
+     * @return True if client is allowed to change the default Auto Accept mode (both in normal or
+     *         roaming modes)
+     */
+    public boolean isAutoAcceptModeChangeable() {
+        return autoAcceptModeChangeable;
+    }
+
+    /**
+     * @return returns the max number of simultaneous file transfers
+     */
+    public int getMaxFileTransfers() {
+        return maxFileTransfers;
+    }
+
+    /**
+     * @return the image resize option for file transfer in the range: ALWAYS_PERFORM,
+     *         ONLY_ABOVE_MAX_SIZE, ASK
+     */
+    public int getImageResizeOption() {
+        return imageResizeOption;
+    }
 }

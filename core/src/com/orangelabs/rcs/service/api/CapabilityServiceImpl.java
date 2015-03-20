@@ -46,319 +46,318 @@ import android.os.Handler;
  */
 public class CapabilityServiceImpl extends ICapabilityService.Stub {
 
-	private final RcsServiceRegistrationEventBroadcaster mRcsServiceRegistrationEventBroadcaster = new RcsServiceRegistrationEventBroadcaster();
+    private final RcsServiceRegistrationEventBroadcaster mRcsServiceRegistrationEventBroadcaster = new RcsServiceRegistrationEventBroadcaster();
 
-	private final CapabilitiesBroadcaster mCapabilitiesBroadcaster = new CapabilitiesBroadcaster();
-
-	/**
-	 * Lock used for synchronization
-	 */
-	private final Object lock = new Object();
+    private final CapabilitiesBroadcaster mCapabilitiesBroadcaster = new CapabilitiesBroadcaster();
 
     /**
-	 * The logger
-	 */
-	private final Logger logger = Logger.getLogger(getClass().getName());
+     * Lock used for synchronization
+     */
+    private final Object lock = new Object();
 
-	/*
-	 * This purpose of this handler is to make the request asynchronous with the
-	 * mechanisms provider by android by placing the request in the main thread
-	 * message queue.
-	 */
+    /**
+     * The logger
+     */
+    private final Logger logger = Logger.getLogger(getClass().getName());
 
-	private final Handler mOptionsExchangeRequestHandler;
+    /*
+     * This purpose of this handler is to make the request asynchronous with the mechanisms provider
+     * by android by placing the request in the main thread message queue.
+     */
 
-	private class CapabilitiesRequester implements Runnable {
+    private final Handler mOptionsExchangeRequestHandler;
 
-		private final ContactId mContact;
+    private class CapabilitiesRequester implements Runnable {
 
-		private final CapabilityService mCapabilityService;
+        private final ContactId mContact;
 
-		public CapabilitiesRequester(CapabilityService capabilityService, ContactId contact) {
-			mContact = contact;
-			mCapabilityService = capabilityService;
-		}
+        private final CapabilityService mCapabilityService;
 
-		public void run() {
-			mCapabilityService.requestContactCapabilities(mContact);
-		}
-	}
+        public CapabilitiesRequester(CapabilityService capabilityService, ContactId contact) {
+            mContact = contact;
+            mCapabilityService = capabilityService;
+        }
 
-	private class AllCapabilitiesRequester implements Runnable {
+        public void run() {
+            mCapabilityService.requestContactCapabilities(mContact);
+        }
+    }
 
-		private final ContactsManager mContactManager;
+    private class AllCapabilitiesRequester implements Runnable {
 
-		private final CapabilityService mCapabilityService;
+        private final ContactsManager mContactManager;
 
-		public AllCapabilitiesRequester(ContactsManager contactManager, CapabilityService capabilityService) {
-			mContactManager = contactManager;
-			mCapabilityService = capabilityService;
-		}
+        private final CapabilityService mCapabilityService;
 
-		public void run() {
-			mCapabilityService.requestContactCapabilities(mContactManager.getAllContacts());
-		}
-	}
+        public AllCapabilitiesRequester(ContactsManager contactManager,
+                CapabilityService capabilityService) {
+            mContactManager = contactManager;
+            mCapabilityService = capabilityService;
+        }
 
-	/**
-	 * Constructor
-	 */
-	public CapabilityServiceImpl() {
-		if (logger.isActivated()) {
-			logger.info("Capability service API is loaded");
-		}
-		mOptionsExchangeRequestHandler = new Handler();
-	}
+        public void run() {
+            mCapabilityService.requestContactCapabilities(mContactManager.getAllContacts());
+        }
+    }
 
-	/**
-	 * Close API
-	 */
-	public void close() {
-		if (logger.isActivated()) {
-			logger.info("Capability service API is closed");
-		}
-	}
-    
+    /**
+     * Constructor
+     */
+    public CapabilityServiceImpl() {
+        if (logger.isActivated()) {
+            logger.info("Capability service API is loaded");
+        }
+        mOptionsExchangeRequestHandler = new Handler();
+    }
+
+    /**
+     * Close API
+     */
+    public void close() {
+        if (logger.isActivated()) {
+            logger.info("Capability service API is closed");
+        }
+    }
+
     /**
      * Returns true if the service is registered to the platform, else returns false
      * 
-	 * @return Returns true if registered else returns false
+     * @return Returns true if registered else returns false
      */
     public boolean isServiceRegistered() {
-    	return ServerApiUtils.isImsConnected();
+        return ServerApiUtils.isImsConnected();
     }
 
-	/**
-	 * Registers a listener on service registration events
-	 *
-	 * @param listener Service registration listener
-	 */
-	public void addEventListener(IRcsServiceRegistrationListener listener) {
-		if (logger.isActivated()) {
-			logger.info("Add a service listener");
-		}
-		synchronized (lock) {
-			mRcsServiceRegistrationEventBroadcaster.addEventListener(listener);
-		}
-	}
-
-	/**
-	 * Unregisters a listener on service registration events
-	 *
-	 * @param listener Service registration listener
-	 */
-	public void removeEventListener(IRcsServiceRegistrationListener listener) {
-		if (logger.isActivated()) {
-			logger.info("Remove a service listener");
-		}
-		synchronized (lock) {
-			mRcsServiceRegistrationEventBroadcaster.removeEventListener(listener);
-		}
-	}
-
-	/**
-	 * Receive registration event
-	 *
-	 * @param state Registration state
-	 */
-	public void notifyRegistrationEvent(boolean state) {
-		// Notify listeners
-		synchronized (lock) {
-			if (state) {
-				mRcsServiceRegistrationEventBroadcaster.broadcastServiceRegistered();
-			} else {
-				mRcsServiceRegistrationEventBroadcaster.broadcastServiceUnRegistered();
-			}
-		}
-	}
+    /**
+     * Registers a listener on service registration events
+     *
+     * @param listener Service registration listener
+     */
+    public void addEventListener(IRcsServiceRegistrationListener listener) {
+        if (logger.isActivated()) {
+            logger.info("Add a service listener");
+        }
+        synchronized (lock) {
+            mRcsServiceRegistrationEventBroadcaster.addEventListener(listener);
+        }
+    }
 
     /**
-     * Returns the capabilities supported by the local end user. The supported
-     * capabilities are fixed by the MNO and read during the provisioning.
+     * Unregisters a listener on service registration events
+     *
+     * @param listener Service registration listener
+     */
+    public void removeEventListener(IRcsServiceRegistrationListener listener) {
+        if (logger.isActivated()) {
+            logger.info("Remove a service listener");
+        }
+        synchronized (lock) {
+            mRcsServiceRegistrationEventBroadcaster.removeEventListener(listener);
+        }
+    }
+
+    /**
+     * Receive registration event
+     *
+     * @param state Registration state
+     */
+    public void notifyRegistrationEvent(boolean state) {
+        // Notify listeners
+        synchronized (lock) {
+            if (state) {
+                mRcsServiceRegistrationEventBroadcaster.broadcastServiceRegistered();
+            } else {
+                mRcsServiceRegistrationEventBroadcaster.broadcastServiceUnRegistered();
+            }
+        }
+    }
+
+    /**
+     * Returns the capabilities supported by the local end user. The supported capabilities are
+     * fixed by the MNO and read during the provisioning.
      * 
      * @return Capabilities
      */
-	public Capabilities getMyCapabilities() {
-		return ContactsServiceImpl.getCapabilities(RcsSettings.getInstance().getMyCapabilities());
-	}
+    public Capabilities getMyCapabilities() {
+        return ContactsServiceImpl.getCapabilities(RcsSettings.getInstance().getMyCapabilities());
+    }
 
     /**
-     * Returns the capabilities of a given contact from the local database. This
-     * method does not request any network update to the remote contact. The parameter
-     * contact supports the following formats: MSISDN in national or international
-     * format, SIP address, SIP-URI or Tel-URI. If the format of the contact is not
-     * supported an exception is thrown.
+     * Returns the capabilities of a given contact from the local database. This method does not
+     * request any network update to the remote contact. The parameter contact supports the
+     * following formats: MSISDN in national or international format, SIP address, SIP-URI or
+     * Tel-URI. If the format of the contact is not supported an exception is thrown.
      * 
      * @param contact ContactId
      * @return Capabilities
      */
-	public Capabilities getContactCapabilities(ContactId contact) {
-		if (logger.isActivated()) {
-			logger.info("Get capabilities for contact " + contact);
-		}
-		// Read capabilities in the local database
-		return ContactsServiceImpl.getCapabilities( ContactsManager.getInstance().getContactCapabilities(contact));
-	}
+    public Capabilities getContactCapabilities(ContactId contact) {
+        if (logger.isActivated()) {
+            logger.info("Get capabilities for contact " + contact);
+        }
+        // Read capabilities in the local database
+        return ContactsServiceImpl.getCapabilities(ContactsManager.getInstance()
+                .getContactCapabilities(contact));
+    }
 
     /**
-	 * Requests capabilities to a remote contact. This method initiates in background
-	 * a new capability request to the remote contact by sending a SIP OPTIONS. The
-	 * result of the capability request is sent asynchronously via callback method of
-	 * the capabilities listener. A capability refresh is only sent if the timestamp
-	 * associated to the capability has expired (the expiration value is fixed via MNO
-	 * provisioning). The parameter contact supports the following formats: MSISDN in
-	 * national or international format, SIP address, SIP-URI or Tel-URI. If the format
-	 * of the contact is not supported an exception is thrown. The result of the
-	 * capability refresh request is provided to all the clients that have registered
-	 * the listener for this event.
-	 * 
-	 * @param contact ContactId
-	 * @throws ServerApiException
-	 */
-	public void requestContactCapabilities(final ContactId contact) throws ServerApiException {
-		if (logger.isActivated()) {
-			logger.info("Request capabilities for contact " + contact);
-		}
+     * Requests capabilities to a remote contact. This method initiates in background a new
+     * capability request to the remote contact by sending a SIP OPTIONS. The result of the
+     * capability request is sent asynchronously via callback method of the capabilities listener. A
+     * capability refresh is only sent if the timestamp associated to the capability has expired
+     * (the expiration value is fixed via MNO provisioning). The parameter contact supports the
+     * following formats: MSISDN in national or international format, SIP address, SIP-URI or
+     * Tel-URI. If the format of the contact is not supported an exception is thrown. The result of
+     * the capability refresh request is provided to all the clients that have registered the
+     * listener for this event.
+     * 
+     * @param contact ContactId
+     * @throws ServerApiException
+     */
+    public void requestContactCapabilities(final ContactId contact) throws ServerApiException {
+        if (logger.isActivated()) {
+            logger.info("Request capabilities for contact " + contact);
+        }
 
-		// Test IMS connection
-		ServerApiUtils.testIms();
-		try {
-			mOptionsExchangeRequestHandler.post(new CapabilitiesRequester(Core.getInstance().getCapabilityService(), contact));
-		} catch(Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Unexpected error", e);
-			}
-			throw new ServerApiException(e.getMessage());
-		}
-	}
+        // Test IMS connection
+        ServerApiUtils.testIms();
+        try {
+            mOptionsExchangeRequestHandler.post(new CapabilitiesRequester(Core.getInstance()
+                    .getCapabilityService(), contact));
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Unexpected error", e);
+            }
+            throw new ServerApiException(e.getMessage());
+        }
+    }
 
-	/**
+    /**
      * Receive capabilities from a contact
      * 
      * @param contact ContactId
      * @param capabilities Capabilities
      */
-    public void receiveCapabilities(ContactId contact, com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities) {
-    	synchronized(lock) {
-    		if (logger.isActivated()) {
-    			logger.info("Receive capabilities for " + contact);
-    		}
-	
-    		// Create capabilities instance
-    		Capabilities c = ContactsServiceImpl.getCapabilities(capabilities);
+    public void receiveCapabilities(ContactId contact,
+            com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities) {
+        synchronized (lock) {
+            if (logger.isActivated()) {
+                logger.info("Receive capabilities for " + contact);
+            }
 
-			// Notify capabilities listeners
-			notifyListeners(contact, c);
-    	}
+            // Create capabilities instance
+            Capabilities c = ContactsServiceImpl.getCapabilities(capabilities);
+
+            // Notify capabilities listeners
+            notifyListeners(contact, c);
+        }
     }
 
-	/**
-	 * Notify listeners
-	 *
-	 * @param contact ContactId
-	 * @param capabilities Capabilities
-	 */
-	private void notifyListeners(ContactId contact, Capabilities capabilities) {
-		mCapabilitiesBroadcaster.broadcastCapabilitiesReceived(contact,
-				capabilities);
-	}
+    /**
+     * Notify listeners
+     *
+     * @param contact ContactId
+     * @param capabilities Capabilities
+     */
+    private void notifyListeners(ContactId contact, Capabilities capabilities) {
+        mCapabilitiesBroadcaster.broadcastCapabilitiesReceived(contact, capabilities);
+    }
 
     /**
-	 * Requests capabilities for all contacts existing in the local address book. This
-	 * method initiates in background new capability requests for each contact of the
-	 * address book by sending SIP OPTIONS. The result of a capability request is sent
-	 * asynchronously via callback method of the capabilities listener. A capability
-	 * refresh is only sent if the timestamp associated to the capability has expired
-	 * (the expiration value is fixed via MNO provisioning). The result of the capability
-	 * refresh request is provided to all the clients that have registered the listener
-	 * for this event.
-	 * 
-	 * @throws ServerApiException
-	 */
-	public void requestAllContactsCapabilities() throws ServerApiException {
-		if (logger.isActivated()) {
-			logger.info("Request all contacts capabilities");
-		}
-		// Test IMS connection
-		ServerApiUtils.testIms();
+     * Requests capabilities for all contacts existing in the local address book. This method
+     * initiates in background new capability requests for each contact of the address book by
+     * sending SIP OPTIONS. The result of a capability request is sent asynchronously via callback
+     * method of the capabilities listener. A capability refresh is only sent if the timestamp
+     * associated to the capability has expired (the expiration value is fixed via MNO
+     * provisioning). The result of the capability refresh request is provided to all the clients
+     * that have registered the listener for this event.
+     * 
+     * @throws ServerApiException
+     */
+    public void requestAllContactsCapabilities() throws ServerApiException {
+        if (logger.isActivated()) {
+            logger.info("Request all contacts capabilities");
+        }
+        // Test IMS connection
+        ServerApiUtils.testIms();
 
-		try {
-			mOptionsExchangeRequestHandler.post(new AllCapabilitiesRequester(ContactsManager.getInstance(), Core
-					.getInstance().getCapabilityService()));
-		} catch(Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Unexpected error", e);
-			}
-			throw new ServerApiException(e.getMessage());
-		}
-	}
+        try {
+            mOptionsExchangeRequestHandler.post(new AllCapabilitiesRequester(ContactsManager
+                    .getInstance(), Core.getInstance().getCapabilityService()));
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Unexpected error", e);
+            }
+            throw new ServerApiException(e.getMessage());
+        }
+    }
 
-	/**
-	 * Registers a capabilities listener on any contact
-	 *
-	 * @param listener Capabilities listener
-	 */
-	public void addCapabilitiesListener(ICapabilitiesListener listener) {
-		if (logger.isActivated()) {
-			logger.info("Add a listener");
-		}
-		synchronized (lock) {
-			mCapabilitiesBroadcaster.addCapabilitiesListener(listener);
-		}
-	}
+    /**
+     * Registers a capabilities listener on any contact
+     *
+     * @param listener Capabilities listener
+     */
+    public void addCapabilitiesListener(ICapabilitiesListener listener) {
+        if (logger.isActivated()) {
+            logger.info("Add a listener");
+        }
+        synchronized (lock) {
+            mCapabilitiesBroadcaster.addCapabilitiesListener(listener);
+        }
+    }
 
-	/**
-	 * Unregisters a capabilities listener
-	 *
-	 * @param listener Capabilities listener
-	 */
-	public void removeCapabilitiesListener(ICapabilitiesListener listener) {
-		if (logger.isActivated()) {
-			logger.info("Remove a listener");
-		}
-		synchronized (lock) {
-			mCapabilitiesBroadcaster.removeCapabilitiesListener(listener);
-		}
-	}
+    /**
+     * Unregisters a capabilities listener
+     *
+     * @param listener Capabilities listener
+     */
+    public void removeCapabilitiesListener(ICapabilitiesListener listener) {
+        if (logger.isActivated()) {
+            logger.info("Remove a listener");
+        }
+        synchronized (lock) {
+            mCapabilitiesBroadcaster.removeCapabilitiesListener(listener);
+        }
+    }
 
-	/**
-	 * Registers a listener for receiving capabilities of a given contact
-	 *
-	 * @param contact ContactId
-	 * @param listener Capabilities listener
-	 */
-	public void addCapabilitiesListener2(ContactId contact, ICapabilitiesListener listener) {
-		if (logger.isActivated()) {
-			logger.info("Add a listener for contact " + contact);
-		}
-		synchronized (lock) {
-			mCapabilitiesBroadcaster.addContactCapabilitiesListener(contact, listener);
-		}
-	}
+    /**
+     * Registers a listener for receiving capabilities of a given contact
+     *
+     * @param contact ContactId
+     * @param listener Capabilities listener
+     */
+    public void addCapabilitiesListener2(ContactId contact, ICapabilitiesListener listener) {
+        if (logger.isActivated()) {
+            logger.info("Add a listener for contact " + contact);
+        }
+        synchronized (lock) {
+            mCapabilitiesBroadcaster.addContactCapabilitiesListener(contact, listener);
+        }
+    }
 
-	/**
-	 * Unregisters a listener of capabilities for a given contact
-	 *
-	 * @param contact ContactId
-	 * @param listener Capabilities listener
-	 */
-	public void removeCapabilitiesListener2(ContactId contact, ICapabilitiesListener listener) {
-		if (logger.isActivated()) {
-			logger.info("Remove a listener for contact " + contact);
-		}
-		synchronized (lock) {
-			mCapabilitiesBroadcaster.removeContactCapabilitiesListener(contact, listener);
-		}
-	}
+    /**
+     * Unregisters a listener of capabilities for a given contact
+     *
+     * @param contact ContactId
+     * @param listener Capabilities listener
+     */
+    public void removeCapabilitiesListener2(ContactId contact, ICapabilitiesListener listener) {
+        if (logger.isActivated()) {
+            logger.info("Remove a listener for contact " + contact);
+        }
+        synchronized (lock) {
+            mCapabilitiesBroadcaster.removeContactCapabilitiesListener(contact, listener);
+        }
+    }
 
-	/**
-	 * Returns service version
-	 * 
-	 * @return Version
-	 * @see RcsService.Build.VERSION_CODES
-	 * @throws ServerApiException
-	 */
-	public int getServiceVersion() throws ServerApiException {
-		return RcsService.Build.API_VERSION;
-	}
+    /**
+     * Returns service version
+     * 
+     * @return Version
+     * @see RcsService.Build.VERSION_CODES
+     * @throws ServerApiException
+     */
+    public int getServiceVersion() throws ServerApiException {
+        return RcsService.Build.API_VERSION;
+    }
 }

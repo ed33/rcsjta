@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.provider.ipcall;
 
 import com.gsma.services.rcs.ipcall.IPCallLog;
@@ -43,18 +44,17 @@ public class IPCallProvider extends ContentProvider {
 
     private static final String TABLE = "ipcall";
 
-    private static final String SELECTION_WITH_CALLID_ONLY = IPCallData.KEY_CALL_ID
-            .concat("=?");
+    private static final String SELECTION_WITH_CALLID_ONLY = IPCallData.KEY_CALL_ID.concat("=?");
 
     private static final String DATABASE_NAME = "ipcall.db";
 
     private static final UriMatcher sUriMatcher;
     static {
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-        sUriMatcher.addURI(IPCallLog.CONTENT_URI.getAuthority(), IPCallLog.CONTENT_URI.getPath().substring(1),
-                UriType.IPCALL);
-        sUriMatcher.addURI(IPCallLog.CONTENT_URI.getAuthority(), IPCallLog.CONTENT_URI.getPath().substring(1)
-                .concat("/*"), UriType.IPCALL_WITH_CALLID);
+        sUriMatcher.addURI(IPCallLog.CONTENT_URI.getAuthority(), IPCallLog.CONTENT_URI.getPath()
+                .substring(1), UriType.IPCALL);
+        sUriMatcher.addURI(IPCallLog.CONTENT_URI.getAuthority(), IPCallLog.CONTENT_URI.getPath()
+                .substring(1).concat("/*"), UriType.IPCALL_WITH_CALLID);
     }
 
     private static final class UriType {
@@ -112,8 +112,8 @@ public class IPCallProvider extends ContentProvider {
         if (TextUtils.isEmpty(selection)) {
             return SELECTION_WITH_CALLID_ONLY;
         }
-        return new StringBuilder("(").append(SELECTION_WITH_CALLID_ONLY)
-                .append(") AND (").append(selection).append(")").toString();
+        return new StringBuilder("(").append(SELECTION_WITH_CALLID_ONLY).append(") AND (")
+                .append(selection).append(")").toString();
     }
 
     private String[] getSelectionArgsWithCallId(String[] selectionArgs, String callId) {
@@ -160,8 +160,8 @@ public class IPCallProvider extends ContentProvider {
                     /* Intentional fall through */
                 case UriType.IPCALL:
                     SQLiteDatabase db = mOpenHelper.getReadableDatabase();
-                    cursor = db.query(TABLE, projection, selection, selectionArgs, null,
-                            null, sort);
+                    cursor = db
+                            .query(TABLE, projection, selection, selectionArgs, null, null, sort);
                     cursor.setNotificationUri(getContext().getContentResolver(), uri);
                     return cursor;
 

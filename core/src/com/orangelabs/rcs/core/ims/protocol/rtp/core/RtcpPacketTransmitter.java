@@ -33,24 +33,24 @@ import java.util.Vector;
  */
 public class RtcpPacketTransmitter extends Thread {
     /**
-	 * Remote address
-	 */
-	private String remoteAddress;
+     * Remote address
+     */
+    private String remoteAddress;
 
     /**
-	 * Remote port
-	 */
-	private int remotePort;
+     * Remote port
+     */
+    private int remotePort;
 
-	/**
-	 * Statistics
-	 */
-	private RtcpStatisticsTransmitter stats = new RtcpStatisticsTransmitter();
+    /**
+     * Statistics
+     */
+    private RtcpStatisticsTransmitter stats = new RtcpStatisticsTransmitter();
 
-	/**
-	 * Datagram connection
-	 */
-	public DatagramConnection datagramConnection = null;
+    /**
+     * Datagram connection
+     */
+    public DatagramConnection datagramConnection = null;
 
     /**
      * RTCP Session
@@ -75,7 +75,7 @@ public class RtcpPacketTransmitter extends Thread {
     /**
      * The logger
      */
-	private final Logger logger = Logger.getLogger(this.getClass().getName());
+    private final Logger logger = Logger.getLogger(this.getClass().getName());
 
     /**
      * Constructor
@@ -137,21 +137,21 @@ public class RtcpPacketTransmitter extends Thread {
      *
      * @throws IOException
      */
-	public void close() throws IOException {
-	    if (closed) {
+    public void close() throws IOException {
+        if (closed) {
             return;
         }
 
-	    rtcpSession.isByeRequested = true;
+        rtcpSession.isByeRequested = true;
         closed = true;
-        
+
         // Close the datagram connection
-		if (datagramConnection != null) {
-			datagramConnection.close();
-		}
-		if (logger.isActivated()) {
+        if (datagramConnection != null) {
+            datagramConnection.close();
+        }
+        if (logger.isActivated()) {
             logger.debug("RTCP transmitter closed");
-		}
+        }
         // If the method start() was never invoked this Thread will be on NEW
         // state and the resources won't be freed. We need to force the start()
         // to allow it to die gracefully
@@ -159,17 +159,17 @@ public class RtcpPacketTransmitter extends Thread {
             this.start();
         }
 
-	}
+    }
 
-	/**
-	 * Background processing
-	 */
-	public void run() {
+    /**
+     * Background processing
+     */
+    public void run() {
         if (closed) {
             return;
         }
 
-		try {
+        try {
             // Send a SDES packet
             sendSdesPacket();
 
@@ -177,7 +177,7 @@ public class RtcpPacketTransmitter extends Thread {
             while (!terminate) {
                 try {
                     // Wait the RTCP report interval.
-                    Thread.sleep((long)rtcpSession.getReportInterval());
+                    Thread.sleep((long) rtcpSession.getReportInterval());
 
                     // Right time to send a RTCP packet or reschedule ?
                     if ((rtcpSession.timeOfLastRTCPSent + rtcpSession.T) <= rtcpSession
@@ -217,12 +217,12 @@ public class RtcpPacketTransmitter extends Thread {
                     rtcpSession.isByeRequested = true;
                 }
             }
-		} catch (Exception e) {
-			if (logger.isActivated()) {
+        } catch (Exception e) {
+            if (logger.isActivated()) {
                 logger.error("Can't send the RTCP packet", e);
-			}
-		}
-	}
+            }
+        }
+    }
 
     /**
      * assemble RTCP packet
@@ -248,7 +248,9 @@ public class RtcpPacketTransmitter extends Thread {
         // BYE packet
         RtcpByePacket byepacket = null;
         if (rtcpSession.isByeRequested) {
-            int ssrc[] = {rtcpSession.SSRC};
+            int ssrc[] = {
+                rtcpSession.SSRC
+            };
             byepacket = new RtcpByePacket(ssrc, null);
             data = RtcpPacketUtils.append(data, byepacket.data);
         }
@@ -258,17 +260,17 @@ public class RtcpPacketTransmitter extends Thread {
 
     /**
      * assemble RTCP SR packet
+     * 
      * @return packet data
      */
     private byte[] assembleSenderReportPacket() {
         final int FIXED_HEADER_SIZE = 4;
-        byte V_P_RC = (byte)((RtcpPacket.VERSION << 6) | (RtcpPacket.PADDING << 5) | (0x00));
+        byte V_P_RC = (byte) ((RtcpPacket.VERSION << 6) | (RtcpPacket.PADDING << 5) | (0x00));
         byte ss[] = RtcpPacketUtils.longToBytes(rtcpSession.SSRC, 4);
-        byte PT[] = RtcpPacketUtils.longToBytes((long)RtcpPacket.RTCP_SR, 1);
+        byte PT[] = RtcpPacketUtils.longToBytes((long) RtcpPacket.RTCP_SR, 1);
         byte NTP_TimeStamp[] = RtcpPacketUtils.longToBytes(rtcpSession.currentTime(), 8);
-        short randomOffset = (short)Math.abs(rand.nextInt() & 0x000000FF);
-        byte RTP_TimeStamp[] = RtcpPacketUtils.longToBytes((long)rtcpSession.tc
-                + randomOffset, 4);
+        short randomOffset = (short) Math.abs(rand.nextInt() & 0x000000FF);
+        byte RTP_TimeStamp[] = RtcpPacketUtils.longToBytes((long) rtcpSession.tc + randomOffset, 4);
         byte SenderPacketCount[] = RtcpPacketUtils.longToBytes(rtcpSession.packetCount, 4);
         byte SenderOctetCount[] = RtcpPacketUtils.longToBytes(rtcpSession.octetCount, 4);
 
@@ -276,8 +278,8 @@ public class RtcpPacketTransmitter extends Thread {
         byte receptionReportBlocks[] = new byte[0];
         receptionReportBlocks = RtcpPacketUtils.append(receptionReportBlocks,
                 assembleRTCPReceptionReport());
-        byte receptionReports = (byte)(receptionReportBlocks.length / 24);
-        V_P_RC = (byte)(V_P_RC | (byte)(receptionReports & 0x1F));
+        byte receptionReports = (byte) (receptionReportBlocks.length / 24);
+        V_P_RC = (byte) (V_P_RC | (byte) (receptionReports & 0x1F));
 
         // Length is 32 bit words contained in the packet -1
         byte length[] = RtcpPacketUtils.longToBytes((FIXED_HEADER_SIZE + ss.length
@@ -301,20 +303,21 @@ public class RtcpPacketTransmitter extends Thread {
 
     /**
      * assemble RTCP RR packet
+     * 
      * @return packet data
      */
     private byte[] assembleReceiverReportPacket() {
         final int FIXED_HEADER_SIZE = 4;
-        byte V_P_RC = (byte)((RtcpPacket.VERSION << 6) | (RtcpPacket.PADDING << 5) | (0x00));
+        byte V_P_RC = (byte) ((RtcpPacket.VERSION << 6) | (RtcpPacket.PADDING << 5) | (0x00));
         byte ss[] = RtcpPacketUtils.longToBytes(rtcpSession.SSRC, 4);
-        byte PT[] = RtcpPacketUtils.longToBytes((long)RtcpPacket.RTCP_RR, 1);
+        byte PT[] = RtcpPacketUtils.longToBytes((long) RtcpPacket.RTCP_RR, 1);
 
         // report block
         byte receptionReportBlocks[] = new byte[0];
         receptionReportBlocks = RtcpPacketUtils.append(receptionReportBlocks,
                 assembleRTCPReceptionReport());
-        byte receptionReports = (byte)(receptionReportBlocks.length / 24);
-        V_P_RC = (byte)(V_P_RC | (byte)(receptionReports & 0x1F));
+        byte receptionReports = (byte) (receptionReportBlocks.length / 24);
+        V_P_RC = (byte) (V_P_RC | (byte) (receptionReports & 0x1F));
 
         byte length[] = RtcpPacketUtils.longToBytes(
                 (FIXED_HEADER_SIZE + ss.length + receptionReportBlocks.length) / 4 - 1, 2);
@@ -331,6 +334,7 @@ public class RtcpPacketTransmitter extends Thread {
 
     /**
      * assemble RTCP Reception report block
+     * 
      * @return report data
      */
     private byte[] assembleRTCPReceptionReport() {
@@ -338,13 +342,15 @@ public class RtcpPacketTransmitter extends Thread {
         RtpSource source = rtcpSession.getMySource();
 
         ReceptionReport rr = source.generateReceptionReport();
-        byte SSRC[] = RtcpPacketUtils.longToBytes((long)rr.getSsrc(), 4);
-        byte fraction_lost[] = RtcpPacketUtils.longToBytes((long)rr.getFractionLost(), 1);
-        byte pkts_lost[] = RtcpPacketUtils.longToBytes((long)rr.getCumulativeNumberOfPacketsLost(), 3);
-        byte last_seq[] = RtcpPacketUtils.longToBytes((long)rr.getExtendedHighestSequenceNumberReceived(), 4);
-        byte jitter[] = RtcpPacketUtils.longToBytes((long)rr.getInterarrivalJitter(), 4);
-        byte lst[] = RtcpPacketUtils.longToBytes((long)rr.getLastSenderReport(), 4);
-        byte dlsr[] = RtcpPacketUtils.longToBytes((long)rr.getDelaySinceLastSenderReport(), 4);
+        byte SSRC[] = RtcpPacketUtils.longToBytes((long) rr.getSsrc(), 4);
+        byte fraction_lost[] = RtcpPacketUtils.longToBytes((long) rr.getFractionLost(), 1);
+        byte pkts_lost[] = RtcpPacketUtils.longToBytes(
+                (long) rr.getCumulativeNumberOfPacketsLost(), 3);
+        byte last_seq[] = RtcpPacketUtils.longToBytes(
+                (long) rr.getExtendedHighestSequenceNumberReceived(), 4);
+        byte jitter[] = RtcpPacketUtils.longToBytes((long) rr.getInterarrivalJitter(), 4);
+        byte lst[] = RtcpPacketUtils.longToBytes((long) rr.getLastSenderReport(), 4);
+        byte dlsr[] = RtcpPacketUtils.longToBytes((long) rr.getDelaySinceLastSenderReport(), 4);
 
         reportBlock = RtcpPacketUtils.append(reportBlock, SSRC);
         reportBlock = RtcpPacketUtils.append(reportBlock, fraction_lost);
@@ -357,76 +363,77 @@ public class RtcpPacketTransmitter extends Thread {
         return reportBlock;
     }
 
-	/**
-	 * Send a BYE packet
-	 */
-	public void sendByePacket() {
-		// Create a report
-	    Vector<RtcpSdesPacket> repvec = makereports();
-	    RtcpPacket[] packets = new RtcpPacket[repvec.size() + 1];
-	    repvec.copyInto(packets);
+    /**
+     * Send a BYE packet
+     */
+    public void sendByePacket() {
+        // Create a report
+        Vector<RtcpSdesPacket> repvec = makereports();
+        RtcpPacket[] packets = new RtcpPacket[repvec.size() + 1];
+        repvec.copyInto(packets);
 
-	    // Create a RTCP bye packet
-	    int ssrc[] = {rtcpSession.SSRC};
-	    RtcpByePacket rtcpbyepacket = new RtcpByePacket(ssrc, null);
-	    packets[packets.length - 1] = rtcpbyepacket;
+        // Create a RTCP bye packet
+        int ssrc[] = {
+            rtcpSession.SSRC
+        };
+        RtcpByePacket rtcpbyepacket = new RtcpByePacket(ssrc, null);
+        packets[packets.length - 1] = rtcpbyepacket;
 
-		// Create a RTCP compound packet
-	    RtcpCompoundPacket cp = new RtcpCompoundPacket(packets);
+        // Create a RTCP compound packet
+        RtcpCompoundPacket cp = new RtcpCompoundPacket(packets);
 
         rtcpSession.getMySource().activeSender = false;
 
-	    // Send the RTCP packet
-		transmit(cp);
-	}
+        // Send the RTCP packet
+        transmit(cp);
+    }
 
-	/**
+    /**
      * Generate a RTCP report
      *
      * @return Vector
      */
-	public Vector<RtcpSdesPacket> makereports() {
-		Vector<RtcpSdesPacket> packets = new Vector<RtcpSdesPacket>();
+    public Vector<RtcpSdesPacket> makereports() {
+        Vector<RtcpSdesPacket> packets = new Vector<RtcpSdesPacket>();
 
-		RtcpSdesPacket rtcpsdespacket = new RtcpSdesPacket(new RtcpSdesBlock[1]);
-		rtcpsdespacket.sdes[0] = new RtcpSdesBlock();
-		rtcpsdespacket.sdes[0].ssrc = rtcpSession.SSRC;
+        RtcpSdesPacket rtcpsdespacket = new RtcpSdesPacket(new RtcpSdesBlock[1]);
+        rtcpsdespacket.sdes[0] = new RtcpSdesBlock();
+        rtcpsdespacket.sdes[0].ssrc = rtcpSession.SSRC;
 
-		Vector<RtcpSdesItem> vector = new Vector<RtcpSdesItem>();
-		vector.addElement(new RtcpSdesItem(1, RtpSource.CNAME));
-		rtcpsdespacket.sdes[0].items = new RtcpSdesItem[vector.size()];
-		vector.copyInto(rtcpsdespacket.sdes[0].items);
+        Vector<RtcpSdesItem> vector = new Vector<RtcpSdesItem>();
+        vector.addElement(new RtcpSdesItem(1, RtpSource.CNAME));
+        rtcpsdespacket.sdes[0].items = new RtcpSdesItem[vector.size()];
+        vector.copyInto(rtcpsdespacket.sdes[0].items);
 
-		packets.addElement(rtcpsdespacket);
-		return packets;
-	}
+        packets.addElement(rtcpsdespacket);
+        return packets;
+    }
 
     /**
      * Transmit a RTCP compound packet to the remote destination
      *
      * @param packet Compound packet to be sent
      */
-	private void transmit(RtcpCompoundPacket packet) {
-		// Prepare data to be sent
-		byte[] data = packet.data;
-		if (packet.offset > 0) {
-			System.arraycopy(data, packet.offset,
-					data = new byte[packet.length], 0, packet.length);
-		}
+    private void transmit(RtcpCompoundPacket packet) {
+        // Prepare data to be sent
+        byte[] data = packet.data;
+        if (packet.offset > 0) {
+            System.arraycopy(data, packet.offset, data = new byte[packet.length], 0, packet.length);
+        }
 
-		// Update statistics
-		stats.numBytes += packet.length;
+        // Update statistics
+        stats.numBytes += packet.length;
         stats.numPackets++;
         rtcpSession.updateavgrtcpsize(packet.length);
         rtcpSession.timeOfLastRTCPSent = rtcpSession.currentTime();
-		// Send data over UDP
-		try {
-			datagramConnection.send(remoteAddress, remotePort, data);
-		} catch(IOException e) {
-			if (logger.isActivated()) {
-				logger.error("Can't send the RTCP packet", e);
-			}
-		}
+        // Send data over UDP
+        try {
+            datagramConnection.send(remoteAddress, remotePort, data);
+        } catch (IOException e) {
+            if (logger.isActivated()) {
+                logger.error("Can't send the RTCP packet", e);
+            }
+        }
     }
 
     /**
@@ -455,9 +462,9 @@ public class RtcpPacketTransmitter extends Thread {
      *
      * @return Statistics
      */
-	public RtcpStatisticsTransmitter getStatistics() {
-		return stats;
-	}
+    public RtcpStatisticsTransmitter getStatistics() {
+        return stats;
+    }
 
     /**
      * Send a SDES packet

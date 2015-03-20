@@ -30,7 +30,6 @@ import android.net.Uri;
  * Interface for the deliveryinfo table
  *
  * @author LEMORDANT Philippe
- *
  */
 public interface IGroupDeliveryInfoLog {
 

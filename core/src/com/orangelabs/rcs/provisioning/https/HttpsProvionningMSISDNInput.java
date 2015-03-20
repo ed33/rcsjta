@@ -74,7 +74,7 @@ public final class HttpsProvionningMSISDNInput {
      * Display the MSISDN popup
      *
      * @param context
-     * @return 
+     * @return
      */
     protected String displayPopupAndWaitResponse(Context context) {
         Intent intent = new Intent(context, HttpsProvisioningAlertDialog.class);

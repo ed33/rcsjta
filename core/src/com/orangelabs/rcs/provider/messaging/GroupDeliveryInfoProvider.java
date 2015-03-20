@@ -28,8 +28,7 @@ public class GroupDeliveryInfoProvider extends ContentProvider {
 
     private static final String DATABASE_TABLE = "groupdeliveryinfo";
 
-    private static final String SELECTION_WITH_ID_ONLY = GroupDeliveryInfoData.KEY_ID
-            .concat("=?");
+    private static final String SELECTION_WITH_ID_ONLY = GroupDeliveryInfoData.KEY_ID.concat("=?");
 
     private static final String DATABASE_NAME = "groupdeliveryinfo.db";
 
@@ -37,8 +36,9 @@ public class GroupDeliveryInfoProvider extends ContentProvider {
     static {
         sUriMatcher.addURI(GroupDeliveryInfoLog.CONTENT_URI.getAuthority(),
                 GroupDeliveryInfoLog.CONTENT_URI.getPath().substring(1), UriType.DELIVERY);
-        sUriMatcher.addURI(GroupDeliveryInfoLog.CONTENT_URI.getAuthority(), GroupDeliveryInfoLog.CONTENT_URI
-                .getPath().substring(1).concat("/*"), UriType.DELIVERY_WITH_ID);
+        sUriMatcher.addURI(GroupDeliveryInfoLog.CONTENT_URI.getAuthority(),
+                GroupDeliveryInfoLog.CONTENT_URI.getPath().substring(1).concat("/*"),
+                UriType.DELIVERY_WITH_ID);
     }
 
     private static final class UriType {
@@ -65,17 +65,18 @@ public class GroupDeliveryInfoProvider extends ContentProvider {
 
         @Override
         public void onCreate(SQLiteDatabase db) {
-            db.execSQL(new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(DATABASE_TABLE).append("(")
-                    .append(GroupDeliveryInfoData.KEY_CHAT_ID).append(" TEXT NOT NULL,")
-                    .append(GroupDeliveryInfoData.KEY_ID).append(" TEXT NOT NULL,")
-                    .append(GroupDeliveryInfoData.KEY_CONTACT).append(" TEXT NOT NULL,")
-                    .append(GroupDeliveryInfoData.KEY_DELIVERY_STATUS).append(" INTEGER NOT NULL,")
-                    .append(GroupDeliveryInfoData.KEY_REASON_CODE).append(" INTEGER NOT NULL,")
-                    .append(GroupDeliveryInfoData.KEY_TIMESTAMP_DELIVERED).append(" INTEGER NOT NULL,")
+            db.execSQL(new StringBuilder("CREATE TABLE IF NOT EXISTS ").append(DATABASE_TABLE)
+                    .append("(").append(GroupDeliveryInfoData.KEY_CHAT_ID)
+                    .append(" TEXT NOT NULL,").append(GroupDeliveryInfoData.KEY_ID)
+                    .append(" TEXT NOT NULL,").append(GroupDeliveryInfoData.KEY_CONTACT)
+                    .append(" TEXT NOT NULL,").append(GroupDeliveryInfoData.KEY_DELIVERY_STATUS)
+                    .append(" INTEGER NOT NULL,").append(GroupDeliveryInfoData.KEY_REASON_CODE)
+                    .append(" INTEGER NOT NULL,")
+                    .append(GroupDeliveryInfoData.KEY_TIMESTAMP_DELIVERED)
+                    .append(" INTEGER NOT NULL,")
                     .append(GroupDeliveryInfoData.KEY_TIMESTAMP_DISPLAYED)
                     .append(" INTEGER NOT NULL, PRIMARY KEY(").append(GroupDeliveryInfoData.KEY_ID)
-                    .append(",").append(GroupDeliveryInfoData.KEY_CONTACT).append("));")
-                    .toString());
+                    .append(",").append(GroupDeliveryInfoData.KEY_CONTACT).append("));").toString());
         }
 
         @Override
@@ -97,7 +98,7 @@ public class GroupDeliveryInfoProvider extends ContentProvider {
 
     private String[] getSelectionArgsWithAppendedId(String[] selectionArgs, String appendedId) {
         String[] appendedIdSelectionArg = new String[] {
-                appendedId
+            appendedId
         };
         if (selectionArgs == null) {
             return appendedIdSelectionArg;
@@ -139,8 +140,8 @@ public class GroupDeliveryInfoProvider extends ContentProvider {
                     /* Intentional fall through */
                 case UriType.DELIVERY:
                     SQLiteDatabase db = mOpenHelper.getReadableDatabase();
-                    cursor = db.query(DATABASE_TABLE, projection, selection, selectionArgs,
-                            null, null, sort);
+                    cursor = db.query(DATABASE_TABLE, projection, selection, selectionArgs, null,
+                            null, sort);
                     cursor.setNotificationUri(getContext().getContentResolver(), uri);
                     return cursor;
 

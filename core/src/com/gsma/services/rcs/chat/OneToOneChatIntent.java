@@ -29,18 +29,18 @@ package com.gsma.services.rcs.chat;
  */
 public class OneToOneChatIntent {
 
-	/**
-	 * Broadcast action: a new chat message has been received.
-	 * <p>
-	 * Intent includes the following extras:
-	 * <ul>
-	 * <li> {@link #EXTRA_MESSAGE_ID} containing the message ID of chat message.
-	 * </ul>
-	 */
-	public final static String ACTION_NEW_ONE_TO_ONE_CHAT_MESSAGE = "com.gsma.services.rcs.chat.action.NEW_ONE_TO_ONE_CHAT_MESSAGE";
+    /**
+     * Broadcast action: a new chat message has been received.
+     * <p>
+     * Intent includes the following extras:
+     * <ul>
+     * <li> {@link #EXTRA_MESSAGE_ID} containing the message ID of chat message.
+     * </ul>
+     */
+    public final static String ACTION_NEW_ONE_TO_ONE_CHAT_MESSAGE = "com.gsma.services.rcs.chat.action.NEW_ONE_TO_ONE_CHAT_MESSAGE";
 
-	/**
-	 * Message ID of received message
-	 */
-	public final static String EXTRA_MESSAGE_ID = "messageId";
+    /**
+     * Message ID of received message
+     */
+    public final static String EXTRA_MESSAGE_ID = "messageId";
 }

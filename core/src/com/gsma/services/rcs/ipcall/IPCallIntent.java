@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.ipcall;
 
 /**
@@ -29,15 +30,16 @@ package com.gsma.services.rcs.ipcall;
 public class IPCallIntent {
     /**
      * Broadcast action: a new IP call invitation has been received.
-     * <p>Intent includes the following extras:
+     * <p>
+     * Intent includes the following extras:
      * <ul>
      * <li> {@link #EXTRA_CALL_ID} containing the unique ID of the IP call.
      * </ul>
      */
-	public final static String ACTION_NEW_INVITATION = "com.gsma.services.rcs.ipcall.action.NEW_CALL";
+    public final static String ACTION_NEW_INVITATION = "com.gsma.services.rcs.ipcall.action.NEW_CALL";
 
-	/**
-	 * Unique ID of the call
-	 */
-	public final static String EXTRA_CALL_ID = "callId";
+    /**
+     * Unique ID of the call
+     */
+    public final static String EXTRA_CALL_ID = "callId";
 }

@@ -48,20 +48,20 @@ import java.util.Arrays;
  * @author Jean-Marc AUFFRET
  */
 public abstract class VideoStreamingSession extends ContentSharingSession {
-	/**
-	 * Video width
-	 */
-	private int videoWidth = -1;
-	
-	/**
-	 * Video height
-	 */
-	private int videoHeight = -1;
+    /**
+     * Video width
+     */
+    private int videoWidth = -1;
 
-	/**
-	 * Video renderer
-	 */
-	private IVideoRenderer renderer;
+    /**
+     * Video height
+     */
+    private int videoHeight = -1;
+
+    /**
+     * Video renderer
+     */
+    private IVideoRenderer renderer;
 
     /**
      * Video renderer
@@ -71,55 +71,57 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
     /**
      * The logger
      */
-    private final static Logger logger = Logger.getLogger(VideoStreamingSession.class.getSimpleName());
+    private final static Logger logger = Logger.getLogger(VideoStreamingSession.class
+            .getSimpleName());
 
-	/**
-	 * Constructor
-	 * 
-	 * @param parent IMS service
-	 * @param content Content to be shared
-	 * @param contact Remote contact Id
-	 */
-	public VideoStreamingSession(ImsService parent, MmContent content, ContactId contact) {
-		super(parent, content, contact);
-		setFeatureTags(new ArrayList<String>(Arrays.asList(RichcallService.FEATURE_TAGS_VIDEO_SHARE)));
-	}
+    /**
+     * Constructor
+     * 
+     * @param parent IMS service
+     * @param content Content to be shared
+     * @param contact Remote contact Id
+     */
+    public VideoStreamingSession(ImsService parent, MmContent content, ContactId contact) {
+        super(parent, content, contact);
+        setFeatureTags(new ArrayList<String>(
+                Arrays.asList(RichcallService.FEATURE_TAGS_VIDEO_SHARE)));
+    }
 
-	/**
-	 * Get the video width
-	 * 
-	 * @return Width
-	 */
-	public int getVideoWidth() {
-		return videoWidth;
-	}
+    /**
+     * Get the video width
+     * 
+     * @return Width
+     */
+    public int getVideoWidth() {
+        return videoWidth;
+    }
 
-	/**
-	 * Get the video height
-	 * 
-	 * @return Height
-	 */
-	public int getVideoHeight() {
-		return videoHeight;
-	}
+    /**
+     * Get the video height
+     * 
+     * @return Height
+     */
+    public int getVideoHeight() {
+        return videoHeight;
+    }
 
-	/**
-	 * Get the video renderer
-	 * 
-	 * @return Renderer
-	 */
-	public IVideoRenderer getVideoRenderer() {
-		return renderer;
-	}
-	
-	/**
-	 * Set the video renderer
-	 * 
-	 * @param renderer Renderer
-	 */
-	public void setVideoRenderer(IVideoRenderer renderer) {
-		this.renderer = renderer;
-	}
+    /**
+     * Get the video renderer
+     * 
+     * @return Renderer
+     */
+    public IVideoRenderer getVideoRenderer() {
+        return renderer;
+    }
+
+    /**
+     * Set the video renderer
+     * 
+     * @param renderer Renderer
+     */
+    public void setVideoRenderer(IVideoRenderer renderer) {
+        this.renderer = renderer;
+    }
 
     /**
      * Get the video player
@@ -143,11 +145,11 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
      * Create an INVITE request
      *
      * @return the INVITE request
-     * @throws SipException 
+     * @throws SipException
      */
     public SipRequest createInvite() throws SipException {
-        return SipMessageFactory.createInvite(getDialogPath(),
-                getFeatureTags(), getDialogPath().getLocalContent());
+        return SipMessageFactory.createInvite(getDialogPath(), getFeatureTags(), getDialogPath()
+                .getLocalContent());
     }
 
     /**
@@ -162,8 +164,7 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
 
         // Error
         if (logger.isActivated()) {
-            logger.info("Session error: " + error.getErrorCode() + ", reason="
-                    + error.getMessage());
+            logger.info("Session error: " + error.getErrorCode() + ", reason=" + error.getMessage());
         }
 
         // Close media session
@@ -173,14 +174,15 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
         removeSession();
 
         try {
-			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
-			// Request capabilities to the remote
-	        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
-		} catch (RcsContactFormatException e) {
-			if (logger.isActivated()) {
-				logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
-			}
-		}
+            ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+            // Request capabilities to the remote
+            getImsService().getImsModule().getCapabilityService()
+                    .requestContactCapabilities(remote);
+        } catch (RcsContactFormatException e) {
+            if (logger.isActivated()) {
+                logger.warn("Cannot parse contact " + getDialogPath().getRemoteParty());
+            }
+        }
 
         // Notify listeners
         for (int i = 0; i < getListeners().size(); i++) {
@@ -189,14 +191,14 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
         }
     }
 
-	@Override
-	public void startSession() {
-		getImsService().getImsModule().getRichcallService().addSession(this);
-		start();
-	}
+    @Override
+    public void startSession() {
+        getImsService().getImsModule().getRichcallService().addSession(this);
+        start();
+    }
 
-	@Override
-	public void removeSession() {
-		getImsService().getImsModule().getRichcallService().removeSession(this);
-	}
+    @Override
+    public void removeSession() {
+        getImsService().getImsModule().getRichcallService().removeSession(this);
+    }
 }

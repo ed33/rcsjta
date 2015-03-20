@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.richcall;
 
 import java.util.Vector;
@@ -34,9 +35,9 @@ import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.gsma.services.rcs.vsh.VideoCodec;
 
 public class VideoSdpTest extends AndroidTestCase {
-	private static int RTP_PORT = 12345;
+    private static int RTP_PORT = 12345;
 
-	// @formatter:off
+    // @formatter:off
     private static String videoSdp = 
             "v=tester" + SipUtils.CRLF +
             "m=video 12345 RTP/AVP 99 98 97 96" + SipUtils.CRLF +
@@ -76,14 +77,14 @@ public class VideoSdpTest extends AndroidTestCase {
             "a=framerate:96 10" + SipUtils.CRLF +
             "a=fmtp:96 profile-level-id=42900b;packetization-mode=1" + SipUtils.CRLF;
     // @formatter:on
-	private VideoCodec[] codecs;
+    private VideoCodec[] codecs;
 
-	protected void setUp() throws Exception {
-		super.setUp();
+    protected void setUp() throws Exception {
+        super.setUp();
 
-		RcsSettings.createInstance(getContext());
+        RcsSettings.createInstance(getContext());
 
-		// @formatter:off
+        // @formatter:off
         // Create list of codecs
         codecs = new VideoCodec[4];
         int payload_count = 95;
@@ -121,41 +122,42 @@ public class VideoSdpTest extends AndroidTestCase {
                 H264Config.CIF_HEIGHT,
                H264Config.CODEC_PARAM_PROFILEID + "=" + H264Profile1_2.BASELINE_PROFILE_ID + ";" + H264Config.CODEC_PARAM_PACKETIZATIONMODE + "=1");
      // @formatter:on
-	}
+    }
 
-	protected void tearDown() throws Exception {
-		super.tearDown();
-	}
+    protected void tearDown() throws Exception {
+        super.tearDown();
+    }
 
-	public void testCreateSdp() {
-		// Create SDP
-		String createdSdp = "v=tester" + SipUtils.CRLF + VideoSdpBuilder.buildSdpOfferWithoutOrientation(codecs, RTP_PORT);
-		// TEST SDP
-		assertEquals(createdSdp, videoSdp);
-	}
+    public void testCreateSdp() {
+        // Create SDP
+        String createdSdp = "v=tester" + SipUtils.CRLF
+                + VideoSdpBuilder.buildSdpOfferWithoutOrientation(codecs, RTP_PORT);
+        // TEST SDP
+        assertEquals(createdSdp, videoSdp);
+    }
 
-	public void testParseSdp() {
-		// Parse the remote SDP part
-		SdpParser parser = new SdpParser(videoSdp2.getBytes());
+    public void testParseSdp() {
+        // Parse the remote SDP part
+        SdpParser parser = new SdpParser(videoSdp2.getBytes());
 
-		// Test port
-		MediaDescription mediaVideo = parser.getMediaDescription("video");
-		int port = mediaVideo.port;
-		assertEquals(port, RTP_PORT);
+        // Test port
+        MediaDescription mediaVideo = parser.getMediaDescription("video");
+        int port = mediaVideo.port;
+        assertEquals(port, RTP_PORT);
 
-		// Test codecs
-		Vector<MediaDescription> medias = parser.getMediaDescriptions("video");
-		Vector<VideoCodec> proposedCodecs = VideoCodecManager.extractVideoCodecsFromSdp(medias);
-		assertEquals(proposedCodecs.size(), codecs.length);
-		for (int i = 0; i < proposedCodecs.size(); i++) {
-			VideoCodec codec = codecs[i];
-			assertEquals(proposedCodecs.elementAt(i).getEncoding(), codec.getEncoding());
-			assertEquals(proposedCodecs.elementAt(i).getPayloadType(), codec.getPayloadType());
-			assertEquals(proposedCodecs.elementAt(i).getParameters(), codec.getParameters());
-			assertEquals(proposedCodecs.elementAt(i).getFrameRate(), codec.getFrameRate());
-			assertEquals(proposedCodecs.elementAt(i).getVideoWidth(), codec.getVideoWidth());
-			assertEquals(proposedCodecs.elementAt(i).getVideoHeight(), codec.getVideoHeight());
-			// Bitrate and order pref not tested because not in SDP
-		}
-	}
+        // Test codecs
+        Vector<MediaDescription> medias = parser.getMediaDescriptions("video");
+        Vector<VideoCodec> proposedCodecs = VideoCodecManager.extractVideoCodecsFromSdp(medias);
+        assertEquals(proposedCodecs.size(), codecs.length);
+        for (int i = 0; i < proposedCodecs.size(); i++) {
+            VideoCodec codec = codecs[i];
+            assertEquals(proposedCodecs.elementAt(i).getEncoding(), codec.getEncoding());
+            assertEquals(proposedCodecs.elementAt(i).getPayloadType(), codec.getPayloadType());
+            assertEquals(proposedCodecs.elementAt(i).getParameters(), codec.getParameters());
+            assertEquals(proposedCodecs.elementAt(i).getFrameRate(), codec.getFrameRate());
+            assertEquals(proposedCodecs.elementAt(i).getVideoWidth(), codec.getVideoWidth());
+            assertEquals(proposedCodecs.elementAt(i).getVideoHeight(), codec.getVideoHeight());
+            // Bitrate and order pref not tested because not in SDP
+        }
+    }
 }

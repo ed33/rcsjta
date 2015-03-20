@@ -61,12 +61,11 @@ public class HttpsProvisioningSMS {
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
-    
+
     /**
      * Context
      */
-	private Context context = null;
-
+    private Context context = null;
 
     /**
      * Constructor
@@ -77,7 +76,7 @@ public class HttpsProvisioningSMS {
         manager = httpsProvisioningManager;
         context = manager.getContext();
     }
-    
+
     /**
      * Constructor
      *
@@ -107,8 +106,9 @@ public class HttpsProvisioningSMS {
      * @param client Instance of {@link DefaultHttpClient}
      * @param localContext Instance of {@link HttpContext}
      */
-    public void registerSmsProvisioningReceiver(final LocalContentResolver localContentResolver, final String smsPort, final String requestUri,
-            final DefaultHttpClient client, final HttpContext localContext) {
+    public void registerSmsProvisioningReceiver(final LocalContentResolver localContentResolver,
+            final String smsPort, final String requestUri, final DefaultHttpClient client,
+            final HttpContext localContext) {
         // Unregister previous one
         unregisterSmsProvisioningReceiver();
 
@@ -151,62 +151,62 @@ public class HttpsProvisioningSMS {
                             final String smsData = new String(smsBuffer, "UCS2");
 
                             if (logger.isActivated()) {
-                                logger.debug("Binary SMS received with :"+smsData);
+                                logger.debug("Binary SMS received with :" + smsData);
                             }
-                            
+
                             if (logger.isActivated()) {
                                 logger.debug("Binary SMS reconfiguration received");
                             }
-                    		
-                            if(smsData.contains(HttpsProvisioningUtils.RESET_CONFIG_SUFFIX)) {
+
+                            if (smsData.contains(HttpsProvisioningUtils.RESET_CONFIG_SUFFIX)) {
                                 if (logger.isActivated()) {
                                     logger.debug("Binary SMS reconfiguration received with suffix reconf");
                                 }
-                                
-                                TelephonyManager tm = (TelephonyManager)ctx.getSystemService(Context.TELEPHONY_SERVICE);
-                               
-                                if(!smsData.contains(tm.getSubscriberId()) && !smsData.contains(RcsSettings.getInstance().getUserProfileImsPrivateId())) {
-                                	if (logger.isActivated()) {
+
+                                TelephonyManager tm = (TelephonyManager) ctx
+                                        .getSystemService(Context.TELEPHONY_SERVICE);
+
+                                if (!smsData.contains(tm.getSubscriberId())
+                                        && !smsData.contains(RcsSettings.getInstance()
+                                                .getUserProfileImsPrivateId())) {
+                                    if (logger.isActivated()) {
                                         logger.debug("Binary SMS reconfiguration received but not with my ID");
                                     }
-                                	return;
+                                    return;
                                 }
 
                                 Thread t = new Thread() {
                                     public void run() {
-                                    	RcsSettings.getInstance().setProvisioningVersion("0");
-                                    	LauncherUtils.stopRcsService(ctx);
-                                    	LauncherUtils.resetRcsConfig(ctx, localContentResolver);
-                                    	LauncherUtils.launchRcsService(ctx, true, false);
+                                        RcsSettings.getInstance().setProvisioningVersion("0");
+                                        LauncherUtils.stopRcsService(ctx);
+                                        LauncherUtils.resetRcsConfig(ctx, localContentResolver);
+                                        LauncherUtils.launchRcsService(ctx, true, false);
                                     }
                                 };
                                 t.start();
-                            }
-                            else {
+                            } else {
                                 if (logger.isActivated()) {
                                     logger.debug("Binary SMS received for OTP");
                                 }
 
-                            	if(manager != null){
-	                                Thread t = new Thread() {
-	                                    public void run() {
-	                                    	manager.updateConfigWithOTP(smsData, requestUri, client,
-		                                                localContext);
-	                                    }
-	                                };
-	                                t.start();
-	
-	                                // Unregister SMS provisioning receiver
-	                                unregisterSmsProvisioningReceiver();
-                            	}
-                            	else
-                            	{
+                                if (manager != null) {
+                                    Thread t = new Thread() {
+                                        public void run() {
+                                            manager.updateConfigWithOTP(smsData, requestUri,
+                                                    client, localContext);
+                                        }
+                                    };
+                                    t.start();
+
+                                    // Unregister SMS provisioning receiver
+                                    unregisterSmsProvisioningReceiver();
+                                } else {
                                     if (logger.isActivated()) {
                                         logger.warn("Binary sms received, no rcscfg requested and not waiting for OTP... Discarding SMS");
                                     }
-                            	}
+                                }
                             }
-                            	
+
                         } catch (UnsupportedEncodingException e) {
                             if (logger.isActivated()) {
                                 logger.debug("Parsing sms OTP failed: " + e);
@@ -236,7 +236,7 @@ public class HttpsProvisioningSMS {
             }
 
             try {
-            	context.unregisterReceiver(smsProvisioningReceiver);
+                context.unregisterReceiver(smsProvisioningReceiver);
             } catch (IllegalArgumentException e) {
                 // Nothing to do
             }

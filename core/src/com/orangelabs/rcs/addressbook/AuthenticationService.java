@@ -46,21 +46,21 @@ import com.orangelabs.rcs.utils.logger.Logger;
  */
 public class AuthenticationService extends Service {
 
-	/**
-	 * Authenticator
-	 */
+    /**
+     * Authenticator
+     */
     private RcsContactsAccountAuthenticator mAuthenticator;
 
     /**
      * Account manager type
      */
     public static final String ACCOUNT_MANAGER_TYPE = "com.orangelabs.rcs";
-    
-	/**
+
+    /**
      * The logger
      */
     private static Logger logger = Logger.getLogger(AuthenticationService.class.getName());
-    
+
     /**
      * Get the account for the specified name
      * 
@@ -70,7 +70,8 @@ public class AuthenticationService extends Service {
      */
     public static Account getAccount(Context context, String username) {
         AccountManager accountManager = AccountManager.get(context);
-        Account[] mAccounts = accountManager.getAccountsByType(AuthenticationService.ACCOUNT_MANAGER_TYPE);
+        Account[] mAccounts = accountManager
+                .getAccountsByType(AuthenticationService.ACCOUNT_MANAGER_TYPE);
         Account mAccount = null;
         int length = mAccounts.length;
         for (int i = 0; i < length; i++) {
@@ -91,9 +92,10 @@ public class AuthenticationService extends Service {
      * @param enableSync true to enable synchronization
      * @param showUngroupedContacts true to show ungrouped contacts
      */
-    public static void createRcsAccount(Context context, LocalContentResolver localContentResolver, String username, boolean enableSync) {
-    	ContactsManager.createInstance(context, context.getContentResolver(), localContentResolver);
-    	
+    public static void createRcsAccount(Context context, LocalContentResolver localContentResolver,
+            String username, boolean enableSync) {
+        ContactsManager.createInstance(context, context.getContentResolver(), localContentResolver);
+
         // Save the account info into the AccountManager if needed
         Account mAccount = getAccount(context, username);
         if (mAccount == null) {
@@ -101,16 +103,16 @@ public class AuthenticationService extends Service {
             AccountManager accountManager = AccountManager.get(context);
             boolean resource = accountManager.addAccountExplicitly(mAccount, null, null);
             if (!resource) {
-            	if (logger.isActivated()){
-            		logger.error("Unable to create account for " + username);
-            	}
+                if (logger.isActivated()) {
+                    logger.error("Unable to create account for " + username);
+                }
                 return;
             }
         }
 
         // Set contacts sync for this account.
-        if (enableSync){
-        	ContentResolver.setIsSyncable(mAccount, ContactsContract.AUTHORITY, 1);
+        if (enableSync) {
+            ContentResolver.setIsSyncable(mAccount, ContactsContract.AUTHORITY, 1);
         }
         ContentResolver.setSyncAutomatically(mAccount, ContactsContract.AUTHORITY, enableSync);
 
@@ -143,12 +145,12 @@ public class AuthenticationService extends Service {
      * Remove all RCS accounts with the exception of the excludeUsername account
      * 
      * @param context The context
-     * @param excludeUsername The username for which the account should not be
-     *            removed (can be null)
+     * @param excludeUsername The username for which the account should not be removed (can be null)
      */
     public static void removeRcsAccount(Context context, String excludeUsername) {
         AccountManager accountManager = AccountManager.get(context);
-        Account[] mAccounts = accountManager.getAccountsByType(AuthenticationService.ACCOUNT_MANAGER_TYPE);
+        Account[] mAccounts = accountManager
+                .getAccountsByType(AuthenticationService.ACCOUNT_MANAGER_TYPE);
         int length = mAccounts.length;
         for (int i = 0; i < length; i++) {
             if (!mAccounts[i].name.equals(excludeUsername)) {
@@ -166,17 +168,16 @@ public class AuthenticationService extends Service {
     }
 
     /**
-     * When binding to the service, return an interface to Authenticator
-     * Service.
+     * When binding to the service, return an interface to Authenticator Service.
      */
     @Override
     public IBinder onBind(Intent intent) {
         if (AccountManager.ACTION_AUTHENTICATOR_INTENT.equals(intent.getAction())) {
             return mAuthenticator.getIBinder();
         }
-        
-        if (logger.isActivated()){
-        	logger.error("Bound with unknown intent: " + intent);
+
+        if (logger.isActivated()) {
+            logger.error("Bound with unknown intent: " + intent);
         }
         return null;
     }
@@ -201,9 +202,8 @@ public class AuthenticationService extends Service {
                 throws NetworkErrorException {
 
             /*
-             * Launch the login activity to add the account, letting it know
-             * that we got there by trying to add an account so it can check for
-             * an existing account.
+             * Launch the login activity to add the account, letting it know that we got there by
+             * trying to add an account so it can check for an existing account.
              */
             Bundle mBundle = new Bundle();
             Intent mIntent = new Intent(mContext, SetupRcsAccount.class);
@@ -211,12 +211,10 @@ public class AuthenticationService extends Service {
             mBundle.putParcelable(AccountManager.KEY_INTENT, mIntent);
             return mBundle;
         }
-        
-        
 
         /**
-         * Returns a Bundle that contains the Intent of the activity that can be
-         * used to edit the properties.
+         * Returns a Bundle that contains the Intent of the activity that can be used to edit the
+         * properties.
          */
         @Override
         public Bundle editProperties(AccountAuthenticatorResponse response, String accountType) {
@@ -242,8 +240,7 @@ public class AuthenticationService extends Service {
         }
 
         /**
-         * Ask the authenticator for a localized label for the given
-         * authTokenType.
+         * Ask the authenticator for a localized label for the given authTokenType.
          */
         @Override
         public String getAuthTokenLabel(String authTokenType) {
@@ -260,8 +257,7 @@ public class AuthenticationService extends Service {
         }
 
         /**
-         * Checks if the account supports all the specified authenticator
-         * specific features.
+         * Checks if the account supports all the specified authenticator specific features.
          */
         @Override
         public Bundle hasFeatures(AccountAuthenticatorResponse response, Account account,
@@ -271,5 +267,5 @@ public class AuthenticationService extends Service {
             return result;
         }
     }
-    
+
 }

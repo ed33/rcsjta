@@ -24,21 +24,21 @@ package com.orangelabs.rcs.core.ims.service.presence.xdm;
  * @author Jean-Marc AUFFRET
  */
 public class HttpDeleteRequest extends HttpRequest {
-	/**
-	 * Constructor
-	 * 
-	 * @param url URL
-	 */
-	public HttpDeleteRequest(String url) {
-		super(url, null, null);
-	}
-	
-	/**
-	 * Returns the HTTP method
-	 * 
-	 * @return Method
-	 */
-	public String getMethod() {
-		return "DELETE";
-	}
+    /**
+     * Constructor
+     * 
+     * @param url URL
+     */
+    public HttpDeleteRequest(String url) {
+        super(url, null, null);
+    }
+
+    /**
+     * Returns the HTTP method
+     * 
+     * @return Method
+     */
+    public String getMethod() {
+        return "DELETE";
+    }
 }

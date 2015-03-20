@@ -19,30 +19,30 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.im.filetransfer;
 
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
-
 
 /**
  * File transfer session listener
  * 
  * @author jexa7410
  */
-public interface FileSharingSessionListener extends ImsSessionListener  {
-	/**
-	 * File transfer progress
-	 * 
-	 * @param currentSize Data size transfered 
-	 * @param totalSize Total size to be transfered
-	 */
-	public void handleTransferProgress(long currentSize, long totalSize);
+public interface FileSharingSessionListener extends ImsSessionListener {
+    /**
+     * File transfer progress
+     * 
+     * @param currentSize Data size transfered
+     * @param totalSize Total size to be transfered
+     */
+    public void handleTransferProgress(long currentSize, long totalSize);
 
-	/**
-	 * File transfer not allowed to send
-	 */
-	public void handleTransferNotAllowedToSend();
+    /**
+     * File transfer not allowed to send
+     */
+    public void handleTransferNotAllowedToSend();
 
     /**
      * File transfer error
@@ -50,27 +50,26 @@ public interface FileSharingSessionListener extends ImsSessionListener  {
      * @param error Error
      */
     public void handleTransferError(FileSharingError error);
-    
+
     /**
-     * File has been transfered
-     * In case of file transfer over MSRP, the terminating side has received the file, 
-     * but in case of file transfer over HTTP, only the content server has received the
-     * file.
+     * File has been transfered In case of file transfer over MSRP, the terminating side has
+     * received the file, but in case of file transfer over HTTP, only the content server has
+     * received the file.
      *
      * @param content MmContent associated to the received file
      */
     public void handleFileTransfered(MmContent content);
-    
+
     /**
      * File transfer has been paused by user
      */
     public void handleFileTransferPausedByUser();
-    
+
     /**
      * File transfer has been paused by system
      */
     public void handleFileTransferPausedBySystem();
-    
+
     /**
      * File transfer has been resumed
      */

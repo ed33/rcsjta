@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.security;
 
 import java.io.ByteArrayOutputStream;
@@ -41,124 +42,131 @@ import com.orangelabs.rcs.provisioning.ProvisioningParser;
  */
 public class SecurityCertificateProvisioningTest extends AndroidTestCase {
 
-	private RcsSettings mRcsSettings;
-	private Set<CertificateData> mMemoryData;
+    private RcsSettings mRcsSettings;
+    private Set<CertificateData> mMemoryData;
 
-	protected void setUp() throws Exception {
-		super.setUp();
+    protected void setUp() throws Exception {
+        super.setUp();
 
-		RcsSettings.createInstance(getContext());
-		SecurityLog.createInstance(new LocalContentResolver(getContext().getContentResolver()));
-		mRcsSettings = RcsSettings.getInstance();
-	}
+        RcsSettings.createInstance(getContext());
+        SecurityLog.createInstance(new LocalContentResolver(getContext().getContentResolver()));
+        mRcsSettings = RcsSettings.getInstance();
+    }
 
-	protected void tearDown() throws Exception {
-		super.tearDown();
-	}
+    protected void tearDown() throws Exception {
+        super.tearDown();
+    }
 
-	private String loadConfigFile(String file) {
-		InputStream inputStream = null;
-		try {
-			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			inputStream = this.getClass().getClassLoader().getResourceAsStream(file);
-			int i;
-			i = inputStream.read();
-			while (i != -1) {
-				outputStream.write(i);
-				i = inputStream.read();
-			}
-			return outputStream.toString();
-		} catch (Exception e) {
-			return null;
-		} finally {
-			if (inputStream != null) {
-				try {
-					inputStream.close();
-				} catch (IOException e) {
-				}
-			}
-		}
-	}
+    private String loadConfigFile(String file) {
+        InputStream inputStream = null;
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            inputStream = this.getClass().getClassLoader().getResourceAsStream(file);
+            int i;
+            i = inputStream.read();
+            while (i != -1) {
+                outputStream.write(i);
+                i = inputStream.read();
+            }
+            return outputStream.toString();
+        } catch (Exception e) {
+            return null;
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                }
+            }
+        }
+    }
 
-	public void testAuthorized() {
-		String content = loadConfigFile("assets/template-ota_config-allowed.xml");
-		mMemoryData = null;
-		ProvisioningParser parser = new ProvisioningParser(content, new ICertificateProvisioningListener() {
-			
-			@Override
-			public void stop() {
-				
-			}
-			
-			@Override
-			public void start() {
-				mMemoryData = new HashSet<CertificateData>();
-			}
-			
-			@Override
-			public void addNewCertificate(String iari, String certificate) {
-				CertificateData iariRangeCertificate = new CertificateData(iari, certificate);
-				mMemoryData.add(iariRangeCertificate);
-			}
-		});
-		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
-		boolean result = parser.parse(gsmaRelease, true);
-		assertTrue(result);
-		assertTrue(mRcsSettings.isExtensionsAllowed());
+    public void testAuthorized() {
+        String content = loadConfigFile("assets/template-ota_config-allowed.xml");
+        mMemoryData = null;
+        ProvisioningParser parser = new ProvisioningParser(content,
+                new ICertificateProvisioningListener() {
 
-		assertNotNull(mMemoryData);
-		for (CertificateData iariRangeCertificate : mMemoryData) {
-			String iariRange = iariRangeCertificate.getIARIRange();
-			String cert = iariRangeCertificate.getCertificate();
-			if (!iariRange.equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo1")) {
-				if (!iariRange.equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo2")) {
-					fail("IARI not found ".concat(iariRange));
-				} else {
-					assertEquals("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_2A", cert);
-				}
-			} else {
-				if (!cert.equals("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1A")) {
-					if (!cert.equals("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1B")) {
-						fail("Certificate not found ".concat(cert));
-					}
-				}
-			}
-		}
-	}
+                    @Override
+                    public void stop() {
 
-	public void testNotAllowed() {
-		String content = loadConfigFile("assets/template-ota_config-not-allowed.xml");
-		ProvisioningParser parser = new ProvisioningParser(content, null);
-		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
-		boolean result = parser.parse(gsmaRelease, true);
-		assertTrue(result);
-		assertFalse(mRcsSettings.isExtensionsAllowed());
-	}
+                    }
 
-	public void testIariAllowed() {
-		String content = loadConfigFile("assets/template-ota_config-allowed.xml");
-		ProvisioningParser parser = new ProvisioningParser(content, null);
-		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
-		boolean result = parser.parse(gsmaRelease, true);
-		assertTrue(result);
-		assertTrue(mRcsSettings.isExtensionsAllowed());
-	}
+                    @Override
+                    public void start() {
+                        mMemoryData = new HashSet<CertificateData>();
+                    }
 
-	public void testMnoApp() {
-		String content = loadConfigFile("assets/template-ota_config-allowed-mno.xml");
-		ProvisioningParser parser = new ProvisioningParser(content, null);
-		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
-		boolean result = parser.parse(gsmaRelease, true);
-		assertTrue(result);
-		assertEquals(mRcsSettings.getExtensionspolicy(), ExtensionPolicy.ONLY_MNO);
-	}
+                    @Override
+                    public void addNewCertificate(String iari, String certificate) {
+                        CertificateData iariRangeCertificate = new CertificateData(iari,
+                                certificate);
+                        mMemoryData.add(iariRangeCertificate);
+                    }
+                });
+        GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
+        boolean result = parser.parse(gsmaRelease, true);
+        assertTrue(result);
+        assertTrue(mRcsSettings.isExtensionsAllowed());
 
-	public void test3ppApp() {
-		String content = loadConfigFile("assets/template-ota_config-allowed-3pp.xml");
-		ProvisioningParser parser = new ProvisioningParser(content, null);
-		GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
-		boolean result = parser.parse(gsmaRelease, true);
-		assertTrue(result);
-		assertEquals(mRcsSettings.getExtensionspolicy(), ExtensionPolicy.MNO_THIRD_PARTTY);
-	}
+        assertNotNull(mMemoryData);
+        for (CertificateData iariRangeCertificate : mMemoryData) {
+            String iariRange = iariRangeCertificate.getIARIRange();
+            String cert = iariRangeCertificate.getCertificate();
+            if (!iariRange.equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo1")) {
+                if (!iariRange
+                        .equals("urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo2")) {
+                    fail("IARI not found ".concat(iariRange));
+                } else {
+                    assertEquals(
+                            "MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_2A",
+                            cert);
+                }
+            } else {
+                if (!cert
+                        .equals("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1A")) {
+                    if (!cert
+                            .equals("MIIDEzCCAfugAwIBAgIERnLjKTANBgkqhkiG9w0BAQsFADAYMRYwFAYDVQQDEw1t_1B")) {
+                        fail("Certificate not found ".concat(cert));
+                    }
+                }
+            }
+        }
+    }
+
+    public void testNotAllowed() {
+        String content = loadConfigFile("assets/template-ota_config-not-allowed.xml");
+        ProvisioningParser parser = new ProvisioningParser(content, null);
+        GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
+        boolean result = parser.parse(gsmaRelease, true);
+        assertTrue(result);
+        assertFalse(mRcsSettings.isExtensionsAllowed());
+    }
+
+    public void testIariAllowed() {
+        String content = loadConfigFile("assets/template-ota_config-allowed.xml");
+        ProvisioningParser parser = new ProvisioningParser(content, null);
+        GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
+        boolean result = parser.parse(gsmaRelease, true);
+        assertTrue(result);
+        assertTrue(mRcsSettings.isExtensionsAllowed());
+    }
+
+    public void testMnoApp() {
+        String content = loadConfigFile("assets/template-ota_config-allowed-mno.xml");
+        ProvisioningParser parser = new ProvisioningParser(content, null);
+        GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
+        boolean result = parser.parse(gsmaRelease, true);
+        assertTrue(result);
+        assertEquals(mRcsSettings.getExtensionspolicy(), ExtensionPolicy.ONLY_MNO);
+    }
+
+    public void test3ppApp() {
+        String content = loadConfigFile("assets/template-ota_config-allowed-3pp.xml");
+        ProvisioningParser parser = new ProvisioningParser(content, null);
+        GsmaRelease gsmaRelease = mRcsSettings.getGsmaRelease();
+        boolean result = parser.parse(gsmaRelease, true);
+        assertTrue(result);
+        assertEquals(mRcsSettings.getExtensionspolicy(), ExtensionPolicy.MNO_THIRD_PARTTY);
+    }
 }

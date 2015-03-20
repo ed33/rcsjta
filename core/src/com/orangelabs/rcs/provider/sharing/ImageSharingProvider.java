@@ -52,8 +52,8 @@ public class ImageSharingProvider extends ContentProvider {
     private static final UriMatcher sUriMatcher;
     static {
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-        sUriMatcher.addURI(ImageSharingLog.CONTENT_URI.getAuthority(),
-                ImageSharingLog.CONTENT_URI.getPath().substring(1), UriType.IMAGE_SHARING);
+        sUriMatcher.addURI(ImageSharingLog.CONTENT_URI.getAuthority(), ImageSharingLog.CONTENT_URI
+                .getPath().substring(1), UriType.IMAGE_SHARING);
         sUriMatcher.addURI(ImageSharingLog.CONTENT_URI.getAuthority(), ImageSharingLog.CONTENT_URI
                 .getPath().substring(1).concat("/*"), UriType.IMAGE_SHARING_WITH_ID);
     }
@@ -162,8 +162,8 @@ public class ImageSharingProvider extends ContentProvider {
                     /* Intentional fall through */
                 case UriType.IMAGE_SHARING:
                     SQLiteDatabase db = mOpenHelper.getReadableDatabase();
-                    cursor = db.query(TABLE, projection, selection, selectionArgs, null,
-                            null, sort);
+                    cursor = db
+                            .query(TABLE, projection, selection, selectionArgs, null, null, sort);
                     cursor.setNotificationUri(getContext().getContentResolver(), uri);
                     return cursor;
 

@@ -20,23 +20,22 @@ package com.orangelabs.rcs.utils;
 
 import android.net.Uri;
 
-
 /**
  * HTTP utility functions
  */
 public class HttpUtils {
-	/**
-	 * CRLF constant
-	 */
-	public final static String CRLF = "\r\n";
-	
-	/**
-	 * Encode special characters in URL
-	 * 
-	 * @param url URL to be encoded
-	 * @return Encoded URL
-	 */
-	public static String encodeURL(String url) {
-		return Uri.encode(url);
-	}
+    /**
+     * CRLF constant
+     */
+    public final static String CRLF = "\r\n";
+
+    /**
+     * Encode special characters in URL
+     * 
+     * @param url URL to be encoded
+     * @return Encoded URL
+     */
+    public static String encodeURL(String url) {
+        return Uri.encode(url);
+    }
 }

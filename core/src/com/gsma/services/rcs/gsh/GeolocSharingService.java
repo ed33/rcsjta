@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.gsh;
 
 import java.util.HashSet;
@@ -40,22 +41,18 @@ import com.gsma.services.rcs.RcsServiceNotAvailableException;
 import com.gsma.services.rcs.contacts.ContactId;
 
 /**
- * This class offers the main entry point to share geolocation info
- * during a CS call. Several applications may connect/disconnect to
- * the API.
- * 
- * The parameter contact in the API supports the following formats:
- * MSISDN in national or international format, SIP address, SIP-URI
- * or Tel-URI.
+ * This class offers the main entry point to share geolocation info during a CS call. Several
+ * applications may connect/disconnect to the API. The parameter contact in the API supports the
+ * following formats: MSISDN in national or international format, SIP address, SIP-URI or Tel-URI.
  * 
  * @author Jean-Marc AUFFRET
  */
 public class GeolocSharingService extends RcsService {
-	/**
-	 * API
-	 */
-	private IGeolocSharingService api;
-	
+    /**
+     * API
+     */
+    private IGeolocSharingService api;
+
     /**
      * Constructor
      * 
@@ -63,86 +60,86 @@ public class GeolocSharingService extends RcsService {
      * @param listener Service listener
      */
     public GeolocSharingService(Context ctx, RcsServiceListener listener) {
-    	super(ctx, listener);
+        super(ctx, listener);
     }
 
     /**
      * Connects to the API
      */
     public void connect() {
-    	ctx.bindService(new Intent(IGeolocSharingService.class.getName()), apiConnection, 0);
+        ctx.bindService(new Intent(IGeolocSharingService.class.getName()), apiConnection, 0);
     }
-    
+
     /**
      * Disconnects from the API
      */
     public void disconnect() {
-    	try {
-    		ctx.unbindService(apiConnection);
-        } catch(IllegalArgumentException e) {
-        	// Nothing to do
+        try {
+            ctx.unbindService(apiConnection);
+        } catch (IllegalArgumentException e) {
+            // Nothing to do
         }
-    }
-
-	/**
-	 * Set API interface
-	 * 
-	 * @param api API interface
-	 */
-    protected void setApi(IInterface api) {
-    	super.setApi(api);
-    	
-        this.api = (IGeolocSharingService)api;
     }
 
     /**
-	 * Service connection
-	 */
-	private ServiceConnection apiConnection = new ServiceConnection() {
+     * Set API interface
+     * 
+     * @param api API interface
+     */
+    protected void setApi(IInterface api) {
+        super.setApi(api);
+
+        this.api = (IGeolocSharingService) api;
+    }
+
+    /**
+     * Service connection
+     */
+    private ServiceConnection apiConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
-        	setApi(IGeolocSharingService.Stub.asInterface(service));
-        	if (serviceListener != null) {
-        		serviceListener.onServiceConnected();
-        	}
+            setApi(IGeolocSharingService.Stub.asInterface(service));
+            if (serviceListener != null) {
+                serviceListener.onServiceConnected();
+            }
         }
 
         public void onServiceDisconnected(ComponentName className) {
-        	setApi(null);
-        	if (serviceListener != null) {
-        		serviceListener.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
-        	}
+            setApi(null);
+            if (serviceListener != null) {
+                serviceListener.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
+            }
         }
     };
 
     /**
-     * Shares a geolocation with a contact. An exception if thrown if there is no ongoing
-     * CS call. The parameter contact supports the following formats: MSISDN in national
-     * or international format, SIP address, SIP-URI or Tel-URI. If the format of the
-     * contact is not supported an exception is thrown.
+     * Shares a geolocation with a contact. An exception if thrown if there is no ongoing CS call.
+     * The parameter contact supports the following formats: MSISDN in national or international
+     * format, SIP address, SIP-URI or Tel-URI. If the format of the contact is not supported an
+     * exception is thrown.
      * 
      * @param contact Contact identifier
      * @param geoloc Geolocation info
      * @return Geoloc sharing
      * @throws RcsServiceException
-	 * @see Geoloc
+     * @see Geoloc
      */
     public GeolocSharing shareGeoloc(ContactId contact, Geoloc geoloc) throws RcsServiceException {
-		if (api != null) {
-			try {
-				IGeolocSharing sharingIntf = api.shareGeoloc(contact, geoloc);
-				if (sharingIntf != null) {
-					return new GeolocSharing(sharingIntf);
-				} else {
-					return null;
-				}
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }    
-    
+        if (api != null) {
+            try {
+                IGeolocSharing sharingIntf = api.shareGeoloc(contact, geoloc);
+                if (sharingIntf != null) {
+                    return new GeolocSharing(sharingIntf);
+                } else {
+                    return null;
+                }
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
+
     /**
      * Returns the list of geoloc sharings in progress
      * 
@@ -150,22 +147,23 @@ public class GeolocSharingService extends RcsService {
      * @throws RcsServiceException
      */
     public Set<GeolocSharing> getGeolocSharings() throws RcsServiceException {
-		if (api != null) {
-			try {
-	    		Set<GeolocSharing> result = new HashSet<GeolocSharing>();
-				List<IBinder> ishList = api.getGeolocSharings();
-				for (IBinder binder : ishList) {
-					GeolocSharing sharing = new GeolocSharing(IGeolocSharing.Stub.asInterface(binder));
-					result.add(sharing);
-				}
-				return result;
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }    
+        if (api != null) {
+            try {
+                Set<GeolocSharing> result = new HashSet<GeolocSharing>();
+                List<IBinder> ishList = api.getGeolocSharings();
+                for (IBinder binder : ishList) {
+                    GeolocSharing sharing = new GeolocSharing(
+                            IGeolocSharing.Stub.asInterface(binder));
+                    result.add(sharing);
+                }
+                return result;
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 
     /**
      * Returns a current geoloc sharing from its unique ID
@@ -175,50 +173,50 @@ public class GeolocSharingService extends RcsService {
      * @throws RcsServiceException
      */
     public GeolocSharing getGeolocSharing(String sharingId) throws RcsServiceException {
-		if (api != null) {
-			try {
-				return new GeolocSharing(api.getGeolocSharing(sharingId));
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }    
+        if (api != null) {
+            try {
+                return new GeolocSharing(api.getGeolocSharing(sharingId));
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 
-	/**
-	 * Adds a listener on geoloc sharing events
-	 *
-	 * @param listener Listener
-	 * @throws RcsServiceException
-	 */
-	public void addEventListener(GeolocSharingListener listener) throws RcsServiceException {
-		if (api != null) {
-			try {
-				api.addEventListener2(listener);
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+    /**
+     * Adds a listener on geoloc sharing events
+     *
+     * @param listener Listener
+     * @throws RcsServiceException
+     */
+    public void addEventListener(GeolocSharingListener listener) throws RcsServiceException {
+        if (api != null) {
+            try {
+                api.addEventListener2(listener);
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 
-	/**
-	 * Removes a listener on geoloc sharing events
-	 *
-	 * @param listener Listener
-	 * @throws RcsServiceException
-	 */
-	public void removeEventListener(GeolocSharingListener listener) throws RcsServiceException {
-		if (api != null) {
-			try {
-				api.removeEventListener2(listener);
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+    /**
+     * Removes a listener on geoloc sharing events
+     *
+     * @param listener Listener
+     * @throws RcsServiceException
+     */
+    public void removeEventListener(GeolocSharingListener listener) throws RcsServiceException {
+        if (api != null) {
+            try {
+                api.removeEventListener2(listener);
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 }

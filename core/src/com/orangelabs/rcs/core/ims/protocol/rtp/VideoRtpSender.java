@@ -50,41 +50,42 @@ public class VideoRtpSender extends MediaRtpSender {
      * @param RtpStreamListener rtp stream listener
      * @throws RtpException
      */
-    public void prepareSession(MediaInput player, String remoteAddress, int remotePort, RtpStreamListener rtpStreamListener)
-            throws RtpException {
-    	try {
-    		// Create the input stream
+    public void prepareSession(MediaInput player, String remoteAddress, int remotePort,
+            RtpStreamListener rtpStreamListener) throws RtpException {
+        try {
+            // Create the input stream
             inputStream = new VideoCaptureStream(format, player);
-    		inputStream.open();
-			if (logger.isActivated()) {
-				logger.debug("Input stream: " + inputStream.getClass().getName());
-			}
+            inputStream.open();
+            if (logger.isActivated()) {
+                logger.debug("Input stream: " + inputStream.getClass().getName());
+            }
 
             // Create the output stream
-            outputStream = new RtpOutputStream(remoteAddress, remotePort, localPort, RtpOutputStream.RTCP_SOCKET_TIMEOUT);
+            outputStream = new RtpOutputStream(remoteAddress, remotePort, localPort,
+                    RtpOutputStream.RTCP_SOCKET_TIMEOUT);
             outputStream.addRtpStreamListener(rtpStreamListener);
             outputStream.open();
-			if (logger.isActivated()) {
-				logger.debug("Output stream: " + outputStream.getClass().getName());
-			}
+            if (logger.isActivated()) {
+                logger.debug("Output stream: " + outputStream.getClass().getName());
+            }
 
-        	// Create the codec chain
-        	Codec[] codecChain = MediaRegistry.generateEncodingCodecChain(format.getCodec());
+            // Create the codec chain
+            Codec[] codecChain = MediaRegistry.generateEncodingCodecChain(format.getCodec());
 
             // Create the media processor
-    		processor = new Processor(inputStream, outputStream, codecChain);
+            processor = new Processor(inputStream, outputStream, codecChain);
 
-        	if (logger.isActivated()) {
-        		logger.debug("Session has been prepared with success");
+            if (logger.isActivated()) {
+                logger.debug("Session has been prepared with success");
             }
-        } catch(Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Can't prepare resources correctly", e);
-        	}
-        	throw new RtpException("Can't prepare resources");
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't prepare resources correctly", e);
+            }
+            throw new RtpException("Can't prepare resources");
         }
     }
-    
+
     /**
      * Prepare the RTP session for a sender associated to a receiver
      *
@@ -95,41 +96,41 @@ public class VideoRtpSender extends MediaRtpSender {
      * @param RtpStreamListener rtp stream listener
      * @throws RtpException
      */
-    
 
-    public void prepareSession(MediaInput player, String remoteAddress, int remotePort, RtpInputStream rtpStream, RtpStreamListener rtpStreamListener)
-            throws RtpException {
-    	try {
-    		// Create the input stream
+    public void prepareSession(MediaInput player, String remoteAddress, int remotePort,
+            RtpInputStream rtpStream, RtpStreamListener rtpStreamListener) throws RtpException {
+        try {
+            // Create the input stream
             inputStream = new VideoCaptureStream(format, player);
-    		inputStream.open();
-			if (logger.isActivated()) {
-				logger.debug("Input stream: " + inputStream.getClass().getName());
-			}
+            inputStream.open();
+            if (logger.isActivated()) {
+                logger.debug("Input stream: " + inputStream.getClass().getName());
+            }
 
             // Create the output stream
-            //outputStream = new RtpOutputStream(remoteAddress, remotePort, localRtpPort, RtpOutputStream.RTCP_SOCKET_TIMEOUT);
+            // outputStream = new RtpOutputStream(remoteAddress, remotePort, localRtpPort,
+            // RtpOutputStream.RTCP_SOCKET_TIMEOUT);
             outputStream = new RtpOutputStream(remoteAddress, remotePort, rtpStream);
             outputStream.addRtpStreamListener(rtpStreamListener);
             outputStream.open();
-			if (logger.isActivated()) {
-				logger.debug("Output stream: " + outputStream.getClass().getName());
-			}
+            if (logger.isActivated()) {
+                logger.debug("Output stream: " + outputStream.getClass().getName());
+            }
 
-        	// Create the codec chain
-        	Codec[] codecChain = MediaRegistry.generateEncodingCodecChain(format.getCodec());
+            // Create the codec chain
+            Codec[] codecChain = MediaRegistry.generateEncodingCodecChain(format.getCodec());
 
             // Create the media processor
-    		processor = new Processor(inputStream, outputStream, codecChain);
+            processor = new Processor(inputStream, outputStream, codecChain);
 
-        	if (logger.isActivated()) {
-        		logger.debug("Session has been prepared with success");
+            if (logger.isActivated()) {
+                logger.debug("Session has been prepared with success");
             }
-        } catch(Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Can't prepare resources correctly", e);
-        	}
-        	throw new RtpException("Can't prepare resources");
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't prepare resources correctly", e);
+            }
+            throw new RtpException("Can't prepare resources");
         }
     }
 }

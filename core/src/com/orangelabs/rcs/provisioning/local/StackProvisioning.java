@@ -53,240 +53,280 @@ import com.orangelabs.rcs.provider.settings.RcsSettingsData.FileTransferProtocol
  * @author jexa7410
  */
 public class StackProvisioning extends Activity {
-	/**
-	 * Folder path for certificate
-	 */
-	public static final String CERTIFICATE_FOLDER_PATH = Environment.getExternalStorageDirectory().getPath();
+    /**
+     * Folder path for certificate
+     */
+    public static final String CERTIFICATE_FOLDER_PATH = Environment.getExternalStorageDirectory()
+            .getPath();
 
-	/**
-	 * Configuration modes
-	 */
-	private String[] mConfigModes;
-	
-	/**
-	 * SIP protocol
-	 */
-	private static final String[] SIP_PROTOCOL = { "UDP", "TCP", "TLS" };
+    /**
+     * Configuration modes
+     */
+    private String[] mConfigModes;
 
-	/**
-	 * Network accesses
-	 */
-	private String[] mNetworkAccesses;
+    /**
+     * SIP protocol
+     */
+    private static final String[] SIP_PROTOCOL = {
+            "UDP", "TCP", "TLS"
+    };
 
-	/**
-	 * FT protocol
-	 */
-	private static final String[] FT_PROTOCOL = { RcsSettingsData.FileTransferProtocol.HTTP.name(),  RcsSettingsData.FileTransferProtocol.MSRP.name() };
+    /**
+     * Network accesses
+     */
+    private String[] mNetworkAccesses;
 
-	private boolean isInFront;
+    /**
+     * FT protocol
+     */
+    private static final String[] FT_PROTOCOL = {
+            RcsSettingsData.FileTransferProtocol.HTTP.name(),
+            RcsSettingsData.FileTransferProtocol.MSRP.name()
+    };
 
-	@Override
-	public void onCreate(Bundle bundle) {
-		super.onCreate(bundle);
-		
-		// Set layout
-		setContentView(R.layout.rcs_provisioning_stack);
-		
-		// Set buttons callback
-		Button btn = (Button) findViewById(R.id.save_btn);
-		btn.setOnClickListener(saveBtnListener);
-		mConfigModes = getResources().getStringArray(R.array.provisioning_config_mode);
-		mNetworkAccesses = getResources().getStringArray(R.array.provisioning_network_access);
-		updateView(bundle);
-		isInFront = true;
-	}
+    private boolean isInFront;
 
-	@Override
-	protected void onSaveInstanceState(Bundle bundle) {
-		super.onSaveInstanceState(bundle);
-		saveInstanceState(bundle);
-	}
+    @Override
+    public void onCreate(Bundle bundle) {
+        super.onCreate(bundle);
 
-	@Override
-	public void onResume() {
-		super.onResume();
-		if (isInFront == false) {
-			isInFront = true;
-			// Update UI (from DB)
-			updateView(null);
-		}
-	}
+        // Set layout
+        setContentView(R.layout.rcs_provisioning_stack);
 
-	@Override
-	protected void onPause() {
-		super.onPause();
-		isInFront = false;
-	}
+        // Set buttons callback
+        Button btn = (Button) findViewById(R.id.save_btn);
+        btn.setOnClickListener(saveBtnListener);
+        mConfigModes = getResources().getStringArray(R.array.provisioning_config_mode);
+        mNetworkAccesses = getResources().getStringArray(R.array.provisioning_network_access);
+        updateView(bundle);
+        isInFront = true;
+    }
 
-	/**
-	 * Save parameters either in bundle or in RCS settings
-	 */
-	private void saveInstanceState(Bundle bundle) {
-		Spinner spinner = (Spinner) findViewById(R.id.Autoconfig);
-		switch (spinner.getSelectedItemPosition()) {
-		case 0:
-			if (bundle != null) {
-				bundle.putInt(RcsSettingsData.CONFIG_MODE, ConfigurationMode.MANUAL.toInt());
-			} else {
-				RcsSettings.getInstance().setConfigurationMode(ConfigurationMode.MANUAL);
-			}
-			break;
-		case 1:
-			if (bundle != null) {
-				bundle.putInt(RcsSettingsData.CONFIG_MODE, ConfigurationMode.AUTO.toInt());
-			} else {
-				RcsSettings.getInstance().setConfigurationMode(ConfigurationMode.AUTO);
-			}
-			break;
-		}
+    @Override
+    protected void onSaveInstanceState(Bundle bundle) {
+        super.onSaveInstanceState(bundle);
+        saveInstanceState(bundle);
+    }
 
-		spinner = (Spinner) findViewById(R.id.SipDefaultProtocolForMobile);
-		if (bundle != null) {
-			bundle.putString(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE, (String) spinner.getSelectedItem());
-		} else {
-			RcsSettings.getInstance().writeParameter(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,
-					(String) spinner.getSelectedItem());
-		}
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (isInFront == false) {
+            isInFront = true;
+            // Update UI (from DB)
+            updateView(null);
+        }
+    }
 
-		spinner = (Spinner) findViewById(R.id.SipDefaultProtocolForWifi);
-		if (bundle != null) {
-			bundle.putString(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI, (String) spinner.getSelectedItem());
-		} else {
-			RcsSettings.getInstance().writeParameter(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI,
-					(String) spinner.getSelectedItem());
-		}
+    @Override
+    protected void onPause() {
+        super.onPause();
+        isInFront = false;
+    }
 
-		saveCheckBoxParameter(this, R.id.TcpFallback, RcsSettingsData.TCP_FALLBACK, bundle);
+    /**
+     * Save parameters either in bundle or in RCS settings
+     */
+    private void saveInstanceState(Bundle bundle) {
+        Spinner spinner = (Spinner) findViewById(R.id.Autoconfig);
+        switch (spinner.getSelectedItemPosition()) {
+            case 0:
+                if (bundle != null) {
+                    bundle.putInt(RcsSettingsData.CONFIG_MODE, ConfigurationMode.MANUAL.toInt());
+                } else {
+                    RcsSettings.getInstance().setConfigurationMode(ConfigurationMode.MANUAL);
+                }
+                break;
+            case 1:
+                if (bundle != null) {
+                    bundle.putInt(RcsSettingsData.CONFIG_MODE, ConfigurationMode.AUTO.toInt());
+                } else {
+                    RcsSettings.getInstance().setConfigurationMode(ConfigurationMode.AUTO);
+                }
+                break;
+        }
 
-		spinner = (Spinner) findViewById(R.id.TlsCertificateRoot);
-		if (spinner.getSelectedItemPosition() == 0) {
-			if (bundle != null) {
-				bundle.putString(RcsSettingsData.TLS_CERTIFICATE_ROOT, "");
-			} else {
-				RcsSettings.getInstance().writeParameter(RcsSettingsData.TLS_CERTIFICATE_ROOT, "");
-			}
-		} else {
-			String path = CERTIFICATE_FOLDER_PATH + File.separator + (String) spinner.getSelectedItem();
-			if (bundle != null) {
-				bundle.putString(RcsSettingsData.TLS_CERTIFICATE_ROOT, path);
-			} else {
-				RcsSettings.getInstance().writeParameter(RcsSettingsData.TLS_CERTIFICATE_ROOT, path);
-			}
-		}
+        spinner = (Spinner) findViewById(R.id.SipDefaultProtocolForMobile);
+        if (bundle != null) {
+            bundle.putString(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,
+                    (String) spinner.getSelectedItem());
+        } else {
+            RcsSettings.getInstance().writeParameter(
+                    RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,
+                    (String) spinner.getSelectedItem());
+        }
 
-		spinner = (Spinner) findViewById(R.id.TlsCertificateIntermediate);
-		if (spinner.getSelectedItemPosition() == 0) {
-			if (bundle != null) {
-				bundle.putString(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE, "");
-			} else {
-				RcsSettings.getInstance().writeParameter(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE, "");
-			}
-		} else {
-			String path = CERTIFICATE_FOLDER_PATH + File.separator + (String) spinner.getSelectedItem();
-			if (bundle != null) {
-				bundle.putString(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE, path);
-			} else {
-				RcsSettings.getInstance().writeParameter(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE, path);
-			}
-		}
+        spinner = (Spinner) findViewById(R.id.SipDefaultProtocolForWifi);
+        if (bundle != null) {
+            bundle.putString(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI,
+                    (String) spinner.getSelectedItem());
+        } else {
+            RcsSettings.getInstance().writeParameter(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI,
+                    (String) spinner.getSelectedItem());
+        }
 
-		spinner = (Spinner) findViewById(R.id.NetworkAccess);
-		switch (spinner.getSelectedItemPosition()) {
-		case 1:
-			if (bundle != null) {
-				bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.MOBILE.toInt());
-			} else {
-				RcsSettings.getInstance().setNetworkAccess(NetworkAccessType.MOBILE);
-			}
-			break;
-		case 2:
-			if (bundle != null) {
-				bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.WIFI.toInt());
-			} else {
-				RcsSettings.getInstance().setNetworkAccess(NetworkAccessType.WIFI);
-			}
-			break;
-		default:
-			if (bundle != null) {
-				bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.ANY.toInt());
-			} else {
-				RcsSettings.getInstance().setNetworkAccess(NetworkAccessType.ANY);
-			}
-		}
+        saveCheckBoxParameter(this, R.id.TcpFallback, RcsSettingsData.TCP_FALLBACK, bundle);
 
-		spinner = (Spinner) findViewById(R.id.FtProtocol);
-		if (bundle != null) {
-			bundle.putString(RcsSettingsData.FT_PROTOCOL, (String) spinner.getSelectedItem());
-		} else {
-			FileTransferProtocol protocol = FileTransferProtocol.valueOf((String) spinner.getSelectedItem());
-			RcsSettings.getInstance().setFtProtocol(protocol);
-		}
+        spinner = (Spinner) findViewById(R.id.TlsCertificateRoot);
+        if (spinner.getSelectedItemPosition() == 0) {
+            if (bundle != null) {
+                bundle.putString(RcsSettingsData.TLS_CERTIFICATE_ROOT, "");
+            } else {
+                RcsSettings.getInstance().writeParameter(RcsSettingsData.TLS_CERTIFICATE_ROOT, "");
+            }
+        } else {
+            String path = CERTIFICATE_FOLDER_PATH + File.separator
+                    + (String) spinner.getSelectedItem();
+            if (bundle != null) {
+                bundle.putString(RcsSettingsData.TLS_CERTIFICATE_ROOT, path);
+            } else {
+                RcsSettings.getInstance()
+                        .writeParameter(RcsSettingsData.TLS_CERTIFICATE_ROOT, path);
+            }
+        }
 
-        spinner = (Spinner)findViewById(R.id.client_vendor);
-        String value = (String)spinner.getSelectedItem();
+        spinner = (Spinner) findViewById(R.id.TlsCertificateIntermediate);
+        if (spinner.getSelectedItemPosition() == 0) {
+            if (bundle != null) {
+                bundle.putString(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE, "");
+            } else {
+                RcsSettings.getInstance().writeParameter(
+                        RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE, "");
+            }
+        } else {
+            String path = CERTIFICATE_FOLDER_PATH + File.separator
+                    + (String) spinner.getSelectedItem();
+            if (bundle != null) {
+                bundle.putString(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE, path);
+            } else {
+                RcsSettings.getInstance().writeParameter(
+                        RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE, path);
+            }
+        }
+
+        spinner = (Spinner) findViewById(R.id.NetworkAccess);
+        switch (spinner.getSelectedItemPosition()) {
+            case 1:
+                if (bundle != null) {
+                    bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.MOBILE.toInt());
+                } else {
+                    RcsSettings.getInstance().setNetworkAccess(NetworkAccessType.MOBILE);
+                }
+                break;
+            case 2:
+                if (bundle != null) {
+                    bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.WIFI.toInt());
+                } else {
+                    RcsSettings.getInstance().setNetworkAccess(NetworkAccessType.WIFI);
+                }
+                break;
+            default:
+                if (bundle != null) {
+                    bundle.putInt(RcsSettingsData.NETWORK_ACCESS, NetworkAccessType.ANY.toInt());
+                } else {
+                    RcsSettings.getInstance().setNetworkAccess(NetworkAccessType.ANY);
+                }
+        }
+
+        spinner = (Spinner) findViewById(R.id.FtProtocol);
+        if (bundle != null) {
+            bundle.putString(RcsSettingsData.FT_PROTOCOL, (String) spinner.getSelectedItem());
+        } else {
+            FileTransferProtocol protocol = FileTransferProtocol.valueOf((String) spinner
+                    .getSelectedItem());
+            RcsSettings.getInstance().setFtProtocol(protocol);
+        }
+
+        spinner = (Spinner) findViewById(R.id.client_vendor);
+        String value = (String) spinner.getSelectedItem();
         RcsSettings.getInstance().writeParameter(RcsSettingsData.VENDOR_NAME, value);
 
-		saveEditTextParameter(this, R.id.SecondaryProvisioningAddress, RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS, bundle);
-		saveCheckBoxParameter(this, R.id.SecondaryProvisioningAddressOnly, RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS_ONLY,
-				bundle);
-		saveEditTextParameter(this, R.id.ImsServicePollingPeriod, RcsSettingsData.IMS_SERVICE_POLLING_PERIOD, bundle);
-		saveEditTextParameter(this, R.id.SipListeningPort, RcsSettingsData.SIP_DEFAULT_PORT, bundle);
-		saveEditTextParameter(this, R.id.SipTimerT1, RcsSettingsData.SIP_TIMER_T1, bundle);
-		saveEditTextParameter(this, R.id.SipTimerT2, RcsSettingsData.SIP_TIMER_T2, bundle);
-		saveEditTextParameter(this, R.id.SipTimerT4, RcsSettingsData.SIP_TIMER_T4, bundle);
-		saveEditTextParameter(this, R.id.SipTransactionTimeout, RcsSettingsData.SIP_TRANSACTION_TIMEOUT, bundle);
-		saveEditTextParameter(this, R.id.SipKeepAlivePeriod, RcsSettingsData.SIP_KEEP_ALIVE_PERIOD, bundle);
-		saveEditTextParameter(this, R.id.DefaultMsrpPort, RcsSettingsData.MSRP_DEFAULT_PORT, bundle);
-		saveEditTextParameter(this, R.id.DefaultRtpPort, RcsSettingsData.RTP_DEFAULT_PORT, bundle);
-		saveEditTextParameter(this, R.id.MsrpTransactionTimeout, RcsSettingsData.MSRP_TRANSACTION_TIMEOUT, bundle);
-		saveEditTextParameter(this, R.id.RegisterExpirePeriod, RcsSettingsData.REGISTER_EXPIRE_PERIOD, bundle);
-		saveEditTextParameter(this, R.id.RegisterRetryBaseTime, RcsSettingsData.REGISTER_RETRY_BASE_TIME, bundle);
-		saveEditTextParameter(this, R.id.RegisterRetryMaxTime, RcsSettingsData.REGISTER_RETRY_MAX_TIME, bundle);
-		saveEditTextParameter(this, R.id.PublishExpirePeriod, RcsSettingsData.PUBLISH_EXPIRE_PERIOD, bundle);
-		saveEditTextParameter(this, R.id.RevokeTimeout, RcsSettingsData.REVOKE_TIMEOUT, bundle);
-		saveEditTextParameter(this, R.id.RingingPeriod, RcsSettingsData.RINGING_SESSION_PERIOD, bundle);
-		saveEditTextParameter(this, R.id.SubscribeExpirePeriod, RcsSettingsData.SUBSCRIBE_EXPIRE_PERIOD, bundle);
-		saveEditTextParameter(this, R.id.IsComposingTimeout, RcsSettingsData.IS_COMPOSING_TIMEOUT, bundle);
-		saveEditTextParameter(this, R.id.SessionRefreshExpirePeriod, RcsSettingsData.SESSION_REFRESH_EXPIRE_PERIOD, bundle);
-		saveEditTextParameter(this, R.id.CapabilityRefreshTimeout, RcsSettingsData.CAPABILITY_REFRESH_TIMEOUT, bundle);
-		saveEditTextParameter(this, R.id.CapabilityExpiryTimeout, RcsSettingsData.CAPABILITY_EXPIRY_TIMEOUT, bundle);
-		saveEditTextParameter(this, R.id.CapabilityPollingPeriod, RcsSettingsData.CAPABILITY_POLLING_PERIOD, bundle);
-		saveCheckBoxParameter(this, R.id.SipKeepAlive, RcsSettingsData.SIP_KEEP_ALIVE, bundle);
-		saveCheckBoxParameter(this, R.id.PermanentState, RcsSettingsData.PERMANENT_STATE_MODE, bundle);
-		saveCheckBoxParameter(this, R.id.TelUriFormat, RcsSettingsData.TEL_URI_FORMAT, bundle);
-		saveCheckBoxParameter(this, R.id.ImAlwaysOn, RcsSettingsData.IM_CAPABILITY_ALWAYS_ON, bundle);
-		saveCheckBoxParameter(this, R.id.FtAlwaysOn, RcsSettingsData.FT_CAPABILITY_ALWAYS_ON, bundle);
-		saveCheckBoxParameter(this, R.id.ImUseReports, RcsSettingsData.IM_USE_REPORTS, bundle);
-		saveCheckBoxParameter(this, R.id.Gruu, RcsSettingsData.GRUU, bundle);
-		saveCheckBoxParameter(this, R.id.CpuAlwaysOn, RcsSettingsData.CPU_ALWAYS_ON, bundle);
-		saveCheckBoxParameter(this, R.id.SecureMsrpOverWifi, RcsSettingsData.SECURE_MSRP_OVER_WIFI, bundle);
-		saveCheckBoxParameter(this, R.id.SecureRtpOverWifi, RcsSettingsData.SECURE_RTP_OVER_WIFI, bundle);
-		saveCheckBoxParameter(this, R.id.ImeiAsDeviceId, RcsSettingsData.USE_IMEI_AS_DEVICE_ID, bundle);
-		saveCheckBoxParameter(this, R.id.ControlExtensions, RcsSettingsData.CONTROL_EXTENSIONS, bundle);
-		saveCheckBoxParameter(this, R.id.AllowExtensions, RcsSettingsData.ALLOW_EXTENSIONS, bundle);
-		saveEditTextParameter(this, R.id.MaxMsrpLengthExtensions, RcsSettingsData.MAX_MSRP_SIZE_EXTENSIONS, bundle);
-	}
+        saveEditTextParameter(this, R.id.SecondaryProvisioningAddress,
+                RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS, bundle);
+        saveCheckBoxParameter(this, R.id.SecondaryProvisioningAddressOnly,
+                RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS_ONLY, bundle);
+        saveEditTextParameter(this, R.id.ImsServicePollingPeriod,
+                RcsSettingsData.IMS_SERVICE_POLLING_PERIOD, bundle);
+        saveEditTextParameter(this, R.id.SipListeningPort, RcsSettingsData.SIP_DEFAULT_PORT, bundle);
+        saveEditTextParameter(this, R.id.SipTimerT1, RcsSettingsData.SIP_TIMER_T1, bundle);
+        saveEditTextParameter(this, R.id.SipTimerT2, RcsSettingsData.SIP_TIMER_T2, bundle);
+        saveEditTextParameter(this, R.id.SipTimerT4, RcsSettingsData.SIP_TIMER_T4, bundle);
+        saveEditTextParameter(this, R.id.SipTransactionTimeout,
+                RcsSettingsData.SIP_TRANSACTION_TIMEOUT, bundle);
+        saveEditTextParameter(this, R.id.SipKeepAlivePeriod, RcsSettingsData.SIP_KEEP_ALIVE_PERIOD,
+                bundle);
+        saveEditTextParameter(this, R.id.DefaultMsrpPort, RcsSettingsData.MSRP_DEFAULT_PORT, bundle);
+        saveEditTextParameter(this, R.id.DefaultRtpPort, RcsSettingsData.RTP_DEFAULT_PORT, bundle);
+        saveEditTextParameter(this, R.id.MsrpTransactionTimeout,
+                RcsSettingsData.MSRP_TRANSACTION_TIMEOUT, bundle);
+        saveEditTextParameter(this, R.id.RegisterExpirePeriod,
+                RcsSettingsData.REGISTER_EXPIRE_PERIOD, bundle);
+        saveEditTextParameter(this, R.id.RegisterRetryBaseTime,
+                RcsSettingsData.REGISTER_RETRY_BASE_TIME, bundle);
+        saveEditTextParameter(this, R.id.RegisterRetryMaxTime,
+                RcsSettingsData.REGISTER_RETRY_MAX_TIME, bundle);
+        saveEditTextParameter(this, R.id.PublishExpirePeriod,
+                RcsSettingsData.PUBLISH_EXPIRE_PERIOD, bundle);
+        saveEditTextParameter(this, R.id.RevokeTimeout, RcsSettingsData.REVOKE_TIMEOUT, bundle);
+        saveEditTextParameter(this, R.id.RingingPeriod, RcsSettingsData.RINGING_SESSION_PERIOD,
+                bundle);
+        saveEditTextParameter(this, R.id.SubscribeExpirePeriod,
+                RcsSettingsData.SUBSCRIBE_EXPIRE_PERIOD, bundle);
+        saveEditTextParameter(this, R.id.IsComposingTimeout, RcsSettingsData.IS_COMPOSING_TIMEOUT,
+                bundle);
+        saveEditTextParameter(this, R.id.SessionRefreshExpirePeriod,
+                RcsSettingsData.SESSION_REFRESH_EXPIRE_PERIOD, bundle);
+        saveEditTextParameter(this, R.id.CapabilityRefreshTimeout,
+                RcsSettingsData.CAPABILITY_REFRESH_TIMEOUT, bundle);
+        saveEditTextParameter(this, R.id.CapabilityExpiryTimeout,
+                RcsSettingsData.CAPABILITY_EXPIRY_TIMEOUT, bundle);
+        saveEditTextParameter(this, R.id.CapabilityPollingPeriod,
+                RcsSettingsData.CAPABILITY_POLLING_PERIOD, bundle);
+        saveCheckBoxParameter(this, R.id.SipKeepAlive, RcsSettingsData.SIP_KEEP_ALIVE, bundle);
+        saveCheckBoxParameter(this, R.id.PermanentState, RcsSettingsData.PERMANENT_STATE_MODE,
+                bundle);
+        saveCheckBoxParameter(this, R.id.TelUriFormat, RcsSettingsData.TEL_URI_FORMAT, bundle);
+        saveCheckBoxParameter(this, R.id.ImAlwaysOn, RcsSettingsData.IM_CAPABILITY_ALWAYS_ON,
+                bundle);
+        saveCheckBoxParameter(this, R.id.FtAlwaysOn, RcsSettingsData.FT_CAPABILITY_ALWAYS_ON,
+                bundle);
+        saveCheckBoxParameter(this, R.id.ImUseReports, RcsSettingsData.IM_USE_REPORTS, bundle);
+        saveCheckBoxParameter(this, R.id.Gruu, RcsSettingsData.GRUU, bundle);
+        saveCheckBoxParameter(this, R.id.CpuAlwaysOn, RcsSettingsData.CPU_ALWAYS_ON, bundle);
+        saveCheckBoxParameter(this, R.id.SecureMsrpOverWifi, RcsSettingsData.SECURE_MSRP_OVER_WIFI,
+                bundle);
+        saveCheckBoxParameter(this, R.id.SecureRtpOverWifi, RcsSettingsData.SECURE_RTP_OVER_WIFI,
+                bundle);
+        saveCheckBoxParameter(this, R.id.ImeiAsDeviceId, RcsSettingsData.USE_IMEI_AS_DEVICE_ID,
+                bundle);
+        saveCheckBoxParameter(this, R.id.ControlExtensions, RcsSettingsData.CONTROL_EXTENSIONS,
+                bundle);
+        saveCheckBoxParameter(this, R.id.AllowExtensions, RcsSettingsData.ALLOW_EXTENSIONS, bundle);
+        saveEditTextParameter(this, R.id.MaxMsrpLengthExtensions,
+                RcsSettingsData.MAX_MSRP_SIZE_EXTENSIONS, bundle);
+    }
 
-	/**
-	 * Update UI (upon creation, rotation, tab switch...)
-	 * 
-	 * @param bundle
-	 */
-	private void updateView(Bundle bundle) {
-		// Display stack parameters
-		Spinner spinner = (Spinner) findViewById(R.id.Autoconfig);
-		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, mConfigModes);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		spinner.setAdapter(adapter);
-		ConfigurationMode mode;
-		if (bundle != null && bundle.containsKey(RcsSettingsData.CONFIG_MODE)) {
-			mode = ConfigurationMode.valueOf(bundle.getInt(RcsSettingsData.CONFIG_MODE));
-		} else {
-			mode = RcsSettings.getInstance().getConfigurationMode();
-		}
-		spinner.setSelection(ConfigurationMode.AUTO.equals(mode) ? 1 : 0);
+    /**
+     * Update UI (upon creation, rotation, tab switch...)
+     * 
+     * @param bundle
+     */
+    private void updateView(Bundle bundle) {
+        // Display stack parameters
+        Spinner spinner = (Spinner) findViewById(R.id.Autoconfig);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_spinner_item, mConfigModes);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        ConfigurationMode mode;
+        if (bundle != null && bundle.containsKey(RcsSettingsData.CONFIG_MODE)) {
+            mode = ConfigurationMode.valueOf(bundle.getInt(RcsSettingsData.CONFIG_MODE));
+        } else {
+            mode = RcsSettings.getInstance().getConfigurationMode();
+        }
+        spinner.setSelection(ConfigurationMode.AUTO.equals(mode) ? 1 : 0);
 
-        spinner = (Spinner)findViewById(R.id.client_vendor);
+        spinner = (Spinner) findViewById(R.id.client_vendor);
         ArrayAdapter<CharSequence> adapterVendor = ArrayAdapter.createFromResource(this,
                 R.array.vendors, android.R.layout.simple_spinner_item);
         adapterVendor.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -305,212 +345,240 @@ public class StackProvisioning extends Activity {
             spinner.setSelection(0);
         }
 
-		setEditTextParameter(this, R.id.SecondaryProvisioningAddress, RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS, bundle);
-		setCheckBoxParameter(this, R.id.SecondaryProvisioningAddressOnly, RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS_ONLY,
-				bundle);
+        setEditTextParameter(this, R.id.SecondaryProvisioningAddress,
+                RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS, bundle);
+        setCheckBoxParameter(this, R.id.SecondaryProvisioningAddressOnly,
+                RcsSettingsData.SECONDARY_PROVISIONING_ADDRESS_ONLY, bundle);
 
-		spinner = (Spinner) findViewById(R.id.NetworkAccess);
-		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, mNetworkAccesses);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		spinner.setAdapter(adapter);
-		NetworkAccessType access;
-		if (bundle != null && bundle.containsKey(RcsSettingsData.NETWORK_ACCESS)) {
-			access = NetworkAccessType.valueOf(bundle.getInt(RcsSettingsData.NETWORK_ACCESS));
-		} else {
-			access = RcsSettings.getInstance().getNetworkAccess();
-		}
-		switch (access) {
-		case MOBILE:
-			spinner.setSelection(1);
-			break;
-		case WIFI:
-			spinner.setSelection(2);
-			break;
-		case ANY:
-			spinner.setSelection(0);
-		}
+        spinner = (Spinner) findViewById(R.id.NetworkAccess);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item,
+                mNetworkAccesses);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        NetworkAccessType access;
+        if (bundle != null && bundle.containsKey(RcsSettingsData.NETWORK_ACCESS)) {
+            access = NetworkAccessType.valueOf(bundle.getInt(RcsSettingsData.NETWORK_ACCESS));
+        } else {
+            access = RcsSettings.getInstance().getNetworkAccess();
+        }
+        switch (access) {
+            case MOBILE:
+                spinner.setSelection(1);
+                break;
+            case WIFI:
+                spinner.setSelection(2);
+                break;
+            case ANY:
+                spinner.setSelection(0);
+        }
 
-		spinner = (Spinner) findViewById(R.id.SipDefaultProtocolForMobile);
-		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, SIP_PROTOCOL);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		spinner.setAdapter(adapter);
-		String sipMobile = null;
-		if (bundle != null && bundle.containsKey(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE)) {
-			sipMobile = bundle.getString(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE);
-		} else {
-			sipMobile = RcsSettings.getInstance().getSipDefaultProtocolForMobile();
-		}
-		if (sipMobile.equalsIgnoreCase(SIP_PROTOCOL[0])) {
-			spinner.setSelection(0);
-		} else if (sipMobile.equalsIgnoreCase(SIP_PROTOCOL[1])) {
-			spinner.setSelection(1);
-		} else {
-			spinner.setSelection(2);
-		}
+        spinner = (Spinner) findViewById(R.id.SipDefaultProtocolForMobile);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, SIP_PROTOCOL);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        String sipMobile = null;
+        if (bundle != null && bundle.containsKey(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE)) {
+            sipMobile = bundle.getString(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE);
+        } else {
+            sipMobile = RcsSettings.getInstance().getSipDefaultProtocolForMobile();
+        }
+        if (sipMobile.equalsIgnoreCase(SIP_PROTOCOL[0])) {
+            spinner.setSelection(0);
+        } else if (sipMobile.equalsIgnoreCase(SIP_PROTOCOL[1])) {
+            spinner.setSelection(1);
+        } else {
+            spinner.setSelection(2);
+        }
 
-		spinner = (Spinner) findViewById(R.id.SipDefaultProtocolForWifi);
-		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, SIP_PROTOCOL);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		spinner.setAdapter(adapter);
-		String sipWifi = null;
-		if (bundle != null && bundle.containsKey(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI)) {
-			sipWifi = bundle.getString(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI);
-		} else {
-			sipWifi = RcsSettings.getInstance().getSipDefaultProtocolForWifi();
-		}
-		if (sipWifi.equalsIgnoreCase(SIP_PROTOCOL[0])) {
-			spinner.setSelection(0);
-		} else if (sipWifi.equalsIgnoreCase(SIP_PROTOCOL[1])) {
-			spinner.setSelection(1);
-		} else {
-			spinner.setSelection(2);
-		}
+        spinner = (Spinner) findViewById(R.id.SipDefaultProtocolForWifi);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, SIP_PROTOCOL);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        String sipWifi = null;
+        if (bundle != null && bundle.containsKey(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI)) {
+            sipWifi = bundle.getString(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI);
+        } else {
+            sipWifi = RcsSettings.getInstance().getSipDefaultProtocolForWifi();
+        }
+        if (sipWifi.equalsIgnoreCase(SIP_PROTOCOL[0])) {
+            spinner.setSelection(0);
+        } else if (sipWifi.equalsIgnoreCase(SIP_PROTOCOL[1])) {
+            spinner.setSelection(1);
+        } else {
+            spinner.setSelection(2);
+        }
 
-		String[] certificates = loadCertificatesList();
-		spinner = (Spinner) findViewById(R.id.TlsCertificateRoot);
-		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, certificates);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		spinner.setAdapter(adapter);
-		boolean found = false;
-		String certRoot = null;
-		if (bundle != null && bundle.containsKey(RcsSettingsData.TLS_CERTIFICATE_ROOT)) {
-			certRoot = bundle.getString(RcsSettingsData.TLS_CERTIFICATE_ROOT);
-		} else {
-			certRoot = RcsSettings.getInstance().getTlsCertificateRoot();
-		}
-		for (int i = 0; i < certificates.length; i++) {
-			if (certRoot.contains(certificates[i])) {
-				spinner.setSelection(i);
-				found = true;
-			}
-		}
-		if (!found) {
-			spinner.setSelection(0);
-			RcsSettings.getInstance().writeParameter(RcsSettingsData.TLS_CERTIFICATE_ROOT, "");
-		}
+        String[] certificates = loadCertificatesList();
+        spinner = (Spinner) findViewById(R.id.TlsCertificateRoot);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, certificates);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        boolean found = false;
+        String certRoot = null;
+        if (bundle != null && bundle.containsKey(RcsSettingsData.TLS_CERTIFICATE_ROOT)) {
+            certRoot = bundle.getString(RcsSettingsData.TLS_CERTIFICATE_ROOT);
+        } else {
+            certRoot = RcsSettings.getInstance().getTlsCertificateRoot();
+        }
+        for (int i = 0; i < certificates.length; i++) {
+            if (certRoot.contains(certificates[i])) {
+                spinner.setSelection(i);
+                found = true;
+            }
+        }
+        if (!found) {
+            spinner.setSelection(0);
+            RcsSettings.getInstance().writeParameter(RcsSettingsData.TLS_CERTIFICATE_ROOT, "");
+        }
 
-		spinner = (Spinner) findViewById(R.id.TlsCertificateIntermediate);
-		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, certificates);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		spinner.setAdapter(adapter);
-		spinner.setSelection(0);
-		found = false;
-		String certInt = null;
-		if (bundle != null && bundle.containsKey(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE)) {
-			certInt = bundle.getString(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE);
-		} else {
-			certInt = RcsSettings.getInstance().getTlsCertificateIntermediate();
-		}
-		for (int i = 0; i < certificates.length; i++) {
-			if (certInt.contains(certificates[i])) {
-				spinner.setSelection(i);
-				found = true;
-			}
-		}
-		if (!found) {
-			spinner.setSelection(0);
-			RcsSettings.getInstance().writeParameter(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE, "");
-		}
+        spinner = (Spinner) findViewById(R.id.TlsCertificateIntermediate);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, certificates);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        spinner.setSelection(0);
+        found = false;
+        String certInt = null;
+        if (bundle != null && bundle.containsKey(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE)) {
+            certInt = bundle.getString(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE);
+        } else {
+            certInt = RcsSettings.getInstance().getTlsCertificateIntermediate();
+        }
+        for (int i = 0; i < certificates.length; i++) {
+            if (certInt.contains(certificates[i])) {
+                spinner.setSelection(i);
+                found = true;
+            }
+        }
+        if (!found) {
+            spinner.setSelection(0);
+            RcsSettings.getInstance().writeParameter(RcsSettingsData.TLS_CERTIFICATE_INTERMEDIATE,
+                    "");
+        }
 
-		spinner = (Spinner) findViewById(R.id.FtProtocol);
-		adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, FT_PROTOCOL);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		spinner.setAdapter(adapter);
-		FileTransferProtocol ftProtocol;
-		if (bundle != null && bundle.containsKey(RcsSettingsData.FT_PROTOCOL)) {
-			ftProtocol = FileTransferProtocol.valueOf(bundle.getString(RcsSettingsData.FT_PROTOCOL));
-		} else {
-			ftProtocol = RcsSettings.getInstance().getFtProtocol();
-		}
-		if (FileTransferProtocol.HTTP.equals(ftProtocol)) {
-			spinner.setSelection(0);
-		} else {
-			spinner.setSelection(1);
-		}
+        spinner = (Spinner) findViewById(R.id.FtProtocol);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, FT_PROTOCOL);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        FileTransferProtocol ftProtocol;
+        if (bundle != null && bundle.containsKey(RcsSettingsData.FT_PROTOCOL)) {
+            ftProtocol = FileTransferProtocol
+                    .valueOf(bundle.getString(RcsSettingsData.FT_PROTOCOL));
+        } else {
+            ftProtocol = RcsSettings.getInstance().getFtProtocol();
+        }
+        if (FileTransferProtocol.HTTP.equals(ftProtocol)) {
+            spinner.setSelection(0);
+        } else {
+            spinner.setSelection(1);
+        }
 
-		setEditTextParameter(this, R.id.ImsServicePollingPeriod, RcsSettingsData.IMS_SERVICE_POLLING_PERIOD, bundle);
-		setEditTextParameter(this, R.id.SipListeningPort, RcsSettingsData.SIP_DEFAULT_PORT, bundle);
-		setEditTextParameter(this, R.id.SipTimerT1, RcsSettingsData.SIP_TIMER_T1, bundle);
-		setEditTextParameter(this, R.id.SipTimerT2, RcsSettingsData.SIP_TIMER_T2, bundle);
-		setEditTextParameter(this, R.id.SipTimerT4, RcsSettingsData.SIP_TIMER_T4, bundle);
-		setEditTextParameter(this, R.id.SipTransactionTimeout, RcsSettingsData.SIP_TRANSACTION_TIMEOUT, bundle);
-		setEditTextParameter(this, R.id.SipKeepAlivePeriod, RcsSettingsData.SIP_KEEP_ALIVE_PERIOD, bundle);
-		setEditTextParameter(this, R.id.DefaultMsrpPort, RcsSettingsData.MSRP_DEFAULT_PORT, bundle);
-		setEditTextParameter(this, R.id.DefaultRtpPort, RcsSettingsData.RTP_DEFAULT_PORT, bundle);
-		setEditTextParameter(this, R.id.MsrpTransactionTimeout, RcsSettingsData.MSRP_TRANSACTION_TIMEOUT, bundle);
-		setEditTextParameter(this, R.id.RegisterExpirePeriod, RcsSettingsData.REGISTER_EXPIRE_PERIOD, bundle);
-		setEditTextParameter(this, R.id.RegisterRetryBaseTime, RcsSettingsData.REGISTER_RETRY_BASE_TIME, bundle);
-		setEditTextParameter(this, R.id.RegisterRetryMaxTime, RcsSettingsData.REGISTER_RETRY_MAX_TIME, bundle);
-		setEditTextParameter(this, R.id.PublishExpirePeriod, RcsSettingsData.PUBLISH_EXPIRE_PERIOD, bundle);
-		setEditTextParameter(this, R.id.RevokeTimeout, RcsSettingsData.REVOKE_TIMEOUT, bundle);
-		setEditTextParameter(this, R.id.RingingPeriod, RcsSettingsData.RINGING_SESSION_PERIOD, bundle);
-		setEditTextParameter(this, R.id.SubscribeExpirePeriod, RcsSettingsData.SUBSCRIBE_EXPIRE_PERIOD, bundle);
-		setEditTextParameter(this, R.id.IsComposingTimeout, RcsSettingsData.IS_COMPOSING_TIMEOUT, bundle);
-		setEditTextParameter(this, R.id.SessionRefreshExpirePeriod, RcsSettingsData.SESSION_REFRESH_EXPIRE_PERIOD, bundle);
-		setEditTextParameter(this, R.id.CapabilityRefreshTimeout, RcsSettingsData.CAPABILITY_REFRESH_TIMEOUT, bundle);
-		setEditTextParameter(this, R.id.CapabilityExpiryTimeout, RcsSettingsData.CAPABILITY_EXPIRY_TIMEOUT, bundle);
-		setEditTextParameter(this, R.id.CapabilityPollingPeriod, RcsSettingsData.CAPABILITY_POLLING_PERIOD, bundle);
-		setCheckBoxParameter(this, R.id.TcpFallback, RcsSettingsData.TCP_FALLBACK, bundle);
-		setCheckBoxParameter(this, R.id.SipKeepAlive, RcsSettingsData.SIP_KEEP_ALIVE, bundle);
-		setCheckBoxParameter(this, R.id.PermanentState, RcsSettingsData.PERMANENT_STATE_MODE, bundle);
-		setCheckBoxParameter(this, R.id.TelUriFormat, RcsSettingsData.TEL_URI_FORMAT, bundle);
-		setCheckBoxParameter(this, R.id.ImAlwaysOn, RcsSettingsData.IM_CAPABILITY_ALWAYS_ON, bundle);
-		setCheckBoxParameter(this, R.id.FtAlwaysOn, RcsSettingsData.FT_CAPABILITY_ALWAYS_ON, bundle);
-		setCheckBoxParameter(this, R.id.ImUseReports, RcsSettingsData.IM_USE_REPORTS, bundle);
-		setCheckBoxParameter(this, R.id.Gruu, RcsSettingsData.GRUU, bundle);
-		setCheckBoxParameter(this, R.id.CpuAlwaysOn, RcsSettingsData.CPU_ALWAYS_ON, bundle);
-		setCheckBoxParameter(this, R.id.SecureMsrpOverWifi, RcsSettingsData.SECURE_MSRP_OVER_WIFI, bundle);
-		setCheckBoxParameter(this, R.id.SecureRtpOverWifi, RcsSettingsData.SECURE_RTP_OVER_WIFI, bundle);
-		setCheckBoxParameter(this, R.id.ImeiAsDeviceId, RcsSettingsData.USE_IMEI_AS_DEVICE_ID, bundle);
-		setCheckBoxParameter(this, R.id.ControlExtensions, RcsSettingsData.CONTROL_EXTENSIONS, bundle);
-		setCheckBoxParameter(this, R.id.AllowExtensions, RcsSettingsData.ALLOW_EXTENSIONS, bundle);
-		setEditTextParameter(this, R.id.MaxMsrpLengthExtensions, RcsSettingsData.MAX_MSRP_SIZE_EXTENSIONS, bundle);
-	}
+        setEditTextParameter(this, R.id.ImsServicePollingPeriod,
+                RcsSettingsData.IMS_SERVICE_POLLING_PERIOD, bundle);
+        setEditTextParameter(this, R.id.SipListeningPort, RcsSettingsData.SIP_DEFAULT_PORT, bundle);
+        setEditTextParameter(this, R.id.SipTimerT1, RcsSettingsData.SIP_TIMER_T1, bundle);
+        setEditTextParameter(this, R.id.SipTimerT2, RcsSettingsData.SIP_TIMER_T2, bundle);
+        setEditTextParameter(this, R.id.SipTimerT4, RcsSettingsData.SIP_TIMER_T4, bundle);
+        setEditTextParameter(this, R.id.SipTransactionTimeout,
+                RcsSettingsData.SIP_TRANSACTION_TIMEOUT, bundle);
+        setEditTextParameter(this, R.id.SipKeepAlivePeriod, RcsSettingsData.SIP_KEEP_ALIVE_PERIOD,
+                bundle);
+        setEditTextParameter(this, R.id.DefaultMsrpPort, RcsSettingsData.MSRP_DEFAULT_PORT, bundle);
+        setEditTextParameter(this, R.id.DefaultRtpPort, RcsSettingsData.RTP_DEFAULT_PORT, bundle);
+        setEditTextParameter(this, R.id.MsrpTransactionTimeout,
+                RcsSettingsData.MSRP_TRANSACTION_TIMEOUT, bundle);
+        setEditTextParameter(this, R.id.RegisterExpirePeriod,
+                RcsSettingsData.REGISTER_EXPIRE_PERIOD, bundle);
+        setEditTextParameter(this, R.id.RegisterRetryBaseTime,
+                RcsSettingsData.REGISTER_RETRY_BASE_TIME, bundle);
+        setEditTextParameter(this, R.id.RegisterRetryMaxTime,
+                RcsSettingsData.REGISTER_RETRY_MAX_TIME, bundle);
+        setEditTextParameter(this, R.id.PublishExpirePeriod, RcsSettingsData.PUBLISH_EXPIRE_PERIOD,
+                bundle);
+        setEditTextParameter(this, R.id.RevokeTimeout, RcsSettingsData.REVOKE_TIMEOUT, bundle);
+        setEditTextParameter(this, R.id.RingingPeriod, RcsSettingsData.RINGING_SESSION_PERIOD,
+                bundle);
+        setEditTextParameter(this, R.id.SubscribeExpirePeriod,
+                RcsSettingsData.SUBSCRIBE_EXPIRE_PERIOD, bundle);
+        setEditTextParameter(this, R.id.IsComposingTimeout, RcsSettingsData.IS_COMPOSING_TIMEOUT,
+                bundle);
+        setEditTextParameter(this, R.id.SessionRefreshExpirePeriod,
+                RcsSettingsData.SESSION_REFRESH_EXPIRE_PERIOD, bundle);
+        setEditTextParameter(this, R.id.CapabilityRefreshTimeout,
+                RcsSettingsData.CAPABILITY_REFRESH_TIMEOUT, bundle);
+        setEditTextParameter(this, R.id.CapabilityExpiryTimeout,
+                RcsSettingsData.CAPABILITY_EXPIRY_TIMEOUT, bundle);
+        setEditTextParameter(this, R.id.CapabilityPollingPeriod,
+                RcsSettingsData.CAPABILITY_POLLING_PERIOD, bundle);
+        setCheckBoxParameter(this, R.id.TcpFallback, RcsSettingsData.TCP_FALLBACK, bundle);
+        setCheckBoxParameter(this, R.id.SipKeepAlive, RcsSettingsData.SIP_KEEP_ALIVE, bundle);
+        setCheckBoxParameter(this, R.id.PermanentState, RcsSettingsData.PERMANENT_STATE_MODE,
+                bundle);
+        setCheckBoxParameter(this, R.id.TelUriFormat, RcsSettingsData.TEL_URI_FORMAT, bundle);
+        setCheckBoxParameter(this, R.id.ImAlwaysOn, RcsSettingsData.IM_CAPABILITY_ALWAYS_ON, bundle);
+        setCheckBoxParameter(this, R.id.FtAlwaysOn, RcsSettingsData.FT_CAPABILITY_ALWAYS_ON, bundle);
+        setCheckBoxParameter(this, R.id.ImUseReports, RcsSettingsData.IM_USE_REPORTS, bundle);
+        setCheckBoxParameter(this, R.id.Gruu, RcsSettingsData.GRUU, bundle);
+        setCheckBoxParameter(this, R.id.CpuAlwaysOn, RcsSettingsData.CPU_ALWAYS_ON, bundle);
+        setCheckBoxParameter(this, R.id.SecureMsrpOverWifi, RcsSettingsData.SECURE_MSRP_OVER_WIFI,
+                bundle);
+        setCheckBoxParameter(this, R.id.SecureRtpOverWifi, RcsSettingsData.SECURE_RTP_OVER_WIFI,
+                bundle);
+        setCheckBoxParameter(this, R.id.ImeiAsDeviceId, RcsSettingsData.USE_IMEI_AS_DEVICE_ID,
+                bundle);
+        setCheckBoxParameter(this, R.id.ControlExtensions, RcsSettingsData.CONTROL_EXTENSIONS,
+                bundle);
+        setCheckBoxParameter(this, R.id.AllowExtensions, RcsSettingsData.ALLOW_EXTENSIONS, bundle);
+        setEditTextParameter(this, R.id.MaxMsrpLengthExtensions,
+                RcsSettingsData.MAX_MSRP_SIZE_EXTENSIONS, bundle);
+    }
 
-	/**
-	 * Save button listener
-	 */
-	private OnClickListener saveBtnListener = new OnClickListener() {
-		public void onClick(View v) {
-			// Save parameters
-			saveInstanceState(null);
-			Toast.makeText(StackProvisioning.this, getString(R.string.label_reboot_service), Toast.LENGTH_LONG).show();
-		}
-	};
+    /**
+     * Save button listener
+     */
+    private OnClickListener saveBtnListener = new OnClickListener() {
+        public void onClick(View v) {
+            // Save parameters
+            saveInstanceState(null);
+            Toast.makeText(StackProvisioning.this, getString(R.string.label_reboot_service),
+                    Toast.LENGTH_LONG).show();
+        }
+    };
 
-	/**
-	 * Load a list of certificates from the SDCARD
-	 * 
-	 * @return List of certificates
-	 */
-	private String[] loadCertificatesList() {
-		String[] files = null;
-		File folder = new File(CERTIFICATE_FOLDER_PATH);
-		try {
-			folder.mkdirs();
-			if (folder.exists()) {
-				// filter
-				FilenameFilter filter = new FilenameFilter() {
-					public boolean accept(File dir, String filename) {
-						return filename.contains(RcsSettingsData.CERTIFICATE_FILE_TYPE);
-					}
-				};
-				files = folder.list(filter);
-			}
-		} catch (SecurityException e) {
-			// intentionally blank
-		}
-		if (files == null) {
-			// No certificate
-			return new String[] { getString(R.string.label_no_certificate) };
-		} else {
-			// Add certificates in the list
-			String[] temp = new String[files.length + 1];
-			temp[0] = getString(R.string.label_no_certificate);
-			if (files.length > 0) {
-				System.arraycopy(files, 0, temp, 1, files.length);
-			}
-			return temp;
-		}
-	}
+    /**
+     * Load a list of certificates from the SDCARD
+     * 
+     * @return List of certificates
+     */
+    private String[] loadCertificatesList() {
+        String[] files = null;
+        File folder = new File(CERTIFICATE_FOLDER_PATH);
+        try {
+            folder.mkdirs();
+            if (folder.exists()) {
+                // filter
+                FilenameFilter filter = new FilenameFilter() {
+                    public boolean accept(File dir, String filename) {
+                        return filename.contains(RcsSettingsData.CERTIFICATE_FILE_TYPE);
+                    }
+                };
+                files = folder.list(filter);
+            }
+        } catch (SecurityException e) {
+            // intentionally blank
+        }
+        if (files == null) {
+            // No certificate
+            return new String[] {
+                getString(R.string.label_no_certificate)
+            };
+        } else {
+            // Add certificates in the list
+            String[] temp = new String[files.length + 1];
+            temp[0] = getString(R.string.label_no_certificate);
+            if (files.length > 0) {
+                System.arraycopy(files, 0, temp, 1, files.length);
+            }
+            return temp;
+        }
+    }
 }

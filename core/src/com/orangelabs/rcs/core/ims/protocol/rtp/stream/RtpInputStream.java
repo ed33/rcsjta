@@ -41,8 +41,7 @@ import com.orangelabs.rcs.utils.logger.Logger;
  */
 public class RtpInputStream implements ProcessorInputStream {
     /**
-     * RTP Socket Timeout
-     * Used a 20s timeout value because the RTP packets can have a delay
+     * RTP Socket Timeout Used a 20s timeout value because the RTP packets can have a delay
      */
     private static final int RTP_SOCKET_TIMEOUT = 20000;
 
@@ -61,30 +60,30 @@ public class RtpInputStream implements ProcessorInputStream {
      */
     private int localPort;
 
-	/**
-	 * RTP receiver
-	 */
-	private RtpPacketReceiver rtpReceiver =  null;
+    /**
+     * RTP receiver
+     */
+    private RtpPacketReceiver rtpReceiver = null;
 
-	/**
-	 * RTCP receiver
-	 */
-	private RtcpPacketReceiver rtcpReceiver =  null;
+    /**
+     * RTCP receiver
+     */
+    private RtcpPacketReceiver rtcpReceiver = null;
 
-   /**
+    /**
      * RTCP transmitter
      */
-    private RtcpPacketTransmitter rtcpTransmitter =  null;
+    private RtcpPacketTransmitter rtcpTransmitter = null;
 
     /**
      * Input buffer
      */
-	private Buffer buffer = new Buffer();
+    private Buffer buffer = new Buffer();
 
     /**
      * Input format
      */
-	private Format inputFormat = null;
+    private Format inputFormat = null;
 
     /**
      * RTCP Session
@@ -111,10 +110,10 @@ public class RtpInputStream implements ProcessorInputStream {
      */
     private PriorityQueue<RtpPacket> rtpPacketsBuffer;
 
-	/**
-	 * The logger
-	 */
-	private final Logger logger = Logger.getLogger(this.getClass().getName());
+    /**
+     * The logger
+     */
+    private final Logger logger = Logger.getLogger(this.getClass().getName());
 
     /**
      * Constructor
@@ -125,8 +124,8 @@ public class RtpInputStream implements ProcessorInputStream {
     public RtpInputStream(String remoteAddress, int remotePort, int localPort, Format inputFormat) {
         this.remoteAddress = remoteAddress;
         this.remotePort = remotePort;
-		this.localPort = localPort;
-		this.inputFormat = inputFormat;
+        this.localPort = localPort;
+        this.inputFormat = inputFormat;
 
         rtcpSession = new RtcpSession(false, 16000);
 
@@ -150,18 +149,16 @@ public class RtpInputStream implements ProcessorInputStream {
      * @throws Exception
      */
     public void open() throws Exception {
-    	// Create the RTP receiver
+        // Create the RTP receiver
         rtpReceiver = new RtpPacketReceiver(localPort, rtcpSession, RTP_SOCKET_TIMEOUT);
         rtpReceiver.start();
 
-    	// Create the RTCP receiver
+        // Create the RTCP receiver
         rtcpReceiver = new RtcpPacketReceiver(localPort + 1, rtcpSession);
         rtcpReceiver.start();
 
         // Create the RTCP transmitter
-        rtcpTransmitter = new RtcpPacketTransmitter(remoteAddress,
-                remotePort + 1,
-                rtcpSession,
+        rtcpTransmitter = new RtcpPacketTransmitter(remoteAddress, remotePort + 1, rtcpSession,
                 rtcpReceiver.getConnection());
         rtcpTransmitter.start();
 
@@ -172,29 +169,29 @@ public class RtpInputStream implements ProcessorInputStream {
      * Close the input stream
      */
     public void close() {
-		try {
+        try {
             isClosed = true;
 
             // Close the RTCP transmitter
             if (rtcpTransmitter != null)
                 rtcpTransmitter.close();
 
-			// Close the RTP receiver
-			if (rtpReceiver != null) {
-				rtpReceiver.close();
-			}
+            // Close the RTP receiver
+            if (rtpReceiver != null) {
+                rtpReceiver.close();
+            }
 
-			// Close the RTCP receiver
-			if (rtcpReceiver != null) {
-				rtcpReceiver.close();
-			}
+            // Close the RTCP receiver
+            if (rtcpReceiver != null) {
+                rtcpReceiver.close();
+            }
             rtpStreamListener = null;
-		} catch(Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Can't close correctly RTP ressources", e);
-			}
-		}
-	}
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't close correctly RTP ressources", e);
+            }
+        }
+    }
 
     /**
      * Returns the RTP receiver
@@ -202,7 +199,7 @@ public class RtpInputStream implements ProcessorInputStream {
      * @return RTP receiver
      */
     public RtpPacketReceiver getRtpReceiver() {
-    	return rtpReceiver;
+        return rtpReceiver;
     }
 
     /**
@@ -235,14 +232,14 @@ public class RtpInputStream implements ProcessorInputStream {
 
             RtpPacket packet = rtpPacketsBuffer.poll();
 
-        	// Create a buffer
+            // Create a buffer
             buffer.setData(packet.data);
             buffer.setLength(packet.payloadlength);
             buffer.setOffset(0);
             buffer.setFormat(inputFormat);
-        	buffer.setSequenceNumber(packet.seqnum);
-        	buffer.setRTPMarker(packet.marker!=0);
-        	buffer.setTimeStamp(packet.timestamp);
+            buffer.setSequenceNumber(packet.seqnum);
+            buffer.setRTPMarker(packet.marker != 0);
+            buffer.setTimeStamp(packet.timestamp);
 
             if (packet.extensionHeader != null) {
                 ExtensionElement element = packet.extensionHeader.getElementById(extensionHeaderId);
@@ -251,9 +248,9 @@ public class RtpInputStream implements ProcessorInputStream {
                 }
             }
 
-        	// Set inputFormat back to null
-        	inputFormat = null;
-        	return buffer;
+            // Set inputFormat back to null
+            inputFormat = null;
+            return buffer;
         } catch (TimeoutException ex) {
             if (!isClosed) {
                 if (logger.isActivated()) {

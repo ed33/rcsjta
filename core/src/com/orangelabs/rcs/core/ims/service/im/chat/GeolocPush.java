@@ -18,14 +18,13 @@
 
 package com.orangelabs.rcs.core.ims.service.im.chat;
 
-
 /**
  * Geolocation push info
  * 
  * @author Orange
  */
 public class GeolocPush {
-    
+
     /**
      * Label associated to the location
      */
@@ -45,7 +44,7 @@ public class GeolocPush {
      * Expiration date
      */
     private long expiration;
-    
+
     /**
      * Accuracy (in meters)
      */
@@ -73,11 +72,12 @@ public class GeolocPush {
      * @param latitude Latitude
      * @param longitude Longitude
      * @param expiration Expiration date
-     * @param accuracy Accuracy 
+     * @param accuracy Accuracy
      */
-    public GeolocPush(String label, double latitude, double longitude, long expiration, float accuracy) {
-    	this(label, latitude, longitude, expiration);
-    	
+    public GeolocPush(String label, double latitude, double longitude, long expiration,
+            float accuracy) {
+        this(label, latitude, longitude, expiration);
+
         this.accuracy = accuracy;
     }
 
@@ -87,7 +87,7 @@ public class GeolocPush {
      * @return Label
      */
     public String getLabel() {
-		return label;
+        return label;
     }
 
     /**
@@ -134,7 +134,7 @@ public class GeolocPush {
     public void setLongitude(double longitude) {
         this.longitude = longitude;
     }
-    
+
     /**
      * Returns the expiration date
      *
@@ -143,7 +143,7 @@ public class GeolocPush {
     public long getExpiration() {
         return expiration;
     }
- 
+
     /**
      * Set the expiration
      *
@@ -152,7 +152,7 @@ public class GeolocPush {
     public void setExpiration(long expiration) {
         this.expiration = expiration;
     }
- 
+
     /**
      * Returns the accuracy
      *
@@ -161,7 +161,7 @@ public class GeolocPush {
     public float getAccuracy() {
         return accuracy;
     }
- 
+
     /**
      * Set the accuracy
      *
@@ -170,7 +170,7 @@ public class GeolocPush {
     public void setAcuracy(float accuracy) {
         this.accuracy = accuracy;
     }
-    
+
     /**
      * Returns a string representation of the object
      *

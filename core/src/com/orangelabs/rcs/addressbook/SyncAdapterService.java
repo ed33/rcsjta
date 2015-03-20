@@ -39,8 +39,7 @@ import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
  * Service to handle account sync. This is invoked with an intent with action
- * ACTION_AUTHENTICATOR_INTENT. It instantiates the sync adapter and returns its
- * IBinder.
+ * ACTION_AUTHENTICATOR_INTENT. It instantiates the sync adapter and returns its IBinder.
  */
 public class SyncAdapterService extends Service {
 
@@ -53,12 +52,12 @@ public class SyncAdapterService extends Service {
      * Android content sync adapter
      */
     public static final String ANDROID_CONTENT_SYNCADPTER = "android.content.SyncAdapter";
-    
-	/**
+
+    /**
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
-    
+
     /**
      * Called when the activity is first created.
      */
@@ -75,8 +74,8 @@ public class SyncAdapterService extends Service {
         if (intent.getAction().equals(ANDROID_CONTENT_SYNCADPTER)) {
             return mSyncAdapter.getSyncAdapterBinder();
         }
-        if (logger.isActivated()){
-        	logger.error("Bound with unknown intent: " + intent);
+        if (logger.isActivated()) {
+            logger.error("Bound with unknown intent: " + intent);
         }
         return null;
     }
@@ -95,29 +94,27 @@ public class SyncAdapterService extends Service {
          * Perform a sync for this account.
          */
         @Override
-        public void onPerformSync(Account account, Bundle extras,
-            String authority, ContentProviderClient provider,
-            SyncResult syncResult) {
-	        
-        	if (logger.isActivated()){
-	        	logger.debug("Performing a refresh on contact capabilities");
-	        }
-        	
-        	// Test IMS connection
-        	try {
-        		ServerApiUtils.testIms();
-        	} catch(ServerApiException e) {
-        		if (logger.isActivated()){
-        			logger.debug("IMS connection failed");
-        		}
-        		syncResult.stats.numIoExceptions++;
-        		return;
-        	}
+        public void onPerformSync(Account account, Bundle extras, String authority,
+                ContentProviderClient provider, SyncResult syncResult) {
 
-        	// Update all contacts capabilities
-    		Set<ContactId> contacts = ContactsManager.getInstance().getAllContacts();
-   			Core.getInstance().getCapabilityService().requestContactCapabilities(contacts);
+            if (logger.isActivated()) {
+                logger.debug("Performing a refresh on contact capabilities");
+            }
+
+            // Test IMS connection
+            try {
+                ServerApiUtils.testIms();
+            } catch (ServerApiException e) {
+                if (logger.isActivated()) {
+                    logger.debug("IMS connection failed");
+                }
+                syncResult.stats.numIoExceptions++;
+                return;
+            }
+
+            // Update all contacts capabilities
+            Set<ContactId> contacts = ContactsManager.getInstance().getAllContacts();
+            Core.getInstance().getCapabilityService().requestContactCapabilities(contacts);
         }
     }
 }
-

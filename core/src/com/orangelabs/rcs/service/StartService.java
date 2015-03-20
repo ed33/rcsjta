@@ -89,21 +89,20 @@ public class StartService extends Service {
     /**
      * Launch boot flag
      */
-	boolean boot = false;
-	
-	 /**
+    boolean boot = false;
+
+    /**
      * Launch user flag
      */
-	boolean user = false;
-	
+    boolean user = false;
+
     /**
      * The logger
      */
     private static Logger logger = Logger.getLogger(StartService.class.getSimpleName());
-    
+
     private static final String INTENT_KEY_BOOT = "boot";
     private static final String INTENT_KEY_USER = "user";
-
 
     @Override
     public void onCreate() {
@@ -113,12 +112,13 @@ public class StartService extends Service {
         mLocalContentResolver = new LocalContentResolver(contentResolver);
         RcsSettings.createInstance(ctx);
         ConfigurationMode mode = RcsSettings.getInstance().getConfigurationMode();
-    	if (logger.isActivated()) {
-    		logger.debug("onCreate ConfigurationMode="+mode);
+        if (logger.isActivated()) {
+            logger.debug("onCreate ConfigurationMode=" + mode);
         }
-        // In manual configuration, use a network listener to start RCS core when the data will be ON 
-    	if (ConfigurationMode.MANUAL.equals(mode)) {
-        	registerNetworkStateListener();
+        // In manual configuration, use a network listener to start RCS core when the data will be
+        // ON
+        if (ConfigurationMode.MANUAL.equals(mode)) {
+            registerNetworkStateListener();
         }
     }
 
@@ -126,11 +126,11 @@ public class StartService extends Service {
     public void onDestroy() {
         // Unregister network state listener
         if (networkStateListener != null) {
-        	try {
-	            unregisterReceiver(networkStateListener);
-	        } catch (IllegalArgumentException e) {
-	        	// Nothing to do
-	        }
+            try {
+                unregisterReceiver(networkStateListener);
+            } catch (IllegalArgumentException e) {
+                // Nothing to do
+            }
         }
     }
 
@@ -140,35 +140,35 @@ public class StartService extends Service {
     }
 
     @Override
-	public int onStartCommand(final Intent intent, final int flags, final int startId) {
-		if (logger.isActivated()) {
-			logger.debug("Start RCS service");
-		}
-		new Thread() {
-			@Override
-			public void run() {
-				// Check boot
-				if (intent != null) {
-					boot = intent.getBooleanExtra(INTENT_KEY_BOOT, false);
-					user = intent.getBooleanExtra(INTENT_KEY_USER, false);
-				}
-				if (checkAccount(mLocalContentResolver)) {
-					launchRcsService(boot, user);
-				} else {
-					// User account can't be initialized (no radio to read IMSI, .etc)
-					if (logger.isActivated()) {
-						logger.error("Can't create the user account");
-					}
-					// Exit service
-					stopSelf();
-				}
-			}
-		}.start();
+    public int onStartCommand(final Intent intent, final int flags, final int startId) {
+        if (logger.isActivated()) {
+            logger.debug("Start RCS service");
+        }
+        new Thread() {
+            @Override
+            public void run() {
+                // Check boot
+                if (intent != null) {
+                    boot = intent.getBooleanExtra(INTENT_KEY_BOOT, false);
+                    user = intent.getBooleanExtra(INTENT_KEY_USER, false);
+                }
+                if (checkAccount(mLocalContentResolver)) {
+                    launchRcsService(boot, user);
+                } else {
+                    // User account can't be initialized (no radio to read IMSI, .etc)
+                    if (logger.isActivated()) {
+                        logger.error("Can't create the user account");
+                    }
+                    // Exit service
+                    stopSelf();
+                }
+            }
+        }.start();
 
-		// We want this service to continue running until it is explicitly
-		// stopped, so return sticky.
-		return START_STICKY;
-	}
+        // We want this service to continue running until it is explicitly
+        // stopped, so return sticky.
+        return START_STICKY;
+    }
 
     /**
      * Register a broadcast receiver for network state changes
@@ -212,28 +212,28 @@ public class StartService extends Service {
                 if (logger.isActivated()) {
                     logger.debug("Device connected - Launch RCS service");
                 }
-                
+
                 // Start the RCS core service
                 LauncherUtils.launchRcsCoreService(getApplicationContext());
-                
+
                 // Stop Network listener
                 if (networkStateListener != null) {
-                	try {
-	                	unregisterReceiver(networkStateListener);
-	    	        } catch (IllegalArgumentException e) {
-	    	        	// Nothing to do
-	    	        }
-                	networkStateListener = null;
+                    try {
+                        unregisterReceiver(networkStateListener);
+                    } catch (IllegalArgumentException e) {
+                        // Nothing to do
+                    }
+                    networkStateListener = null;
                 }
             }
         }
     }
 
-	private void broadcastServiceProvisioned() {
-		Intent serviceProvisioned = new Intent(RcsService.ACTION_SERVICE_PROVISIONED);
-		IntentUtils.tryToSetReceiverForegroundFlag(serviceProvisioned);
-		getApplicationContext().sendBroadcast(serviceProvisioned);
-	}
+    private void broadcastServiceProvisioned() {
+        Intent serviceProvisioned = new Intent(RcsService.ACTION_SERVICE_PROVISIONED);
+        IntentUtils.tryToSetReceiverForegroundFlag(serviceProvisioned);
+        getApplicationContext().sendBroadcast(serviceProvisioned);
+    }
 
     /**
      * Check account
@@ -241,9 +241,9 @@ public class StartService extends Service {
      * @return true if an account is available
      */
     private boolean checkAccount(LocalContentResolver localContentResolver) {
-    	Context ctx = getApplicationContext();
+        Context ctx = getApplicationContext();
         AndroidFactory.setApplicationContext(ctx);
-        
+
         // Read the current and last end user account
         currentUserAccount = LauncherUtils.getCurrentUserAccount(ctx);
         lastUserAccount = LauncherUtils.getLastUserAccount(ctx);
@@ -255,7 +255,8 @@ public class StartService extends Service {
         // Check the current SIM
         if (currentUserAccount == null) {
             if (isFirstLaunch()) {
-                // If it's a first launch the IMSI is necessary to initialize the service the first time
+                // If it's a first launch the IMSI is necessary to initialize the service the first
+                // time
                 return false;
             } else {
                 // Set the user account ID from the last used IMSI
@@ -267,30 +268,29 @@ public class StartService extends Service {
         if (isFirstLaunch()) {
             // Set new user flag
             setNewUserAccount(true);
-        } else
-        if (hasChangedAccount()) {
-        	// keep a maximum of saved accounts
-    		BackupRestoreDb.cleanBackups(currentUserAccount);
-        	// Backup last account settings
-        	if (lastUserAccount != null) {
-        		if (logger.isActivated()) {
-        			logger.info("Backup " + lastUserAccount);
-        		}
-        		BackupRestoreDb.backupAccount(lastUserAccount);
-        	}
-        	
-            // Reset RCS account 
+        } else if (hasChangedAccount()) {
+            // keep a maximum of saved accounts
+            BackupRestoreDb.cleanBackups(currentUserAccount);
+            // Backup last account settings
+            if (lastUserAccount != null) {
+                if (logger.isActivated()) {
+                    logger.info("Backup " + lastUserAccount);
+                }
+                BackupRestoreDb.backupAccount(lastUserAccount);
+            }
+
+            // Reset RCS account
             LauncherUtils.resetRcsConfig(ctx, mLocalContentResolver);
 
             // Restore current account settings
-    		if (logger.isActivated()) {
-    			logger.info("Restore " + currentUserAccount);
-    		}
-    		BackupRestoreDb.restoreAccount(currentUserAccount);
-    		// Send service provisioned intent as the configuration settings
-    		// are now loaded by means of restoring previous values that were backed
-    		// up during SIM Swap.
-    		broadcastServiceProvisioned();
+            if (logger.isActivated()) {
+                logger.info("Restore " + currentUserAccount);
+            }
+            BackupRestoreDb.restoreAccount(currentUserAccount);
+            // Send service provisioned intent as the configuration settings
+            // are now loaded by means of restoring previous values that were backed
+            // up during SIM Swap.
+            broadcastServiceProvisioned();
 
             // Activate service if new account
             RcsSettings.getInstance().setServiceActivationState(true);
@@ -301,12 +301,12 @@ public class StartService extends Service {
             // Set new user flag
             setNewUserAccount(false);
         }
-        
+
         // Check if the RCS account exists
         Account account = AuthenticationService.getAccount(ctx,
                 getString(R.string.rcs_core_account_username));
         if (account == null) {
-            // No account exists 
+            // No account exists
             if (logger.isActivated()) {
                 logger.debug("The RCS account does not exist");
             }
@@ -326,7 +326,8 @@ public class StartService extends Service {
         } else {
             // Account exists: checks if it has changed
             if (hasChangedAccount()) {
-                // Account has changed (i.e. new SIM card): delete the current account and create a new one
+                // Account has changed (i.e. new SIM card): delete the current account and create a
+                // new one
                 if (logger.isActivated()) {
                     logger.debug("Deleting the old RCS account for " + lastUserAccount);
                 }
@@ -334,7 +335,7 @@ public class StartService extends Service {
                 ContactsManager.createInstance(ctx, contentResolver, localContentResolver);
                 ContactsManager.getInstance().deleteRCSEntries();
                 AuthenticationService.removeRcsAccount(ctx, null);
-    
+
                 if (logger.isActivated()) {
                     logger.debug("Creating a new RCS account for " + currentUserAccount);
                 }
@@ -355,54 +356,58 @@ public class StartService extends Service {
      * @param boot indicates if RCS is launched from the device boot
      * @param user indicates if RCS is launched from the user interface
      */
-	private void launchRcsService(boolean boot, boolean user) {
-		ConfigurationMode mode = RcsSettings.getInstance().getConfigurationMode();
+    private void launchRcsService(boolean boot, boolean user) {
+        ConfigurationMode mode = RcsSettings.getInstance().getConfigurationMode();
 
-		if (logger.isActivated())
-			logger.debug("Launch RCS service: HTTPS=" + mode + ", boot=" + boot + ", user=" + user);
+        if (logger.isActivated())
+            logger.debug("Launch RCS service: HTTPS=" + mode + ", boot=" + boot + ", user=" + user);
 
-		if (ConfigurationMode.AUTO.equals(mode)) {
-			// HTTPS auto config
-			String version = RcsSettings.getInstance().getProvisioningVersion();
-			// Check the last provisioning version
-			if (ProvisioningInfo.Version.RESETED_NOQUERY.equals(version)) {
-				// (-1) : RCS service is permanently disabled. SIM change is required
-				if (hasChangedAccount()) {
-					// Start provisioning as a first launch
-					HttpsProvisioningService.startHttpsProvisioningService(getApplicationContext(), true, user);
-				} else {
-					if (logger.isActivated()) {
-						logger.debug("Provisioning is blocked with this account");
-					}
-				}
-			} else {
-				if (isFirstLaunch() || hasChangedAccount()) {
-					// First launch: start the auto config service with special tag
-					HttpsProvisioningService.startHttpsProvisioningService(getApplicationContext(), true, user);
-				} else {
-					if (ProvisioningInfo.Version.DISABLED_NOQUERY.equals(version)) {
-						// -2 : RCS client and configuration query is disabled
-						if (user) {
-							// Only start query if requested by user action
-							HttpsProvisioningService.startHttpsProvisioningService(getApplicationContext(), false, user);
-						}
-					} else {
-						// Start or restart the HTTP provisioning service
-						HttpsProvisioningService.startHttpsProvisioningService(getApplicationContext(), false, user);
-						if (ProvisioningInfo.Version.DISABLED_DORMANT.equals(version)) {
-							// -3 : RCS client is disabled but configuration query is not
-						} else {
-							// Start the RCS core service
-							LauncherUtils.launchRcsCoreService(getApplicationContext());
-						}
-					}
-				}
-			}
-		} else {
-			// No auto config: directly start the RCS core service
-			LauncherUtils.launchRcsCoreService(getApplicationContext());
-		}
-	}
+        if (ConfigurationMode.AUTO.equals(mode)) {
+            // HTTPS auto config
+            String version = RcsSettings.getInstance().getProvisioningVersion();
+            // Check the last provisioning version
+            if (ProvisioningInfo.Version.RESETED_NOQUERY.equals(version)) {
+                // (-1) : RCS service is permanently disabled. SIM change is required
+                if (hasChangedAccount()) {
+                    // Start provisioning as a first launch
+                    HttpsProvisioningService.startHttpsProvisioningService(getApplicationContext(),
+                            true, user);
+                } else {
+                    if (logger.isActivated()) {
+                        logger.debug("Provisioning is blocked with this account");
+                    }
+                }
+            } else {
+                if (isFirstLaunch() || hasChangedAccount()) {
+                    // First launch: start the auto config service with special tag
+                    HttpsProvisioningService.startHttpsProvisioningService(getApplicationContext(),
+                            true, user);
+                } else {
+                    if (ProvisioningInfo.Version.DISABLED_NOQUERY.equals(version)) {
+                        // -2 : RCS client and configuration query is disabled
+                        if (user) {
+                            // Only start query if requested by user action
+                            HttpsProvisioningService.startHttpsProvisioningService(
+                                    getApplicationContext(), false, user);
+                        }
+                    } else {
+                        // Start or restart the HTTP provisioning service
+                        HttpsProvisioningService.startHttpsProvisioningService(
+                                getApplicationContext(), false, user);
+                        if (ProvisioningInfo.Version.DISABLED_DORMANT.equals(version)) {
+                            // -3 : RCS client is disabled but configuration query is not
+                        } else {
+                            // Start the RCS core service
+                            LauncherUtils.launchRcsCoreService(getApplicationContext());
+                        }
+                    }
+                }
+            }
+        } else {
+            // No auto config: directly start the RCS core service
+            LauncherUtils.launchRcsCoreService(getApplicationContext());
+        }
+    }
 
     /**
      * Is the first RCs is launched ?
@@ -421,8 +426,7 @@ public class StartService extends Service {
     private boolean hasChangedAccount() {
         if (lastUserAccount == null) {
             return true;
-        } else
-        if (currentUserAccount == null) {
+        } else if (currentUserAccount == null) {
             return false;
         } else {
             return (!currentUserAccount.equalsIgnoreCase(lastUserAccount));
@@ -435,7 +439,8 @@ public class StartService extends Service {
      * @param value true if new user account
      */
     private void setNewUserAccount(boolean value) {
-        SharedPreferences preferences = getSharedPreferences(AndroidRegistryFactory.RCS_PREFS_NAME, Activity.MODE_PRIVATE);
+        SharedPreferences preferences = getSharedPreferences(AndroidRegistryFactory.RCS_PREFS_NAME,
+                Activity.MODE_PRIVATE);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean(REGISTRY_NEW_USER_ACCOUNT, value);
         editor.commit();
@@ -448,25 +453,24 @@ public class StartService extends Service {
      * @return true if new user account
      */
     public static boolean getNewUserAccount(Context context) {
-        SharedPreferences preferences = context.getSharedPreferences(AndroidRegistryFactory.RCS_PREFS_NAME, Activity.MODE_PRIVATE);
+        SharedPreferences preferences = context.getSharedPreferences(
+                AndroidRegistryFactory.RCS_PREFS_NAME, Activity.MODE_PRIVATE);
         return preferences.getBoolean(REGISTRY_NEW_USER_ACCOUNT, false);
     }
-    
-	/**
-	 * Launch the RCS start service
-	 * 
-	 * @param context
-	 * @param boot
-	 *            start RCS service upon boot
-	 * @param user
-	 *            start RCS service upon user action
-	 */
-	static void LaunchRcsStartService(Context context, boolean boot, boolean user) {
-		if (logger.isActivated())
-			logger.debug("Launch RCS service (boot=" + boot + ") (user="+user+")");
-		Intent intent = new Intent(context, StartService.class);
-		intent.putExtra(INTENT_KEY_BOOT, boot);
-		intent.putExtra(INTENT_KEY_USER, user);
-		context.startService(intent);
-	}
+
+    /**
+     * Launch the RCS start service
+     * 
+     * @param context
+     * @param boot start RCS service upon boot
+     * @param user start RCS service upon user action
+     */
+    static void LaunchRcsStartService(Context context, boolean boot, boolean user) {
+        if (logger.isActivated())
+            logger.debug("Launch RCS service (boot=" + boot + ") (user=" + user + ")");
+        Intent intent = new Intent(context, StartService.class);
+        intent.putExtra(INTENT_KEY_BOOT, boot);
+        intent.putExtra(INTENT_KEY_USER, user);
+        context.startService(intent);
+    }
 }

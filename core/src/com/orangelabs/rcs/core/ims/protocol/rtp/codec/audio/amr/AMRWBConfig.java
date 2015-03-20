@@ -34,7 +34,7 @@ public class AMRWBConfig {
      * Default audio sample rate
      */
     public final static int SAMPLE_RATE = 16000;
-    
+
     /**
      * Default payload number
      */

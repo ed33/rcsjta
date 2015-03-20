@@ -97,16 +97,9 @@ public abstract class H264Profile {
      * @param packetSize Packet size
      * @param codeParams Codec parameters
      */
-    public H264Profile(String profileName,
-            H264TypeLevel level,
-            H264TypeProfile type,
-            String levelId,
-            int videoWidth,
-            int videoHeight,
-            float frameRate,
-            int bitRate,
-            int packetSize,
-            String codeParams) {
+    public H264Profile(String profileName, H264TypeLevel level, H264TypeProfile type,
+            String levelId, int videoWidth, int videoHeight, float frameRate, int bitRate,
+            int packetSize, String codeParams) {
 
         this.videoWidth = videoWidth;
         this.videoHeight = videoHeight;
@@ -233,8 +226,7 @@ public abstract class H264Profile {
             H264ConstraintSetFlagType constraintSet3Flag = ((constraintSet3FlagValue == 1) ? H264ConstraintSetFlagType.TRUE
                     : H264ConstraintSetFlagType.FALSE);
 
-            H264TypeLevel level = H264TypeLevel.getH264LevelType(levelIDC,
-                    constraintSet3Flag);
+            H264TypeLevel level = H264TypeLevel.getH264LevelType(levelIDC, constraintSet3Flag);
 
             if (H264TypeLevel.LEVEL_1 == level) {
                 profile = new H264Profile1();

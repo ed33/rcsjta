@@ -29,62 +29,61 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * An implementation of the TrustStore interface that
- * uses a KeyStore as its underlying storage.
+ * An implementation of the TrustStore interface that uses a KeyStore as its underlying storage.
  */
 public class KeystoreTrustStore implements TrustStore {
 
-	public KeystoreTrustStore(KeyStore ks) {
-		this.ks = ks;
-	}
+    public KeystoreTrustStore(KeyStore ks) {
+        this.ks = ks;
+    }
 
-	public void load() throws KeyStoreException {
-		/* read all certificates and map them to ranges based on the SAN */
-		Enumeration<String> aliases = ks.aliases();
-		while(aliases.hasMoreElements()) {
-			String alias = aliases.nextElement();
-			if(ks.isCertificateEntry(alias)) {
-				/* this is a candidate, but we need to check that it has a SAN */
-				X509Certificate cert = (X509Certificate)ks.getCertificate(alias);
-				CertificateInfo certInfo = CertificateInfo.create(cert);
-				if(certInfo != null) {
-					String[] uriIdentities = certInfo.getURIIdentities();
-					if(uriIdentities != null && uriIdentities.length > 0) {
-						for(String uriIdentity : uriIdentities) {
-							addAliasForRange(alias, uriIdentity);
-						}
-					}
-				}
-			}
-		}
-	}
+    public void load() throws KeyStoreException {
+        /* read all certificates and map them to ranges based on the SAN */
+        Enumeration<String> aliases = ks.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            if (ks.isCertificateEntry(alias)) {
+                /* this is a candidate, but we need to check that it has a SAN */
+                X509Certificate cert = (X509Certificate) ks.getCertificate(alias);
+                CertificateInfo certInfo = CertificateInfo.create(cert);
+                if (certInfo != null) {
+                    String[] uriIdentities = certInfo.getURIIdentities();
+                    if (uriIdentities != null && uriIdentities.length > 0) {
+                        for (String uriIdentity : uriIdentities) {
+                            addAliasForRange(alias, uriIdentity);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-	@Override
-	public Set<TrustAnchor> getTrustAnchorsForRange(String range) {
-		Set<TrustAnchor> result = null;
-		List<String> rangeAliases = knownRanges.get(range);
-		if(rangeAliases != null) {
-			result = new HashSet<TrustAnchor>();
-			for(String alias : rangeAliases) {
-				try {
-					result.add(new TrustAnchor((X509Certificate)ks.getCertificate(alias), null));
-				} catch (KeyStoreException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		return result;
-	}
+    @Override
+    public Set<TrustAnchor> getTrustAnchorsForRange(String range) {
+        Set<TrustAnchor> result = null;
+        List<String> rangeAliases = knownRanges.get(range);
+        if (rangeAliases != null) {
+            result = new HashSet<TrustAnchor>();
+            for (String alias : rangeAliases) {
+                try {
+                    result.add(new TrustAnchor((X509Certificate) ks.getCertificate(alias), null));
+                } catch (KeyStoreException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return result;
+    }
 
-	private void addAliasForRange(String alias, String range) {
-		List<String> rangeAliases = knownRanges.get(range);
-		if(rangeAliases == null) {
-			rangeAliases = new ArrayList<String>();
-			knownRanges.put(range, rangeAliases);
-		}
-		rangeAliases.add(alias);
-	}
+    private void addAliasForRange(String alias, String range) {
+        List<String> rangeAliases = knownRanges.get(range);
+        if (rangeAliases == null) {
+            rangeAliases = new ArrayList<String>();
+            knownRanges.put(range, rangeAliases);
+        }
+        rangeAliases.add(alias);
+    }
 
-	private final KeyStore ks;
-	private final Map<String, List<String>> knownRanges = new HashMap<String, List<String>>();
+    private final KeyStore ks;
+    private final Map<String, List<String>> knownRanges = new HashMap<String, List<String>>();
 }

@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.ipcall;
 
 import java.util.HashSet;
@@ -39,21 +40,18 @@ import com.gsma.services.rcs.RcsServiceNotAvailableException;
 import com.gsma.services.rcs.contacts.ContactId;
 
 /**
- * This class offers the main entry point to initiate IP calls. Several
- * applications may connect/disconnect to the API.
- * 
- * The parameter contact in the API supports the following formats:
- * MSISDN in national or international format, SIP address, SIP-URI
- * or Tel-URI.
+ * This class offers the main entry point to initiate IP calls. Several applications may
+ * connect/disconnect to the API. The parameter contact in the API supports the following formats:
+ * MSISDN in national or international format, SIP address, SIP-URI or Tel-URI.
  * 
  * @author Jean-Marc AUFFRET
  */
 public class IPCallService extends RcsService {
-	/**
-	 * API
-	 */
-	private IIPCallService api;
-	
+    /**
+     * API
+     */
+    private IIPCallService api;
+
     /**
      * Constructor
      * 
@@ -61,57 +59,57 @@ public class IPCallService extends RcsService {
      * @param listener Service listener
      */
     public IPCallService(Context ctx, RcsServiceListener listener) {
-    	super(ctx, listener);
+        super(ctx, listener);
     }
 
     /**
      * Connects to the API
      */
     public void connect() {
-    	ctx.bindService(new Intent(IIPCallService.class.getName()), apiConnection, 0);
+        ctx.bindService(new Intent(IIPCallService.class.getName()), apiConnection, 0);
     }
-    
+
     /**
      * Disconnects from the API
      */
     public void disconnect() {
-    	try {
-    		ctx.unbindService(apiConnection);
-        } catch(IllegalArgumentException e) {
-        	// Nothing to do
+        try {
+            ctx.unbindService(apiConnection);
+        } catch (IllegalArgumentException e) {
+            // Nothing to do
         }
-    }
-
-	/**
-	 * Set API interface
-	 * 
-	 * @param api API interface
-	 */
-    protected void setApi(IInterface api) {
-    	super.setApi(api);
-    	
-        this.api = (IIPCallService)api;
     }
 
     /**
-	 * Service connection
-	 */
-	private ServiceConnection apiConnection = new ServiceConnection() {
+     * Set API interface
+     * 
+     * @param api API interface
+     */
+    protected void setApi(IInterface api) {
+        super.setApi(api);
+
+        this.api = (IIPCallService) api;
+    }
+
+    /**
+     * Service connection
+     */
+    private ServiceConnection apiConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
-        	setApi(IIPCallService.Stub.asInterface(service));
-        	if (serviceListener != null) {
-        		serviceListener.onServiceConnected();
-        	}
+            setApi(IIPCallService.Stub.asInterface(service));
+            if (serviceListener != null) {
+                serviceListener.onServiceConnected();
+            }
         }
 
         public void onServiceDisconnected(ComponentName className) {
-        	setApi(null);
-        	if (serviceListener != null) {
-        		serviceListener.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
-        	}
+            setApi(null);
+            if (serviceListener != null) {
+                serviceListener.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
+            }
         }
     };
-	
+
     /**
      * Returns the configuration of IP call service
      * 
@@ -119,21 +117,21 @@ public class IPCallService extends RcsService {
      * @throws RcsServiceException
      */
     public IPCallServiceConfiguration getConfiguration() throws RcsServiceException {
-		if (api != null) {
-			try {
-				return api.getConfiguration();
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+        if (api != null) {
+            try {
+                return api.getConfiguration();
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 
     /**
-     * Initiates an IP call with a contact (audio only). The parameter contact supports the following
-     * formats: MSISDN in national or international format, SIP address, SIP-URI or Tel-URI. If the
-     * format of the contact is not supported an exception is thrown.
+     * Initiates an IP call with a contact (audio only). The parameter contact supports the
+     * following formats: MSISDN in national or international format, SIP address, SIP-URI or
+     * Tel-URI. If the format of the contact is not supported an exception is thrown.
      * 
      * @param contact Contact identifier
      * @param player IP call player
@@ -141,27 +139,28 @@ public class IPCallService extends RcsService {
      * @return IP call
      * @throws RcsServiceException
      */
-    public IPCall initiateCall(ContactId contact, IPCallPlayer player, IPCallRenderer renderer) throws RcsServiceException {
-		if (api != null) {
-			try {
-				IIPCall callIntf = api.initiateCall(contact, player, renderer);
-				if (callIntf != null) {
-					return new IPCall(callIntf);
-				} else {
-					return null;
-				}
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }    
-    
+    public IPCall initiateCall(ContactId contact, IPCallPlayer player, IPCallRenderer renderer)
+            throws RcsServiceException {
+        if (api != null) {
+            try {
+                IIPCall callIntf = api.initiateCall(contact, player, renderer);
+                if (callIntf != null) {
+                    return new IPCall(callIntf);
+                } else {
+                    return null;
+                }
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
+
     /**
-     * Initiates an IP call visio with a contact (audio and video). The parameter contact supports the following
-     * formats: MSISDN in national or international format, SIP address, SIP-URI or Tel-URI. If the format of
-     * the contact is not supported an exception is thrown.
+     * Initiates an IP call visio with a contact (audio and video). The parameter contact supports
+     * the following formats: MSISDN in national or international format, SIP address, SIP-URI or
+     * Tel-URI. If the format of the contact is not supported an exception is thrown.
      * 
      * @param contact Contact identifier
      * @param player IP call player
@@ -169,23 +168,24 @@ public class IPCallService extends RcsService {
      * @return IP call
      * @throws RcsServiceException
      */
-    public IPCall initiateVisioCall(ContactId contact, IPCallPlayer player, IPCallRenderer renderer) throws RcsServiceException {
-		if (api != null) {
-			try {
-				IIPCall callIntf = api.initiateVisioCall(contact, player, renderer);
-				if (callIntf != null) {
-					return new IPCall(callIntf);
-				} else {
-					return null;
-				}
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }    
-    
+    public IPCall initiateVisioCall(ContactId contact, IPCallPlayer player, IPCallRenderer renderer)
+            throws RcsServiceException {
+        if (api != null) {
+            try {
+                IIPCall callIntf = api.initiateVisioCall(contact, player, renderer);
+                if (callIntf != null) {
+                    return new IPCall(callIntf);
+                } else {
+                    return null;
+                }
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
+
     /**
      * Returns the list of IP calls in progress
      * 
@@ -193,22 +193,22 @@ public class IPCallService extends RcsService {
      * @throws RcsServiceException
      */
     public Set<IPCall> getIPCalls() throws RcsServiceException {
-		if (api != null) {
-			try {
-	    		Set<IPCall> result = new HashSet<IPCall>();
-				List<IBinder> vshList = api.getIPCalls();
-				for (IBinder binder : vshList) {
-					IPCall call = new IPCall(IIPCall.Stub.asInterface(binder));
-					result.add(call);
-				}
-				return result;
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }    
+        if (api != null) {
+            try {
+                Set<IPCall> result = new HashSet<IPCall>();
+                List<IBinder> vshList = api.getIPCalls();
+                for (IBinder binder : vshList) {
+                    IPCall call = new IPCall(IIPCall.Stub.asInterface(binder));
+                    result.add(call);
+                }
+                return result;
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 
     /**
      * Returns a current IP call from its unique ID
@@ -218,50 +218,50 @@ public class IPCallService extends RcsService {
      * @throws RcsServiceException
      */
     public IPCall getIPCall(String callId) throws RcsServiceException {
-		if (api != null) {
-			try {
-				return new IPCall(api.getIPCall(callId));
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }    
-    
-	/**
-	 * Adds an event listener on IP call events
-	 * 
-	 * @param listener Listener
-	 * @throws RcsServiceException
-	 */
-	public void addEventListener(IPCallListener listener) throws RcsServiceException {
-		if (api != null) {
-			try {
-				api.addEventListener2(listener);
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+        if (api != null) {
+            try {
+                return new IPCall(api.getIPCall(callId));
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 
-	/**
-	 * Removes an event listener from IP call events
-	 * 
-	 * @param listener Listener
-	 * @throws RcsServiceException
-	 */
-	public void removeEventListener(IPCallListener listener) throws RcsServiceException {
-		if (api != null) {
-			try {
-				api.removeEventListener2(listener);
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+    /**
+     * Adds an event listener on IP call events
+     * 
+     * @param listener Listener
+     * @throws RcsServiceException
+     */
+    public void addEventListener(IPCallListener listener) throws RcsServiceException {
+        if (api != null) {
+            try {
+                api.addEventListener2(listener);
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
+
+    /**
+     * Removes an event listener from IP call events
+     * 
+     * @param listener Listener
+     * @throws RcsServiceException
+     */
+    public void removeEventListener(IPCallListener listener) throws RcsServiceException {
+        if (api != null) {
+            try {
+                api.removeEventListener2(listener);
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 }

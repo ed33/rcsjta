@@ -31,35 +31,35 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * Media RTP sender
  */
 public class MediaRtpSender {
-	/**
-	 * Format
-	 */
-	protected Format format;
+    /**
+     * Format
+     */
+    protected Format format;
 
     /**
      * Media processor
      */
-	protected Processor processor = null;
+    protected Processor processor = null;
 
     /**
      * MediaCaptureStream
      */
-	protected MediaCaptureStream inputStream = null;
+    protected MediaCaptureStream inputStream = null;
 
     /**
      * RTP output stream
      */
-	protected RtpOutputStream outputStream = null;
+    protected RtpOutputStream outputStream = null;
 
     /**
      * Local RTP port
      */
-	protected int localPort;
+    protected int localPort;
 
     /**
      * The logger
      */
-	protected Logger logger = Logger.getLogger(this.getClass().getName());
+    protected Logger logger = Logger.getLogger(this.getClass().getName());
 
     /**
      * Constructor
@@ -67,10 +67,10 @@ public class MediaRtpSender {
      * @param format Media format
      */
     public MediaRtpSender(Format format, int localRtpPort) {
-    	this.format = format;
+        this.format = format;
         this.localPort = localRtpPort;
     }
-    
+
     /**
      * Prepare the RTP session
      *
@@ -79,48 +79,49 @@ public class MediaRtpSender {
      * @param remotePort Remote port
      * @throws RtpException
      */
-    public void prepareSession(MediaInput player, String remoteAddress, int remotePort, RtpStreamListener rtpStreamListener)
-            throws RtpException {
-    	try {
-			if (logger.isActivated()) {
-				logger.debug("Prepare session");
-			}
-			
-    		// Create the input stream
+    public void prepareSession(MediaInput player, String remoteAddress, int remotePort,
+            RtpStreamListener rtpStreamListener) throws RtpException {
+        try {
+            if (logger.isActivated()) {
+                logger.debug("Prepare session");
+            }
+
+            // Create the input stream
             inputStream = new MediaCaptureStream(format, player);
-    		inputStream.open();
-			if (logger.isActivated()) {
-				logger.debug("Input stream: " + inputStream.getClass().getName());
-			}
+            inputStream.open();
+            if (logger.isActivated()) {
+                logger.debug("Input stream: " + inputStream.getClass().getName());
+            }
 
             // Create the output stream
-            outputStream = new RtpOutputStream(remoteAddress, remotePort, localPort, RtpOutputStream.RTCP_SOCKET_TIMEOUT);
+            outputStream = new RtpOutputStream(remoteAddress, remotePort, localPort,
+                    RtpOutputStream.RTCP_SOCKET_TIMEOUT);
             outputStream.addRtpStreamListener(rtpStreamListener);
             outputStream.open();
-			if (logger.isActivated()) {
-				logger.debug("Output stream: " + outputStream.getClass().getName());
-			}
+            if (logger.isActivated()) {
+                logger.debug("Output stream: " + outputStream.getClass().getName());
+            }
 
-        	// Create the codec chain
-        	Codec[] codecChain = MediaRegistry.generateEncodingCodecChain(format.getCodec());
+            // Create the codec chain
+            Codec[] codecChain = MediaRegistry.generateEncodingCodecChain(format.getCodec());
 
             // Create the media processor
-			if (logger.isActivated()) {
-				logger.debug("New processor");
-			}
-    		processor = new Processor(inputStream, outputStream, codecChain);
-
-        	if (logger.isActivated()) {
-        		logger.debug("Session has been prepared with success");
+            if (logger.isActivated()) {
+                logger.debug("New processor");
             }
-        } catch(Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Can't prepare resources correctly", e);
-        	}
-        	throw new RtpException("Can't prepare resources");
+            processor = new Processor(inputStream, outputStream, codecChain);
+
+            if (logger.isActivated()) {
+                logger.debug("Session has been prepared with success");
+            }
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't prepare resources correctly", e);
+            }
+            throw new RtpException("Can't prepare resources");
         }
     }
-    
+
     /**
      * Prepare the RTP session for a sender associated to a receiver
      *
@@ -129,46 +130,47 @@ public class MediaRtpSender {
      * @param remotePort Remote port
      * @throws RtpException
      */
-    public void prepareSession(MediaInput player, String remoteAddress, int remotePort, RtpInputStream rtpStream, RtpStreamListener rtpStreamListener)
-            throws RtpException {
-    	try {
-			if (logger.isActivated()) {
-				logger.debug("Prepare session");
-			}
-			
-    		// Create the input stream
+    public void prepareSession(MediaInput player, String remoteAddress, int remotePort,
+            RtpInputStream rtpStream, RtpStreamListener rtpStreamListener) throws RtpException {
+        try {
+            if (logger.isActivated()) {
+                logger.debug("Prepare session");
+            }
+
+            // Create the input stream
             inputStream = new MediaCaptureStream(format, player);
-    		inputStream.open();
-			if (logger.isActivated()) {
-				logger.debug("Input stream: " + inputStream.getClass().getName());
-			}
+            inputStream.open();
+            if (logger.isActivated()) {
+                logger.debug("Input stream: " + inputStream.getClass().getName());
+            }
 
             // Create the output stream
-            //outputStream = new RtpOutputStream(remoteAddress, remotePort, localRtpPort, RtpOutputStream.RTCP_SOCKET_TIMEOUT);
-			outputStream = new RtpOutputStream(remoteAddress, remotePort, rtpStream);
+            // outputStream = new RtpOutputStream(remoteAddress, remotePort, localRtpPort,
+            // RtpOutputStream.RTCP_SOCKET_TIMEOUT);
+            outputStream = new RtpOutputStream(remoteAddress, remotePort, rtpStream);
             outputStream.addRtpStreamListener(rtpStreamListener);
             outputStream.open();
-			if (logger.isActivated()) {
-				logger.debug("Output stream: " + outputStream.getClass().getName());
-			}
+            if (logger.isActivated()) {
+                logger.debug("Output stream: " + outputStream.getClass().getName());
+            }
 
-        	// Create the codec chain
-        	Codec[] codecChain = MediaRegistry.generateEncodingCodecChain(format.getCodec());
+            // Create the codec chain
+            Codec[] codecChain = MediaRegistry.generateEncodingCodecChain(format.getCodec());
 
             // Create the media processor
-			if (logger.isActivated()) {
-				logger.debug("New processor");
-			}
-    		processor = new Processor(inputStream, outputStream, codecChain);
-
-        	if (logger.isActivated()) {
-        		logger.debug("Session has been prepared with success");
+            if (logger.isActivated()) {
+                logger.debug("New processor");
             }
-        } catch(Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Can't prepare resources correctly", e);
-        	}
-        	throw new RtpException("Can't prepare resources");
+            processor = new Processor(inputStream, outputStream, codecChain);
+
+            if (logger.isActivated()) {
+                logger.debug("Session has been prepared with success");
+            }
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't prepare resources correctly", e);
+            }
+            throw new RtpException("Can't prepare resources");
         }
     }
 
@@ -176,28 +178,28 @@ public class MediaRtpSender {
      * Start the RTP session
      */
     public void startSession() {
-    	if (logger.isActivated()) {
-    		logger.debug("Start the session");
-    	}
+        if (logger.isActivated()) {
+            logger.debug("Start the session");
+        }
 
-    	// Start the media processor
-		if (processor != null) {
-			processor.startProcessing();
-		}
+        // Start the media processor
+        if (processor != null) {
+            processor.startProcessing();
+        }
     }
 
     /**
      * Stop the RTP session
      */
     public void stopSession() {
-    	if (logger.isActivated()) {
-    		logger.debug("Stop the session");
-    	}
+        if (logger.isActivated()) {
+            logger.debug("Stop the session");
+        }
 
-    	// Stop the media processor
-		if (processor != null) {
-			processor.stopProcessing();
-		}
+        // Stop the media processor
+        if (processor != null) {
+            processor.stopProcessing();
+        }
 
         if (outputStream != null) {
             outputStream.close();

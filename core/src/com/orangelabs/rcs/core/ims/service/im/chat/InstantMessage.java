@@ -27,165 +27,156 @@ import com.gsma.services.rcs.contacts.ContactId;
  * 
  * @author jexa7410
  * @author yplo6403
- *
  */
 public class InstantMessage {
-	/**
-	 * MIME type
-	 */
-	public static final String MIME_TYPE = "text/plain";
-	
-	/**
-	 * Remote user identifier
-	 */
-	private ContactId remote;
-	
-	/**
-	 * Remote user display name
-	 */
-	private String displayName;
-	
-	/**
-	 * Text message
-	 */
-	private String message;
-	
-	/**
-	 * Receipt date of the message
-	 */
-	private Date receiptAt;
-	
-	/**
-	 * Receipt date of the message on the server (i.e. CPIM date)
-	 */
-	private Date serverReceiptAt;
+    /**
+     * MIME type
+     */
+    public static final String MIME_TYPE = "text/plain";
 
-	/**
-	 * Message Id
-	 */
-	private String msgId;
-	
-	/**
-	 * Flag indicating that an IMDN "displayed" is requested for this message
-	 */
-	private boolean imdnDisplayedRequested = false;
+    /**
+     * Remote user identifier
+     */
+    private ContactId remote;
 
-	/**
-	 * Constructor for outgoing message
-	 * 
-	 * @param messageId
-	 *            Message Id
-	 * @param remote
-	 *            Remote user identifier
-	 * @param message
-	 *            Text message
-	 * @param imdnDisplayedRequested
-	 *            Flag indicating that an IMDN "displayed" is requested
-	 * @param displayName
-	 *            the name to display or null if unknown
-	 */
-	public InstantMessage(String messageId, ContactId remote, String message, boolean imdnDisplayedRequested, String displayName) {
-		this(messageId, remote, message, imdnDisplayedRequested, null, displayName);
+    /**
+     * Remote user display name
+     */
+    private String displayName;
+
+    /**
+     * Text message
+     */
+    private String message;
+
+    /**
+     * Receipt date of the message
+     */
+    private Date receiptAt;
+
+    /**
+     * Receipt date of the message on the server (i.e. CPIM date)
+     */
+    private Date serverReceiptAt;
+
+    /**
+     * Message Id
+     */
+    private String msgId;
+
+    /**
+     * Flag indicating that an IMDN "displayed" is requested for this message
+     */
+    private boolean imdnDisplayedRequested = false;
+
+    /**
+     * Constructor for outgoing message
+     * 
+     * @param messageId Message Id
+     * @param remote Remote user identifier
+     * @param message Text message
+     * @param imdnDisplayedRequested Flag indicating that an IMDN "displayed" is requested
+     * @param displayName the name to display or null if unknown
+     */
+    public InstantMessage(String messageId, ContactId remote, String message,
+            boolean imdnDisplayedRequested, String displayName) {
+        this(messageId, remote, message, imdnDisplayedRequested, null, displayName);
     }
-	
-	/**
-	 * Constructor for incoming message
-	 * 
-	 * @param messageId
-	 *            Message Id
-	 * @param remote
-	 *            Remote user identifier
-	 * @param message
-	 *            Text message
-	 * @param imdnDisplayedRequested
-	 *            Flag indicating that an IMDN "displayed" is requested
-	 * @param serverReceiptAt
-	 *            Receipt date of the message on the server
-	 * @param displayName
-	 *            the name to display or null if unknown
-	 */
-	public InstantMessage(String messageId, ContactId remote, String message, boolean imdnDisplayedRequested, Date serverReceiptAt, String displayName) {
-		this.msgId = messageId;
-		this.remote = remote;
-		this.message = message;
-		this.imdnDisplayedRequested = imdnDisplayedRequested;
-		this.receiptAt = new Date();
-		this.serverReceiptAt = (serverReceiptAt != null ? serverReceiptAt : this.receiptAt);
-		this.displayName = displayName;
-	}
 
-	/**
-	 * Returns the text message
-	 * 
-	 * @return String
-	 */
-	public String getTextMessage() {
-		return message;
-	}
-	
-	/**
-	 * Returns the message Id
-	 * 
-	 * @return message Id
-	 */
-    public String getMessageId(){
-    	return msgId;
+    /**
+     * Constructor for incoming message
+     * 
+     * @param messageId Message Id
+     * @param remote Remote user identifier
+     * @param message Text message
+     * @param imdnDisplayedRequested Flag indicating that an IMDN "displayed" is requested
+     * @param serverReceiptAt Receipt date of the message on the server
+     * @param displayName the name to display or null if unknown
+     */
+    public InstantMessage(String messageId, ContactId remote, String message,
+            boolean imdnDisplayedRequested, Date serverReceiptAt, String displayName) {
+        this.msgId = messageId;
+        this.remote = remote;
+        this.message = message;
+        this.imdnDisplayedRequested = imdnDisplayedRequested;
+        this.receiptAt = new Date();
+        this.serverReceiptAt = (serverReceiptAt != null ? serverReceiptAt : this.receiptAt);
+        this.displayName = displayName;
     }
-	
-	/**
-	 * Returns the remote user
-	 * 
-	 * @return Remote user identifier
-	 */
-	public ContactId getRemote() {
-		return remote;
-	}
-	
-	/**
-	 * Returns true if the IMDN "displayed" has been requested 
-	 * 
-	 * @return Boolean
-	 */
-	public boolean isImdnDisplayedRequested() {
-		return imdnDisplayedRequested;
-	}
-	
-	/**
-	 * Returns the receipt date of the message
-	 * 
-	 * @return Date
-	 */
-	public Date getDate() {
-		return receiptAt;
-	}
 
-	/**
-	 * Returns the receipt date of the message on the server
-	 * 
-	 * @return Date
-	 */
-	public Date getServerDate() {
-		return serverReceiptAt;
-	}
+    /**
+     * Returns the text message
+     * 
+     * @return String
+     */
+    public String getTextMessage() {
+        return message;
+    }
 
-	/**
-	 * Get the Remote display name
-	 * @return the Display Name
-	 */
-	public String getDisplayName() {
-		return displayName;
-	}
+    /**
+     * Returns the message Id
+     * 
+     * @return message Id
+     */
+    public String getMessageId() {
+        return msgId;
+    }
 
-	@Override
-	public String toString() {
-		if (message != null && message.length() < 30) {
-			return "IM [from=" + remote + ", pseudo='" + displayName + "', msg='" + message + "', msgId=" + msgId
-				+ ", imdnDisplayedRequested=" + imdnDisplayedRequested + "]";
-		} else {
-			return "IM [from=" + remote + ", pseudo='" + displayName + "', msgId=" + msgId
-					+ ", imdnDisplayedRequested=" + imdnDisplayedRequested + "]";
-		}
-	}
-	
-	
+    /**
+     * Returns the remote user
+     * 
+     * @return Remote user identifier
+     */
+    public ContactId getRemote() {
+        return remote;
+    }
+
+    /**
+     * Returns true if the IMDN "displayed" has been requested
+     * 
+     * @return Boolean
+     */
+    public boolean isImdnDisplayedRequested() {
+        return imdnDisplayedRequested;
+    }
+
+    /**
+     * Returns the receipt date of the message
+     * 
+     * @return Date
+     */
+    public Date getDate() {
+        return receiptAt;
+    }
+
+    /**
+     * Returns the receipt date of the message on the server
+     * 
+     * @return Date
+     */
+    public Date getServerDate() {
+        return serverReceiptAt;
+    }
+
+    /**
+     * Get the Remote display name
+     * 
+     * @return the Display Name
+     */
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    @Override
+    public String toString() {
+        if (message != null && message.length() < 30) {
+            return "IM [from=" + remote + ", pseudo='" + displayName + "', msg='" + message
+                    + "', msgId=" + msgId + ", imdnDisplayedRequested=" + imdnDisplayedRequested
+                    + "]";
+        } else {
+            return "IM [from=" + remote + ", pseudo='" + displayName + "', msgId=" + msgId
+                    + ", imdnDisplayedRequested=" + imdnDisplayedRequested + "]";
+        }
+    }
+
 }

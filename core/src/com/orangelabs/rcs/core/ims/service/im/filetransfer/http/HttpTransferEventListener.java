@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.http;
 
 /**
@@ -31,17 +32,17 @@ public interface HttpTransferEventListener {
      * HTTP transfer started
      */
     public void httpTransferStarted();
-    
+
     /**
      * HTTP transfer paused by user
      */
     public void httpTransferPausedByUser();
-    
+
     /**
      * HTTP transfer paused by system
      */
     public void httpTransferPausedBySystem();
-    
+
     /**
      * HTTP transfer resumed
      */

@@ -65,7 +65,7 @@ public class TermsAndConditionsRequest extends Activity {
             String message = intent.getStringExtra(MESSAGE_KEY);
             boolean accept_btn = intent.getBooleanExtra(ACCEPT_BTN_KEY, false);
             boolean reject_btn = intent.getBooleanExtra(REJECT_BTN_KEY, false);
-            
+
             if (!TextUtils.isEmpty(message)) {
                 // Add text
                 TextView textView = new TextView(this);
@@ -92,7 +92,7 @@ public class TermsAndConditionsRequest extends Activity {
                             new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int which) {
                                     // If the user declines the terms, the RCS service is stopped
-                                	// and the RCS config is reset
+                                    // and the RCS config is reset
                                     LauncherUtils.stopRcsService(ctx);
                                     LauncherUtils.resetRcsConfig(ctx, mLocalContentResolver);
                                     RcsSettings.getInstance().setProvisioningVersion("0");
@@ -111,7 +111,7 @@ public class TermsAndConditionsRequest extends Activity {
                             });
                 }
 
-                AlertDialog alert = builder.create(); 
+                AlertDialog alert = builder.create();
                 alert.setCanceledOnTouchOutside(false);
                 alert.setCancelable(false);
                 alert.show();

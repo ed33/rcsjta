@@ -28,18 +28,18 @@ package com.orangelabs.rcs.core.ims.service;
  * @author JM. Auffret
  */
 public interface ImsSessionListener {
-	/**
-	 * Session is started
-	 */
+    /**
+     * Session is started
+     */
     public void handleSessionStarted();
 
     /**
      * Session has been aborted
      * 
-	 * @param reason Termination reason
+     * @param reason Termination reason
      */
     public void handleSessionAborted(int reason);
-    
+
     /**
      * Session has been terminated by remote
      */

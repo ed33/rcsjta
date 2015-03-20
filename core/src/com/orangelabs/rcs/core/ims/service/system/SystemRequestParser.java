@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.system;
 
 import java.util.ArrayList;
@@ -36,21 +37,15 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author jexa7410
  */
 public class SystemRequestParser extends DefaultHandler {
-	/* SAMPLE:
-	 * 
-	 * <?xml version="1.0" encoding="UTF-8"?>
-	 * <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
-	 * <xs:element name="SystemRequest">
-	 * <xs:complexType>
-	 * <xs:attribute name="id" type="xs:string" use="required"/>
-	 * <xs:attribute name="type" type="xs:string" use="required"/>
-	 * <xs:attribute name="data" type="xs:string" use="optional"/>
-	 * </xs:complexType>
-	 * </xs:element>
-	 * </xs:schema>
-	 */
-	
-	/**
+    /*
+     * SAMPLE: <?xml version="1.0" encoding="UTF-8"?> <xs:schema
+     * xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified"> <xs:element
+     * name="SystemRequest"> <xs:complexType> <xs:attribute name="id" type="xs:string"
+     * use="required"/> <xs:attribute name="type" type="xs:string" use="required"/> <xs:attribute
+     * name="data" type="xs:string" use="optional"/> </xs:complexType> </xs:element> </xs:schema>
+     */
+
+    /**
      * Char buffer for parsing text from one element
      */
     private StringBuffer accumulator;
@@ -60,7 +55,7 @@ public class SystemRequestParser extends DefaultHandler {
      */
     private List<String> revoked = new ArrayList<String>();
 
-    /** 
+    /**
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
@@ -93,19 +88,19 @@ public class SystemRequestParser extends DefaultHandler {
     }
 
     public void startElement(String namespaceURL, String localName, String qname, Attributes attr) {
-		accumulator.setLength(0);
+        accumulator.setLength(0);
 
-		if (localName.equals("SystemRequest")) {
-			String type = attr.getValue("type").trim();
-			String data = attr.getValue("data").trim();
+        if (localName.equals("SystemRequest")) {
+            String type = attr.getValue("type").trim();
+            String data = attr.getValue("data").trim();
             if (type.equals("urn:gsma:rcs:extension:control")) {
-            	// (<IARI>,<duration>) separated by ";" 
-            	StringTokenizer st = new StringTokenizer(data, ";"); 
-            	while(st.hasMoreTokens()) {
-            		String token = st.nextToken();
-            		String iari = token.substring(1, token.length()-1);
-            		revoked.add(iari);
-            	}
+                // (<IARI>,<duration>) separated by ";"
+                StringTokenizer st = new StringTokenizer(data, ";");
+                while (st.hasMoreTokens()) {
+                    String token = st.nextToken();
+                    String iari = token.substring(1, token.length() - 1);
+                    revoked.add(iari);
+                }
             }
         }
     }

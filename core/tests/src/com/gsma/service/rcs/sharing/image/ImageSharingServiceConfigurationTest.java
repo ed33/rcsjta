@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.gsma.service.rcs.sharing.image;
 
 import java.util.Random;
@@ -26,31 +27,30 @@ import android.test.AndroidTestCase;
 
 /**
  * @author Danielle Rouquier
- *
  */
 public class ImageSharingServiceConfigurationTest extends AndroidTestCase {
-	Random random = new Random();
-	private long maxSize;
+    Random random = new Random();
+    private long maxSize;
 
-	protected void setUp() throws Exception {
-		super.setUp();
-		maxSize = random.nextLong();
-	}
+    protected void setUp() throws Exception {
+        super.setUp();
+        maxSize = random.nextLong();
+    }
 
-	public void testImageSharingServiceConfiguration() {
-		ImageSharingServiceConfiguration ishConf = new ImageSharingServiceConfiguration(maxSize);
-		Parcel parcel = Parcel.obtain();
-		ishConf.writeToParcel(parcel, 0);
-		// done writing, now reset parcel for reading
-		parcel.setDataPosition(0);
-		// finish round trip
-		ImageSharingServiceConfiguration createFromParcel = ImageSharingServiceConfiguration.CREATOR
-				.createFromParcel(parcel);
-		assertEquals(createFromParcel.getMaxSize(), ishConf.getMaxSize());
-	}
+    public void testImageSharingServiceConfiguration() {
+        ImageSharingServiceConfiguration ishConf = new ImageSharingServiceConfiguration(maxSize);
+        Parcel parcel = Parcel.obtain();
+        ishConf.writeToParcel(parcel, 0);
+        // done writing, now reset parcel for reading
+        parcel.setDataPosition(0);
+        // finish round trip
+        ImageSharingServiceConfiguration createFromParcel = ImageSharingServiceConfiguration.CREATOR
+                .createFromParcel(parcel);
+        assertEquals(createFromParcel.getMaxSize(), ishConf.getMaxSize());
+    }
 
-	protected void tearDown() throws Exception {
-		super.tearDown();
-	}
+    protected void tearDown() throws Exception {
+        super.tearDown();
+    }
 
 }

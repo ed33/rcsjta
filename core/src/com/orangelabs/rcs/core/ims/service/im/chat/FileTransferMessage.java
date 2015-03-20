@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.im.chat;
 
 import java.util.Date;
@@ -26,18 +27,18 @@ import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.FileTransferHttp
  * File transfer message
  * 
  * @author Jean-Marc AUFFRET
- */ 
+ */
 public class FileTransferMessage extends InstantMessage {
-	/**
-	 * MIME type
-	 */
-	public static final String MIME_TYPE = FileTransferHttpInfoDocument.MIME_TYPE;
+    /**
+     * MIME type
+     */
+    public static final String MIME_TYPE = FileTransferHttpInfoDocument.MIME_TYPE;
 
-	/**
-	 * File info
-	 */
-	private String file = null;
-		
+    /**
+     * File info
+     */
+    private String file = null;
+
     /**
      * Constructor for outgoing message
      * 
@@ -46,40 +47,41 @@ public class FileTransferMessage extends InstantMessage {
      * @param file File info
      * @param imdnDisplayedRequested Flag indicating that an IMDN "displayed" is requested
      * @param displayName the display name
-	 */
-	public FileTransferMessage(String messageId, ContactId remote, String file, boolean imdnDisplayedRequested, String displayName) {
+     */
+    public FileTransferMessage(String messageId, ContactId remote, String file,
+            boolean imdnDisplayedRequested, String displayName) {
         this(messageId, remote, file, imdnDisplayedRequested, null, displayName);
-	}
-	
-	/**
+    }
+
+    /**
      * Constructor for incoming message
      * 
      * @param messageId Message Id
      * @param remote Remote user identifier
      * @param file File info
      * @param imdnDisplayedRequested Flag indicating that an IMDN "displayed" is requested
-	 * @param serverReceiptAt Receipt date of the message on the server
-	 * @param displayName the display name
-	 */
-	public FileTransferMessage(String messageId, ContactId remote, String file, boolean imdnDisplayedRequested, Date serverReceiptAt, String displayName) {
-		super(messageId, remote, null, imdnDisplayedRequested, serverReceiptAt, displayName);
-		
-		this.file = file;
-	}
+     * @param serverReceiptAt Receipt date of the message on the server
+     * @param displayName the display name
+     */
+    public FileTransferMessage(String messageId, ContactId remote, String file,
+            boolean imdnDisplayedRequested, Date serverReceiptAt, String displayName) {
+        super(messageId, remote, null, imdnDisplayedRequested, serverReceiptAt, displayName);
+
+        this.file = file;
+    }
 
     /**
-	 * Get file info
-	 * 
-	 * @return File info
-	 */
-	public String getFileInfo() {
-		return file;
-	}
+     * Get file info
+     * 
+     * @return File info
+     */
+    public String getFileInfo() {
+        return file;
+    }
 
-	@Override
-	public String toString() {
-		return "FileTransferMessage [file=" + file + ", " + super.toString() + "]";
-	}
-	
-	
+    @Override
+    public String toString() {
+        return "FileTransferMessage [file=" + file + ", " + super.toString() + "]";
+    }
+
 }

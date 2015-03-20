@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.provider.security;
 
 import android.net.Uri;
@@ -25,141 +26,145 @@ import android.net.Uri;
  * 
  * @author F.Abot
  * @author yplo6403
- *
  */
 public class CertificateData {
-	/**
-	 * Database URI
-	 */
-	public static final Uri CONTENT_URI = Uri.parse("content://com.orangelabs.rcs.security/certificate");
+    /**
+     * Database URI
+     */
+    public static final Uri CONTENT_URI = Uri
+            .parse("content://com.orangelabs.rcs.security/certificate");
 
-	/**
-	 * Column name primary key
-	 * <P>
-	 * Type: INTEGER AUTO INCREMENTED
-	 * </P>
-	 */
-	public static final String KEY_ID = "_id";
-	
-	/**
-	 * The name of the column containing the IARI range tag.<br>
-	 * A IARI range may be associated with several certificates.
-	 * <P>
-	 * Type: TEXT
-	 * </P>
-	 */
-	public static final String KEY_IARI_RANGE = "iari_range";
+    /**
+     * Column name primary key
+     * <P>
+     * Type: INTEGER AUTO INCREMENTED
+     * </P>
+     */
+    public static final String KEY_ID = "_id";
 
-	/**
-	 * The name of the column containing the certificate for the IARI document validation.
-	 * <P>
-	 * Type: TEXT
-	 * </P>
-	 */
-	public static final String KEY_CERT = "cert";
-	
-	private final static int CHUNK_SIZE = 64;
-	private final static String CRLF = "\r\n";
+    /**
+     * The name of the column containing the IARI range tag.<br>
+     * A IARI range may be associated with several certificates.
+     * <P>
+     * Type: TEXT
+     * </P>
+     */
+    public static final String KEY_IARI_RANGE = "iari_range";
 
-	private final static StringBuilder CERT_HEADER = new StringBuilder("-----BEGIN CERTIFICATE-----").append(CRLF);
-	private final static StringBuilder CERT_FOOTER = new StringBuilder("-----END CERTIFICATE-----");
-	
-	final private String mIARIRange;
+    /**
+     * The name of the column containing the certificate for the IARI document validation.
+     * <P>
+     * Type: TEXT
+     * </P>
+     */
+    public static final String KEY_CERT = "cert";
 
-	final private String mCertificate;
+    private final static int CHUNK_SIZE = 64;
+    private final static String CRLF = "\r\n";
 
-	/**
-	 * Constructor
-	 * @param iariRange
-	 * @param certificate
-	 */
-	public CertificateData(String iariRange, String certificate) {
-		mIARIRange = iariRange;
-		mCertificate = certificate;
-	}
+    private final static StringBuilder CERT_HEADER = new StringBuilder(
+            "-----BEGIN CERTIFICATE-----").append(CRLF);
+    private final static StringBuilder CERT_FOOTER = new StringBuilder("-----END CERTIFICATE-----");
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((mCertificate == null) ? 0 : mCertificate.hashCode());
-		result = prime * result + ((mIARIRange == null) ? 0 : mIARIRange.hashCode());
-		return result;
-	}
+    final private String mIARIRange;
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		CertificateData other = (CertificateData) obj;
-		if (mCertificate == null) {
-			if (other.mCertificate != null)
-				return false;
-		} else if (!mCertificate.equals(other.mCertificate))
-			return false;
-		if (mIARIRange == null) {
-			if (other.mIARIRange != null)
-				return false;
-		} else if (!mIARIRange.equals(other.mIARIRange))
-			return false;
-		return true;
-	}
+    final private String mCertificate;
 
-	/**
-	 * Gets IARI range
-	 * @return IARI range
-	 */
-	public String getIARIRange() {
-		return mIARIRange;
-	}
+    /**
+     * Constructor
+     * 
+     * @param iariRange
+     * @param certificate
+     */
+    public CertificateData(String iariRange, String certificate) {
+        mIARIRange = iariRange;
+        mCertificate = certificate;
+    }
 
-	/**
-	 * Gets certificate
-	 * @return certificate
-	 */
-	public String getCertificate() {
-		return mCertificate;
-	}
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((mCertificate == null) ? 0 : mCertificate.hashCode());
+        result = prime * result + ((mIARIRange == null) ? 0 : mIARIRange.hashCode());
+        return result;
+    }
 
-	@Override
-	public String toString() {
-		return "CertificateData [IARI range=" + mIARIRange + ", cert=" + mCertificate + "]";
-	}
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        CertificateData other = (CertificateData) obj;
+        if (mCertificate == null) {
+            if (other.mCertificate != null)
+                return false;
+        } else if (!mCertificate.equals(other.mCertificate))
+            return false;
+        if (mIARIRange == null) {
+            if (other.mIARIRange != null)
+                return false;
+        } else if (!mIARIRange.equals(other.mIARIRange))
+            return false;
+        return true;
+    }
 
-	/**
-	 * Insure the certificate will be correctly formatted, including header + footer
-	 * 
-	 * @param certificate
-	 * @return the formatted certificate
-	 */
-	public static String format(String certificate) {
-		// remove header & footer if already here
-		if (certificate.startsWith(CERT_HEADER.toString())) {
-			certificate = certificate.substring(CERT_HEADER.length() - 1);
-		}
-		int footer = certificate.lastIndexOf(CERT_FOOTER.toString());
-		if (footer >= 0) {
-			certificate = certificate.substring(0, footer - 1);
-		} 
+    /**
+     * Gets IARI range
+     * 
+     * @return IARI range
+     */
+    public String getIARIRange() {
+        return mIARIRange;
+    }
 
-		// Strip space and tabs
-		certificate = certificate.replaceAll("\\s+", "");
+    /**
+     * Gets certificate
+     * 
+     * @return certificate
+     */
+    public String getCertificate() {
+        return mCertificate;
+    }
 
-		// Append header
-		StringBuilder ret = new StringBuilder(CERT_HEADER);
+    @Override
+    public String toString() {
+        return "CertificateData [IARI range=" + mIARIRange + ", cert=" + mCertificate + "]";
+    }
 
-		int max = certificate.length();
+    /**
+     * Insure the certificate will be correctly formatted, including header + footer
+     * 
+     * @param certificate
+     * @return the formatted certificate
+     */
+    public static String format(String certificate) {
+        // remove header & footer if already here
+        if (certificate.startsWith(CERT_HEADER.toString())) {
+            certificate = certificate.substring(CERT_HEADER.length() - 1);
+        }
+        int footer = certificate.lastIndexOf(CERT_FOOTER.toString());
+        if (footer >= 0) {
+            certificate = certificate.substring(0, footer - 1);
+        }
 
-		// add a CRLF every 64 chars chunks
-		for (int i = 0; i < max; i += CHUNK_SIZE) {
-			ret.append(certificate.substring(i, ((i+CHUNK_SIZE)> max)?max:i+CHUNK_SIZE));
-			ret.append(CRLF);
-		}
-		// finally add footer and return
-		return ret.append(CERT_FOOTER).append(CRLF).toString();
-	}
+        // Strip space and tabs
+        certificate = certificate.replaceAll("\\s+", "");
+
+        // Append header
+        StringBuilder ret = new StringBuilder(CERT_HEADER);
+
+        int max = certificate.length();
+
+        // add a CRLF every 64 chars chunks
+        for (int i = 0; i < max; i += CHUNK_SIZE) {
+            ret.append(certificate.substring(i, ((i + CHUNK_SIZE) > max) ? max : i + CHUNK_SIZE));
+            ret.append(CRLF);
+        }
+        // finally add footer and return
+        return ret.append(CERT_FOOTER).append(CRLF).toString();
+    }
 }

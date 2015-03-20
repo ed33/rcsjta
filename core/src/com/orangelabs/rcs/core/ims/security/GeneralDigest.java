@@ -19,46 +19,39 @@
 package com.orangelabs.rcs.core.ims.security;
 
 /**
- * base implementation of MD4 family style digest as outlined in
- * "Handbook of Applied Cryptography", pages 344 - 347.
+ * base implementation of MD4 family style digest as outlined in "Handbook of Applied Cryptography",
+ * pages 344 - 347.
  */
-public abstract class GeneralDigest implements Digest
-{
-    private byte[]  xBuf;
-    private int     xBufOff;
+public abstract class GeneralDigest implements Digest {
+    private byte[] xBuf;
+    private int xBufOff;
 
-    private long    byteCount;
+    private long byteCount;
 
-	/**
-	 * Standard constructor
-	 */
-	protected GeneralDigest()
-	{
-		xBuf = new byte[4];
-		xBufOff = 0;
-	}
+    /**
+     * Standard constructor
+     */
+    protected GeneralDigest() {
+        xBuf = new byte[4];
+        xBufOff = 0;
+    }
 
-	/**
-	 * Copy constructor.  We are using copy constructors in place
-	 * of the Object.clone() interface as this interface is not
-	 * supported by J2ME.
-	 */
-	protected GeneralDigest(GeneralDigest t)
-	{
+    /**
+     * Copy constructor. We are using copy constructors in place of the Object.clone() interface as
+     * this interface is not supported by J2ME.
+     */
+    protected GeneralDigest(GeneralDigest t) {
         xBuf = new byte[t.xBuf.length];
-		System.arraycopy(t.xBuf, 0, xBuf, 0, t.xBuf.length);
+        System.arraycopy(t.xBuf, 0, xBuf, 0, t.xBuf.length);
 
-		xBufOff = t.xBufOff;
-		byteCount = t.byteCount;
-	}
+        xBufOff = t.xBufOff;
+        byteCount = t.byteCount;
+    }
 
-    public void update(
-        byte in)
-    {
+    public void update(byte in) {
         xBuf[xBufOff++] = in;
 
-        if (xBufOff == xBuf.length)
-        {
+        if (xBufOff == xBuf.length) {
             processWord(xBuf, 0);
             xBufOff = 0;
         }
@@ -66,16 +59,11 @@ public abstract class GeneralDigest implements Digest
         byteCount++;
     }
 
-    public void update(
-        byte[]  in,
-        int     inOff,
-        int     len)
-    {
+    public void update(byte[] in, int inOff, int len) {
         //
         // fill the current word
         //
-        while ((xBufOff != 0) && (len > 0))
-        {
+        while ((xBufOff != 0) && (len > 0)) {
             update(in[inOff]);
 
             inOff++;
@@ -85,8 +73,7 @@ public abstract class GeneralDigest implements Digest
         //
         // process whole words.
         //
-        while (len > xBuf.length)
-        {
+        while (len > xBuf.length) {
             processWord(in, inOff);
 
             inOff += xBuf.length;
@@ -97,8 +84,7 @@ public abstract class GeneralDigest implements Digest
         //
         // load in the remainder.
         //
-        while (len > 0)
-        {
+        while (len > 0) {
             update(in[inOff]);
 
             inOff++;
@@ -106,18 +92,16 @@ public abstract class GeneralDigest implements Digest
         }
     }
 
-    public void finish()
-    {
-        long    bitLength = (byteCount << 3);
+    public void finish() {
+        long bitLength = (byteCount << 3);
 
         //
         // add the pad bytes.
         //
-        update((byte)128);
+        update((byte) 128);
 
-        while (xBufOff != 0)
-        {
-            update((byte)0);
+        while (xBufOff != 0) {
+            update((byte) 0);
         }
 
         processLength(bitLength);
@@ -125,14 +109,13 @@ public abstract class GeneralDigest implements Digest
         processBlock();
     }
 
-    public void reset()
-    {
+    public void reset() {
         byteCount = 0;
 
         xBufOff = 0;
-		for ( int i = 0; i < xBuf.length; i++ ) {
-			xBuf[i] = 0;
-		}
+        for (int i = 0; i < xBuf.length; i++) {
+            xBuf[i] = 0;
+        }
     }
 
     protected abstract void processWord(byte[] in, int inOff);

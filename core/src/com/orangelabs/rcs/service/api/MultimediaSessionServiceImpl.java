@@ -308,8 +308,8 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
         // Test IMS connection
         ServerApiUtils.testIms();
 
-		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), serviceId);
+        // Test security extension
+        ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), serviceId);
 
         try {
             // Initiate a new session
@@ -417,8 +417,8 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
         // Test IMS connection
         ServerApiUtils.testIms();
 
-		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), serviceId);
+        // Test security extension
+        ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), serviceId);
 
         try {
             // Initiate a new session
@@ -580,17 +580,20 @@ public class MultimediaSessionServiceImpl extends IMultimediaSessionService.Stub
     /**
      * Override the onTransact Binder method. It is used to check authorization for an application
      * before calling API method. Control of authorization is made for third party applications (vs.
-     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     * native application) by comparing the client application fingerprint with the RCS application
+     * fingerprint
      */
     @Override
     public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
             throws android.os.RemoteException {
- 
-        if(logger.isActivated()){
-            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+
+        if (logger.isActivated()) {
+            logger.debug("Api access control for implementation class : ".concat(this.getClass()
+                    .getName()));
         }
-        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.MULTIMEDIA_SESSION);
-        return super.onTransact(code, data, reply, flags); 
-       
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(),
+                Extension.Type.MULTIMEDIA_SESSION);
+        return super.onTransact(code, data, reply, flags);
+
     }
 }

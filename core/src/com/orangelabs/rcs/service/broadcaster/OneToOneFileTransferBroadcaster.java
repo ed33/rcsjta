@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.orangelabs.rcs.service.broadcaster;
 
 import com.gsma.services.rcs.contacts.ContactId;
@@ -28,72 +29,73 @@ import android.os.RemoteCallbackList;
 
 /**
  * OneToOneFileTransferBroadcaster maintains the registering and unregistering of
- * IFileTransferListener and also performs broadcast events on these listeners upon
- * the trigger of corresponding callbacks.
+ * IFileTransferListener and also performs broadcast events on these listeners upon the trigger of
+ * corresponding callbacks.
  */
 public class OneToOneFileTransferBroadcaster implements IOneToOneFileTransferBroadcaster {
 
-	private final RemoteCallbackList<IOneToOneFileTransferListener> mOneToOneFileTransferListeners = new RemoteCallbackList<IOneToOneFileTransferListener>();
+    private final RemoteCallbackList<IOneToOneFileTransferListener> mOneToOneFileTransferListeners = new RemoteCallbackList<IOneToOneFileTransferListener>();
 
-	private final Logger logger = Logger.getLogger(getClass().getName());
+    private final Logger logger = Logger.getLogger(getClass().getName());
 
-	public OneToOneFileTransferBroadcaster() {
-	}
+    public OneToOneFileTransferBroadcaster() {
+    }
 
-	public void addOneToOneFileTransferListener(IOneToOneFileTransferListener listener)
-			throws ServerApiException {
-		mOneToOneFileTransferListeners.register(listener);
-	}
+    public void addOneToOneFileTransferListener(IOneToOneFileTransferListener listener)
+            throws ServerApiException {
+        mOneToOneFileTransferListeners.register(listener);
+    }
 
-	public void removeOneToOneFileTransferListener(IOneToOneFileTransferListener listener)
-			throws ServerApiException {
-		mOneToOneFileTransferListeners.unregister(listener);
-	}
+    public void removeOneToOneFileTransferListener(IOneToOneFileTransferListener listener)
+            throws ServerApiException {
+        mOneToOneFileTransferListeners.unregister(listener);
+    }
 
-	public void broadcastStateChanged(ContactId contact, String transferId, int state, int reasonCode) {
-		final int N = mOneToOneFileTransferListeners.beginBroadcast();
-		for (int i = 0; i < N; i++) {
-			try {
-				mOneToOneFileTransferListeners.getBroadcastItem(i).onStateChanged(contact,
-						transferId, state, reasonCode);
-			} catch (Exception e) {
-				if (logger.isActivated()) {
-					logger.error("Can't notify listener", e);
-				}
-			}
-		}
-		mOneToOneFileTransferListeners.finishBroadcast();
-	}
+    public void broadcastStateChanged(ContactId contact, String transferId, int state,
+            int reasonCode) {
+        final int N = mOneToOneFileTransferListeners.beginBroadcast();
+        for (int i = 0; i < N; i++) {
+            try {
+                mOneToOneFileTransferListeners.getBroadcastItem(i).onStateChanged(contact,
+                        transferId, state, reasonCode);
+            } catch (Exception e) {
+                if (logger.isActivated()) {
+                    logger.error("Can't notify listener", e);
+                }
+            }
+        }
+        mOneToOneFileTransferListeners.finishBroadcast();
+    }
 
-	public void broadcastProgressUpdate(ContactId contact, String transferId, long currentSize,
-			long totalSize) {
-		final int N = mOneToOneFileTransferListeners.beginBroadcast();
-		for (int i = 0; i < N; i++) {
-			try {
-				mOneToOneFileTransferListeners.getBroadcastItem(i).onProgressUpdate(contact,
-						transferId, currentSize, totalSize);
-			} catch (Exception e) {
-				if (logger.isActivated()) {
-					logger.error("Can't notify listener", e);
-				}
-			}
-		}
-		mOneToOneFileTransferListeners.finishBroadcast();
-	}
+    public void broadcastProgressUpdate(ContactId contact, String transferId, long currentSize,
+            long totalSize) {
+        final int N = mOneToOneFileTransferListeners.beginBroadcast();
+        for (int i = 0; i < N; i++) {
+            try {
+                mOneToOneFileTransferListeners.getBroadcastItem(i).onProgressUpdate(contact,
+                        transferId, currentSize, totalSize);
+            } catch (Exception e) {
+                if (logger.isActivated()) {
+                    logger.error("Can't notify listener", e);
+                }
+            }
+        }
+        mOneToOneFileTransferListeners.finishBroadcast();
+    }
 
-	public void broadcastInvitation(String fileTransferId) {
-		Intent invitation = new Intent(FileTransferIntent.ACTION_NEW_INVITATION);
-		IntentUtils.tryToSetExcludeStoppedPackagesFlag(invitation);
-		IntentUtils.tryToSetReceiverForegroundFlag(invitation);
-		invitation.putExtra(FileTransferIntent.EXTRA_TRANSFER_ID, fileTransferId);
-		AndroidFactory.getApplicationContext().sendBroadcast(invitation);
-	}
+    public void broadcastInvitation(String fileTransferId) {
+        Intent invitation = new Intent(FileTransferIntent.ACTION_NEW_INVITATION);
+        IntentUtils.tryToSetExcludeStoppedPackagesFlag(invitation);
+        IntentUtils.tryToSetReceiverForegroundFlag(invitation);
+        invitation.putExtra(FileTransferIntent.EXTRA_TRANSFER_ID, fileTransferId);
+        AndroidFactory.getApplicationContext().sendBroadcast(invitation);
+    }
 
-	public void broadcastResumeFileTransfer(String filetransferId) {
-		Intent resumeFileTransfer = new Intent(FileTransferIntent.ACTION_RESUME);
-		IntentUtils.tryToSetExcludeStoppedPackagesFlag(resumeFileTransfer);
-		IntentUtils.tryToSetReceiverForegroundFlag(resumeFileTransfer);
-		resumeFileTransfer.putExtra(FileTransferIntent.EXTRA_TRANSFER_ID, filetransferId);
-		AndroidFactory.getApplicationContext().sendBroadcast(resumeFileTransfer);
-	}
+    public void broadcastResumeFileTransfer(String filetransferId) {
+        Intent resumeFileTransfer = new Intent(FileTransferIntent.ACTION_RESUME);
+        IntentUtils.tryToSetExcludeStoppedPackagesFlag(resumeFileTransfer);
+        IntentUtils.tryToSetReceiverForegroundFlag(resumeFileTransfer);
+        resumeFileTransfer.putExtra(FileTransferIntent.EXTRA_TRANSFER_ID, filetransferId);
+        AndroidFactory.getApplicationContext().sendBroadcast(resumeFileTransfer);
+    }
 }

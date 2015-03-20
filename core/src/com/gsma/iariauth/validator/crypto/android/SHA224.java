@@ -3,6 +3,7 @@
  * Copyright (c) 2000-2014 The Legion of the Bouncy Castle Inc. (http://www.bouncycastle.org)
  * See LICENSE.html in this directory
  */
+
 package com.gsma.iariauth.validator.crypto.android;
 
 import java.security.Provider;
@@ -10,12 +11,12 @@ import java.security.Provider;
 import local.org.bouncycastle.jcajce.provider.digest.BCMessageDigest;
 
 public class SHA224 extends Provider {
-	private static final long serialVersionUID = -2531496314262562364L;
+    private static final long serialVersionUID = -2531496314262562364L;
 
-	public SHA224() {
-		super("SHA224", 1.0, "SHA224 Provider");
-		put("MessageDigest.SHA-224", "com.gsma.iariauth.validator.crypto.android.SHA224$Digest");
-	}
+    public SHA224() {
+        super("SHA224", 1.0, "SHA224 Provider");
+        put("MessageDigest.SHA-224", "com.gsma.iariauth.validator.crypto.android.SHA224$Digest");
+    }
 
     static public class Digest extends BCMessageDigest implements Cloneable {
         public Digest() {
@@ -23,8 +24,8 @@ public class SHA224 extends Provider {
         }
 
         public Object clone() throws CloneNotSupportedException {
-            Digest d = (Digest)super.clone();
-            d.digest = new SHA224Digest((SHA224Digest)digest);
+            Digest d = (Digest) super.clone();
+            d.digest = new SHA224Digest((SHA224Digest) digest);
 
             return d;
         }

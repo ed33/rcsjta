@@ -19,10 +19,10 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.vsh;
 
 import com.gsma.services.rcs.contacts.ContactId;
-
 
 /**
  * Video sharing event listener
@@ -31,14 +31,14 @@ import com.gsma.services.rcs.contacts.ContactId;
  */
 public abstract class VideoSharingListener extends IVideoSharingListener.Stub {
 
-	/**
-	 * Callback called when the sharing state/reasonCode is changed.
-	 *
-	 * @param contact Contact ID
-	 * @param sharingId ID of video sharing
-	 * @param state State of video sharing
-	 * @param reasonCode Reason code of the video sharing state
-	 */
-	public abstract void onStateChanged(ContactId contact, String sharingId, int state,
-			int reasonCode);
+    /**
+     * Callback called when the sharing state/reasonCode is changed.
+     *
+     * @param contact Contact ID
+     * @param sharingId ID of video sharing
+     * @param state State of video sharing
+     * @param reasonCode Reason code of the video sharing state
+     */
+    public abstract void onStateChanged(ContactId contact, String sharingId, int state,
+            int reasonCode);
 }

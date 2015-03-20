@@ -14,7 +14,6 @@
  * the License.
  */
 
-
 package com.gsma.services.rcs.ft;
 
 import com.gsma.services.rcs.contacts.ContactId;
@@ -25,8 +24,7 @@ import com.gsma.services.rcs.contacts.ContactId;
 public abstract class GroupFileTransferListener extends IGroupFileTransferListener.Stub {
 
     /**
-     * Callback called when the group file transfer status/reasonCode is
-     * changed.
+     * Callback called when the group file transfer status/reasonCode is changed.
      *
      * @param chatId Id of chat
      * @param transferId Id of file transfer
@@ -36,8 +34,8 @@ public abstract class GroupFileTransferListener extends IGroupFileTransferListen
     public abstract void onStateChanged(String chatId, String transferId, int state, int reasonCode);
 
     /**
-     * Callback called when a group file transfer state/reasonCode is changed
-     * for a single recipient only.
+     * Callback called when a group file transfer state/reasonCode is changed for a single recipient
+     * only.
      *
      * @param chatId Id of chat
      * @param contact Contact ID

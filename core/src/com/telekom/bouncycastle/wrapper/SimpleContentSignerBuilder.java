@@ -1,3 +1,4 @@
+
 package com.telekom.bouncycastle.wrapper;
 
 import java.io.IOException;
@@ -17,111 +18,81 @@ import local.org.bouncycastle.operator.RuntimeOperatorException;
 // Changed by Deutsche Telekom
 // simplified class derived from org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 // to avoid implementing a complete security provider just for creating and signing certificates
-public class SimpleContentSignerBuilder
-{
+public class SimpleContentSignerBuilder {
 
-	private String mAlgorithm = "SHA1withRSA";
+    private String mAlgorithm = "SHA1withRSA";
     private AlgorithmIdentifier sigAlgId;
-	
-    public SimpleContentSignerBuilder()
-    {
+
+    public SimpleContentSignerBuilder() {
         this.sigAlgId = new DefaultSignatureAlgorithmIdentifierFinder().find(mAlgorithm);
     }
 
-    public ContentSigner build(PrivateKey privateKey)
-        throws OperatorCreationException
-    {
-        try
-        {
+    public ContentSigner build(PrivateKey privateKey) throws OperatorCreationException {
+        try {
             final Signature sig = Signature.getInstance(mAlgorithm);
 
             sig.initSign(privateKey);
 
-            return new ContentSigner()
-            {
+            return new ContentSigner() {
                 private SignatureOutputStream stream = new SignatureOutputStream(sig);
 
-                public AlgorithmIdentifier getAlgorithmIdentifier()
-                {
-                	return sigAlgId;
+                public AlgorithmIdentifier getAlgorithmIdentifier() {
+                    return sigAlgId;
                 }
 
-                public OutputStream getOutputStream()
-                {
+                public OutputStream getOutputStream() {
                     return stream;
                 }
 
-                public byte[] getSignature()
-                {
-                    try
-                    {
+                public byte[] getSignature() {
+                    try {
                         return stream.getSignature();
-                    }
-                    catch (SignatureException e)
-                    {
-                        throw new RuntimeOperatorException("exception obtaining signature: " + e.getMessage(), e);
+                    } catch (SignatureException e) {
+                        throw new RuntimeOperatorException("exception obtaining signature: "
+                                + e.getMessage(), e);
                     }
                 }
             };
-        }
-        catch (GeneralSecurityException e)
-        {
+        } catch (GeneralSecurityException e) {
             throw new OperatorCreationException("cannot create signer: " + e.getMessage(), e);
         }
     }
 
-    private class SignatureOutputStream
-        extends OutputStream
-    {
+    private class SignatureOutputStream extends OutputStream {
         private Signature sig;
 
-        SignatureOutputStream(Signature sig)
-        {
+        SignatureOutputStream(Signature sig) {
             this.sig = sig;
         }
 
-        public void write(byte[] bytes, int off, int len)
-            throws IOException
-        {
-            try
-            {
+        public void write(byte[] bytes, int off, int len) throws IOException {
+            try {
                 sig.update(bytes, off, len);
-            }
-            catch (SignatureException e)
-            {
-                throw new OperatorStreamException("exception in content signer: " + e.getMessage(), e);
+            } catch (SignatureException e) {
+                throw new OperatorStreamException("exception in content signer: " + e.getMessage(),
+                        e);
             }
         }
 
-        public void write(byte[] bytes)
-            throws IOException
-        {
-            try
-            {
+        public void write(byte[] bytes) throws IOException {
+            try {
                 sig.update(bytes);
-            }
-            catch (SignatureException e)
-            {
-                throw new OperatorStreamException("exception in content signer: " + e.getMessage(), e);
-            }
-        }
-
-        public void write(int b)
-            throws IOException
-        {
-            try
-            {
-                sig.update((byte)b);
-            }
-            catch (SignatureException e)
-            {
-                throw new OperatorStreamException("exception in content signer: " + e.getMessage(), e);
+            } catch (SignatureException e) {
+                throw new OperatorStreamException("exception in content signer: " + e.getMessage(),
+                        e);
             }
         }
 
-        byte[] getSignature()
-            throws SignatureException
-        {
+        public void write(int b) throws IOException {
+            try {
+                sig.update((byte) b);
+            } catch (SignatureException e) {
+                throw new OperatorStreamException("exception in content signer: " + e.getMessage(),
+                        e);
+            }
+        }
+
+        byte[] getSignature() throws SignatureException {
             return sig.sign();
         }
     }

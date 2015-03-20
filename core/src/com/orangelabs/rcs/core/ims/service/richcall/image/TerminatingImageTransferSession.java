@@ -58,273 +58,279 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * 
  * @author jexa7410
  */
-public class TerminatingImageTransferSession extends ImageTransferSession implements MsrpEventListener {
-	/**
-	 * MSRP manager
-	 */
-	private MsrpManager msrpMgr;
-	
-	/**
+public class TerminatingImageTransferSession extends ImageTransferSession implements
+        MsrpEventListener {
+    /**
+     * MSRP manager
+     */
+    private MsrpManager msrpMgr;
+
+    /**
      * The logger
      */
-    private static final Logger logger = Logger.getLogger(TerminatingImageTransferSession.class.getName());
+    private static final Logger logger = Logger.getLogger(TerminatingImageTransferSession.class
+            .getName());
 
     /**
      * Constructor
      * 
-	 * @param parent IMS service
-	 * @param invite Initial INVITE request
-	 * @param contact Contact ID
-	 */
-	public TerminatingImageTransferSession(ImsService parent, SipRequest invite, ContactId contact) {
-		super(parent, ContentManager.createMmContentFromSdp(invite), contact, FileTransferUtils.extractFileIcon(invite));
+     * @param parent IMS service
+     * @param invite Initial INVITE request
+     * @param contact Contact ID
+     */
+    public TerminatingImageTransferSession(ImsService parent, SipRequest invite, ContactId contact) {
+        super(parent, ContentManager.createMmContentFromSdp(invite), contact, FileTransferUtils
+                .extractFileIcon(invite));
 
-		// Create dialog path
-		createTerminatingDialogPath(invite);
-	}
-	
-	/**
-	 * Background processing
-	 */
-	public void run() {
-		try {
-	    	if (logger.isActivated()) {
-	    		logger.info("Initiate a new sharing session as terminating");
-	    	}
+        // Create dialog path
+        createTerminatingDialogPath(invite);
+    }
 
-	    	send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+    /**
+     * Background processing
+     */
+    public void run() {
+        try {
+            if (logger.isActivated()) {
+                logger.info("Initiate a new sharing session as terminating");
+            }
 
-	    	// Check if the MIME type is supported
-	    	if (getContent() == null) {
-	    		if (logger.isActivated()){
-    				logger.debug("MIME type is not supported");
-    			}
+            send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
-    			// Send a 415 Unsupported media type response
-				send415Error(getDialogPath().getInvite());
+            // Check if the MIME type is supported
+            if (getContent() == null) {
+                if (logger.isActivated()) {
+                    logger.debug("MIME type is not supported");
+                }
 
-				// Unsupported media type
-				handleError(new ContentSharingError(ContentSharingError.UNSUPPORTED_MEDIA_TYPE));
-        		return;
-        	}
+                // Send a 415 Unsupported media type response
+                send415Error(getDialogPath().getInvite());
 
-			Collection<ImsSessionListener> listeners = getListeners();
-			for (ImsSessionListener listener : listeners) {
-				listener.handleSessionInvited();
-			}
+                // Unsupported media type
+                handleError(new ContentSharingError(ContentSharingError.UNSUPPORTED_MEDIA_TYPE));
+                return;
+            }
 
-			int answer = waitInvitationAnswer();
-			switch (answer) {
-				case ImsServiceSession.INVITATION_REJECTED:
-					if (logger.isActivated()) {
-						logger.debug("Session has been rejected by user");
-					}
+            Collection<ImsSessionListener> listeners = getListeners();
+            for (ImsSessionListener listener : listeners) {
+                listener.handleSessionInvited();
+            }
 
-					removeSession();
+            int answer = waitInvitationAnswer();
+            switch (answer) {
+                case ImsServiceSession.INVITATION_REJECTED:
+                    if (logger.isActivated()) {
+                        logger.debug("Session has been rejected by user");
+                    }
 
-					for (ImsSessionListener listener : listeners) {
-						listener.handleSessionRejectedByUser();
-					}
-					return;
+                    removeSession();
 
-				case ImsServiceSession.INVITATION_NOT_ANSWERED:
-					if (logger.isActivated()) {
-						logger.debug("Session has been rejected on timeout");
-					}
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionRejectedByUser();
+                    }
+                    return;
 
-					// Ringing period timeout
-					send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+                case ImsServiceSession.INVITATION_NOT_ANSWERED:
+                    if (logger.isActivated()) {
+                        logger.debug("Session has been rejected on timeout");
+                    }
 
-					removeSession();
+                    // Ringing period timeout
+                    send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
-					for (ImsSessionListener listener : listeners) {
-						listener.handleSessionRejectedByTimeout();
-					}
-					return;
+                    removeSession();
 
-				case ImsServiceSession.INVITATION_CANCELED:
-					if (logger.isActivated()) {
-						logger.debug("Session has been rejected by remote");
-					}
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionRejectedByTimeout();
+                    }
+                    return;
 
-					removeSession();
+                case ImsServiceSession.INVITATION_CANCELED:
+                    if (logger.isActivated()) {
+                        logger.debug("Session has been rejected by remote");
+                    }
 
-					for (ImsSessionListener listener : listeners) {
-						listener.handleSessionRejectedByRemote();
-					}
-					return;
+                    removeSession();
 
-				case ImsServiceSession.INVITATION_ACCEPTED:
-					setSessionAccepted();
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionRejectedByRemote();
+                    }
+                    return;
 
-					for (ImsSessionListener listener : listeners) {
-						listener.handleSessionAccepted();
-					}
-					break;
+                case ImsServiceSession.INVITATION_ACCEPTED:
+                    setSessionAccepted();
 
-				default:
-					if (logger.isActivated()) {
-						logger.debug("Unknown invitation answer in run; answer="
-									.concat(String.valueOf(answer)));
-					}
-					return;
-			}
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionAccepted();
+                    }
+                    break;
 
-			// Auto reject if file too big or if storage capacity is too small
-			ContentSharingError error = isImageCapacityAcceptable(getContent().getSize());
-			if (error != null) {
-				if (logger.isActivated()) {
-					logger.debug("Auto reject image sharing invitation");
-				}
-				
-				// Decline the invitation
-				sendErrorResponse(getDialogPath().getInvite(), getDialogPath().getLocalTag(), 603);
-				
-				// Close session
-				handleError(new ContentSharingError(error));
-				return;
-			}
-			
-	    	// Parse the remote SDP part
-			String remoteSdp = getDialogPath().getInvite().getSdpContent();
-        	SdpParser parser = new SdpParser(remoteSdp.getBytes());
-    		Vector<MediaDescription> media = parser.getMediaDescriptions();
-			MediaDescription mediaDesc = media.elementAt(0);
+                default:
+                    if (logger.isActivated()) {
+                        logger.debug("Unknown invitation answer in run; answer=".concat(String
+                                .valueOf(answer)));
+                    }
+                    return;
+            }
+
+            // Auto reject if file too big or if storage capacity is too small
+            ContentSharingError error = isImageCapacityAcceptable(getContent().getSize());
+            if (error != null) {
+                if (logger.isActivated()) {
+                    logger.debug("Auto reject image sharing invitation");
+                }
+
+                // Decline the invitation
+                sendErrorResponse(getDialogPath().getInvite(), getDialogPath().getLocalTag(), 603);
+
+                // Close session
+                handleError(new ContentSharingError(error));
+                return;
+            }
+
+            // Parse the remote SDP part
+            String remoteSdp = getDialogPath().getInvite().getSdpContent();
+            SdpParser parser = new SdpParser(remoteSdp.getBytes());
+            Vector<MediaDescription> media = parser.getMediaDescriptions();
+            MediaDescription mediaDesc = media.elementAt(0);
             String protocol = mediaDesc.protocol;
             boolean isSecured = false;
             if (protocol != null) {
                 isSecured = protocol.equalsIgnoreCase(MsrpConstants.SOCKET_MSRP_SECURED_PROTOCOL);
             }
-        	// Changed by Deutsche Telekom
+            // Changed by Deutsche Telekom
             String fileSelector = mediaDesc.getMediaAttribute("file-selector").getValue();
-			// Changed by Deutsche Telekom
+            // Changed by Deutsche Telekom
             String fileTransferId = mediaDesc.getMediaAttribute("file-transfer-id").getValue();
-			MediaAttribute attr3 = mediaDesc.getMediaAttribute("path");
+            MediaAttribute attr3 = mediaDesc.getMediaAttribute("path");
             String remotePath = attr3.getValue();
             String remoteHost = SdpUtils.extractRemoteHost(parser.sessionDescription, mediaDesc);
-    		int remotePort = mediaDesc.port;
-			
-    		// Changed by Deutsche Telekom
-    		String fingerprint = SdpUtils.extractFingerprint(parser, mediaDesc);
-    		
+            int remotePort = mediaDesc.port;
+
+            // Changed by Deutsche Telekom
+            String fingerprint = SdpUtils.extractFingerprint(parser, mediaDesc);
+
             // Extract the "setup" parameter
             String remoteSetup = "passive";
-			MediaAttribute attr4 = mediaDesc.getMediaAttribute("setup");
-			if (attr4 != null) {
-				remoteSetup = attr4.getValue();
-			}
-            if (logger.isActivated()){
-				logger.debug("Remote setup attribute is " + remoteSetup);
-			}
-            
-    		// Set setup mode
-            String localSetup = createSetupAnswer(remoteSetup);
-            if (logger.isActivated()){
-				logger.debug("Local setup attribute is " + localSetup);
-			}
+            MediaAttribute attr4 = mediaDesc.getMediaAttribute("setup");
+            if (attr4 != null) {
+                remoteSetup = attr4.getValue();
+            }
+            if (logger.isActivated()) {
+                logger.debug("Remote setup attribute is " + remoteSetup);
+            }
 
-    		// Set local port
-	    	int localMsrpPort;
-	    	if (localSetup.equals("active")) {
-		    	localMsrpPort = 9; // See RFC4145, Page 4
-	    	} else {
-				localMsrpPort = NetworkRessourceManager.generateLocalMsrpPort();
-	    	}
-	    	
+            // Set setup mode
+            String localSetup = createSetupAnswer(remoteSetup);
+            if (logger.isActivated()) {
+                logger.debug("Local setup attribute is " + localSetup);
+            }
+
+            // Set local port
+            int localMsrpPort;
+            if (localSetup.equals("active")) {
+                localMsrpPort = 9; // See RFC4145, Page 4
+            } else {
+                localMsrpPort = NetworkRessourceManager.generateLocalMsrpPort();
+            }
+
             // Create the MSRP manager
-			String localIpAddress = getImsService().getImsModule().getCurrentNetworkInterface().getNetworkAccess().getIpAddress();
-			msrpMgr = new MsrpManager(localIpAddress, localMsrpPort, getImsService());
+            String localIpAddress = getImsService().getImsModule().getCurrentNetworkInterface()
+                    .getNetworkAccess().getIpAddress();
+            msrpMgr = new MsrpManager(localIpAddress, localMsrpPort, getImsService());
             msrpMgr.setSecured(isSecured);
 
-			// Build SDP part
-	    	String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
-	    	int maxSize = ImageTransferSession.getMaxImageSharingSize();
-	    	String sdp = SdpUtils.buildFileSDP(ipAddress, localMsrpPort,
+            // Build SDP part
+            String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
+            int maxSize = ImageTransferSession.getMaxImageSharingSize();
+            String sdp = SdpUtils.buildFileSDP(ipAddress, localMsrpPort,
                     msrpMgr.getLocalSocketProtocol(), getContent().getEncoding(), fileTransferId,
                     fileSelector, null, localSetup, msrpMgr.getLocalMsrpPath(),
                     SdpUtils.DIRECTION_RECVONLY, maxSize);
 
-	    	// Set the local SDP part in the dialog path
-	        getDialogPath().setLocalContent(sdp);
+            // Set the local SDP part in the dialog path
+            getDialogPath().setLocalContent(sdp);
 
-	        // Test if the session should be interrupted
+            // Test if the session should be interrupted
             if (isInterrupted()) {
-            	if (logger.isActivated()) {
-            		logger.debug("Session has been interrupted: end of processing");
-            	}
-            	return;
+                if (logger.isActivated()) {
+                    logger.debug("Session has been interrupted: end of processing");
+                }
+                return;
             }
 
             // Create the MSRP server session
             if (localSetup.equals("passive")) {
-            	// Passive mode: client wait a connection
-            	// Changed by Deutsche Telekom
+                // Passive mode: client wait a connection
+                // Changed by Deutsche Telekom
                 MsrpSession session = msrpMgr.createMsrpServerSession(remotePath, this);
                 // Do not use right now the mapping to do not increase memory and cpu consumption
                 session.setMapMsgIdFromTransationId(false);
-            	
-    			// Open the connection
-    			Thread thread = new Thread(){
-    				public void run(){
-    					try {
-    						// Open the MSRP session
-    						msrpMgr.openMsrpSession(ImageTransferSession.DEFAULT_SO_TIMEOUT);
 
-			    	        // Send an empty packet
-			            	sendEmptyDataChunk();
-    					} catch (IOException e) {
-							if (logger.isActivated()) {
-				        		logger.error("Can't create the MSRP server session", e);
-				        	}
-						}		
-    				}
-    			};
-    			thread.start();            
-    		}
-            
+                // Open the connection
+                Thread thread = new Thread() {
+                    public void run() {
+                        try {
+                            // Open the MSRP session
+                            msrpMgr.openMsrpSession(ImageTransferSession.DEFAULT_SO_TIMEOUT);
+
+                            // Send an empty packet
+                            sendEmptyDataChunk();
+                        } catch (IOException e) {
+                            if (logger.isActivated()) {
+                                logger.error("Can't create the MSRP server session", e);
+                            }
+                        }
+                    }
+                };
+                thread.start();
+            }
+
             // Create a 200 OK response
-        	if (logger.isActivated()) {
-        		logger.info("Send 200 OK");
-        	}
+            if (logger.isActivated()) {
+                logger.info("Send 200 OK");
+            }
             SipResponse resp = SipMessageFactory.create200OkInviteResponse(getDialogPath(),
-            		RichcallService.FEATURE_TAGS_IMAGE_SHARE, sdp);
+                    RichcallService.FEATURE_TAGS_IMAGE_SHARE, sdp);
 
             // The signalisation is established
             getDialogPath().sigEstablished();
 
-	        // Send response
-            SipTransactionContext ctx = getImsService().getImsModule().getSipManager().sendSipMessageAndWait(resp);
+            // Send response
+            SipTransactionContext ctx = getImsService().getImsModule().getSipManager()
+                    .sendSipMessageAndWait(resp);
 
-            // Analyze the received response 
+            // Analyze the received response
             if (ctx.isSipAck()) {
-    	        // ACK received
-    			if (logger.isActivated()) {
-    				logger.info("ACK request received");
-    			}
+                // ACK received
+                if (logger.isActivated()) {
+                    logger.info("ACK request received");
+                }
 
-    	        // Create the MSRP client session
+                // Create the MSRP client session
                 if (localSetup.equals("active")) {
-                	// Active mode: client should connect
-                	// Changed by Deutsche Telekom
-                	MsrpSession session = msrpMgr.createMsrpClientSession(remoteHost, remotePort, remotePath, this, fingerprint);
+                    // Active mode: client should connect
+                    // Changed by Deutsche Telekom
+                    MsrpSession session = msrpMgr.createMsrpClientSession(remoteHost, remotePort,
+                            remotePath, this, fingerprint);
                     session.setMapMsgIdFromTransationId(false);
-					// Open the connection
-					Thread thread = new Thread() {
-						public void run() {
-							try {
-								// Open the MSRP session
-								msrpMgr.openMsrpSession(ImageTransferSession.DEFAULT_SO_TIMEOUT);
+                    // Open the connection
+                    Thread thread = new Thread() {
+                        public void run() {
+                            try {
+                                // Open the MSRP session
+                                msrpMgr.openMsrpSession(ImageTransferSession.DEFAULT_SO_TIMEOUT);
 
-								// Send an empty packet
-								sendEmptyDataChunk();
-							} catch (IOException e) {
-								if (logger.isActivated()) {
-									logger.error("Can't create the MSRP server session", e);
-								}
-							}
-						}
-					};
-					thread.start();
+                                // Send an empty packet
+                                sendEmptyDataChunk();
+                            } catch (IOException e) {
+                                if (logger.isActivated()) {
+                                    logger.error("Can't create the MSRP server session", e);
+                                }
+                            }
+                        }
+                    };
+                    thread.start();
                 }
 
                 // The session is established
@@ -332,107 +338,113 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
 
                 for (ImsSessionListener listener : listeners) {
                     listener.handleSessionStarted();
-            }
+                }
 
-            	// Start session timer
-            	if (getSessionTimerManager().isSessionTimerActivated(resp)) {        	
-            		getSessionTimerManager().start(SessionTimerManager.UAS_ROLE, getDialogPath().getSessionExpireTime());
-            	}
+                // Start session timer
+                if (getSessionTimerManager().isSessionTimerActivated(resp)) {
+                    getSessionTimerManager().start(SessionTimerManager.UAS_ROLE,
+                            getDialogPath().getSessionExpireTime());
+                }
             } else {
-        		if (logger.isActivated()) {
-            		logger.debug("No ACK received for INVITE");
-            	}
+                if (logger.isActivated()) {
+                    logger.debug("No ACK received for INVITE");
+                }
 
-        		// No response received: timeout
-            	handleError(new ContentSharingError(ContentSharingError.SESSION_INITIATION_FAILED));
+                // No response received: timeout
+                handleError(new ContentSharingError(ContentSharingError.SESSION_INITIATION_FAILED));
             }
-		} catch(Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Session initiation has failed", e);
-        	}
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Session initiation has failed", e);
+            }
 
-        	// Unexpected error
-			handleError(new ContentSharingError(ContentSharingError.UNEXPECTED_EXCEPTION,
-					e.getMessage()));
-		}		
+            // Unexpected error
+            handleError(new ContentSharingError(ContentSharingError.UNEXPECTED_EXCEPTION,
+                    e.getMessage()));
+        }
 
-		if (logger.isActivated()) {
-    		logger.debug("End of thread");
-    	}
-	}
+        if (logger.isActivated()) {
+            logger.debug("End of thread");
+        }
+    }
 
-	/**
-	 * Send an empty data chunk
-	 */
-	public void sendEmptyDataChunk() {
-		try {
-			msrpMgr.sendEmptyChunk();
-		} catch(Exception e) {
-	   		if (logger.isActivated()) {
-	   			logger.error("Problem while sending empty data chunk", e);
-	   		}
-		}
-	}	
+    /**
+     * Send an empty data chunk
+     */
+    public void sendEmptyDataChunk() {
+        try {
+            msrpMgr.sendEmptyChunk();
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Problem while sending empty data chunk", e);
+            }
+        }
+    }
 
-	/**
-	 * Data has been transfered
-	 * 
-	 * @param msgId Message ID
-	 */
-	public void msrpDataTransfered(String msgId) {
-		// Not used in terminating side
-	}
-	
-	/**
-	 * Data transfer has been received
-	 * 
-	 * @param msgId Message ID
+    /**
+     * Data has been transfered
+     * 
+     * @param msgId Message ID
+     */
+    public void msrpDataTransfered(String msgId) {
+        // Not used in terminating side
+    }
+
+    /**
+     * Data transfer has been received
+     * 
+     * @param msgId Message ID
      * @param data Last received data chunk
-	 * @param mimeType Data mime-type 
-	 */
-	public void msrpDataReceived(String msgId, byte[] data, String mimeType) {
-    	if (logger.isActivated()) {
-    		logger.info("Data received");
-    	}
-    	
-    	// Image has been transfered
-    	imageTransfered();
-	
-	   	try {
-        	// Close content with received data
+     * @param mimeType Data mime-type
+     */
+    public void msrpDataReceived(String msgId, byte[] data, String mimeType) {
+        if (logger.isActivated()) {
+            logger.info("Data received");
+        }
+
+        // Image has been transfered
+        imageTransfered();
+
+        try {
+            // Close content with received data
             getContent().writeData2File(data);
             getContent().closeFile();
 
-	    	// Notify listeners
-	    	for(int j=0; j < getListeners().size(); j++) {
-	    		((ImageTransferSessionListener)getListeners().get(j)).handleContentTransfered(getContent().getUri());
-	    	}
-	   	} catch(IOException e) {
-	   		// Delete the temp file
-            deleteFile();
-
-	   		// Notify listeners
-	    	for(int j=0; j < getListeners().size(); j++) {
-	    		((ImageTransferSessionListener)getListeners().get(j)).handleSharingError(new ContentSharingError(ContentSharingError.MEDIA_SAVING_FAILED));
-	    	}
-	   	} catch(Exception e) {
-	   		// Delete the temp file
+            // Notify listeners
+            for (int j = 0; j < getListeners().size(); j++) {
+                ((ImageTransferSessionListener) getListeners().get(j))
+                        .handleContentTransfered(getContent().getUri());
+            }
+        } catch (IOException e) {
+            // Delete the temp file
             deleteFile();
 
             // Notify listeners
-	    	for(int j=0; j < getListeners().size(); j++) {
-	    		((ImageTransferSessionListener)getListeners().get(j)).handleSharingError(new ContentSharingError(ContentSharingError.MEDIA_TRANSFER_FAILED));
-	    	}
-	   	}
-	}
-    
-	/**
-	 * Data transfer in progress
-	 * 
-	 * @param currentSize Current transfered size in bytes
-	 * @param totalSize Total size in bytes
-	 */
-	public void msrpTransferProgress(long currentSize, long totalSize) {
+            for (int j = 0; j < getListeners().size(); j++) {
+                ((ImageTransferSessionListener) getListeners().get(j))
+                        .handleSharingError(new ContentSharingError(
+                                ContentSharingError.MEDIA_SAVING_FAILED));
+            }
+        } catch (Exception e) {
+            // Delete the temp file
+            deleteFile();
+
+            // Notify listeners
+            for (int j = 0; j < getListeners().size(); j++) {
+                ((ImageTransferSessionListener) getListeners().get(j))
+                        .handleSharingError(new ContentSharingError(
+                                ContentSharingError.MEDIA_TRANSFER_FAILED));
+            }
+        }
+    }
+
+    /**
+     * Data transfer in progress
+     * 
+     * @param currentSize Current transfered size in bytes
+     * @param totalSize Total size in bytes
+     */
+    public void msrpTransferProgress(long currentSize, long totalSize) {
         // Not used
     }
 
@@ -445,39 +457,41 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
      */
     public boolean msrpTransferProgress(long currentSize, long totalSize, byte[] data) {
         try {
-        	// Update content with received data
+            // Update content with received data
             getContent().writeData2File(data);
 
             // Notify listeners
             for (int j = 0; j < getListeners().size(); j++) {
-                ((ImageTransferSessionListener)getListeners().get(j)).handleSharingProgress(currentSize, totalSize);
+                ((ImageTransferSessionListener) getListeners().get(j)).handleSharingProgress(
+                        currentSize, totalSize);
             }
-        } catch(Exception e) {
-	   		// Delete the temp file
+        } catch (Exception e) {
+            // Delete the temp file
             deleteFile();
-            
+
             // Notify listeners
             for (int j = 0; j < getListeners().size(); j++) {
-                ((ImageTransferSessionListener) getListeners().get(j)).handleSharingError(new ContentSharingError(
-                        ContentSharingError.MEDIA_SAVING_FAILED));
+                ((ImageTransferSessionListener) getListeners().get(j))
+                        .handleSharingError(new ContentSharingError(
+                                ContentSharingError.MEDIA_SAVING_FAILED));
             }
         }
         return true;
-	}
+    }
 
-	/**
-	 * Data transfer has been aborted
-	 */
-	public void msrpTransferAborted() {
-    	if (logger.isActivated()) {
-    		logger.info("Data transfer aborted");
-    	}
-    	
-        if (!isImageTransfered()) {
-	   		// Delete the temp file
-	        deleteFile();
+    /**
+     * Data transfer has been aborted
+     */
+    public void msrpTransferAborted() {
+        if (logger.isActivated()) {
+            logger.info("Data transfer aborted");
         }
-	}
+
+        if (!isImageTransfered()) {
+            // Delete the temp file
+            deleteFile();
+        }
+    }
 
     /**
      * Data transfer error
@@ -488,52 +502,55 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
      */
     public void msrpTransferError(String msgId, String error, TypeMsrpChunk typeMsrpChunk) {
         if (isSessionInterrupted() || isInterrupted() || getDialogPath().isSessionTerminated()) {
-			return;
-		}
+            return;
+        }
 
-		if (logger.isActivated()) {
+        if (logger.isActivated()) {
             logger.info("Data transfer error " + error);
-    	}
-		
-		try {        
-			// Terminate session
-			terminateSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
-	        // Close the media session
-	        closeMediaSession();
-	   	} catch(Exception e) {
-	   		if (logger.isActivated()) {
-	   			logger.error("Can't close correctly the image sharing session", e);
-	   		}
-	   	}
+        }
 
         try {
-			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
-			// Request capabilities to the remote
-	        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
-		} catch (RcsContactFormatException e) {
-			if (logger.isActivated()) {
-				logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
-			}
-		}
-        
-    	// Remove the current session
-    	removeSession();
-
-		// Changed by Deutsche Telekom
-		if (!isImageTransfered()) {
-			// Notify listeners
-        if (!isSessionInterrupted() && !isSessionTerminatedByRemote()) {
-            for(int j=0; j < getListeners().size(); j++) {
-                ((ImageTransferSessionListener)getListeners().get(j)).handleSharingError(new ContentSharingError(ContentSharingError.MEDIA_TRANSFER_FAILED, error));
+            // Terminate session
+            terminateSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
+            // Close the media session
+            closeMediaSession();
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't close correctly the image sharing session", e);
             }
-			}
-		}
-	}
+        }
+
+        try {
+            ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+            // Request capabilities to the remote
+            getImsService().getImsModule().getCapabilityService()
+                    .requestContactCapabilities(remote);
+        } catch (RcsContactFormatException e) {
+            if (logger.isActivated()) {
+                logger.warn("Cannot parse contact " + getDialogPath().getRemoteParty());
+            }
+        }
+
+        // Remove the current session
+        removeSession();
+
+        // Changed by Deutsche Telekom
+        if (!isImageTransfered()) {
+            // Notify listeners
+            if (!isSessionInterrupted() && !isSessionTerminatedByRemote()) {
+                for (int j = 0; j < getListeners().size(); j++) {
+                    ((ImageTransferSessionListener) getListeners().get(j))
+                            .handleSharingError(new ContentSharingError(
+                                    ContentSharingError.MEDIA_TRANSFER_FAILED, error));
+                }
+            }
+        }
+    }
 
     /**
      * Prepare media session
      * 
-     * @throws Exception 
+     * @throws Exception
      */
     public void prepareMediaSession() throws Exception {
         // Nothing to do in terminating side
@@ -542,7 +559,7 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
     /**
      * Start media session
      * 
-     * @throws Exception 
+     * @throws Exception
      */
     public void startMediaSession() throws Exception {
         // Nothing to do in terminating side
@@ -560,7 +577,7 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
             logger.debug("MSRP session has been closed");
         }
         if (!isImageTransfered()) {
-	   		// Delete the temp file
+            // Delete the temp file
             deleteFile();
         }
     }
@@ -581,9 +598,8 @@ public class TerminatingImageTransferSession extends ImageTransferSession implem
         }
     }
 
-	@Override
-	public boolean isInitiatedByRemote() {
-		return true;
-	}
+    @Override
+    public boolean isInitiatedByRemote() {
+        return true;
+    }
 }
-

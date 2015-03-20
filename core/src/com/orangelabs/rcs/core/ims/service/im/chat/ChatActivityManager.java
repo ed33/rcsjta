@@ -23,9 +23,9 @@ import com.orangelabs.rcs.utils.PeriodicRefresher;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
- * Chat activity manager which manages the idle state of the session. It maintains a timer
- * that is canceled and restarted when the session has activity, i.e. when MSRP chunks are
- * received or emitted. If the timer expires, the session is aborted.
+ * Chat activity manager which manages the idle state of the session. It maintains a timer that is
+ * canceled and restarted when the session has activity, i.e. when MSRP chunks are received or
+ * emitted. If the timer expires, the session is aborted.
  */
 public class ChatActivityManager extends PeriodicRefresher {
     /**
@@ -37,80 +37,82 @@ public class ChatActivityManager extends PeriodicRefresher {
      * Session timeout (in seconds)
      */
     private int timeout;
-    
+
     /**
      * IM session
      */
     private ChatSession session;
-    
+
     /**
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
-    
+
     /**
      * Constructor
      * 
      * @param session IM session
-     */    
+     */
     public ChatActivityManager(ChatSession session) {
-    	this.session = session;
-    	this.timeout = RcsSettings.getInstance().getChatIdleDuration();
+        this.session = session;
+        this.timeout = RcsSettings.getInstance().getChatIdleDuration();
     }
 
     /**
      * Update the session activity
      */
     public void updateActivity() {
-    	activityTimesamp = System.currentTimeMillis();
+        activityTimesamp = System.currentTimeMillis();
     }
-    
+
     /**
-     * Start manager 
+     * Start manager
      */
     public void start() {
-    	if (logger.isActivated()) {
-    		logger.info("Start the activity manager for " + timeout + "s");
-    	}
+        if (logger.isActivated()) {
+            logger.info("Start the activity manager for " + timeout + "s");
+        }
 
-    	// Reset the inactivity timestamp
-    	updateActivity();
-    	
-    	// Start a timer to check if the inactivity period has been reach or not each 10seconds
-    	startTimer(timeout, 1.0);
+        // Reset the inactivity timestamp
+        updateActivity();
+
+        // Start a timer to check if the inactivity period has been reach or not each 10seconds
+        startTimer(timeout, 1.0);
     }
-    
+
     /**
-     * Stop manager 
+     * Stop manager
      */
     public void stop() {
-    	if (logger.isActivated()) {
-    		logger.info("Stop the activity manager");
-    	}
+        if (logger.isActivated()) {
+            logger.info("Stop the activity manager");
+        }
 
-    	// Stop timer
-    	stopTimer();
+        // Stop timer
+        stopTimer();
     }
-    	
+
     /**
      * Periodic processing
      */
     public void periodicProcessing() {
-    	long currentTime = System.currentTimeMillis();
-		int inactivityPeriod = (int)((currentTime - activityTimesamp) / 1000) + 1; 
-		int remainingPeriod = timeout - inactivityPeriod; 
-    	if (logger.isActivated()) {
-    		logger.debug("Check inactivity period: inactivity=" + inactivityPeriod + ", remaining=" + remainingPeriod);
-    	}
+        long currentTime = System.currentTimeMillis();
+        int inactivityPeriod = (int) ((currentTime - activityTimesamp) / 1000) + 1;
+        int remainingPeriod = timeout - inactivityPeriod;
+        if (logger.isActivated()) {
+            logger.debug("Check inactivity period: inactivity=" + inactivityPeriod + ", remaining="
+                    + remainingPeriod);
+        }
 
-    	if (inactivityPeriod >= timeout) {
-        	if (logger.isActivated()){
-        		logger.debug("No activity on the session during " + timeout + "s: abort the session");
-        	}
-        	session.handleChatInactivityEvent();
-    	} else {
-        	// Restart timer
-        	startTimer(remainingPeriod, 1.0);
-    	}    		
-    }    
+        if (inactivityPeriod >= timeout) {
+            if (logger.isActivated()) {
+                logger.debug("No activity on the session during " + timeout
+                        + "s: abort the session");
+            }
+            session.handleChatInactivityEvent();
+        } else {
+            // Restart timer
+            startTimer(remainingPeriod, 1.0);
+        }
+    }
 }

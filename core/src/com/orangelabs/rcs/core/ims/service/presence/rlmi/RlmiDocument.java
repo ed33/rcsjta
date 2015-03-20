@@ -26,23 +26,23 @@ import java.util.Vector;
  * @author jexa7410
  */
 public class RlmiDocument {
-	private String uri = null;
-	
-	private Vector<ResourceInstance> resourceList = new Vector<ResourceInstance>();
+    private String uri = null;
 
-	public RlmiDocument(String uri) {
-		this.uri = uri;
-	}
+    private Vector<ResourceInstance> resourceList = new Vector<ResourceInstance>();
 
-	public String getUri() {
-		return uri;
-	}
+    public RlmiDocument(String uri) {
+        this.uri = uri;
+    }
 
-	public void addResource(ResourceInstance res) {
-		resourceList.addElement(res);
-	}
+    public String getUri() {
+        return uri;
+    }
 
-	public Vector<ResourceInstance> getResourceList() {
-		return resourceList;
-	}
+    public void addResource(ResourceInstance res) {
+        resourceList.addElement(res);
+    }
+
+    public Vector<ResourceInstance> getResourceList() {
+        return resourceList;
+    }
 }

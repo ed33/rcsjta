@@ -52,22 +52,24 @@ public class ChatProvider extends ContentProvider {
 
     private static final String SELECTION_WITH_CHAT_ID_ONLY = ChatData.KEY_CHAT_ID.concat("=?");
 
-    private static final String SELECTION_WITH_MSG_ID_ONLY = MessageData.KEY_MESSAGE_ID.concat("=?");
+    private static final String SELECTION_WITH_MSG_ID_ONLY = MessageData.KEY_MESSAGE_ID
+            .concat("=?");
 
     private static final String DATABASE_NAME = "chat.db";
 
     private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
     static {
-        sUriMatcher.addURI(ChatData.CONTENT_URI.getAuthority(), ChatData.CONTENT_URI.getPath().substring(1),
-                UriType.InternalChat.CHAT);
-        sUriMatcher.addURI(ChatData.CONTENT_URI.getAuthority(), ChatData.CONTENT_URI.getPath().substring(1)
-                .concat("/*"), UriType.InternalChat.CHAT_WITH_ID);
+        sUriMatcher.addURI(ChatData.CONTENT_URI.getAuthority(), ChatData.CONTENT_URI.getPath()
+                .substring(1), UriType.InternalChat.CHAT);
+        sUriMatcher.addURI(ChatData.CONTENT_URI.getAuthority(), ChatData.CONTENT_URI.getPath()
+                .substring(1).concat("/*"), UriType.InternalChat.CHAT_WITH_ID);
         sUriMatcher.addURI(ChatLog.GroupChat.CONTENT_URI.getAuthority(),
                 ChatLog.GroupChat.CONTENT_URI.getPath().substring(1), UriType.Chat.CHAT);
         sUriMatcher.addURI(ChatLog.GroupChat.CONTENT_URI.getAuthority(),
-                ChatLog.GroupChat.CONTENT_URI.getPath().substring(1).concat("/*"), UriType.Chat.CHAT_WITH_ID);
-        sUriMatcher.addURI(ChatLog.Message.CONTENT_URI.getAuthority(),
-                ChatLog.Message.CONTENT_URI.getPath().substring(1), UriType.Message.MESSAGE);
+                ChatLog.GroupChat.CONTENT_URI.getPath().substring(1).concat("/*"),
+                UriType.Chat.CHAT_WITH_ID);
+        sUriMatcher.addURI(ChatLog.Message.CONTENT_URI.getAuthority(), ChatLog.Message.CONTENT_URI
+                .getPath().substring(1), UriType.Message.MESSAGE);
         sUriMatcher.addURI(ChatLog.Message.CONTENT_URI.getAuthority(), ChatLog.Message.CONTENT_URI
                 .getPath().substring(1).concat("/*"), UriType.Message.MESSAGE_WITH_ID);
 
@@ -284,8 +286,8 @@ public class ChatProvider extends ContentProvider {
                     /* Intentional fall through */
                 case UriType.InternalChat.CHAT:
                     SQLiteDatabase db = mOpenHelper.getReadableDatabase();
-                    cursor = db.query(TABLE_GROUP_CHAT, projection, selection, selectionArgs,
-                            null, null, sort);
+                    cursor = db.query(TABLE_GROUP_CHAT, projection, selection, selectionArgs, null,
+                            null, sort);
                     cursor.setNotificationUri(getContext().getContentResolver(),
                             groupChatNotificationUri);
                     return cursor;
@@ -310,8 +312,8 @@ public class ChatProvider extends ContentProvider {
                     /* Intentional fall through */
                 case UriType.Message.MESSAGE:
                     db = mOpenHelper.getReadableDatabase();
-                    cursor = db.query(TABLE_MESSAGE, projection, selection, selectionArgs,
-                            null, null, sort);
+                    cursor = db.query(TABLE_MESSAGE, projection, selection, selectionArgs, null,
+                            null, sort);
                     cursor.setNotificationUri(getContext().getContentResolver(), uri);
                     return cursor;
 
@@ -335,8 +337,7 @@ public class ChatProvider extends ContentProvider {
                 String chatId = uri.getLastPathSegment();
                 selection = getSelectionWithChatId(selection);
                 selectionArgs = getSelectionArgsWithChatId(selectionArgs, chatId);
-                groupChatNotificationUri = Uri.withAppendedPath(groupChatNotificationUri,
-                        chatId);
+                groupChatNotificationUri = Uri.withAppendedPath(groupChatNotificationUri, chatId);
                 /* Intentional fall through */
             case UriType.InternalChat.CHAT:
                 SQLiteDatabase db = mOpenHelper.getWritableDatabase();
@@ -414,8 +415,7 @@ public class ChatProvider extends ContentProvider {
                 String chatId = uri.getLastPathSegment();
                 selection = getSelectionWithChatId(selection);
                 selectionArgs = getSelectionArgsWithChatId(selectionArgs, chatId);
-                groupChatNotificationUri = Uri.withAppendedPath(groupChatNotificationUri,
-                        chatId);
+                groupChatNotificationUri = Uri.withAppendedPath(groupChatNotificationUri, chatId);
                 /* Intentional fall through */
             case UriType.InternalChat.CHAT:
                 SQLiteDatabase db = mOpenHelper.getWritableDatabase();

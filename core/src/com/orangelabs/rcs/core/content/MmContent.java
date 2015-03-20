@@ -34,138 +34,137 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-
 /**
  * Multimedia content
  *
  * @author jexa7410
  */
 public abstract class MmContent {
-	/**
-	 * Content uri
-	 */
-	private Uri file;
+    /**
+     * Content uri
+     */
+    private Uri file;
 
-	/**
-	 * The filename
-	 */
-	private String fileName;
+    /**
+     * The filename
+     */
+    private String fileName;
 
-	/**
-	 * Content size in bytes
-	 */
-	private long size;
+    /**
+     * Content size in bytes
+     */
+    private long size;
 
-	/**
-	 * Encoding
-	 */
-	private String encoding;
+    /**
+     * Encoding
+     */
+    private String encoding;
 
-	/**
-	 * Data
-	 */
-	private byte[] data = null;
+    /**
+     * Data
+     */
+    private byte[] data = null;
 
     /**
      * Stream to write received data direct to file.
      */
     private BufferedOutputStream out = null;
 
-	private ParcelFileDescriptor pfd;
+    private ParcelFileDescriptor pfd;
 
     /**
      * Constructor
      * 
      * @param encoding Encoding
      */
-	public MmContent(String encoding) {
-		this.encoding = encoding;
-		this.size = -1;
-	}
-
-	/**
-	 * Constructor
-	 *
-	 * @param fileName File name
-	 * @param size Content size
-	 * @param encoding Encoding
-	 */
-	public MmContent(String fileName, long size, String encoding) {
-		this.fileName = fileName;
-		this.size = size;
-		this.encoding = encoding;
-	}
+    public MmContent(String encoding) {
+        this.encoding = encoding;
+        this.size = -1;
+    }
 
     /**
-	 * Constructor
-	 *
-	 * @param file Uri
-	 * @param encoding Encoding
-	 * @param size Content size
-	 * @param fileName File name
-	 */
-	public MmContent(Uri file, String encoding, long size, String fileName) {
-		this.file = file;
-		this.encoding = encoding;
-		this.size = size;
-		this.fileName = fileName;
-	}
+     * Constructor
+     *
+     * @param fileName File name
+     * @param size Content size
+     * @param encoding Encoding
+     */
+    public MmContent(String fileName, long size, String encoding) {
+        this.fileName = fileName;
+        this.size = size;
+        this.encoding = encoding;
+    }
 
     /**
-	 * Returns the uri
-	 *
-	 * @return uri
-	 */
-	public Uri getUri() {
-		return file;
-	}
+     * Constructor
+     *
+     * @param file Uri
+     * @param encoding Encoding
+     * @param size Content size
+     * @param fileName File name
+     */
+    public MmContent(Uri file, String encoding, long size, String fileName) {
+        this.file = file;
+        this.encoding = encoding;
+        this.size = size;
+        this.fileName = fileName;
+    }
 
-	/**
-	 * Sets the uri
-	 *
-	 * @param file Uri
-	 */
-	public void setUri(Uri file) {
-		this.file = file;
-	}
+    /**
+     * Returns the uri
+     *
+     * @return uri
+     */
+    public Uri getUri() {
+        return file;
+    }
+
+    /**
+     * Sets the uri
+     *
+     * @param file Uri
+     */
+    public void setUri(Uri file) {
+        this.file = file;
+    }
 
     /**
      * Returns the content size in bytes
      * 
      * @return Size in bytes
      */
-	public long getSize() {
-		return size;
-	}
+    public long getSize() {
+        return size;
+    }
 
     /**
      * Returns the content size in Kbytes
      * 
      * @return Size in Kbytes
      */
-	public long getKbSize() {
-		return size/1024;
-	}
+    public long getKbSize() {
+        return size / 1024;
+    }
 
-	/**
+    /**
      * Returns the content size in Mbytes
      * 
      * @return Size in Mbytes
      */
-	public long getMbSize(){
-		return size/(1024*1024);
-	}
+    public long getMbSize() {
+        return size / (1024 * 1024);
+    }
 
     /**
      * Returns the encoding type
      * 
      * @return Encoding type
      */
-	public String getEncoding() {
-		return encoding;
-	}
+    public String getEncoding() {
+        return encoding;
+    }
 
-	/**
+    /**
      * Set the encoding type
      * 
      * @param encoding Encoding type
@@ -179,59 +178,59 @@ public abstract class MmContent {
      * 
      * @return Codec name
      */
-	public String getCodec() {
-		int index = encoding.indexOf("/");
-		if (index != -1) {
-			return encoding.substring(index+1);
-		} else {
-			return encoding;
-		}
+    public String getCodec() {
+        int index = encoding.indexOf("/");
+        if (index != -1) {
+            return encoding.substring(index + 1);
+        } else {
+            return encoding;
+        }
     }
 
-	/**
+    /**
      * Get the name
      * 
      * @return Name
      */
-	public String getName() {
-		return fileName;
+    public String getName() {
+        return fileName;
     }
-	
-	/**
+
+    /**
      * Set the name
      * 
      * @return Name
      */
-	public void setName(String fileName) {
-		this.fileName = fileName;
+    public void setName(String fileName) {
+        this.fileName = fileName;
     }
 
-	/**
+    /**
      * Returns the string representation of a content
      * 
      * @return String
      */
-	public String toString() {
-		return file + " (" + size + " bytes)";
-	}
+    public String toString() {
+        return file + " (" + size + " bytes)";
+    }
 
-	/**
+    /**
      * Returns the content data
      * 
      * @return Data
      */
-	public byte[] getData() {
-		return data;
-	}
+    public byte[] getData() {
+        return data;
+    }
 
-	/**
+    /**
      * Sets the content data
      * 
      * @param Data
      */
-	public void setData(byte[] data) {
-		this.data = data;
-	}
+    public void setData(byte[] data) {
+        this.data = data;
+    }
 
     /**
      * Write data chunk to file
@@ -239,15 +238,15 @@ public abstract class MmContent {
      * @param data Data to append to file
      * @throws IOException
      */
-	public void writeData2File(byte[] data) throws IOException, IllegalArgumentException {
-		if (out == null) {
-			pfd = AndroidFactory.getApplicationContext().getContentResolver()
-					.openFileDescriptor(file, "w");
-			// To optimize I/O set buffer size to 8kBytes
-			out = new BufferedOutputStream(new FileOutputStream(pfd.getFileDescriptor()), 8 * 1024);
-		}
-		out.write(data);
-	}
+    public void writeData2File(byte[] data) throws IOException, IllegalArgumentException {
+        if (out == null) {
+            pfd = AndroidFactory.getApplicationContext().getContentResolver()
+                    .openFileDescriptor(file, "w");
+            // To optimize I/O set buffer size to 8kBytes
+            out = new BufferedOutputStream(new FileOutputStream(pfd.getFileDescriptor()), 8 * 1024);
+        }
+        out.write(data);
+    }
 
     /**
      * Close written file and update media storage.
@@ -274,25 +273,25 @@ public abstract class MmContent {
      *
      * @throws IOException
      */
-	public void deleteFile() throws IOException {
-		if (out != null) {
-			try {
-				out.close();
-				out = null;
-			} finally {
-				Uri fileToDelete = getUri();
-				if (ContentResolver.SCHEME_FILE.equals(fileToDelete.getScheme())) {
-					File file = new File(fileToDelete.getPath());
-					if (file != null) {
-						if (!file.delete()) {
-							throw new IOException("Unable to delete file: "
-									+ file.getAbsolutePath());
-						}
-					}
-				} else {
-					throw new IOException("Not possible to delete file: " + fileToDelete);
-				}
-			}
-		}
-	}
+    public void deleteFile() throws IOException {
+        if (out != null) {
+            try {
+                out.close();
+                out = null;
+            } finally {
+                Uri fileToDelete = getUri();
+                if (ContentResolver.SCHEME_FILE.equals(fileToDelete.getScheme())) {
+                    File file = new File(fileToDelete.getPath());
+                    if (file != null) {
+                        if (!file.delete()) {
+                            throw new IOException("Unable to delete file: "
+                                    + file.getAbsolutePath());
+                        }
+                    }
+                } else {
+                    throw new IOException("Not possible to delete file: " + fileToDelete);
+                }
+            }
+        }
+    }
 }

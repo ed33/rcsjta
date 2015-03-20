@@ -27,14 +27,8 @@ public enum Orientation {
     /**
      * Orientation values
      */
-    NONE(0),
-    ROTATE_90_CW(1),
-    ROTATE_180(2),
-    ROTATE_90_CCW(3),
-    FLIP_HORIZONTAL(4),
-    ROTATE_90_CW_FLIP_HORIZONTAL(5),
-    ROTATE_180_FLIP_HORIZONTAL(6),
-    ROTATE_90_CCW_FLIP_HORIZONTAL(7);
+    NONE(0), ROTATE_90_CW(1), ROTATE_180(2), ROTATE_90_CCW(3), FLIP_HORIZONTAL(4), ROTATE_90_CW_FLIP_HORIZONTAL(
+            5), ROTATE_180_FLIP_HORIZONTAL(6), ROTATE_90_CCW_FLIP_HORIZONTAL(7);
 
     /**
      * Private value

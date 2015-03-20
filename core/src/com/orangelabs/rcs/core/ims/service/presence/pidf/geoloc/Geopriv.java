@@ -19,43 +19,43 @@
 package com.orangelabs.rcs.core.ims.service.presence.pidf.geoloc;
 
 public class Geopriv {
-	private String method = null;
-	private double latitude = 0;
-	private double longitude = 0;
-	private double altitude = 0;
-	
-	public Geopriv() {
-	}
+    private String method = null;
+    private double latitude = 0;
+    private double longitude = 0;
+    private double altitude = 0;
 
-	public String getMethod() {
-		return method;
-	}
+    public Geopriv() {
+    }
 
-	public void setMethod(String met) {
-		this.method = met;
-	}
+    public String getMethod() {
+        return method;
+    }
 
-	public double getLatitude() {
-		return latitude;
-	}
+    public void setMethod(String met) {
+        this.method = met;
+    }
 
-	public void setLatitude(double l) {
-		latitude = l;
-	}
+    public double getLatitude() {
+        return latitude;
+    }
 
-	public double getLongitude() {
-		return longitude;
-	}
+    public void setLatitude(double l) {
+        latitude = l;
+    }
 
-	public void setLongitude(double l) {
-		longitude = l;
-	}
+    public double getLongitude() {
+        return longitude;
+    }
 
-	public double getAltitude() {
-		return altitude;
-	}	
+    public void setLongitude(double l) {
+        longitude = l;
+    }
 
-	public void setAltitude(double a) {
-		altitude = a;
-	}
+    public double getAltitude() {
+        return altitude;
+    }
+
+    public void setAltitude(double a) {
+        altitude = a;
+    }
 }

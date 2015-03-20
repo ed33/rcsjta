@@ -66,15 +66,15 @@ public class RtpOutputStream implements ProcessorOutputStream, RtcpEventListener
      */
     private RtcpPacketReceiver rtcpReceiver;
 
-	/**
-	 * RTP transmitter
-	 */
-	private RtpPacketTransmitter rtpTransmitter;
+    /**
+     * RTP transmitter
+     */
+    private RtpPacketTransmitter rtpTransmitter;
 
-	/**
-	 * RTCP transmitter
-	 */
-	private RtcpPacketTransmitter rtcpTransmitter;
+    /**
+     * RTCP transmitter
+     */
+    private RtcpPacketTransmitter rtcpTransmitter;
 
     /**
      * RTCP Session
@@ -99,7 +99,7 @@ public class RtpOutputStream implements ProcessorOutputStream, RtcpEventListener
     /**
      * The logger
      */
-	private final static Logger logger = Logger.getLogger(RtpOutputStream.class.getSimpleName());
+    private final static Logger logger = Logger.getLogger(RtpOutputStream.class.getSimpleName());
 
     /**
      * Constructor
@@ -137,8 +137,8 @@ public class RtpOutputStream implements ProcessorOutputStream, RtcpEventListener
      * @param rtcpTimeout RTCP timeout
      */
     public RtpOutputStream(String remoteAddress, int remotePort, int localRtpPort, int rtcpTimeout) {
-		this.remoteAddress = remoteAddress;
-		this.remotePort = remotePort;
+        this.remoteAddress = remoteAddress;
+        this.remotePort = remotePort;
         this.localRtpPort = localRtpPort;
         this.rtcpSocketTimeout = rtcpTimeout;
 
@@ -162,29 +162,25 @@ public class RtpOutputStream implements ProcessorOutputStream, RtcpEventListener
             rtcpReceiver.start();
 
             // Create the RTP transmitter
-            rtpTransmitter = new RtpPacketTransmitter(remoteAddress,
-            		remotePort,
-            		rtcpSession,
+            rtpTransmitter = new RtpPacketTransmitter(remoteAddress, remotePort, rtcpSession,
                     rtpReceiver.getConnection());
-            
+
             // Create the RTCP transmitter
-            rtcpTransmitter = new RtcpPacketTransmitter(remoteAddress,
-            		remotePort + 1,
-                    rtcpSession,
+            rtcpTransmitter = new RtcpPacketTransmitter(remoteAddress, remotePort + 1, rtcpSession,
                     rtcpReceiver.getConnection());
             rtcpTransmitter.start();
-        } else if (rtpInputStream != null) { 
+        } else if (rtpInputStream != null) {
             // Create the RTP transmitter
             rtpTransmitter = new RtpPacketTransmitter(remoteAddress, remotePort, rtcpSession,
                     rtpInputStream.getRtpReceiver().getConnection());
-            
+
             // Create the RTCP transmitter
             rtcpTransmitter = new RtcpPacketTransmitter(remoteAddress, remotePort + 1, rtcpSession,
                     rtpInputStream.getRtcpReceiver().getConnection());
         } else {
             // Create the RTP transmitter
             rtpTransmitter = new RtpPacketTransmitter(remoteAddress, remotePort, rtcpSession);
-            
+
             // Create the RTCP transmitter
             rtcpTransmitter = new RtcpPacketTransmitter(remoteAddress, remotePort + 1, rtcpSession);
         }
@@ -194,10 +190,10 @@ public class RtpOutputStream implements ProcessorOutputStream, RtcpEventListener
      * Close the output stream
      */
     public void close() {
-		try {
-			// Close the RTP transmitter
+        try {
+            // Close the RTP transmitter
             if (rtpTransmitter != null)
-				rtpTransmitter.close();
+                rtpTransmitter.close();
 
             // Close the RTCP transmitter
             if (rtcpTransmitter != null)
@@ -213,12 +209,12 @@ public class RtpOutputStream implements ProcessorOutputStream, RtcpEventListener
 
             // Remove rtpStreamListener
             rtpStreamListener = null;
-		} catch(Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Can't close correctly RTP ressources", e);
-			}
-		}
-	}
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't close correctly RTP ressources", e);
+            }
+        }
+    }
 
     /**
      * Write to the stream without blocking
@@ -227,12 +223,12 @@ public class RtpOutputStream implements ProcessorOutputStream, RtcpEventListener
      * @throws IOException
      */
     public void write(Buffer buffer) throws IOException {
-		rtpTransmitter.sendRtpPacket(buffer);
+        rtpTransmitter.sendRtpPacket(buffer);
     }
 
     @Override
     public void receiveRtcpEvent(RtcpEvent event) {
-        // Nothing to do 
+        // Nothing to do
     }
 
     @Override

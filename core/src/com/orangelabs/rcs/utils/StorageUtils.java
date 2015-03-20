@@ -29,8 +29,8 @@ import android.os.StatFs;
 public class StorageUtils {
 
     /**
-     * Verify if external storage is available (read or write) using
-     * {@link Environment} external storage state
+     * Verify if external storage is available (read or write) using {@link Environment} external
+     * storage state
      *
      * @see Environment#MEDIA_MOUNTED
      * @see Environment#MEDIA_MOUNTED_READ_ONLY
@@ -43,8 +43,7 @@ public class StorageUtils {
     }
 
     /**
-     * Get available space in external storage, only if external storage is
-     * ready to write
+     * Get available space in external storage, only if external storage is ready to write
      *
      * @return Available space in bytes, otherwise <code>-1</code>
      */

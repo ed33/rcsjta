@@ -26,7 +26,7 @@ import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
  * 
  * @author jexa7410
  */
-public interface VideoStreamingSessionListener extends ImsSessionListener  {
+public interface VideoStreamingSessionListener extends ImsSessionListener {
     /**
      * Content sharing error
      * 
@@ -41,7 +41,7 @@ public interface VideoStreamingSessionListener extends ImsSessionListener  {
      * @param height Video height
      */
     public void handleVideoResized(int width, int height);
-    
+
     /**
      * Destination user agent received INVITE, and is alerting user of call
      */

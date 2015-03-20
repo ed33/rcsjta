@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.vsh;
 
 import java.util.HashSet;
@@ -39,212 +40,200 @@ import com.gsma.services.rcs.RcsServiceNotAvailableException;
 import com.gsma.services.rcs.contacts.ContactId;
 
 /**
- * This class offers the main entry point to share live video during a CS call.
- * Several applications may connect/disconnect to the API.
- * 
- * The parameter contact in the API supports the following formats: MSISDN in
- * national or international format, SIP address, SIP-URI or Tel-URI.
+ * This class offers the main entry point to share live video during a CS call. Several applications
+ * may connect/disconnect to the API. The parameter contact in the API supports the following
+ * formats: MSISDN in national or international format, SIP address, SIP-URI or Tel-URI.
  * 
  * @author Jean-Marc AUFFRET
  */
 public class VideoSharingService extends RcsService {
-	/**
-	 * API
-	 */
-	private IVideoSharingService api;
-
-	/**
-	 * Constructor
-	 * 
-	 * @param ctx
-	 *            Application context
-	 * @param listener
-	 *            Service listener
-	 */
-	public VideoSharingService(Context ctx, RcsServiceListener listener) {
-		super(ctx, listener);
-	}
-
-	/**
-	 * Connects to the API
-	 */
-	public void connect() {
-		ctx.bindService(new Intent(IVideoSharingService.class.getName()),
-				apiConnection, 0);
-	}
-
-	/**
-	 * Disconnects from the API
-	 */
-	public void disconnect() {
-		try {
-			ctx.unbindService(apiConnection);
-		} catch (IllegalArgumentException e) {
-			// Nothing to do
-		}
-	}
-
-	/**
-	 * Set API interface
-	 * 
-	 * @param api API interface
-	 */
-    protected void setApi(IInterface api) {
-    	super.setApi(api);
-    	
-        this.api = (IVideoSharingService)api;
-    }
-    
     /**
-	 * Service connection
-	 */
-	private ServiceConnection apiConnection = new ServiceConnection() {
-		public void onServiceConnected(ComponentName className, IBinder service) {
-			setApi(IVideoSharingService.Stub.asInterface(service));
-			if (serviceListener != null) {
-				serviceListener.onServiceConnected();
-			}
-		}
+     * API
+     */
+    private IVideoSharingService api;
 
-		public void onServiceDisconnected(ComponentName className) {
-        	setApi(null);
-			if (serviceListener != null) {
-				serviceListener
-						.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
-			}
-		}
-	};
+    /**
+     * Constructor
+     * 
+     * @param ctx Application context
+     * @param listener Service listener
+     */
+    public VideoSharingService(Context ctx, RcsServiceListener listener) {
+        super(ctx, listener);
+    }
 
-	/**
-	 * Returns the configuration of video sharing service
-	 * 
-	 * @return Configuration
-	 * @throws RcsServiceException
-	 */
-	public VideoSharingServiceConfiguration getConfiguration()
-			throws RcsServiceException {
-		if (api != null) {
-			try {
-				return api.getConfiguration();
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+    /**
+     * Connects to the API
+     */
+    public void connect() {
+        ctx.bindService(new Intent(IVideoSharingService.class.getName()), apiConnection, 0);
+    }
 
-	/**
-	 * Shares a live video with a contact. The parameter renderer contains the
-	 * video player provided by the application. An exception if thrown if there
-	 * is no ongoing CS call. The parameter contact supports the following
-	 * formats: MSISDN in national or international format, SIP address, SIP-URI
-	 * or Tel-URI. If the format of the contact is not supported an exception is
-	 * thrown.
-	 * 
-	 * @param contact
-	 *            Contact identifier
-	 * @param player
-	 *            Video player
-	 * @return Video sharing
-	 * @throws RcsServiceException
-	 */
-	public VideoSharing shareVideo(ContactId contact, VideoPlayer player) throws RcsServiceException {
-		if (api != null) {
-			try {
-				IVideoSharing sharingIntf = api.shareVideo(contact, player);
-				if (sharingIntf != null) {
-					return new VideoSharing(sharingIntf);
-				} else {
-					return null;
-				}
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+    /**
+     * Disconnects from the API
+     */
+    public void disconnect() {
+        try {
+            ctx.unbindService(apiConnection);
+        } catch (IllegalArgumentException e) {
+            // Nothing to do
+        }
+    }
 
-	/**
-	 * Returns the list of video sharings in progress
-	 * 
-	 * @return List of video sharings
-	 * @throws RcsServiceException
-	 */
-	public Set<VideoSharing> getVideoSharings() throws RcsServiceException {
-		if (api != null) {
-			try {
-				Set<VideoSharing> result = new HashSet<VideoSharing>();
-				List<IBinder> vshList = api.getVideoSharings();
-				for (IBinder binder : vshList) {
-					VideoSharing sharing = new VideoSharing(
-							IVideoSharing.Stub.asInterface(binder));
-					result.add(sharing);
-				}
-				return result;
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+    /**
+     * Set API interface
+     * 
+     * @param api API interface
+     */
+    protected void setApi(IInterface api) {
+        super.setApi(api);
 
-	/**
-	 * Returns a current video sharing from its unique ID
-	 * 
-	 * @param sharingId
-	 *            Sharing ID
-	 * @return Video sharing or null if not found
-	 * @throws RcsServiceException
-	 */
-	public VideoSharing getVideoSharing(String sharingId)
-			throws RcsServiceException {
-		if (api != null) {
-			try {
-				return new VideoSharing(api.getVideoSharing(sharingId));
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+        this.api = (IVideoSharingService) api;
+    }
 
-	/**
-	 * Adds a listener on video sharing events
-	 * 
-	 * @param listener Listener
-	 * @throws RcsServiceException
-	 */
-	public void addEventListener(VideoSharingListener listener) throws RcsServiceException {
-		if (api != null) {
-			try {
-				api.addEventListener2(listener);
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+    /**
+     * Service connection
+     */
+    private ServiceConnection apiConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            setApi(IVideoSharingService.Stub.asInterface(service));
+            if (serviceListener != null) {
+                serviceListener.onServiceConnected();
+            }
+        }
 
-	/**
-	 * Removes a listener on video sharing events
-	 * 
-	 * @param listener Listener
-	 * @throws RcsServiceException
-	 */
-	public void removeEventListener(VideoSharingListener listener) throws RcsServiceException {
-		if (api != null) {
-			try {
-				api.removeEventListener2(listener);
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+        public void onServiceDisconnected(ComponentName className) {
+            setApi(null);
+            if (serviceListener != null) {
+                serviceListener.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
+            }
+        }
+    };
+
+    /**
+     * Returns the configuration of video sharing service
+     * 
+     * @return Configuration
+     * @throws RcsServiceException
+     */
+    public VideoSharingServiceConfiguration getConfiguration() throws RcsServiceException {
+        if (api != null) {
+            try {
+                return api.getConfiguration();
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
+
+    /**
+     * Shares a live video with a contact. The parameter renderer contains the video player provided
+     * by the application. An exception if thrown if there is no ongoing CS call. The parameter
+     * contact supports the following formats: MSISDN in national or international format, SIP
+     * address, SIP-URI or Tel-URI. If the format of the contact is not supported an exception is
+     * thrown.
+     * 
+     * @param contact Contact identifier
+     * @param player Video player
+     * @return Video sharing
+     * @throws RcsServiceException
+     */
+    public VideoSharing shareVideo(ContactId contact, VideoPlayer player)
+            throws RcsServiceException {
+        if (api != null) {
+            try {
+                IVideoSharing sharingIntf = api.shareVideo(contact, player);
+                if (sharingIntf != null) {
+                    return new VideoSharing(sharingIntf);
+                } else {
+                    return null;
+                }
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
+
+    /**
+     * Returns the list of video sharings in progress
+     * 
+     * @return List of video sharings
+     * @throws RcsServiceException
+     */
+    public Set<VideoSharing> getVideoSharings() throws RcsServiceException {
+        if (api != null) {
+            try {
+                Set<VideoSharing> result = new HashSet<VideoSharing>();
+                List<IBinder> vshList = api.getVideoSharings();
+                for (IBinder binder : vshList) {
+                    VideoSharing sharing = new VideoSharing(IVideoSharing.Stub.asInterface(binder));
+                    result.add(sharing);
+                }
+                return result;
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
+
+    /**
+     * Returns a current video sharing from its unique ID
+     * 
+     * @param sharingId Sharing ID
+     * @return Video sharing or null if not found
+     * @throws RcsServiceException
+     */
+    public VideoSharing getVideoSharing(String sharingId) throws RcsServiceException {
+        if (api != null) {
+            try {
+                return new VideoSharing(api.getVideoSharing(sharingId));
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
+
+    /**
+     * Adds a listener on video sharing events
+     * 
+     * @param listener Listener
+     * @throws RcsServiceException
+     */
+    public void addEventListener(VideoSharingListener listener) throws RcsServiceException {
+        if (api != null) {
+            try {
+                api.addEventListener2(listener);
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
+
+    /**
+     * Removes a listener on video sharing events
+     * 
+     * @param listener Listener
+     * @throws RcsServiceException
+     */
+    public void removeEventListener(VideoSharingListener listener) throws RcsServiceException {
+        if (api != null) {
+            try {
+                api.removeEventListener2(listener);
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 }

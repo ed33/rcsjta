@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.gsma.service.rcs.upload;
 
 import android.test.AndroidTestCase;
@@ -26,31 +27,30 @@ import android.os.Parcel;
 
 /**
  * @author Danielle Rouquier
- *
  */
 public class FileUploadServiceConfigurationTest extends AndroidTestCase {
-	Random random = new Random();
-	private long maxSize;
+    Random random = new Random();
+    private long maxSize;
 
-	protected void setUp() throws Exception {
-		super.setUp();
-		maxSize = random.nextLong();
-	}
+    protected void setUp() throws Exception {
+        super.setUp();
+        maxSize = random.nextLong();
+    }
 
-	public void testFileUploadServiceConfiguration() {
-		FileUploadServiceConfiguration fupConf = new FileUploadServiceConfiguration(maxSize);
-		Parcel parcel = Parcel.obtain();
-		fupConf.writeToParcel(parcel, 0);
-		// done writing, now reset parcel for reading
-		parcel.setDataPosition(0);
-		// finish round trip
-		FileUploadServiceConfiguration createFromParcel = FileUploadServiceConfiguration.CREATOR
-				.createFromParcel(parcel);
-		assertEquals(createFromParcel.getMaxSize(), fupConf.getMaxSize());
-	}
+    public void testFileUploadServiceConfiguration() {
+        FileUploadServiceConfiguration fupConf = new FileUploadServiceConfiguration(maxSize);
+        Parcel parcel = Parcel.obtain();
+        fupConf.writeToParcel(parcel, 0);
+        // done writing, now reset parcel for reading
+        parcel.setDataPosition(0);
+        // finish round trip
+        FileUploadServiceConfiguration createFromParcel = FileUploadServiceConfiguration.CREATOR
+                .createFromParcel(parcel);
+        assertEquals(createFromParcel.getMaxSize(), fupConf.getMaxSize());
+    }
 
-	protected void tearDown() throws Exception {
-		super.tearDown();
-	}
+    protected void tearDown() throws Exception {
+        super.tearDown();
+    }
 
 }

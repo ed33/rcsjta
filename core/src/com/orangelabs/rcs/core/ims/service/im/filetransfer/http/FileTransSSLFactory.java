@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.http;
 
 import java.security.KeyManagementException;
@@ -35,36 +36,35 @@ import javax.net.ssl.X509TrustManager;
 public class FileTransSSLFactory {
 
     static private SSLContext sslcontext = null;
-    
-    
-    static
-    {
-    	try {
-    		sslcontext = SSLContext.getInstance("TLS");
-		} catch (NoSuchAlgorithmException e) {
-			sslcontext = null;
-		}
+
+    static {
+        try {
+            sslcontext = SSLContext.getInstance("TLS");
+        } catch (NoSuchAlgorithmException e) {
+            sslcontext = null;
+        }
     }
-    
+
     /**
      * Get a SSL context generated with a trust all manager
      *
      * @return SSLContext
      * @return XML result or null if fails
      */
-    static public SSLContext getFileTransferSSLContext()
-    {
-    	try {
-			sslcontext.init(null, new TrustManager[]{ new AllTrustManager()}, new SecureRandom());
-		} catch (KeyManagementException e) {
-			return null;
-		} catch (NullPointerException e) {
-			return null;
-		}
-	
-		return sslcontext;
+    static public SSLContext getFileTransferSSLContext() {
+        try {
+            sslcontext.init(null, new TrustManager[] {
+                new AllTrustManager()
+            }, new SecureRandom());
+        } catch (KeyManagementException e) {
+            return null;
+        } catch (NullPointerException e) {
+            return null;
+        }
+
+        return sslcontext;
     }
-    
+
     public static class AllTrustManager implements X509TrustManager {
 
         @Override
@@ -83,5 +83,5 @@ public class FileTransSSLFactory {
         }
 
     }
-    
+
 }

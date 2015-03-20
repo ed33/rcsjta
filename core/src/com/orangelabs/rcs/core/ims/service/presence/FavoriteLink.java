@@ -18,85 +18,84 @@
 
 package com.orangelabs.rcs.core.ims.service.presence;
 
-
 /**
  * Favorite link
  * 
  * @author Jean-Marc AUFFRET
  */
-public class FavoriteLink {	
-	/**
-	 * Link
-	 */
-	private String link = null;
-	
-	/**
-	 * Name
-	 */
-	private String name = null;
+public class FavoriteLink {
+    /**
+     * Link
+     */
+    private String link = null;
 
-	/**
-	 * Constructor
-	 * 
-	 * @param link Web link
-	 */
-	public FavoriteLink(String link) {
-		this.link = link;
-	}
+    /**
+     * Name
+     */
+    private String name = null;
 
-	/**
-	 * Constructor
-	 * 
-	 * @param name Name associated to the link
-	 * @param link Web link
-	 */
-	public FavoriteLink(String name, String link) {
-		this.name = name;
-		this.link = link;
-	}
-	
-	/**
-	 * Returns the name associated to the link
-	 * 
-	 * @return
-	 */
-	public String getName() {
-		return name;
-	}
+    /**
+     * Constructor
+     * 
+     * @param link Web link
+     */
+    public FavoriteLink(String link) {
+        this.link = link;
+    }
 
-	/**
-	 * Set the name associated to the link
-	 * 
-	 * @param name Name
-	 */
-	public void setName(String name) {
-		this.name = name;
-	}
+    /**
+     * Constructor
+     * 
+     * @param name Name associated to the link
+     * @param link Web link
+     */
+    public FavoriteLink(String name, String link) {
+        this.name = name;
+        this.link = link;
+    }
 
-	/**
-	 * Returns the web link
-	 * 
-	 * @return
-	 */
-	public String getLink() {
-		return link;
-	}
+    /**
+     * Returns the name associated to the link
+     * 
+     * @return
+     */
+    public String getName() {
+        return name;
+    }
 
-	/**
-	 * Set the web link
-	 * 
-	 * @param link Web link
-	 */	
-	public void setLink(String link) {
-		this.link = link;
-	}
+    /**
+     * Set the name associated to the link
+     * 
+     * @param name Name
+     */
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	/**
-	 * Returns a string representation of the object
-	 * 
-	 * @return String
-	 */
-	public String toString() {
-		return "link=" + link + ", name=" + name;
-	}
+    /**
+     * Returns the web link
+     * 
+     * @return
+     */
+    public String getLink() {
+        return link;
+    }
+
+    /**
+     * Set the web link
+     * 
+     * @param link Web link
+     */
+    public void setLink(String link) {
+        this.link = link;
+    }
+
+    /**
+     * Returns a string representation of the object
+     * 
+     * @return String
+     */
+    public String toString() {
+        return "link=" + link + ", name=" + name;
+    }
 }

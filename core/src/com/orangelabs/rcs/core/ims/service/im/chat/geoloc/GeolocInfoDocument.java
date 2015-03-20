@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.im.chat.geoloc;
 
 /**
@@ -23,95 +24,95 @@ package com.orangelabs.rcs.core.ims.service.im.chat.geoloc;
  * @author vfml3370
  */
 public class GeolocInfoDocument {
-	/**
-	 * MIME type
-	 */
-	public static final String MIME_TYPE = "application/vnd.gsma.rcspushlocation+xml";
-	
-	/**
-	 * Entity
-	 */
-	private String entity = null;
+    /**
+     * MIME type
+     */
+    public static final String MIME_TYPE = "application/vnd.gsma.rcspushlocation+xml";
 
-	/**
-	 * Label
-	 */
-	private String label = null;
-	
-	/**
-	 * Latitude
-	 */
-	private double latitude = 0;
-	
-	/**
-	 * Longitude
-	 */
-	private double longitude = 0;
-	
-	/**
-	 * Expiration date
-	 */
-	private long expiration = 0;
+    /**
+     * Entity
+     */
+    private String entity = null;
 
-	/**
-	 * Radius in meters
-	 */
-	private float radius = 0;
+    /**
+     * Label
+     */
+    private String label = null;
 
-	/**
-	 * Constructor
-	 * 
-	 * @param entity Entity
-	 */
-	public GeolocInfoDocument(String entity) {
-		this.entity = entity;
-	}
+    /**
+     * Latitude
+     */
+    private double latitude = 0;
 
-	public String getLabel() {
-		return label;
-	}
+    /**
+     * Longitude
+     */
+    private double longitude = 0;
 
-	public void setLabel(String label) {
-		this.label = label;
-	}
+    /**
+     * Expiration date
+     */
+    private long expiration = 0;
 
-	public String getEntity() {
-		return entity;
-	}
+    /**
+     * Radius in meters
+     */
+    private float radius = 0;
 
-	public void setEntity(String entity) {
-		this.entity = entity;
-	}
-	
-	public long getExpiration() {
-		return expiration;
-	}
+    /**
+     * Constructor
+     * 
+     * @param entity Entity
+     */
+    public GeolocInfoDocument(String entity) {
+        this.entity = entity;
+    }
 
-	public void setExpiration(long expiration) {
-		this.expiration = expiration;
-	}
-	
-	public double getLatitude() {
-		return latitude;
-	}
+    public String getLabel() {
+        return label;
+    }
 
-	public void setLatitude(double l) {
-		latitude = l;
-	}
+    public void setLabel(String label) {
+        this.label = label;
+    }
 
-	public double getLongitude() {
-		return longitude;
-	}
+    public String getEntity() {
+        return entity;
+    }
 
-	public void setLongitude(double l) {
-		longitude = l;
-	}
+    public void setEntity(String entity) {
+        this.entity = entity;
+    }
 
-	public float getRadius() {
-		return radius;
-	}	
+    public long getExpiration() {
+        return expiration;
+    }
 
-	public void setRadius(float r) {
-		radius = r;
-	}
+    public void setExpiration(long expiration) {
+        this.expiration = expiration;
+    }
+
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(double l) {
+        latitude = l;
+    }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(double l) {
+        longitude = l;
+    }
+
+    public float getRadius() {
+        return radius;
+    }
+
+    public void setRadius(float r) {
+        radius = r;
+    }
 }

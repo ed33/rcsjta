@@ -31,184 +31,184 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author jexa7410
  */
 public abstract class MsrpConnection {
-	/**
-	 * MSRP traces enabled
-	 */
-	public static boolean MSRP_TRACE_ENABLED = false;
-	
-	/**
-	 * MSRP session
-	 */
-	private MsrpSession session;
-	
-	/**
-	 * Socket connection
-	 */
-	private SocketConnection socket = null;
+    /**
+     * MSRP traces enabled
+     */
+    public static boolean MSRP_TRACE_ENABLED = false;
 
-	/**
-	 * Socket output stream
-	 */
-	private OutputStream outputStream = null;
+    /**
+     * MSRP session
+     */
+    private MsrpSession session;
 
-	/**
-	 * Socket input stream
-	 */
-	private InputStream inputStream = null;
-	
-	/**
-	 * Chunk receiver
-	 */
-	private ChunkReceiver receiver;
+    /**
+     * Socket connection
+     */
+    private SocketConnection socket = null;
 
-	/**
-	 * Chunk sender
-	 */
-	private ChunkSender sender;
+    /**
+     * Socket output stream
+     */
+    private OutputStream outputStream = null;
 
-	/**
-	 * The logger
-	 */
-	private Logger logger = Logger.getLogger(this.getClass().getName());
+    /**
+     * Socket input stream
+     */
+    private InputStream inputStream = null;
 
-	/**
-	 * Constructor
-	 * 
-	 * @param session MSRP session
-	 */
-	public MsrpConnection(MsrpSession session) {
-		this.session = session;
-	}
+    /**
+     * Chunk receiver
+     */
+    private ChunkReceiver receiver;
 
-	/**
-	 * Returns the MSRP session associated to the MSRP connection
-	 * 
-	 * @return MSRP session
-	 */
-	public MsrpSession getSession() {
-		return session; 
-	}
-	
-	/**
-	 * Open the connection
-	 * 
-	 * @throws IOException
-	 */
-	public void open() throws IOException {
-		// Open socket connection
-		socket = getSocketConnection();
+    /**
+     * Chunk sender
+     */
+    private ChunkSender sender;
 
-		// Open I/O stream
-		inputStream = socket.getInputStream();
-		outputStream = socket.getOutputStream();
-		
-		// Create the chunk receiver
-		receiver = new ChunkReceiver(this, inputStream);
-		receiver.start();
+    /**
+     * The logger
+     */
+    private Logger logger = Logger.getLogger(this.getClass().getName());
 
-		// Create the chunk sender
-		sender = new ChunkSender(this, outputStream);
-		sender.start();
+    /**
+     * Constructor
+     * 
+     * @param session MSRP session
+     */
+    public MsrpConnection(MsrpSession session) {
+        this.session = session;
+    }
 
-		if (logger.isActivated()) {
-			logger.debug("Connection has been opened");
-		}
-	}
-	
-	/**
-	 * Open the connection with SO_TIMEOUT on the socket
-	 * 
-	 * @param timeout Timeout value (in seconds)
-	 * @throws IOException
-	 */
-	public void open(int timeout) throws IOException {
-		// Open socket connection
-		socket = getSocketConnection();
+    /**
+     * Returns the MSRP session associated to the MSRP connection
+     * 
+     * @return MSRP session
+     */
+    public MsrpSession getSession() {
+        return session;
+    }
 
-		// Set SoTimeout
-		socket.setSoTimeout(timeout*1000);
-		
-		// Open I/O stream
-		inputStream = socket.getInputStream();
-		outputStream = socket.getOutputStream();
-		
-		// Create the chunk receiver
-		receiver = new ChunkReceiver(this, inputStream);
-		receiver.start();
+    /**
+     * Open the connection
+     * 
+     * @throws IOException
+     */
+    public void open() throws IOException {
+        // Open socket connection
+        socket = getSocketConnection();
 
-		// Create the chunk sender
-		sender = new ChunkSender(this, outputStream);
-		sender.start();
+        // Open I/O stream
+        inputStream = socket.getInputStream();
+        outputStream = socket.getOutputStream();
 
-		if (logger.isActivated()) {
-			logger.debug("Connection has been opened");
-		}
-	}
+        // Create the chunk receiver
+        receiver = new ChunkReceiver(this, inputStream);
+        receiver.start();
 
-	/**
-	 * Close the connection
-	 */
-	public void close() {
-		// Terminate chunk sender
-		if (sender != null) {
-			sender.terminate();
-		}
-		
-		// Terminate chunk receiver
-		if (receiver != null) {
-			receiver.terminate();
-		}
+        // Create the chunk sender
+        sender = new ChunkSender(this, outputStream);
+        sender.start();
 
-		// Close socket connection
-		try {
-			if (logger.isActivated()) {
-				logger.debug("Close the socket connection");
-			}
-			if (inputStream != null) {
-				inputStream.close();
-			}
-			if (outputStream != null) {
-				outputStream.close();
-			}
-			if (socket != null) {
-				socket.close();
-			}
-		} catch (Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Can't close the socket correctly", e);
-			}
-		}
-		
-		if (logger.isActivated()) {
-			logger.debug("Connection has been closed");
-		}
-	}
-	
-	/**
-	 * Send a new data chunk
-	 * 
-	 * @param chunk Data chunk
-	 * @throws IOException
-	 */
-	public void sendChunk(byte chunk[]) throws IOException {
-		sender.sendChunk(chunk);
-	}	
+        if (logger.isActivated()) {
+            logger.debug("Connection has been opened");
+        }
+    }
 
-	/**
-	 * Send a new data chunk immediately
-	 * 
-	 * @param chunk Data chunk
-	 * @throws IOException
-	 */
-	public void sendChunkImmediately(byte chunk[]) throws IOException {
-		sender.sendChunkImmediately(chunk);
-	}
-	
-	/**
-	 * Returns the socket connection
-	 * 
-	 * @return Socket
-	 * @throws IOException
-	 */
-	public abstract SocketConnection getSocketConnection() throws IOException;
+    /**
+     * Open the connection with SO_TIMEOUT on the socket
+     * 
+     * @param timeout Timeout value (in seconds)
+     * @throws IOException
+     */
+    public void open(int timeout) throws IOException {
+        // Open socket connection
+        socket = getSocketConnection();
+
+        // Set SoTimeout
+        socket.setSoTimeout(timeout * 1000);
+
+        // Open I/O stream
+        inputStream = socket.getInputStream();
+        outputStream = socket.getOutputStream();
+
+        // Create the chunk receiver
+        receiver = new ChunkReceiver(this, inputStream);
+        receiver.start();
+
+        // Create the chunk sender
+        sender = new ChunkSender(this, outputStream);
+        sender.start();
+
+        if (logger.isActivated()) {
+            logger.debug("Connection has been opened");
+        }
+    }
+
+    /**
+     * Close the connection
+     */
+    public void close() {
+        // Terminate chunk sender
+        if (sender != null) {
+            sender.terminate();
+        }
+
+        // Terminate chunk receiver
+        if (receiver != null) {
+            receiver.terminate();
+        }
+
+        // Close socket connection
+        try {
+            if (logger.isActivated()) {
+                logger.debug("Close the socket connection");
+            }
+            if (inputStream != null) {
+                inputStream.close();
+            }
+            if (outputStream != null) {
+                outputStream.close();
+            }
+            if (socket != null) {
+                socket.close();
+            }
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't close the socket correctly", e);
+            }
+        }
+
+        if (logger.isActivated()) {
+            logger.debug("Connection has been closed");
+        }
+    }
+
+    /**
+     * Send a new data chunk
+     * 
+     * @param chunk Data chunk
+     * @throws IOException
+     */
+    public void sendChunk(byte chunk[]) throws IOException {
+        sender.sendChunk(chunk);
+    }
+
+    /**
+     * Send a new data chunk immediately
+     * 
+     * @param chunk Data chunk
+     * @throws IOException
+     */
+    public void sendChunkImmediately(byte chunk[]) throws IOException {
+        sender.sendChunkImmediately(chunk);
+    }
+
+    /**
+     * Returns the socket connection
+     * 
+     * @return Socket
+     * @throws IOException
+     */
+    public abstract SocketConnection getSocketConnection() throws IOException;
 }

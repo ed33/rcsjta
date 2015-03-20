@@ -90,10 +90,10 @@ public class Extension {
      */
     public String getExtensionAsServiceId() {
 
-        if(mExtensionName == null){
+        if (mExtensionName == null) {
             return null;
         }
-        
+
         if (mExtensionName.startsWith(IARIUtils.COMMON_PREFIX)) {
             return mExtensionName.substring(IARIUtils.COMMON_PREFIX.length());
         } else if (mExtensionName.startsWith(FeatureTags.FEATURE_RCSE_EXTENSION)) {
@@ -116,7 +116,8 @@ public class Extension {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((getExtensionAsIari() == null) ? 0 : getExtensionAsIari().hashCode());
+        result = prime * result
+                + ((getExtensionAsIari() == null) ? 0 : getExtensionAsIari().hashCode());
         result = prime * result + ((mType == null) ? 0 : mType.hashCode());
         return result;
     }

@@ -66,9 +66,9 @@ public class Geoloc implements Parcelable, Serializable {
     }
 
     /**
-     * Constructor: returns a Geoloc instance as parsed from the GEOLOC field in
-     * the GeolocSharingLog provider or the CONTENT field of a GelocMessage in
-     * the ChatLog.Message provider.
+     * Constructor: returns a Geoloc instance as parsed from the GEOLOC field in the
+     * GeolocSharingLog provider or the CONTENT field of a GelocMessage in the ChatLog.Message
+     * provider.
      * 
      * @param geoloc Provider geoloc format
      */
@@ -100,8 +100,8 @@ public class Geoloc implements Parcelable, Serializable {
     }
 
     /**
-     * Describe the kinds of special objects contained in this Parcelable's
-     * marshalled representation.
+     * Describe the kinds of special objects contained in this Parcelable's marshalled
+     * representation.
      * 
      * @return Integer
      * @hide

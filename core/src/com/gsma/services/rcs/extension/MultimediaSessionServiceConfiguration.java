@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications AB.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.extension;
 
 import android.os.Parcel;
@@ -30,51 +31,51 @@ import android.os.Parcelable;
  * @author Jean-Marc AUFFRET
  */
 public class MultimediaSessionServiceConfiguration implements Parcelable {
-	/**
-	 * Max length of a message
-	 */
-	private int maxMsgLength;
-	
-	/**
-	 * Constructor
-	 * 
-	 * @param maxMsgLength Max length of a message
+    /**
+     * Max length of a message
+     */
+    private int maxMsgLength;
+
+    /**
+     * Constructor
+     * 
+     * @param maxMsgLength Max length of a message
      * @hide
-	 */
-	public MultimediaSessionServiceConfiguration(int maxMsgLength) {
-		this.maxMsgLength = maxMsgLength;
-    }	
-	
-	/**
-	 * Constructor
-	 * 
-	 * @param source Parcelable source
-     * @hide
-	 */
-	public MultimediaSessionServiceConfiguration(Parcel source) {
-		this.maxMsgLength = source.readInt();
+     */
+    public MultimediaSessionServiceConfiguration(int maxMsgLength) {
+        this.maxMsgLength = maxMsgLength;
     }
 
-	/**
-	 * Describe the kinds of special objects contained in this Parcelable's
-	 * marshalled representation
-	 * 
-	 * @return Integer
+    /**
+     * Constructor
+     * 
+     * @param source Parcelable source
      * @hide
-	 */
-	public int describeContents() {
+     */
+    public MultimediaSessionServiceConfiguration(Parcel source) {
+        this.maxMsgLength = source.readInt();
+    }
+
+    /**
+     * Describe the kinds of special objects contained in this Parcelable's marshalled
+     * representation
+     * 
+     * @return Integer
+     * @hide
+     */
+    public int describeContents() {
         return 0;
     }
 
-	/**
-	 * Write parcelable object
-	 * 
-	 * @param dest The Parcel in which the object should be written
-	 * @param flags Additional flags about how the object should be written
+    /**
+     * Write parcelable object
+     * 
+     * @param dest The Parcel in which the object should be written
+     * @param flags Additional flags about how the object should be written
      * @hide
-	 */
+     */
     public void writeToParcel(Parcel dest, int flags) {
-    	dest.writeInt(maxMsgLength);
+        dest.writeInt(maxMsgLength);
     }
 
     /**
@@ -82,8 +83,7 @@ public class MultimediaSessionServiceConfiguration implements Parcelable {
      * 
      * @hide
      */
-    public static final Parcelable.Creator<MultimediaSessionServiceConfiguration> CREATOR
-            = new Parcelable.Creator<MultimediaSessionServiceConfiguration>() {
+    public static final Parcelable.Creator<MultimediaSessionServiceConfiguration> CREATOR = new Parcelable.Creator<MultimediaSessionServiceConfiguration>() {
         public MultimediaSessionServiceConfiguration createFromParcel(Parcel source) {
             return new MultimediaSessionServiceConfiguration(source);
         }
@@ -91,14 +91,14 @@ public class MultimediaSessionServiceConfiguration implements Parcelable {
         public MultimediaSessionServiceConfiguration[] newArray(int size) {
             return new MultimediaSessionServiceConfiguration[size];
         }
-    };	
-	
-	/**
-	 * Return maximum length of a multimedia message
-	 * 
-	 * @return Number of bytes
-	 */
-	public int getMessageMaxLength() {
-		return maxMsgLength;
-	}
+    };
+
+    /**
+     * Return maximum length of a multimedia message
+     * 
+     * @return Number of bytes
+     */
+    public int getMessageMaxLength() {
+        return maxMsgLength;
+    }
 }

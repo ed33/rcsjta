@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.provider.messaging;
 
 import com.gsma.services.rcs.ft.FileTransferLog;
@@ -78,12 +79,13 @@ public class FileTransferProvider extends ContentProvider {
 
     private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
     static {
-        sUriMatcher.addURI(FileTransferLog.CONTENT_URI.getAuthority(),
-                FileTransferLog.CONTENT_URI.getPath().substring(1), UriType.FileTransfer.FILE_TRANSFER);
+        sUriMatcher.addURI(FileTransferLog.CONTENT_URI.getAuthority(), FileTransferLog.CONTENT_URI
+                .getPath().substring(1), UriType.FileTransfer.FILE_TRANSFER);
         sUriMatcher.addURI(FileTransferLog.CONTENT_URI.getAuthority(), FileTransferLog.CONTENT_URI
                 .getPath().substring(1).concat("/*"), UriType.FileTransfer.FILE_TRANSFER_WITH_ID);
         sUriMatcher.addURI(FileTransferData.CONTENT_URI.getAuthority(),
-                FileTransferData.CONTENT_URI.getPath().substring(1), UriType.InternalFileTransfer.FILE_TRANSFER);
+                FileTransferData.CONTENT_URI.getPath().substring(1),
+                UriType.InternalFileTransfer.FILE_TRANSFER);
         sUriMatcher.addURI(FileTransferData.CONTENT_URI.getAuthority(),
                 FileTransferData.CONTENT_URI.getPath().substring(1).concat("/*"),
                 UriType.InternalFileTransfer.FILE_TRANSFER_WITH_ID);
@@ -229,8 +231,8 @@ public class FileTransferProvider extends ContentProvider {
                     /* Intentional fall through */
                 case UriType.InternalFileTransfer.FILE_TRANSFER:
                     SQLiteDatabase db = mOpenHelper.getReadableDatabase();
-                    cursor = db.query(TABLE, projection, selection, selectionArgs, null,
-                            null, sort);
+                    cursor = db
+                            .query(TABLE, projection, selection, selectionArgs, null, null, sort);
                     cursor.setNotificationUri(getContext().getContentResolver(), notificationUri);
                     return cursor;
 

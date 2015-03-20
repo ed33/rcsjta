@@ -19,6 +19,7 @@ w * Software Name : RCS IMS Stack
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.im.filetransfer.http;
 
 import com.orangelabs.rcs.core.Core;
@@ -51,13 +52,14 @@ public class ResumeUploadFileSharingSession extends OriginatingHttpFileSharingSe
      * @param content the content (url, mime-type and size)
      * @param resumeUpload the data object in DB
      */
-	public ResumeUploadFileSharingSession(ImsService parent, MmContent content, FtHttpResumeUpload resumeUpload) {
-		super(resumeUpload.getFileTransferId(), parent, content, resumeUpload.getContact(),
-				resumeUpload.getFileicon() != null ? FileTransferUtils.createMmContent(resumeUpload
-						.getFileicon()) : null, resumeUpload.getTId(), Core.getInstance(),
-				MessagingLog.getInstance());
-		this.resumeFT = resumeUpload;
-	}
+    public ResumeUploadFileSharingSession(ImsService parent, MmContent content,
+            FtHttpResumeUpload resumeUpload) {
+        super(resumeUpload.getFileTransferId(), parent, content, resumeUpload.getContact(),
+                resumeUpload.getFileicon() != null ? FileTransferUtils.createMmContent(resumeUpload
+                        .getFileicon()) : null, resumeUpload.getTId(), Core.getInstance(),
+                MessagingLog.getInstance());
+        this.resumeFT = resumeUpload;
+    }
 
     /**
      * Background processing
@@ -72,7 +74,7 @@ public class ResumeUploadFileSharingSession extends OriginatingHttpFileSharingSe
                 getListeners().get(j).handleSessionStarted();
             }
 
-            // Resume the file upload to the HTTP server 
+            // Resume the file upload to the HTTP server
             byte[] result = uploadManager.resumeUpload();
             sendResultToContact(result);
         } catch (Exception e) {
@@ -83,10 +85,10 @@ public class ResumeUploadFileSharingSession extends OriginatingHttpFileSharingSe
             handleError(new FileSharingError(FileSharingError.UNEXPECTED_EXCEPTION, e.getMessage()));
         }
     }
-    
-	@Override
-	public void uploadStarted() {
+
+    @Override
+    public void uploadStarted() {
         // Upload entry already created in fthttp table
-	}
+    }
 
 }

@@ -33,57 +33,58 @@ import com.gsma.services.rcs.RcsContactFormatException;
  * ContactUtils class for validation and unique formatting of phone numbers
  * 
  * @author YPLO6403
- * 
  */
 public class ContactUtils {
 
-	/**
-	 * Singleton of ContactUtils
-	 */
-	private static volatile ContactUtils sInstance;
+    /**
+     * Singleton of ContactUtils
+     */
+    private static volatile ContactUtils sInstance;
 
-	/**
-	 * The country code of the device (read from settings provider: is null before first provisioning)
-	 */
-	private final String mCountryCode;
+    /**
+     * The country code of the device (read from settings provider: is null before first
+     * provisioning)
+     */
+    private final String mCountryCode;
 
-	/**
-	 * The country area code(read from settings provider)
-	 */
-	private final String mCountryAreaCode;
+    /**
+     * The country area code(read from settings provider)
+     */
+    private final String mCountryAreaCode;
 
-	/**
-	 * Regular expression to validate phone numbers
-	 */
-	private final static String REGEXP_CONTACT = "^00\\d{1,15}$|^[+]?\\d{1,15}$|^\\d{1,15}$";
+    /**
+     * Regular expression to validate phone numbers
+     */
+    private final static String REGEXP_CONTACT = "^00\\d{1,15}$|^[+]?\\d{1,15}$|^\\d{1,15}$";
 
-	/**
-	 * Pattern to check contact
-	 */
-	private final static Pattern PATTERN_CONTACT = Pattern.compile(REGEXP_CONTACT);
+    /**
+     * Pattern to check contact
+     */
+    private final static Pattern PATTERN_CONTACT = Pattern.compile(REGEXP_CONTACT);
 
-	private final static String MSISDN_PREFIX_INTERNATIONAL = "00";
+    private final static String MSISDN_PREFIX_INTERNATIONAL = "00";
 
-	private final static String COUNTRY_CODE_PREFIX = "+";
-	
-	/**
-	 * Index of Country Code in the array
-	 */
-	private static final int COUNTRY_CODE_IDX = 0;
-	/**
-	 * Index of Country Area Code in the array
-	 */
-	private static final int COUNTRY_AREA_CODE_IDX = 1;
-	
-	/**
-	 * A map between the ISO country code and an array of String containing first the County Code and secondly the Area Code.<br>
-	 * Note 1 : the Area Code is optional (if it does not exist then it is null).<br>
-	 * Note 2 : the Country Code is optional (if it does not exist then the string array is null).
-	 */
-	private static final Map<String, String[]> sCountryCodes = new HashMap<String, String[]>() {
+    private final static String COUNTRY_CODE_PREFIX = "+";
 
-		private static final long serialVersionUID = 1L;
-		// @formatter:off
+    /**
+     * Index of Country Code in the array
+     */
+    private static final int COUNTRY_CODE_IDX = 0;
+    /**
+     * Index of Country Area Code in the array
+     */
+    private static final int COUNTRY_AREA_CODE_IDX = 1;
+
+    /**
+     * A map between the ISO country code and an array of String containing first the County Code
+     * and secondly the Area Code.<br>
+     * Note 1 : the Area Code is optional (if it does not exist then it is null).<br>
+     * Note 2 : the Country Code is optional (if it does not exist then the string array is null).
+     */
+    private static final Map<String, String[]> sCountryCodes = new HashMap<String, String[]>() {
+
+        private static final long serialVersionUID = 1L;
+        // @formatter:off
 	{
 		 put( "ad" , new String[] {"376"});
 		 put( "ae" , new String[] {"971" ,"0"});
@@ -328,161 +329,163 @@ public class ContactUtils {
 	}};
 	// @formatter:on
 
-	/**
-	 * Empty constructor : prevent caller from creating multiple instances
-	 */
-	private ContactUtils() {
-		mCountryCode = null;
-		mCountryAreaCode = null;
-	}
+    /**
+     * Empty constructor : prevent caller from creating multiple instances
+     */
+    private ContactUtils() {
+        mCountryCode = null;
+        mCountryAreaCode = null;
+    }
 
-	/**
-	 * Constructor
-	 * @param context
-	 * @param countryCode
-	 */
-	private ContactUtils(Context context) {
-		// Get ISO country code from telephony manager
-		TelephonyManager mgr = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-		String countryCodeIso = mgr.getSimCountryIso();
-		if (countryCodeIso == null) {
-			throw new IllegalStateException("Instantation failure: cannot read SIM ISO country code");
-			
-		}
-		// Get the country code information associated to the ISO country code
-		String[] countryCodeInfo = sCountryCodes.get(countryCodeIso);
-		if (countryCodeInfo == null) {
-			throw new IllegalStateException("Instantation failure: no cc for SIM ISO country code " + countryCodeIso);
-			
-		}
-		// Get the country code from map
-		String ccWithoutHeader = countryCodeInfo[COUNTRY_CODE_IDX];
-		mCountryCode = COUNTRY_CODE_PREFIX.concat(ccWithoutHeader);
-		if (countryCodeInfo.length == 2) {
-			// Get the country area code from map
-			mCountryAreaCode = countryCodeInfo[COUNTRY_AREA_CODE_IDX];
-		} else {
-			mCountryAreaCode = null;
-		}
-	}
+    /**
+     * Constructor
+     * 
+     * @param context
+     * @param countryCode
+     */
+    private ContactUtils(Context context) {
+        // Get ISO country code from telephony manager
+        TelephonyManager mgr = (TelephonyManager) context
+                .getSystemService(Context.TELEPHONY_SERVICE);
+        String countryCodeIso = mgr.getSimCountryIso();
+        if (countryCodeIso == null) {
+            throw new IllegalStateException(
+                    "Instantation failure: cannot read SIM ISO country code");
 
-	/**
-	 * Get an instance of ContactUtils.
-	 * 
-	 * @param context
-	 *            the context
-	 * @return the singleton instance. May be null if country code cannot be read from provider.
-	 */
-	public static ContactUtils getInstance(Context context) {
-		if (sInstance != null) {
-			return sInstance;
-			
-		}
-		synchronized (ContactUtils.class) {
-			if (sInstance == null) {
-				if (context == null) {
-					throw new IllegalArgumentException("Context is null");
-					
-				}
-				sInstance = new ContactUtils(context);
-			}
-		}
-		return sInstance;
-	}
+        }
+        // Get the country code information associated to the ISO country code
+        String[] countryCodeInfo = sCountryCodes.get(countryCodeIso);
+        if (countryCodeInfo == null) {
+            throw new IllegalStateException("Instantation failure: no cc for SIM ISO country code "
+                    + countryCodeIso);
 
-	/**
-	 * Remove blank and minus characters from contact
-	 * 
-	 * @param contact
-	 *            the phone number
-	 * @return phone string stripped of separators.
-	 */
-	private String stripSeparators(String contact) {
-		if (TextUtils.isEmpty(contact)) {
-			return null;
-			
-		}
-		contact = contact.replaceAll("[ -]", "");
-		Matcher matcher = PATTERN_CONTACT.matcher(contact);
-		if (matcher.find()) {
-			return matcher.group();
-			
-		}
-		return null;
-	}
+        }
+        // Get the country code from map
+        String ccWithoutHeader = countryCodeInfo[COUNTRY_CODE_IDX];
+        mCountryCode = COUNTRY_CODE_PREFIX.concat(ccWithoutHeader);
+        if (countryCodeInfo.length == 2) {
+            // Get the country area code from map
+            mCountryAreaCode = countryCodeInfo[COUNTRY_AREA_CODE_IDX];
+        } else {
+            mCountryAreaCode = null;
+        }
+    }
 
-	/**
-	 * Verify the validity of a contact number.
-	 * 
-	 * @param contact
-	 *            the contact number
-	 * @return Returns true if the given ContactId have the syntax of valid RCS ContactId.
-	 */
-	public boolean isValidContact(String contact) {
-		return (!TextUtils.isEmpty(stripSeparators(contact)));
-	}
+    /**
+     * Get an instance of ContactUtils.
+     * 
+     * @param context the context
+     * @return the singleton instance. May be null if country code cannot be read from provider.
+     */
+    public static ContactUtils getInstance(Context context) {
+        if (sInstance != null) {
+            return sInstance;
 
-	/**
-	 * Formats the given contact to uniquely represent a RCS contact phone number.
-	 * <p>
-	 * May throw a RcsContactFormatException exception if the string contact parameter is not enabled to produce a valid ContactId.
-	 * 
-	 * @param contact
-	 *            the contact phone number
-	 * @return the ContactId
-	 */
-	public ContactId formatContact(String contact) {
-		contact = stripSeparators(contact);
-		if (!TextUtils.isEmpty(contact)) {
-			// Is Country Code provided ?
-			if (!contact.startsWith(COUNTRY_CODE_PREFIX)) {
-				// CC not provided, does it exists in provider ?
-				if (mCountryCode == null) {
-					throw new RcsContactFormatException("Country code is unknown");
-				}
-				// International numbering with prefix ?
-				if (contact.startsWith(MSISDN_PREFIX_INTERNATIONAL)) {
-					contact = new StringBuilder(COUNTRY_CODE_PREFIX).append(contact, MSISDN_PREFIX_INTERNATIONAL.length(), contact.length())
-							.toString();
-				} else {
-					// Local numbering ?
-					if (!TextUtils.isEmpty(mCountryAreaCode)) {
-						// Local number must start with Country Area Code
-						if (contact.startsWith(mCountryAreaCode)) {
-							// Remove Country Area Code and add Country Code
-							contact = new StringBuilder(mCountryCode).append(contact, mCountryAreaCode.length(), contact.length())
-									.toString();
-						} else {
-							throw new RcsContactFormatException("Local phone number should be prefixed with Country Area Code");
-						}
-					} else {
-						// No Country Area Code, add Country code to local number
-						contact = new StringBuilder(mCountryCode).append(contact).toString();
-					}
-				}
-			}
-			return new ContactId(contact);
-			
-		}
-		throw new RcsContactFormatException("Input parameter is null or empty");
-	}
-	
-	/**
-	 * Gets the user country code.
-	 * 
-	 * @return the country code
-	 */
-	public String getMyCountryCode() {
-		return mCountryCode;
-	}
+        }
+        synchronized (ContactUtils.class) {
+            if (sInstance == null) {
+                if (context == null) {
+                    throw new IllegalArgumentException("Context is null");
 
-	/**
-	 * Gets the user country area code.
-	 * 
-	 * @return the country area code or null if it does not exist
-	 */
-	public String getMyCountryAreaCode() {
-		return mCountryAreaCode;
-	}
+                }
+                sInstance = new ContactUtils(context);
+            }
+        }
+        return sInstance;
+    }
+
+    /**
+     * Remove blank and minus characters from contact
+     * 
+     * @param contact the phone number
+     * @return phone string stripped of separators.
+     */
+    private String stripSeparators(String contact) {
+        if (TextUtils.isEmpty(contact)) {
+            return null;
+
+        }
+        contact = contact.replaceAll("[ -]", "");
+        Matcher matcher = PATTERN_CONTACT.matcher(contact);
+        if (matcher.find()) {
+            return matcher.group();
+
+        }
+        return null;
+    }
+
+    /**
+     * Verify the validity of a contact number.
+     * 
+     * @param contact the contact number
+     * @return Returns true if the given ContactId have the syntax of valid RCS ContactId.
+     */
+    public boolean isValidContact(String contact) {
+        return (!TextUtils.isEmpty(stripSeparators(contact)));
+    }
+
+    /**
+     * Formats the given contact to uniquely represent a RCS contact phone number.
+     * <p>
+     * May throw a RcsContactFormatException exception if the string contact parameter is not
+     * enabled to produce a valid ContactId.
+     * 
+     * @param contact the contact phone number
+     * @return the ContactId
+     */
+    public ContactId formatContact(String contact) {
+        contact = stripSeparators(contact);
+        if (!TextUtils.isEmpty(contact)) {
+            // Is Country Code provided ?
+            if (!contact.startsWith(COUNTRY_CODE_PREFIX)) {
+                // CC not provided, does it exists in provider ?
+                if (mCountryCode == null) {
+                    throw new RcsContactFormatException("Country code is unknown");
+                }
+                // International numbering with prefix ?
+                if (contact.startsWith(MSISDN_PREFIX_INTERNATIONAL)) {
+                    contact = new StringBuilder(COUNTRY_CODE_PREFIX).append(contact,
+                            MSISDN_PREFIX_INTERNATIONAL.length(), contact.length()).toString();
+                } else {
+                    // Local numbering ?
+                    if (!TextUtils.isEmpty(mCountryAreaCode)) {
+                        // Local number must start with Country Area Code
+                        if (contact.startsWith(mCountryAreaCode)) {
+                            // Remove Country Area Code and add Country Code
+                            contact = new StringBuilder(mCountryCode).append(contact,
+                                    mCountryAreaCode.length(), contact.length()).toString();
+                        } else {
+                            throw new RcsContactFormatException(
+                                    "Local phone number should be prefixed with Country Area Code");
+                        }
+                    } else {
+                        // No Country Area Code, add Country code to local number
+                        contact = new StringBuilder(mCountryCode).append(contact).toString();
+                    }
+                }
+            }
+            return new ContactId(contact);
+
+        }
+        throw new RcsContactFormatException("Input parameter is null or empty");
+    }
+
+    /**
+     * Gets the user country code.
+     * 
+     * @return the country code
+     */
+    public String getMyCountryCode() {
+        return mCountryCode;
+    }
+
+    /**
+     * Gets the user country area code.
+     * 
+     * @return the country area code or null if it does not exist
+     */
+    public String getMyCountryAreaCode() {
+        return mCountryAreaCode;
+    }
 
 }

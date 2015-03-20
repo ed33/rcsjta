@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.ish;
 
 import java.lang.reflect.Method;
@@ -43,30 +44,27 @@ import com.gsma.services.rcs.RcsServiceNotAvailableException;
 import com.gsma.services.rcs.contacts.ContactId;
 
 /**
- * This class offers the main entry point to transfer image during
- * a CS call. Several applications may connect/disconnect to the API.
- * 
- * The parameter contact in the API supports the following formats:
- * MSISDN in national or international format, SIP address, SIP-URI
- * or Tel-URI.
+ * This class offers the main entry point to transfer image during a CS call. Several applications
+ * may connect/disconnect to the API. The parameter contact in the API supports the following
+ * formats: MSISDN in national or international format, SIP address, SIP-URI or Tel-URI.
  * 
  * @author Jean-Marc AUFFRET
  */
 public class ImageSharingService extends RcsService {
 
-	private static final int KITKAT_VERSION_CODE = 19;
+    private static final int KITKAT_VERSION_CODE = 19;
 
-	private static final String TAKE_PERSISTABLE_URI_PERMISSION_METHOD_NAME = "takePersistableUriPermission";
+    private static final String TAKE_PERSISTABLE_URI_PERMISSION_METHOD_NAME = "takePersistableUriPermission";
 
-	private static final Class<?>[] TAKE_PERSISTABLE_URI_PERMISSION_PARAM_TYPES = new Class[] {
-			Uri.class, int.class
-	};
+    private static final Class<?>[] TAKE_PERSISTABLE_URI_PERMISSION_PARAM_TYPES = new Class[] {
+            Uri.class, int.class
+    };
 
-	/**
-	 * API
-	 */
-	private IImageSharingService api;
-	
+    /**
+     * API
+     */
+    private IImageSharingService api;
+
     /**
      * Constructor
      * 
@@ -74,57 +72,57 @@ public class ImageSharingService extends RcsService {
      * @param listener Service listener
      */
     public ImageSharingService(Context ctx, RcsServiceListener listener) {
-    	super(ctx, listener);
+        super(ctx, listener);
     }
 
     /**
      * Connects to the API
      */
     public void connect() {
-    	ctx.bindService(new Intent(IImageSharingService.class.getName()), apiConnection, 0);
+        ctx.bindService(new Intent(IImageSharingService.class.getName()), apiConnection, 0);
     }
-    
+
     /**
      * Disconnects from the API
      */
     public void disconnect() {
-    	try {
-    		ctx.unbindService(apiConnection);
-        } catch(IllegalArgumentException e) {
-        	// Nothing to do
+        try {
+            ctx.unbindService(apiConnection);
+        } catch (IllegalArgumentException e) {
+            // Nothing to do
         }
     }
 
-	/**
-	 * Set API interface
-	 * 
-	 * @param api API interface
-	 */
-    protected void setApi(IInterface api) {
-    	super.setApi(api);
-    	
-        this.api = (IImageSharingService)api;
-    }
-    
     /**
-	 * Service connection
-	 */
-	private ServiceConnection apiConnection = new ServiceConnection() {
+     * Set API interface
+     * 
+     * @param api API interface
+     */
+    protected void setApi(IInterface api) {
+        super.setApi(api);
+
+        this.api = (IImageSharingService) api;
+    }
+
+    /**
+     * Service connection
+     */
+    private ServiceConnection apiConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
-        	setApi(IImageSharingService.Stub.asInterface(service));
-        	if (serviceListener != null) {
-        		serviceListener.onServiceConnected();
-        	}
+            setApi(IImageSharingService.Stub.asInterface(service));
+            if (serviceListener != null) {
+                serviceListener.onServiceConnected();
+            }
         }
 
         public void onServiceDisconnected(ComponentName className) {
-        	setApi(null);
-        	if (serviceListener != null) {
-        		serviceListener.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
-        	}
+            setApi(null);
+            if (serviceListener != null) {
+                serviceListener.onServiceDisconnected(RcsService.Error.CONNECTION_LOST);
+            }
         }
     };
-    
+
     /**
      * Returns the configuration of image sharing service
      * 
@@ -132,49 +130,49 @@ public class ImageSharingService extends RcsService {
      * @throws RcsServiceException
      */
     public ImageSharingServiceConfiguration getConfiguration() throws RcsServiceException {
-		if (api != null) {
-			try {
-				return api.getConfiguration();
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+        if (api != null) {
+            try {
+                return api.getConfiguration();
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 
-	private void grantUriPermissionToStackServices(Uri file) {
-		Intent imageSharingServiceIntent = new Intent(IImageSharingService.class.getName());
-		List<ResolveInfo> stackServices = ctx.getPackageManager().queryIntentServices(
-				imageSharingServiceIntent, 0);
-		for (ResolveInfo stackService : stackServices) {
-			ctx.grantUriPermission(stackService.serviceInfo.packageName, file,
-					Intent.FLAG_GRANT_READ_URI_PERMISSION);
-		}
-	}
+    private void grantUriPermissionToStackServices(Uri file) {
+        Intent imageSharingServiceIntent = new Intent(IImageSharingService.class.getName());
+        List<ResolveInfo> stackServices = ctx.getPackageManager().queryIntentServices(
+                imageSharingServiceIntent, 0);
+        for (ResolveInfo stackService : stackServices) {
+            ctx.grantUriPermission(stackService.serviceInfo.packageName, file,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        }
+    }
 
-	/**
-	 * Using reflection to persist Uri permission in order to support backward
-	 * compatibility since this API is available only from Kitkat onwards.
-	 *
-	 * @param file Uri of file to share
-	 * @throws RcsServiceException
-	 */
-	private void takePersistableUriPermission(Uri file) throws RcsServiceException {
-		try {
-			ContentResolver contentResolver = ctx.getContentResolver();
-			Method takePersistableUriPermissionMethod = contentResolver.getClass().getMethod(
-					TAKE_PERSISTABLE_URI_PERMISSION_METHOD_NAME,
-					TAKE_PERSISTABLE_URI_PERMISSION_PARAM_TYPES);
-			Object[] methodArgs = new Object[] {
-					file,
-					Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-			};
-			takePersistableUriPermissionMethod.invoke(contentResolver, methodArgs);
-		} catch (Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
+    /**
+     * Using reflection to persist Uri permission in order to support backward compatibility since
+     * this API is available only from Kitkat onwards.
+     *
+     * @param file Uri of file to share
+     * @throws RcsServiceException
+     */
+    private void takePersistableUriPermission(Uri file) throws RcsServiceException {
+        try {
+            ContentResolver contentResolver = ctx.getContentResolver();
+            Method takePersistableUriPermissionMethod = contentResolver.getClass().getMethod(
+                    TAKE_PERSISTABLE_URI_PERMISSION_METHOD_NAME,
+                    TAKE_PERSISTABLE_URI_PERMISSION_PARAM_TYPES);
+            Object[] methodArgs = new Object[] {
+                    file,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            };
+            takePersistableUriPermissionMethod.invoke(contentResolver, methodArgs);
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
 
     /**
      * Grant permission to the stack and persist access permission
@@ -197,11 +195,11 @@ public class ImageSharingService extends RcsService {
     }
 
     /**
-     * Shares an image with a contact. The parameter file contains the URI
-     * of the image to be shared (for a local or a remote image). An exception if thrown if there is
-     * no ongoing CS call. The parameter contact supports the following formats: MSISDN
-     * in national or international format, SIP address, SIP-URI or Tel-URI. If the format
-     * of the contact is not supported an exception is thrown.
+     * Shares an image with a contact. The parameter file contains the URI of the image to be shared
+     * (for a local or a remote image). An exception if thrown if there is no ongoing CS call. The
+     * parameter contact supports the following formats: MSISDN in national or international format,
+     * SIP address, SIP-URI or Tel-URI. If the format of the contact is not supported an exception
+     * is thrown.
      * 
      * @param contact Contact identifier
      * @param file Uri of file to share
@@ -209,23 +207,23 @@ public class ImageSharingService extends RcsService {
      * @throws RcsServiceException
      */
     public ImageSharing shareImage(ContactId contact, Uri file) throws RcsServiceException {
-		if (api != null) {
-			try {
-				tryToGrantAndPersistUriPermission(file);
-				IImageSharing sharingIntf = api.shareImage(contact, file);
-				if (sharingIntf != null) {
-					return new ImageSharing(sharingIntf);
-				} else {
-					return null;
-				}
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }    
-    
+        if (api != null) {
+            try {
+                tryToGrantAndPersistUriPermission(file);
+                IImageSharing sharingIntf = api.shareImage(contact, file);
+                if (sharingIntf != null) {
+                    return new ImageSharing(sharingIntf);
+                } else {
+                    return null;
+                }
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
+
     /**
      * Returns the list of image sharings in progress
      * 
@@ -233,22 +231,22 @@ public class ImageSharingService extends RcsService {
      * @throws RcsServiceException
      */
     public Set<ImageSharing> getImageSharings() throws RcsServiceException {
-		if (api != null) {
-			try {
-	    		Set<ImageSharing> result = new HashSet<ImageSharing>();
-				List<IBinder> ishList = api.getImageSharings();
-				for (IBinder binder : ishList) {
-					ImageSharing sharing = new ImageSharing(IImageSharing.Stub.asInterface(binder));
-					result.add(sharing);
-				}
-				return result;
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }    
+        if (api != null) {
+            try {
+                Set<ImageSharing> result = new HashSet<ImageSharing>();
+                List<IBinder> ishList = api.getImageSharings();
+                for (IBinder binder : ishList) {
+                    ImageSharing sharing = new ImageSharing(IImageSharing.Stub.asInterface(binder));
+                    result.add(sharing);
+                }
+                return result;
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 
     /**
      * Returns a current image sharing from its unique ID
@@ -258,50 +256,50 @@ public class ImageSharingService extends RcsService {
      * @throws RcsServiceException
      */
     public ImageSharing getImageSharing(String sharingId) throws RcsServiceException {
-		if (api != null) {
-			try {
-				return new ImageSharing(api.getImageSharing(sharingId));
-			} catch(Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-    }    
+        if (api != null) {
+            try {
+                return new ImageSharing(api.getImageSharing(sharingId));
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 
-	/**
-	 * Adds a listener on image sharing events
-	 * 
-	 * @param listener Listener
-	 * @throws RcsServiceException
-	 */
-	public void addEventListener(ImageSharingListener listener) throws RcsServiceException {
-		if (api != null) {
-			try {
-				api.addEventListener2(listener);
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+    /**
+     * Adds a listener on image sharing events
+     * 
+     * @param listener Listener
+     * @throws RcsServiceException
+     */
+    public void addEventListener(ImageSharingListener listener) throws RcsServiceException {
+        if (api != null) {
+            try {
+                api.addEventListener2(listener);
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 
-	/**
-	 * Removes a listener on image sharing events
-	 * 
-	 * @param listener Listener
-	 * @throws RcsServiceException
-	 */
-	public void removeEventListener(ImageSharingListener listener) throws RcsServiceException {
-		if (api != null) {
-			try {
-				api.removeEventListener2(listener);
-			} catch (Exception e) {
-				throw new RcsServiceException(e.getMessage());
-			}
-		} else {
-			throw new RcsServiceNotAvailableException();
-		}
-	}
+    /**
+     * Removes a listener on image sharing events
+     * 
+     * @param listener Listener
+     * @throws RcsServiceException
+     */
+    public void removeEventListener(ImageSharingListener listener) throws RcsServiceException {
+        if (api != null) {
+            try {
+                api.removeEventListener2(listener);
+            } catch (Exception e) {
+                throw new RcsServiceException(e.getMessage());
+            }
+        } else {
+            throw new RcsServiceNotAvailableException();
+        }
+    }
 }

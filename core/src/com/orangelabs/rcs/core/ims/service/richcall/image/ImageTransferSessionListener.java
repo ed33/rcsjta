@@ -32,29 +32,29 @@ import android.net.Uri;
  * 
  * @author jexa7410
  */
-public interface ImageTransferSessionListener extends ImsSessionListener  {
-	/**
-	 * Content sharing progress
-	 * 
-	 * @param currentSize Data size transfered 
-	 * @param totalSize Total size to be transfered
-	 */
+public interface ImageTransferSessionListener extends ImsSessionListener {
+    /**
+     * Content sharing progress
+     * 
+     * @param currentSize Data size transfered
+     * @param totalSize Total size to be transfered
+     */
     public void handleSharingProgress(long currentSize, long totalSize);
-    
+
     /**
      * Content sharing error
      * 
      * @param error Error
      */
     public void handleSharingError(ContentSharingError error);
-    
+
     /**
      * Content has been transfered
      * 
      * @param file Uri of file associated to the received content
      */
     public void handleContentTransfered(Uri file);
-    
+
     /**
      * Destination user agent received INVITE, and is alerting user of call
      */

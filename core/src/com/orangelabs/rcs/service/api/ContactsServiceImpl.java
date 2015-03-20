@@ -40,28 +40,29 @@ import com.orangelabs.rcs.utils.logger.Logger;
  */
 public class ContactsServiceImpl extends IContactsService.Stub {
     /**
-	 * The logger
-	 */
-	private static final Logger logger = Logger.getLogger(ContactsServiceImpl.class.getSimpleName());
+     * The logger
+     */
+    private static final Logger logger = Logger
+            .getLogger(ContactsServiceImpl.class.getSimpleName());
 
-	/**
-	 * Constructor
-	 */
-	public ContactsServiceImpl() {
-		if (logger.isActivated()) {
-			logger.info("Contacts service API is loaded");
-		}
-	}
+    /**
+     * Constructor
+     */
+    public ContactsServiceImpl() {
+        if (logger.isActivated()) {
+            logger.info("Contacts service API is loaded");
+        }
+    }
 
-	/**
-	 * Close API
-	 */
-	public void close() {
-		if (logger.isActivated()) {
-			logger.info("Contacts service API is closed");
-		}
-	}
-    
+    /**
+     * Close API
+     */
+    public void close() {
+        if (logger.isActivated()) {
+            logger.info("Contacts service API is closed");
+        }
+    }
+
     /**
      * Returns the rcs contact infos from its contact ID (i.e. MSISDN)
      * 
@@ -69,102 +70,104 @@ public class ContactsServiceImpl extends IContactsService.Stub {
      * @return Contact
      * @throws ServerApiException
      */
-	public RcsContact getRcsContact(ContactId contact) throws ServerApiException {
-		if (logger.isActivated()) {
-			logger.info("Get rcs contact " + contact);
-		}
-		// Read capabilities in the local database
-		return getRcsContact(ContactsManager.getInstance().getContactInfo(contact));
-	}
-	
-	/**
-	 * Convert the com.orangelabs.rcs.core.ims.service.capability.Capabilities instance into a Capabilities instance
-	 * 
-	 * @param capabilities
-	 *            com.orangelabs.rcs.core.ims.service.capability.Capabilities instance
-	 * @return Capabilities instance
-	 */
-	/* package private */static Capabilities getCapabilities(com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities) {
-		if (capabilities == null) {
-			return null;
-		}
-		return new Capabilities(capabilities.isImageSharingSupported(), capabilities.isVideoSharingSupported(),
-				capabilities.isImSessionSupported(), capabilities.isFileTransferSupported()
-						|| capabilities.isFileTransferHttpSupported(), capabilities.isGeolocationPushSupported(),
-				capabilities.isIPVoiceCallSupported(), capabilities.isIPVideoCallSupported(), capabilities.getSupportedExtensions(),
-				capabilities.isSipAutomata(), capabilities.getTimestampOfLastRefresh(), capabilities.isValid());
-	}
-	
-	/**
-	 * Convert the ContactInfo instance into a RcsContact instance
-	 * 
-	 * @param contactInfo
-	 *            the ContactInfo instance
-	 * @return RcsContact instance
-	 */
-	private RcsContact getRcsContact(ContactInfo contactInfo) {
-		// Discard if argument is null
-		if (contactInfo == null) {
-			return null;
-		}
-		Capabilities capaApi = getCapabilities(contactInfo.getCapabilities());
-		boolean registered = RegistrationState.ONLINE.equals(contactInfo.getRegistrationState());
-		return new RcsContact(contactInfo.getContact(), registered, capaApi, contactInfo.getDisplayName());
-	}
-	
-	
-	/**
-	 * Interface to filter ContactInfo
-	 * @author YPLO6403
-	 *
-	 */
-	private interface FilterContactInfo {
-		/**
-		 * The filtering method
-		 * 
-		 * @param contactInfo
-		 * @return true if contactInfo is in the scope
-		 */
-		boolean inScope(ContactInfo contactInfo);
-	}
-	
-	/**
-	 * Get a filtered list of RcsContact
-	 * 
-	 * @param filterContactInfo
-	 *            the filter (or null if not applicable)
-	 * @return the filtered list of RcsContact
-	 */
-	private List<RcsContact> getRcsContacts(FilterContactInfo filterContactInfo) {
-		List<RcsContact> rcsContacts = new ArrayList<RcsContact>();
-		// Read capabilities in the local database
-		Set<ContactId> contacts = ContactsManager.getInstance().getRcsContacts();
-		for (ContactId contact : contacts) {
-			ContactInfo contactInfo = ContactsManager.getInstance().getContactInfo(contact);
-			if (contactInfo != null) {
-				if (filterContactInfo == null || filterContactInfo.inScope(contactInfo)) {
-					RcsContact contact2add = getRcsContact(contactInfo);
-					if (contact2add != null) {
-						rcsContacts.add(getRcsContact(contactInfo));
-					}
-				}
-			}
-		}
-		return rcsContacts;
-	}
-	
-	/**
+    public RcsContact getRcsContact(ContactId contact) throws ServerApiException {
+        if (logger.isActivated()) {
+            logger.info("Get rcs contact " + contact);
+        }
+        // Read capabilities in the local database
+        return getRcsContact(ContactsManager.getInstance().getContactInfo(contact));
+    }
+
+    /**
+     * Convert the com.orangelabs.rcs.core.ims.service.capability.Capabilities instance into a
+     * Capabilities instance
+     * 
+     * @param capabilities com.orangelabs.rcs.core.ims.service.capability.Capabilities instance
+     * @return Capabilities instance
+     */
+    /* package private */static Capabilities getCapabilities(
+            com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities) {
+        if (capabilities == null) {
+            return null;
+        }
+        return new Capabilities(capabilities.isImageSharingSupported(),
+                capabilities.isVideoSharingSupported(), capabilities.isImSessionSupported(),
+                capabilities.isFileTransferSupported()
+                        || capabilities.isFileTransferHttpSupported(),
+                capabilities.isGeolocationPushSupported(), capabilities.isIPVoiceCallSupported(),
+                capabilities.isIPVideoCallSupported(), capabilities.getSupportedExtensions(),
+                capabilities.isSipAutomata(), capabilities.getTimestampOfLastRefresh(),
+                capabilities.isValid());
+    }
+
+    /**
+     * Convert the ContactInfo instance into a RcsContact instance
+     * 
+     * @param contactInfo the ContactInfo instance
+     * @return RcsContact instance
+     */
+    private RcsContact getRcsContact(ContactInfo contactInfo) {
+        // Discard if argument is null
+        if (contactInfo == null) {
+            return null;
+        }
+        Capabilities capaApi = getCapabilities(contactInfo.getCapabilities());
+        boolean registered = RegistrationState.ONLINE.equals(contactInfo.getRegistrationState());
+        return new RcsContact(contactInfo.getContact(), registered, capaApi,
+                contactInfo.getDisplayName());
+    }
+
+    /**
+     * Interface to filter ContactInfo
+     * 
+     * @author YPLO6403
+     */
+    private interface FilterContactInfo {
+        /**
+         * The filtering method
+         * 
+         * @param contactInfo
+         * @return true if contactInfo is in the scope
+         */
+        boolean inScope(ContactInfo contactInfo);
+    }
+
+    /**
+     * Get a filtered list of RcsContact
+     * 
+     * @param filterContactInfo the filter (or null if not applicable)
+     * @return the filtered list of RcsContact
+     */
+    private List<RcsContact> getRcsContacts(FilterContactInfo filterContactInfo) {
+        List<RcsContact> rcsContacts = new ArrayList<RcsContact>();
+        // Read capabilities in the local database
+        Set<ContactId> contacts = ContactsManager.getInstance().getRcsContacts();
+        for (ContactId contact : contacts) {
+            ContactInfo contactInfo = ContactsManager.getInstance().getContactInfo(contact);
+            if (contactInfo != null) {
+                if (filterContactInfo == null || filterContactInfo.inScope(contactInfo)) {
+                    RcsContact contact2add = getRcsContact(contactInfo);
+                    if (contact2add != null) {
+                        rcsContacts.add(getRcsContact(contactInfo));
+                    }
+                }
+            }
+        }
+        return rcsContacts;
+    }
+
+    /**
      * Returns the list of rcs contacts
      * 
      * @return List of contacts
      * @throws ServerApiException
      */
     public List<RcsContact> getRcsContacts() throws ServerApiException {
-		if (logger.isActivated()) {
-			logger.info("Get rcs contacts");
-		}
-		return getRcsContacts(null);
-	}
+        if (logger.isActivated()) {
+            logger.info("Get rcs contacts");
+        }
+        return getRcsContacts(null);
+    }
 
     /**
      * Returns the list of online contacts (i.e. registered)
@@ -172,19 +175,19 @@ public class ContactsServiceImpl extends IContactsService.Stub {
      * @return List of contacts
      * @throws ServerApiException
      */
-	public List<RcsContact> getRcsContactsOnline() throws ServerApiException {
-		if (logger.isActivated()) {
-			logger.info("Get registered rcs contacts");
-		}
-		return getRcsContacts(new FilterContactInfo() {
+    public List<RcsContact> getRcsContactsOnline() throws ServerApiException {
+        if (logger.isActivated()) {
+            logger.info("Get registered rcs contacts");
+        }
+        return getRcsContacts(new FilterContactInfo() {
 
-			@Override
-			public boolean inScope(ContactInfo contactInfo) {
-				return RegistrationState.ONLINE.equals(contactInfo.getRegistrationState());
-			}
-		});
-	}
-    
+            @Override
+            public boolean inScope(ContactInfo contactInfo) {
+                return RegistrationState.ONLINE.equals(contactInfo.getRegistrationState());
+            }
+        });
+    }
+
     /**
      * Returns the list of contacts supporting a given extension (i.e. feature tag)
      * 
@@ -192,39 +195,41 @@ public class ContactsServiceImpl extends IContactsService.Stub {
      * @return List of contacts
      * @throws ServerApiException
      */
-	public List<RcsContact> getRcsContactsSupporting(final String serviceId) throws ServerApiException {
-		if (logger.isActivated()) {
-			logger.info("Get rcs contacts supporting " + serviceId);
-		}
+    public List<RcsContact> getRcsContactsSupporting(final String serviceId)
+            throws ServerApiException {
+        if (logger.isActivated()) {
+            logger.info("Get rcs contacts supporting " + serviceId);
+        }
 
-		return getRcsContacts(new FilterContactInfo() {
+        return getRcsContacts(new FilterContactInfo() {
 
-			@Override
-			public boolean inScope(ContactInfo contactInfo) {
-				com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities = contactInfo.getCapabilities();
-				if (capabilities != null) {
-					Set<String> supportedExtensions = capabilities.getSupportedExtensions();
-					if (supportedExtensions != null) {
-						for (String supportedExtension : supportedExtensions) {
-							if (supportedExtension.equals(serviceId)) {
-								return true;
-							}
-						}
-					}
-				}
-				return false;
-			}
-		});
-	}
+            @Override
+            public boolean inScope(ContactInfo contactInfo) {
+                com.orangelabs.rcs.core.ims.service.capability.Capabilities capabilities = contactInfo
+                        .getCapabilities();
+                if (capabilities != null) {
+                    Set<String> supportedExtensions = capabilities.getSupportedExtensions();
+                    if (supportedExtensions != null) {
+                        for (String supportedExtension : supportedExtensions) {
+                            if (supportedExtension.equals(serviceId)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+        });
+    }
 
-	/**
-	 * Returns service version
-	 * 
-	 * @return Version
-	 * @see RcsService.Build.VERSION_CODES
-	 * @throws ServerApiException
-	 */
-	public int getServiceVersion() throws ServerApiException {
-		return RcsService.Build.API_VERSION;
-	}
+    /**
+     * Returns service version
+     * 
+     * @return Version
+     * @see RcsService.Build.VERSION_CODES
+     * @throws ServerApiException
+     */
+    public int getServiceVersion() throws ServerApiException {
+        return RcsService.Build.API_VERSION;
+    }
 }

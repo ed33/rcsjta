@@ -30,26 +30,19 @@ import java.util.HashMap;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
- * End user notification request parser. If the message contains the text in
- * different languages it's returns the text in the requested language if
- * present or in the default language (English).
+ * End user notification request parser. If the message contains the text in different languages
+ * it's returns the text in the requested language if present or in the default language (English).
  *
  * @author Deutsche Telekom AG
  */
 public class EndUserNotificationParser extends DefaultHandler {
     /*
-     * SAMPLE: <?xml version="1.0" standalone="yes"?> 
-     * <EndUserNotification id="xxxxxxxxx"> 
-     *   <Subject xml:lang="en">xxxxxxxxxx</Subject> 
-     *   <Subject xml:lang="de">xxxxxxxxxx</Subject> 
-     *   <Subject xml:lang="es">xxxxxxxxxx</Subject> 
-     *   <Text xml:lang="en">xxxxxxxxxx</Text> 
-     *   <Text xml:lang="de">xxxxxxxxxx</Text> 
-     *   <Text xml:lang="es">xxxxxxxxxx</Text> 
-     *   <ButtonOK xml:lang="en">xxxxxxxxxx</ButtonOK>
-     *   <ButtonOK xml:lang="de">xxxxxxxxxx</ButtonOK>
-     *   <ButtonOK xml:lang="es">xxxxxxxxxx</ButtonOK>
-     * </EndUserNotification>
+     * SAMPLE: <?xml version="1.0" standalone="yes"?> <EndUserNotification id="xxxxxxxxx"> <Subject
+     * xml:lang="en">xxxxxxxxxx</Subject> <Subject xml:lang="de">xxxxxxxxxx</Subject> <Subject
+     * xml:lang="es">xxxxxxxxxx</Subject> <Text xml:lang="en">xxxxxxxxxx</Text> <Text
+     * xml:lang="de">xxxxxxxxxx</Text> <Text xml:lang="es">xxxxxxxxxx</Text> <ButtonOK
+     * xml:lang="en">xxxxxxxxxx</ButtonOK> <ButtonOK xml:lang="de">xxxxxxxxxx</ButtonOK> <ButtonOK
+     * xml:lang="es">xxxxxxxxxx</ButtonOK> </EndUserNotification>
      */
 
     /**
@@ -92,7 +85,7 @@ public class EndUserNotificationParser extends DefaultHandler {
      */
     private HashMap<String, String> elementMap = new HashMap<String, String>();
 
-    /** 
+    /**
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
@@ -104,7 +97,8 @@ public class EndUserNotificationParser extends DefaultHandler {
      * @param requestedLanguage requested language
      * @throws Exception
      */
-    public EndUserNotificationParser(InputSource inputSource, String requestedLanguage) throws Exception {
+    public EndUserNotificationParser(InputSource inputSource, String requestedLanguage)
+            throws Exception {
         this.requestedLanguage = requestedLanguage;
         SAXParserFactory factory = SAXParserFactory.newInstance();
         SAXParser parser = factory.newSAXParser();
@@ -171,8 +165,7 @@ public class EndUserNotificationParser extends DefaultHandler {
             }
         } else if (currentLangAttribute.equals(requestedLanguage)
                 || currentLangAttribute.equals(DEFAULT_LANGUAGE)
-                || currentLangAttribute.equals(firstLanguage)
-                || currentLangAttribute.equals("")) {
+                || currentLangAttribute.equals(firstLanguage) || currentLangAttribute.equals("")) {
             elementMap.put(qname + currentLangAttribute, accumulator.toString().trim());
         }
     }

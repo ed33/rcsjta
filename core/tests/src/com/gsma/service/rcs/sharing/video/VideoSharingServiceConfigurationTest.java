@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.gsma.service.rcs.sharing.video;
 
 import android.test.AndroidTestCase;
@@ -23,27 +24,27 @@ import com.gsma.services.rcs.vsh.VideoSharingServiceConfiguration;
 import android.os.Parcel;
 
 public class VideoSharingServiceConfigurationTest extends AndroidTestCase {
-	Random random = new Random();
-	private long maxTime;
+    Random random = new Random();
+    private long maxTime;
 
-	protected void setUp() throws Exception {
-		super.setUp();
-		maxTime = random.nextLong();
-	}
+    protected void setUp() throws Exception {
+        super.setUp();
+        maxTime = random.nextLong();
+    }
 
-	public void testVideoSharingServiceConfiguration() {
-		VideoSharingServiceConfiguration vshConf = new VideoSharingServiceConfiguration(maxTime);
-		Parcel parcel = Parcel.obtain();
-		vshConf.writeToParcel(parcel, 0);
-		// done writing, now reset parcel for reading
-		parcel.setDataPosition(0);
-		// finish round trip
-		VideoSharingServiceConfiguration createFromParcel = VideoSharingServiceConfiguration.CREATOR
-				.createFromParcel(parcel);
-		assertEquals(createFromParcel.getMaxTime(), vshConf.getMaxTime());
-	}
+    public void testVideoSharingServiceConfiguration() {
+        VideoSharingServiceConfiguration vshConf = new VideoSharingServiceConfiguration(maxTime);
+        Parcel parcel = Parcel.obtain();
+        vshConf.writeToParcel(parcel, 0);
+        // done writing, now reset parcel for reading
+        parcel.setDataPosition(0);
+        // finish round trip
+        VideoSharingServiceConfiguration createFromParcel = VideoSharingServiceConfiguration.CREATOR
+                .createFromParcel(parcel);
+        assertEquals(createFromParcel.getMaxTime(), vshConf.getMaxTime());
+    }
 
-	protected void tearDown() throws Exception {
-	}
+    protected void tearDown() throws Exception {
+    }
 
 }

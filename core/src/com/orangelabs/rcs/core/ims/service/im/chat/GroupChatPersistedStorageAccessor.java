@@ -24,115 +24,111 @@ import com.orangelabs.rcs.provider.settings.RcsSettings;
 import java.util.Set;
 
 /**
- * GroupChatPersistedStorageAccessor helps in retrieving persisted data related
- * to a group chat from the persisted storage. It can utilize caching for such
- * data that will not be changed after creation of the group chat to speed up
- * consecutive access.
+ * GroupChatPersistedStorageAccessor helps in retrieving persisted data related to a group chat from
+ * the persisted storage. It can utilize caching for such data that will not be changed after
+ * creation of the group chat to speed up consecutive access.
  */
 public class GroupChatPersistedStorageAccessor {
 
-	private final String mChatId;
+    private final String mChatId;
 
-	private final MessagingLog mMessagingLog;
+    private final MessagingLog mMessagingLog;
 
-	private String mSubject;
+    private String mSubject;
 
-	/**
-	 * TODO: Change type to enum in CR031 implementation
-	 */
-	private Integer mDirection;
+    /**
+     * TODO: Change type to enum in CR031 implementation
+     */
+    private Integer mDirection;
 
-	public GroupChatPersistedStorageAccessor(String chatId, MessagingLog messagingLog) {
-		mChatId = chatId;
-		mMessagingLog = messagingLog;
-	}
+    public GroupChatPersistedStorageAccessor(String chatId, MessagingLog messagingLog) {
+        mChatId = chatId;
+        mMessagingLog = messagingLog;
+    }
 
-	public int getDirection() {
-		/*
-		 * Utilizing cache here as direction can't be changed in persistent
-		 * storage after entry insertion anyway so no need to query for it
-		 * multiple times.
-		 */
-		if (mDirection == null) {
-			mDirection = mMessagingLog.getGroupChatDirection(mChatId);
-		}
-		return mDirection;
-	}
+    public int getDirection() {
+        /*
+         * Utilizing cache here as direction can't be changed in persistent storage after entry
+         * insertion anyway so no need to query for it multiple times.
+         */
+        if (mDirection == null) {
+            mDirection = mMessagingLog.getGroupChatDirection(mChatId);
+        }
+        return mDirection;
+    }
 
-	public int getState() {
-		return mMessagingLog.getGroupChatState(mChatId);
-	}
+    public int getState() {
+        return mMessagingLog.getGroupChatState(mChatId);
+    }
 
-	public int getReasonCode() {
-		return mMessagingLog.getGroupChatReasonCode(mChatId);
-	}
+    public int getReasonCode() {
+        return mMessagingLog.getGroupChatReasonCode(mChatId);
+    }
 
-	public String getSubject() {
-		/*
-		 * Utilizing cache here as subject can't be changed in persistent
-		 * storage after entry insertion anyway so no need to query for it
-		 * multiple times.
-		 */
-		if (mSubject == null) {
-			mSubject = mMessagingLog.getSubject(mChatId);
-		}
-		return mSubject;
-	}
+    public String getSubject() {
+        /*
+         * Utilizing cache here as subject can't be changed in persistent storage after entry
+         * insertion anyway so no need to query for it multiple times.
+         */
+        if (mSubject == null) {
+            mSubject = mMessagingLog.getSubject(mChatId);
+        }
+        return mSubject;
+    }
 
-	public Set<ParticipantInfo> getParticipants() {
-		return mMessagingLog.getGroupChatParticipants(mChatId);
-	}
+    public Set<ParticipantInfo> getParticipants() {
+        return mMessagingLog.getGroupChatParticipants(mChatId);
+    }
 
-	public int getMaxParticipants() {
-		return RcsSettings.getInstance().getMaxChatParticipants();
-	}
+    public int getMaxParticipants() {
+        return RcsSettings.getInstance().getMaxChatParticipants();
+    }
 
-	public void setStateAndReasonCode(int state, int reasonCode) {
-		mMessagingLog.setGroupChatStateAndReasonCode(mChatId, state, reasonCode);
-	}
+    public void setStateAndReasonCode(int state, int reasonCode) {
+        mMessagingLog.setGroupChatStateAndReasonCode(mChatId, state, reasonCode);
+    }
 
-	public void setMessageStatusAndReasonCode(String msgId, int status, int reasonCode) {
-		mMessagingLog.setChatMessageStatusAndReasonCode(msgId, status, reasonCode);
-	}
+    public void setMessageStatusAndReasonCode(String msgId, int status, int reasonCode) {
+        mMessagingLog.setChatMessageStatusAndReasonCode(msgId, status, reasonCode);
+    }
 
-	public void setDeliveryInfoStatusAndReasonCode(String msgId, ContactId contact, int status,
-			int reasonCode) {
-		mMessagingLog.setGroupChatDeliveryInfoStatusAndReasonCode(msgId, contact, status,
-				reasonCode);
-	}
+    public void setDeliveryInfoStatusAndReasonCode(String msgId, ContactId contact, int status,
+            int reasonCode) {
+        mMessagingLog.setGroupChatDeliveryInfoStatusAndReasonCode(msgId, contact, status,
+                reasonCode);
+    }
 
-	public boolean isDeliveredToAllRecipients(String msgId) {
-		return mMessagingLog.isDeliveredToAllRecipients(msgId);
-	}
+    public boolean isDeliveredToAllRecipients(String msgId) {
+        return mMessagingLog.isDeliveredToAllRecipients(msgId);
+    }
 
-	public boolean isDisplayedByAllRecipients(String msgId) {
-		return mMessagingLog.isDisplayedByAllRecipients(msgId);
-	}
+    public boolean isDisplayedByAllRecipients(String msgId) {
+        return mMessagingLog.isDisplayedByAllRecipients(msgId);
+    }
 
-	public void setRejoinId(String rejoinId) {
-		mMessagingLog.setGroupChatRejoinId(mChatId, rejoinId);
-	}
+    public void setRejoinId(String rejoinId) {
+        mMessagingLog.setGroupChatRejoinId(mChatId, rejoinId);
+    }
 
-	public void addGroupChat(ContactId contact, String subject, Set<ParticipantInfo> participants,
-			int state, int reasonCode, int direction) {
-		mMessagingLog.addGroupChat(mChatId, contact, subject, participants, state, reasonCode,
-				direction);
-	}
+    public void addGroupChat(ContactId contact, String subject, Set<ParticipantInfo> participants,
+            int state, int reasonCode, int direction) {
+        mMessagingLog.addGroupChat(mChatId, contact, subject, participants, state, reasonCode,
+                direction);
+    }
 
-	public void addGroupChatEvent(String chatId, ContactId contact, int status) {
-		mMessagingLog.addGroupChatEvent(mChatId,  contact,  status);
-	}
+    public void addGroupChatEvent(String chatId, ContactId contact, int status) {
+        mMessagingLog.addGroupChatEvent(mChatId, contact, status);
+    }
 
-	public void addGroupChatMessage(InstantMessage msg, int direction, int status, int reasonCode) {
-		mMessagingLog.addGroupChatMessage(mChatId, msg, direction, status, reasonCode);
-	}
+    public void addGroupChatMessage(InstantMessage msg, int direction, int status, int reasonCode) {
+        mMessagingLog.addGroupChatMessage(mChatId, msg, direction, status, reasonCode);
+    }
 
-	public void setRejectNextGroupChatNextInvitation() {
-		mMessagingLog.setRejectNextGroupChatNextInvitation(mChatId);
-	}
+    public void setRejectNextGroupChatNextInvitation() {
+        mMessagingLog.setRejectNextGroupChatNextInvitation(mChatId);
+    }
 
-	public void setFileTransferStateAndReasonCode(String fileTransferId, int state,
-			int reasonCode) {
-		mMessagingLog.setFileTransferStateAndReasonCode(fileTransferId, state, reasonCode);
-	}
+    public void setFileTransferStateAndReasonCode(String fileTransferId, int state, int reasonCode) {
+        mMessagingLog.setFileTransferStateAndReasonCode(fileTransferId, state, reasonCode);
+    }
 }

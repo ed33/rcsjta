@@ -65,37 +65,38 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
     /**
      * The logger
      */
-    private static final Logger logger = Logger.getLogger(HttpFileTransferSession.class.getSimpleName());
-    
-    /**
-	 * Constructor
-	 *
-	 * @param parent IMS service
-	 * @param content Content to share
-	 * @param contact Remote contact identifier
-	 * @param remoteUri the remote URI
-	 * @param fileIcon Content of file icon
-	 * @param chatSessionId Chat session ID
-	 * @param chatContributionId Chat contribution Id
-	 * @param fileTransferId File transfer Id
-	 */
-	public HttpFileTransferSession(ImsService parent, MmContent content, ContactId contact, String remoteUri, MmContent fileIcon, String chatSessionID,
-			String chatContributionId, String fileTransferId) {
-		super(parent, content, contact, remoteUri, fileIcon, fileTransferId);
-		this.chatSessionId = chatSessionID;
-		setContributionID(chatContributionId);
-		this.sessionState = HttpTransferState.PENDING;
-	}
-	
+    private static final Logger logger = Logger.getLogger(HttpFileTransferSession.class
+            .getSimpleName());
 
-	/**
-	 * Returns the chat session ID associated to the transfer
-	 * 
-	 * @return the chatSessionID
-	 */
-	public String getChatSessionID() {
-		return chatSessionId;
-	}
+    /**
+     * Constructor
+     *
+     * @param parent IMS service
+     * @param content Content to share
+     * @param contact Remote contact identifier
+     * @param remoteUri the remote URI
+     * @param fileIcon Content of file icon
+     * @param chatSessionId Chat session ID
+     * @param chatContributionId Chat contribution Id
+     * @param fileTransferId File transfer Id
+     */
+    public HttpFileTransferSession(ImsService parent, MmContent content, ContactId contact,
+            String remoteUri, MmContent fileIcon, String chatSessionID, String chatContributionId,
+            String fileTransferId) {
+        super(parent, content, contact, remoteUri, fileIcon, fileTransferId);
+        this.chatSessionId = chatSessionID;
+        setContributionID(chatContributionId);
+        this.sessionState = HttpTransferState.PENDING;
+    }
+
+    /**
+     * Returns the chat session ID associated to the transfer
+     * 
+     * @return the chatSessionID
+     */
+    public String getChatSessionID() {
+        return chatSessionId;
+    }
 
     /**
      * Set the chatSessionId
@@ -103,18 +104,18 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
      * @param chatSessionID
      */
     public void setChatSessionID(String chatSessionID) {
-       this.chatSessionId = chatSessionID;
+        this.chatSessionId = chatSessionID;
     }
 
     /**
      * Create an INVITE request
      *
      * @return the INVITE request
-     * @throws SipException 
+     * @throws SipException
      */
     public SipRequest createInvite() throws SipException {
-    	// Not used here
-    	return null;
+        // Not used here
+        return null;
     }
 
     @Override
@@ -152,20 +153,19 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
 
                     Collection<ImsSessionListener> listeners = getListeners();
                     for (ImsSessionListener listener : listeners) {
-                        ((FileSharingSessionListener)listener)
-                                .handleFileTransferPausedBySystem();
+                        ((FileSharingSessionListener) listener).handleFileTransferPausedBySystem();
                     }
                     return;
                 }
             }
         }
-        
+
         // in others case, call the normal abortSession and remove session from resumable sessions
         super.abortSession(reason);
     }
 
     /**
-     * Handle error 
+     * Handle error
      * 
      * @param error Error
      */
@@ -176,7 +176,8 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
 
         // Error
         if (logger.isActivated()) {
-            logger.info("Transfer error: " + error.getErrorCode() + ", reason=" + error.getMessage());
+            logger.info("Transfer error: " + error.getErrorCode() + ", reason="
+                    + error.getMessage());
         }
 
         // Remove the current session
@@ -184,39 +185,39 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
 
         Collection<ImsSessionListener> listeners = getListeners();
         for (ImsSessionListener listener : listeners) {
-            ((FileSharingSessionListener)listener).handleTransferError(new FileSharingError(error));
+            ((FileSharingSessionListener) listener)
+                    .handleTransferError(new FileSharingError(error));
         }
     }
-	
+
     /**
      * Prepare media session
      * 
-     * @throws Exception 
+     * @throws Exception
      */
     public void prepareMediaSession() throws Exception {
-    	// Not used here
+        // Not used here
     }
 
     /**
      * Start media session
      * 
-     * @throws Exception 
+     * @throws Exception
      */
     public void startMediaSession() throws Exception {
-    	// Not used here
+        // Not used here
     }
 
     /**
      * Close media session
      */
     public void closeMediaSession() {
-    	// Not used here
+        // Not used here
     }
 
     /**
-     * Handle file transfered. 
-     * In case of file transfer over MSRP, the terminating side has received the file, 
-     * but in case of file transfer over HTTP, only the content server has received the
+     * Handle file transfered. In case of file transfer over MSRP, the terminating side has received
+     * the file, but in case of file transfer over HTTP, only the content server has received the
      * file.
      */
     public void handleFileTransfered() {
@@ -228,13 +229,12 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
 
         Collection<ImsSessionListener> listeners = getListeners();
         for (ImsSessionListener listener : listeners) {
-			((FileSharingSessionListener)listener).handleFileTransfered(getContent());
-		}
+            ((FileSharingSessionListener) listener).handleFileTransfered(getContent());
+        }
     }
-    
+
     /**
-     * HTTP transfer progress
-     * HttpTransferEventListener implementation
+     * HTTP transfer progress HttpTransferEventListener implementation
      *
      * @param currentSize Current transfered size in bytes
      * @param totalSize Total size in bytes
@@ -242,7 +242,7 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
     public void httpTransferProgress(long currentSize, long totalSize) {
         Collection<ImsSessionListener> listeners = getListeners();
         for (ImsSessionListener listener : listeners) {
-            ((FileSharingSessionListener)listener).handleTransferProgress(currentSize, totalSize);
+            ((FileSharingSessionListener) listener).handleTransferProgress(currentSize, totalSize);
         }
     }
 
@@ -252,30 +252,28 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
     public void httpTransferNotAllowedToSend() {
         Collection<ImsSessionListener> listeners = getListeners();
         for (ImsSessionListener listener : listeners) {
-            ((FileSharingSessionListener)listener).handleTransferNotAllowedToSend();
+            ((FileSharingSessionListener) listener).handleTransferNotAllowedToSend();
         }
     }
 
     /**
-     * HTTP transfer started
-     * HttpTransferEventListener implementation
+     * HTTP transfer started HttpTransferEventListener implementation
      */
     public void httpTransferStarted() {
         this.sessionState = HttpTransferState.ESTABLISHED;
         // Notify listeners
-        for(int j=0; j < getListeners().size(); j++) {
-            ((FileSharingSessionListener)getListeners().get(j)).handleSessionStarted();
+        for (int j = 0; j < getListeners().size(); j++) {
+            ((FileSharingSessionListener) getListeners().get(j)).handleSessionStarted();
         }
     }
-    
+
     /**
      * Handle file transfer paused by user
      */
     public void httpTransferPausedByUser() {
         Collection<ImsSessionListener> listeners = getListeners();
-        for (ImsSessionListener listener: listeners) {
-            ((FileSharingSessionListener)listener)
-                    .handleFileTransferPausedByUser();
+        for (ImsSessionListener listener : listeners) {
+            ((FileSharingSessionListener) listener).handleFileTransferPausedByUser();
         }
     }
 
@@ -284,50 +282,46 @@ public abstract class HttpFileTransferSession extends FileSharingSession {
      */
     public void httpTransferPausedBySystem() {
         Collection<ImsSessionListener> listeners = getListeners();
-        for (ImsSessionListener listener: listeners) {
-            ((FileSharingSessionListener)listener)
-                    .handleFileTransferPausedBySystem();
+        for (ImsSessionListener listener : listeners) {
+            ((FileSharingSessionListener) listener).handleFileTransferPausedBySystem();
         }
     }
-    
+
     /**
      * Handle file transfer paused
      */
     public void httpTransferResumed() {
         Collection<ImsSessionListener> listeners = getListeners();
-        for (ImsSessionListener listener: listeners) {
-            ((FileSharingSessionListener) listener)
-                    .handleFileTransferResumed();
+        for (ImsSessionListener listener : listeners) {
+            ((FileSharingSessionListener) listener).handleFileTransferResumed();
         }
     }
-    
-	/**
+
+    /**
      * Get session state
      *
-     * @return State 
+     * @return State
      * @see SessionState
      */
     public int getSessionState() {
         return sessionState;
     }
-    
+
     /**
-     * Pausing file transfer
-     * Implementation should be overridden in subclasses
+     * Pausing file transfer Implementation should be overridden in subclasses
      */
-	public void pauseFileTransfer() {
-		if (logger.isActivated()){
-			logger.debug("Pausing is not available");
-		}
-	}
-	
-	 /**
-     * Resuming file transfer
-     * Implementation should be overridden in subclasses
+    public void pauseFileTransfer() {
+        if (logger.isActivated()) {
+            logger.debug("Pausing is not available");
+        }
+    }
+
+    /**
+     * Resuming file transfer Implementation should be overridden in subclasses
      */
-	public void resumeFileTransfer() {
-		if (logger.isActivated()){
-			logger.debug("Resuming is not available");
-		}
-	}
+    public void resumeFileTransfer() {
+        if (logger.isActivated()) {
+            logger.debug("Resuming is not available");
+        }
+    }
 }

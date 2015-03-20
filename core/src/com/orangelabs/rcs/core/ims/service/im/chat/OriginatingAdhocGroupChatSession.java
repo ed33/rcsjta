@@ -44,54 +44,56 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author jexa7410
  */
 public class OriginatingAdhocGroupChatSession extends GroupChatSession {
-	/**
-	 * Boundary tag
-	 */
-	private final static String BOUNDARY_TAG = "boundary1";
-
-	/**
-     * The logger
+    /**
+     * Boundary tag
      */
-    private static final Logger logger = Logger.getLogger(OriginatingAdhocGroupChatSession.class.getSimpleName());
+    private final static String BOUNDARY_TAG = "boundary1";
 
     /**
-	 * Constructor
-	 * 
-	 * @param parent IMS service
-	 * @param conferenceId Conference ID
-	 * @param subject Subject associated to the session
-	 * @param participants List of invited participants
-	 */
-	public OriginatingAdhocGroupChatSession(ImsService parent, String conferenceId, String subject, Set<ParticipantInfo> participants) {
-		super(parent, null, conferenceId, participants);
+     * The logger
+     */
+    private static final Logger logger = Logger.getLogger(OriginatingAdhocGroupChatSession.class
+            .getSimpleName());
 
-		// Set subject
-		if ((subject != null) && (subject.length() > 0)) {
-			setSubject(subject);
-		}
+    /**
+     * Constructor
+     * 
+     * @param parent IMS service
+     * @param conferenceId Conference ID
+     * @param subject Subject associated to the session
+     * @param participants List of invited participants
+     */
+    public OriginatingAdhocGroupChatSession(ImsService parent, String conferenceId, String subject,
+            Set<ParticipantInfo> participants) {
+        super(parent, null, conferenceId, participants);
 
-		// Create dialog path
-		createOriginatingDialogPath();
-		
-		// Set contribution ID
-		String id = ContributionIdGenerator.getContributionId(getDialogPath().getCallId());
-		setContributionID(id);				
-	}
-	
-	/**
-	 * Background processing
-	 */
-	public void run() {
-		try {
-	    	if (logger.isActivated()) {
-	    		logger.info("Initiate a new ad-hoc group chat session as originating");
-	    	}
+        // Set subject
+        if ((subject != null) && (subject.length() > 0)) {
+            setSubject(subject);
+        }
 
-    		// Set setup mode
-	    	String localSetup = createSetupOffer();
-            if (logger.isActivated()){
-				logger.debug("Local setup attribute is " + localSetup);
-			}
+        // Create dialog path
+        createOriginatingDialogPath();
+
+        // Set contribution ID
+        String id = ContributionIdGenerator.getContributionId(getDialogPath().getCallId());
+        setContributionID(id);
+    }
+
+    /**
+     * Background processing
+     */
+    public void run() {
+        try {
+            if (logger.isActivated()) {
+                logger.info("Initiate a new ad-hoc group chat session as originating");
+            }
+
+            // Set setup mode
+            String localSetup = createSetupOffer();
+            if (logger.isActivated()) {
+                logger.debug("Local setup attribute is " + localSetup);
+            }
 
             // Set local port
             int localMsrpPort;
@@ -101,105 +103,98 @@ public class OriginatingAdhocGroupChatSession extends GroupChatSession {
                 localMsrpPort = getMsrpMgr().getLocalMsrpPort();
             }
 
-	    	// Build SDP part
-	    	String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
-	    	 String sdp = SdpUtils.buildGroupChatSDP(ipAddress, localMsrpPort, getMsrpMgr().getLocalSocketProtocol(),
-	                    getAcceptTypes(), getWrappedTypes(), localSetup, getMsrpMgr().getLocalMsrpPath(),
-	                    SdpUtils.DIRECTION_SENDRECV);
+            // Build SDP part
+            String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
+            String sdp = SdpUtils.buildGroupChatSDP(ipAddress, localMsrpPort, getMsrpMgr()
+                    .getLocalSocketProtocol(), getAcceptTypes(), getWrappedTypes(), localSetup,
+                    getMsrpMgr().getLocalMsrpPath(), SdpUtils.DIRECTION_SENDRECV);
 
-	        // Generate the resource list for given participants
-	        String resourceList = ChatUtils.generateChatResourceList(ParticipantInfoUtils.getContacts(getParticipants()));
-	    	
-	    	// Build multipart
-	    	String multipart =
-	    		Multipart.BOUNDARY_DELIMITER + BOUNDARY_TAG + SipUtils.CRLF +
-	    		"Content-Type: application/sdp" + SipUtils.CRLF +
-    			"Content-Length: " + sdp.getBytes().length + SipUtils.CRLF +
-	    		SipUtils.CRLF +
-	    		sdp + SipUtils.CRLF +
-	    		Multipart.BOUNDARY_DELIMITER + BOUNDARY_TAG + SipUtils.CRLF +
-	    		"Content-Type: application/resource-lists+xml" + SipUtils.CRLF +
-    			"Content-Length: " + resourceList.getBytes().length + SipUtils.CRLF +
-	    		"Content-Disposition: recipient-list" + SipUtils.CRLF +
-	    		SipUtils.CRLF +
-	    		resourceList + SipUtils.CRLF +
-	    		Multipart.BOUNDARY_DELIMITER + BOUNDARY_TAG + Multipart.BOUNDARY_DELIMITER;
+            // Generate the resource list for given participants
+            String resourceList = ChatUtils.generateChatResourceList(ParticipantInfoUtils
+                    .getContacts(getParticipants()));
 
-			// Set the local SDP part in the dialog path
-	    	getDialogPath().setLocalContent(multipart);
+            // Build multipart
+            String multipart = Multipart.BOUNDARY_DELIMITER + BOUNDARY_TAG + SipUtils.CRLF
+                    + "Content-Type: application/sdp" + SipUtils.CRLF + "Content-Length: "
+                    + sdp.getBytes().length + SipUtils.CRLF + SipUtils.CRLF + sdp + SipUtils.CRLF
+                    + Multipart.BOUNDARY_DELIMITER + BOUNDARY_TAG + SipUtils.CRLF
+                    + "Content-Type: application/resource-lists+xml" + SipUtils.CRLF
+                    + "Content-Length: " + resourceList.getBytes().length + SipUtils.CRLF
+                    + "Content-Disposition: recipient-list" + SipUtils.CRLF + SipUtils.CRLF
+                    + resourceList + SipUtils.CRLF + Multipart.BOUNDARY_DELIMITER + BOUNDARY_TAG
+                    + Multipart.BOUNDARY_DELIMITER;
 
-	        // Create an INVITE request
-	        if (logger.isActivated()) {
-	        	logger.info("Send INVITE");
-	        }
-	        SipRequest invite = createInviteRequest(multipart);
+            // Set the local SDP part in the dialog path
+            getDialogPath().setLocalContent(multipart);
 
-	        // Set the Authorization header
-	        getAuthenticationAgent().setAuthorizationHeader(invite);
+            // Create an INVITE request
+            if (logger.isActivated()) {
+                logger.info("Send INVITE");
+            }
+            SipRequest invite = createInviteRequest(multipart);
 
-	        // Set initial request in the dialog path
-	        getDialogPath().setInvite(invite);
-	        
-	        // Send INVITE request
-	        sendInvite(invite);	        
-		} catch(Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Session initiation has failed", e);
-        	}
+            // Set the Authorization header
+            getAuthenticationAgent().setAuthorizationHeader(invite);
 
-        	// Unexpected error
-			handleError(new ChatError(ChatError.UNEXPECTED_EXCEPTION,
-					e.getMessage()));
-		}		
-	}
-	
-	/**
-	 * Create INVITE request
-	 * 
-	 * @param content Content part
-	 * @return Request
-	 * @throws SipException
-	 */
-	private SipRequest createInviteRequest(String content) throws SipException {
-		SipRequest invite = SipMessageFactory.createMultipartInvite(getDialogPath(), 
-                getFeatureTags(), 
-                getAcceptContactTags(),
-                content,
-                BOUNDARY_TAG);
+            // Set initial request in the dialog path
+            getDialogPath().setInvite(invite);
 
-    	// Test if there is a subject
-    	if (getSubject() != null) {
-	        // Add a subject header
-    		invite.addHeader(SubjectHeader.NAME, StringUtils.encodeUTF8(getSubject()));
-    	}
+            // Send INVITE request
+            sendInvite(invite);
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Session initiation has failed", e);
+            }
+
+            // Unexpected error
+            handleError(new ChatError(ChatError.UNEXPECTED_EXCEPTION, e.getMessage()));
+        }
+    }
+
+    /**
+     * Create INVITE request
+     * 
+     * @param content Content part
+     * @return Request
+     * @throws SipException
+     */
+    private SipRequest createInviteRequest(String content) throws SipException {
+        SipRequest invite = SipMessageFactory.createMultipartInvite(getDialogPath(),
+                getFeatureTags(), getAcceptContactTags(), content, BOUNDARY_TAG);
+
+        // Test if there is a subject
+        if (getSubject() != null) {
+            // Add a subject header
+            invite.addHeader(SubjectHeader.NAME, StringUtils.encodeUTF8(getSubject()));
+        }
 
         // Add a require header
         invite.addHeader(RequireHeader.NAME, "recipient-list-invite");
-    	
+
         // Add a contribution ID header
         invite.addHeader(ChatUtils.HEADER_CONTRIBUTION_ID, getContributionID());
-	
-	    return invite;
-	}	
+
+        return invite;
+    }
 
     /**
      * Create an INVITE request
      *
      * @return the INVITE request
-     * @throws SipException 
+     * @throws SipException
      */
     public SipRequest createInvite() throws SipException {
         return createInviteRequest(getDialogPath().getLocalContent());
     }
 
-	@Override
-	public boolean isInitiatedByRemote() {
-		return false;
-	}
+    @Override
+    public boolean isInitiatedByRemote() {
+        return false;
+    }
 
-	@Override
-	public void startSession() {
-		getImsService().getImsModule().getInstantMessagingService().addSession(this);
-		start();
-	}
+    @Override
+    public void startSession() {
+        getImsService().getImsModule().getInstantMessagingService().addSession(this);
+        start();
+    }
 }

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.ish;
 
 import android.os.Parcel;
@@ -26,52 +27,52 @@ import android.os.Parcelable;
  * @author Jean-Marc AUFFRET
  */
 public class ImageSharingServiceConfiguration implements Parcelable {
-		
-	/**
-	 * Image size limit
-	 */
-	private long maxSize;
-	
-	/**
-	 * Constructor
-	 * 
-	 * @param maxSize Image size limit
+
+    /**
+     * Image size limit
+     */
+    private long maxSize;
+
+    /**
+     * Constructor
+     * 
+     * @param maxSize Image size limit
      * @hide
-	 */
-	public ImageSharingServiceConfiguration(long maxSize) {
-		this.maxSize = maxSize;
-    }	
-	
-	/**
-	 * Constructor
-	 * 
-	 * @param source Parcelable source
-     * @hide
-	 */
-	public ImageSharingServiceConfiguration(Parcel source) {
-		this.maxSize = source.readLong();
+     */
+    public ImageSharingServiceConfiguration(long maxSize) {
+        this.maxSize = maxSize;
     }
 
-	/**
-	 * Describe the kinds of special objects contained in this Parcelable's
-	 * marshalled representation
-	 * 
-	 * @return Integer
+    /**
+     * Constructor
+     * 
+     * @param source Parcelable source
      * @hide
-	 */
-	public int describeContents() {
+     */
+    public ImageSharingServiceConfiguration(Parcel source) {
+        this.maxSize = source.readLong();
+    }
+
+    /**
+     * Describe the kinds of special objects contained in this Parcelable's marshalled
+     * representation
+     * 
+     * @return Integer
+     * @hide
+     */
+    public int describeContents() {
         return 0;
     }
 
-	/**
-	 * Write parcelable object
-	 * 
-	 * @param dest The Parcel in which the object should be written
-	 * @param flags Additional flags about how the object should be written
+    /**
+     * Write parcelable object
+     * 
+     * @param dest The Parcel in which the object should be written
+     * @param flags Additional flags about how the object should be written
      * @hide
-	 */
+     */
     public void writeToParcel(Parcel dest, int flags) {
-    	dest.writeLong(maxSize);
+        dest.writeLong(maxSize);
     }
 
     /**
@@ -79,8 +80,7 @@ public class ImageSharingServiceConfiguration implements Parcelable {
      * 
      * @hide
      */
-    public static final Parcelable.Creator<ImageSharingServiceConfiguration> CREATOR
-            = new Parcelable.Creator<ImageSharingServiceConfiguration>() {
+    public static final Parcelable.Creator<ImageSharingServiceConfiguration> CREATOR = new Parcelable.Creator<ImageSharingServiceConfiguration>() {
         public ImageSharingServiceConfiguration createFromParcel(Parcel source) {
             return new ImageSharingServiceConfiguration(source);
         }
@@ -88,15 +88,15 @@ public class ImageSharingServiceConfiguration implements Parcelable {
         public ImageSharingServiceConfiguration[] newArray(int size) {
             return new ImageSharingServiceConfiguration[size];
         }
-    };	
-		
-	/**
-	 * Returns the maximum authorized size of the image that can be sent. It
-	 * returns 0 if there is no limitation.
-	 * 
-	 * @return Size in kilobytes
-	 */
-	public long getMaxSize() {
-		return maxSize;
-	}
+    };
+
+    /**
+     * Returns the maximum authorized size of the image that can be sent. It returns 0 if there is
+     * no limitation.
+     * 
+     * @return Size in kilobytes
+     */
+    public long getMaxSize() {
+        return maxSize;
+    }
 }

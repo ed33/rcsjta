@@ -31,62 +31,62 @@ import com.gsma.services.rcs.ish.ImageSharingLog;
  */
 public class ImageSharingData {
 
-	/**
-	 * Unique sharing identifier
-	 */
-	static final String KEY_SHARING_ID = ImageSharingLog.SHARING_ID;
+    /**
+     * Unique sharing identifier
+     */
+    static final String KEY_SHARING_ID = ImageSharingLog.SHARING_ID;
 
-	/**
-	 * Date of the sharing
-	 */
-	static final String KEY_TIMESTAMP = ImageSharingLog.TIMESTAMP;
+    /**
+     * Date of the sharing
+     */
+    static final String KEY_TIMESTAMP = ImageSharingLog.TIMESTAMP;
 
-	/**
-	 * ContactId formatted number of the remote contact
-	 */
-	static final String KEY_CONTACT = ImageSharingLog.CONTACT;
-	
-	/**
-	 * @see ImageSharing.State
-	 */
-	static final String KEY_STATE = ImageSharingLog.STATE;
+    /**
+     * ContactId formatted number of the remote contact
+     */
+    static final String KEY_CONTACT = ImageSharingLog.CONTACT;
 
-	/**
-	 * Reason code associated with the image sharing state.
-	 *
-	 * @see ImageSharing.ReasonCode
-	 */
-	static final String KEY_REASON_CODE = ImageSharingLog.REASON_CODE;
+    /**
+     * @see ImageSharing.State
+     */
+    static final String KEY_STATE = ImageSharingLog.STATE;
 
-	/**
-	 * Multipurpose Internet Mail Extensions (MIME) type of file
-	 */
-	static final String KEY_MIME_TYPE = ImageSharingLog.MIME_TYPE;
-	
-	/**
-	 * URI of the file
-	 */
-	static final String KEY_FILE = ImageSharingLog.FILE;
+    /**
+     * Reason code associated with the image sharing state.
+     *
+     * @see ImageSharing.ReasonCode
+     */
+    static final String KEY_REASON_CODE = ImageSharingLog.REASON_CODE;
 
-	/**
-	 * Filename
-	 */
-	static final String KEY_FILENAME = ImageSharingLog.FILENAME;
+    /**
+     * Multipurpose Internet Mail Extensions (MIME) type of file
+     */
+    static final String KEY_MIME_TYPE = ImageSharingLog.MIME_TYPE;
 
-	/**
-	 * Size transferred in bytes
-	 */
-	static final String KEY_TRANSFERRED = ImageSharingLog.TRANSFERRED;
+    /**
+     * URI of the file
+     */
+    static final String KEY_FILE = ImageSharingLog.FILE;
 
-	/**
-	 * File size in bytes
-	 */
-	static final String KEY_FILESIZE = ImageSharingLog.FILESIZE;
+    /**
+     * Filename
+     */
+    static final String KEY_FILENAME = ImageSharingLog.FILENAME;
 
-	/**
-	 * Incoming sharing or outgoing sharing.
-	 *
-	 * @see com.gsma.services.rcs.RcsCommon.Direction for the list of directions
-	 */
-	static final String KEY_DIRECTION = ImageSharingLog.DIRECTION;	
+    /**
+     * Size transferred in bytes
+     */
+    static final String KEY_TRANSFERRED = ImageSharingLog.TRANSFERRED;
+
+    /**
+     * File size in bytes
+     */
+    static final String KEY_FILESIZE = ImageSharingLog.FILESIZE;
+
+    /**
+     * Incoming sharing or outgoing sharing.
+     *
+     * @see com.gsma.services.rcs.RcsCommon.Direction for the list of directions
+     */
+    static final String KEY_DIRECTION = ImageSharingLog.DIRECTION;
 }

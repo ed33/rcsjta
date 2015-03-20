@@ -18,101 +18,100 @@
 
 package com.orangelabs.rcs.core.ims.service.presence;
 
-
 /**
  * Geoloc info
  * 
  * @author Jean-Marc AUFFRET
  */
-public class Geoloc {	
-	/**
-	 * Latitude
-	 */
-	private double latitude;
-	
-	/**
-	 * Longitude
-	 */
-	private double longitude;
-	
-	/**
-	 * Altitude
-	 */
-	private double altitude;
-	
-	/**
-	 * Constructor
-	 * 
-	 * @param latitude Latitude
-	 * @param longitude Longitude
-	 * @param altitude Altitude
-	 */
-	public Geoloc(double latitude, double longitude, double altitude) {
-		this.latitude = latitude;
-		this.longitude = longitude;
-		this.altitude = altitude;
-	}
-    
+public class Geoloc {
     /**
-	 * Returns the latitude
-	 * 
-	 * @return Latitude
-	 */
-	public double getLatitude() {
-		return latitude;
-	}
-	
-	/**
-	 * Set the latitude
-	 * 
-	 * @param latitude Latitude
-	 */
-	public void setLatitude(double latitude) {
-		this.latitude = latitude;
-	}
-	
-	/**
-	 * Returns the longitude
-	 * 
-	 * @return Longitude
-	 */
-	public double getLongitude() {
-		return longitude;
-	}
-	
-	/**
-	 * Set the longitude
-	 * 
-	 * @param longitude Longitude
-	 */
-	public void setLongitude(double longitude) {
-		this.longitude = longitude;
-	}
+     * Latitude
+     */
+    private double latitude;
 
-	/**
-	 * Returns the altitude
-	 * 
-	 * @return Altitude
-	 */
-	public double getAltitude() {
-		return altitude;
-	}
-	
-	/**
-	 * Set the altitude
-	 * 
-	 * @param altitude Altitude
-	 */
-	public void setAltitude(double altitude) {
-		this.altitude = altitude;
-	}
+    /**
+     * Longitude
+     */
+    private double longitude;
 
-	/**
-	 * Returns a string representation of the object
-	 * 
-	 * @return String
-	 */
-	public String toString() {
-		return "latitude=" + latitude + ", longitude=" + longitude + ", altitude=" + altitude;
-	}
+    /**
+     * Altitude
+     */
+    private double altitude;
+
+    /**
+     * Constructor
+     * 
+     * @param latitude Latitude
+     * @param longitude Longitude
+     * @param altitude Altitude
+     */
+    public Geoloc(double latitude, double longitude, double altitude) {
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.altitude = altitude;
+    }
+
+    /**
+     * Returns the latitude
+     * 
+     * @return Latitude
+     */
+    public double getLatitude() {
+        return latitude;
+    }
+
+    /**
+     * Set the latitude
+     * 
+     * @param latitude Latitude
+     */
+    public void setLatitude(double latitude) {
+        this.latitude = latitude;
+    }
+
+    /**
+     * Returns the longitude
+     * 
+     * @return Longitude
+     */
+    public double getLongitude() {
+        return longitude;
+    }
+
+    /**
+     * Set the longitude
+     * 
+     * @param longitude Longitude
+     */
+    public void setLongitude(double longitude) {
+        this.longitude = longitude;
+    }
+
+    /**
+     * Returns the altitude
+     * 
+     * @return Altitude
+     */
+    public double getAltitude() {
+        return altitude;
+    }
+
+    /**
+     * Set the altitude
+     * 
+     * @param altitude Altitude
+     */
+    public void setAltitude(double altitude) {
+        this.altitude = altitude;
+    }
+
+    /**
+     * Returns a string representation of the object
+     * 
+     * @return String
+     */
+    public String toString() {
+        return "latitude=" + latitude + ", longitude=" + longitude + ", altitude=" + altitude;
+    }
 }

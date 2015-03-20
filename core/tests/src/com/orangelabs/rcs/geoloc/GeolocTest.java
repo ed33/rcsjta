@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.geoloc;
 
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
@@ -22,22 +23,22 @@ import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
 import android.test.AndroidTestCase;
 
 public class GeolocTest extends AndroidTestCase {
-	
-	protected void setUp() throws Exception {
-		super.setUp();
-	}
 
-	protected void tearDown() throws Exception {
-		super.tearDown();
-	}
+    protected void setUp() throws Exception {
+        super.setUp();
+    }
 
-	public final void testGeolocPush() {
-		GeolocPush g = new GeolocPush("label", 1.0, 2.0,  0, 100);
-		assertEquals(g.getLabel(), "label");
-		assertEquals(g.getLatitude(), 1.0);
-		assertEquals(g.getLongitude(), 2.0);
-		assertEquals(g.getExpiration(), 0);
-		assertEquals((int)(g.getAccuracy() + 0.4), 100);
-	}
+    protected void tearDown() throws Exception {
+        super.tearDown();
+    }
+
+    public final void testGeolocPush() {
+        GeolocPush g = new GeolocPush("label", 1.0, 2.0, 0, 100);
+        assertEquals(g.getLabel(), "label");
+        assertEquals(g.getLatitude(), 1.0);
+        assertEquals(g.getLongitude(), 2.0);
+        assertEquals(g.getExpiration(), 0);
+        assertEquals((int) (g.getAccuracy() + 0.4), 100);
+    }
 
 }

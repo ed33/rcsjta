@@ -44,97 +44,99 @@ public class SessionTimerManager extends PeriodicRefresher {
      */
     public final static int MIN_EXPIRE_PERIOD = 90;
 
-	/**
-	 * UAC role
-	 */
-	public final static String UAC_ROLE = "uac";
-	
-	/**
-	 * UAC role
-	 */
-	public final static String UAS_ROLE = "uas";
+    /**
+     * UAC role
+     */
+    public final static String UAC_ROLE = "uac";
 
-	/**
-	 * Session to be refreshed
-	 */
-	private ImsServiceSession session;
+    /**
+     * UAC role
+     */
+    public final static String UAS_ROLE = "uas";
 
-	/**
-	 * Expire period
-	 */
-	private int expirePeriod;
-	
-	/**
-	 * Refresher
-	 */
-	private String refresher = "uas";
-	
-	/**
-	 * Last session refresh time
-	 */
-	private long lastSessionRefresh;
-	
-	/**
-	 * The logger
-	 */
-	private final Logger logger = Logger.getLogger(this.getClass().getName());
-	
-	/**
-	 * Constructor
-	 * 
-	 * @param session Session to be refreshed
-	 */
-	public SessionTimerManager(ImsServiceSession session) {
-		this.session = session;
-	}
-	
-	/**
-	 * Is session timer activated
-	 * 
-	 * @param msg SIP message
-	 * @return Boolean
-	 */
-	public boolean isSessionTimerActivated(SipMessage msg) {
-		// Check the Session-Expires header
-		int expire = msg.getSessionTimerExpire();
-		if (expire < MIN_EXPIRE_PERIOD) {
-			if (logger.isActivated()) {
-				logger.debug("Session timer not activated");
-			}
-			return false;
-		}
+    /**
+     * Session to be refreshed
+     */
+    private ImsServiceSession session;
 
-		return true;
-	}
-	
-	/**
-	 * Start the session timer
-	 * 
-	 * @param refresher Refresher role
-	 * @param expirePeriod Expire period
-	 */
-	public void start(String refresher, int expirePeriod) {
-		if (logger.isActivated()) {
-			logger.debug("Start session timer for session " + session.getId() + " (role=" + refresher + ", expire=" + expirePeriod + ")");
-		}
+    /**
+     * Expire period
+     */
+    private int expirePeriod;
 
-		// If the session timer is set to 0 value, it may have not been set, so take the expire period as value
-		if (session.getDialogPath().getSessionExpireTime()==0){
-			session.getDialogPath().setSessionExpireTime(expirePeriod);
-		}
-		
-		// Set refresher role
-		this.refresher = refresher;
+    /**
+     * Refresher
+     */
+    private String refresher = "uas";
 
-		// Set expire period
-		this.expirePeriod = expirePeriod;
+    /**
+     * Last session refresh time
+     */
+    private long lastSessionRefresh;
 
-		// Reset last session refresh time
-		lastSessionRefresh = System.currentTimeMillis();
+    /**
+     * The logger
+     */
+    private final Logger logger = Logger.getLogger(this.getClass().getName());
+
+    /**
+     * Constructor
+     * 
+     * @param session Session to be refreshed
+     */
+    public SessionTimerManager(ImsServiceSession session) {
+        this.session = session;
+    }
+
+    /**
+     * Is session timer activated
+     * 
+     * @param msg SIP message
+     * @return Boolean
+     */
+    public boolean isSessionTimerActivated(SipMessage msg) {
+        // Check the Session-Expires header
+        int expire = msg.getSessionTimerExpire();
+        if (expire < MIN_EXPIRE_PERIOD) {
+            if (logger.isActivated()) {
+                logger.debug("Session timer not activated");
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Start the session timer
+     * 
+     * @param refresher Refresher role
+     * @param expirePeriod Expire period
+     */
+    public void start(String refresher, int expirePeriod) {
+        if (logger.isActivated()) {
+            logger.debug("Start session timer for session " + session.getId() + " (role="
+                    + refresher + ", expire=" + expirePeriod + ")");
+        }
+
+        // If the session timer is set to 0 value, it may have not been set, so take the expire
+        // period as value
+        if (session.getDialogPath().getSessionExpireTime() == 0) {
+            session.getDialogPath().setSessionExpireTime(expirePeriod);
+        }
+
+        // Set refresher role
+        this.refresher = refresher;
+
+        // Set expire period
+        this.expirePeriod = expirePeriod;
+
+        // Reset last session refresh time
+        lastSessionRefresh = System.currentTimeMillis();
 
         // Start processing the session timer
         startProcessing();
-	}
+    }
 
     /**
      * Start processing the session timer
@@ -147,32 +149,32 @@ public class SessionTimerManager extends PeriodicRefresher {
         }
     }
 
-	/**
-	 * Stop the session timer
-	 */
-	public void stop() {
-		if (logger.isActivated()) {
-			logger.debug("Stop session timer for session " + session.getId());
-		}
-		stopTimer();
-	}
-
-	/**
-	 * Periodic session timer processing
-	 */
-	public void periodicProcessing() {
-		if (refresher.equals(UAC_ROLE)) {
-			// Refresher role
-			sessionRefreshForUAC();
-		} else {
-			// Refreshee role
-			sessionRefreshForUAS();
-		}
-	}
+    /**
+     * Stop the session timer
+     */
+    public void stop() {
+        if (logger.isActivated()) {
+            logger.debug("Stop session timer for session " + session.getId());
+        }
+        stopTimer();
+    }
 
     /**
-     * Session refresh processing for UAC role. If the refresher never sends a
-     * session refresh request then the session should be terminated.
+     * Periodic session timer processing
+     */
+    public void periodicProcessing() {
+        if (refresher.equals(UAC_ROLE)) {
+            // Refresher role
+            sessionRefreshForUAC();
+        } else {
+            // Refreshee role
+            sessionRefreshForUAS();
+        }
+    }
+
+    /**
+     * Session refresh processing for UAC role. If the refresher never sends a session refresh
+     * request then the session should be terminated.
      */
     private void sessionRefreshForUAC() {
         try {
@@ -231,12 +233,13 @@ public class SessionTimerManager extends PeriodicRefresher {
                 if (logger.isActivated()) {
                     logger.debug("Send ACK");
                 }
-                session.getImsService().getImsModule().getSipManager().sendSipAck(session.getDialogPath());
+                session.getImsService().getImsModule().getSipManager()
+                        .sendSipAck(session.getDialogPath());
 
                 // The session is established
                 session.getDialogPath().sessionEstablished();
 
-                // Increment internal stack CSeq (NIST stack issue?) 
+                // Increment internal stack CSeq (NIST stack issue?)
                 Dialog dlg = session.getDialogPath().getStackDialog();
                 if (dlg != null) {
                     dlg.incrementLocalSequenceNumber();
@@ -244,13 +247,11 @@ public class SessionTimerManager extends PeriodicRefresher {
 
                 // Restart processing the session timer
                 startProcessing();
-            } else
-            if (ctx.getStatusCode() == 405) {
+            } else if (ctx.getStatusCode() == 405) {
                 if (logger.isActivated()) {
                     logger.debug("Session timer refresh not supported");
                 }
-            } else
-            if (ctx.getStatusCode() == 407) {
+            } else if (ctx.getStatusCode() == 407) {
                 // 407 Proxy Authentication Required
                 if (logger.isActivated()) {
                     logger.info("407 response received. Send second RE-INVITE");
@@ -278,15 +279,18 @@ public class SessionTimerManager extends PeriodicRefresher {
                 session.abortSession(ImsServiceSession.TERMINATION_BY_TIMEOUT);
 
                 try {
-        			ContactId remote = ContactUtils.createContactId(session.getDialogPath().getRemoteParty());
-        			// Request capabilities
-        			session.getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
+                    ContactId remote = ContactUtils.createContactId(session.getDialogPath()
+                            .getRemoteParty());
+                    // Request capabilities
+                    session.getImsService().getImsModule().getCapabilityService()
+                            .requestContactCapabilities(remote);
 
                 } catch (RcsContactFormatException e) {
-        			if (logger.isActivated()) {
-        				logger.warn("Cannot request capabilities for contact "+session.getDialogPath().getRemoteParty() );
-        			}
-        		}
+                    if (logger.isActivated()) {
+                        logger.warn("Cannot request capabilities for contact "
+                                + session.getDialogPath().getRemoteParty());
+                    }
+                }
             }
         } else {
             // No response received: timeout
@@ -295,55 +299,58 @@ public class SessionTimerManager extends PeriodicRefresher {
     }
 
     /**
-	 * Session refresh processing for UAS role. If the refresher never gets a
-	 * response from the remote then the session should be terminated.
-	 */
+     * Session refresh processing for UAS role. If the refresher never gets a response from the
+     * remote then the session should be terminated.
+     */
     private void sessionRefreshForUAS() {
-		try {
-			if (logger.isActivated()) {
-				logger.debug("Session timer refresh (UAS role)");
-			}
-			
-			if (((System.currentTimeMillis()-lastSessionRefresh)/1000) >= expirePeriod) {
-				// Session has expired
-				if (logger.isActivated()) {
-					logger.debug("Session timer refresh has failed: close the session");
-				}
+        try {
+            if (logger.isActivated()) {
+                logger.debug("Session timer refresh (UAS role)");
+            }
 
-				// Close the session
-		    	session.abortSession(ImsServiceSession.TERMINATION_BY_TIMEOUT);
-		    	
-				try {
-					ContactId remote = ContactUtils.createContactId(session.getDialogPath().getRemoteParty());
-					// Request capabilities to the remote
-			        session.getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
-				} catch (RcsContactFormatException e) {
-					if (logger.isActivated()) {
-						logger.warn("Cannot parse contact "+session.getDialogPath().getRemoteParty());
-					}
-				}
-				
-			} else {
-	        	// Success
-				if (logger.isActivated()) {
-					logger.debug("Session timer refresh with success");
-				}
+            if (((System.currentTimeMillis() - lastSessionRefresh) / 1000) >= expirePeriod) {
+                // Session has expired
+                if (logger.isActivated()) {
+                    logger.debug("Session timer refresh has failed: close the session");
+                }
+
+                // Close the session
+                session.abortSession(ImsServiceSession.TERMINATION_BY_TIMEOUT);
+
+                try {
+                    ContactId remote = ContactUtils.createContactId(session.getDialogPath()
+                            .getRemoteParty());
+                    // Request capabilities to the remote
+                    session.getImsService().getImsModule().getCapabilityService()
+                            .requestContactCapabilities(remote);
+                } catch (RcsContactFormatException e) {
+                    if (logger.isActivated()) {
+                        logger.warn("Cannot parse contact "
+                                + session.getDialogPath().getRemoteParty());
+                    }
+                }
+
+            } else {
+                // Success
+                if (logger.isActivated()) {
+                    logger.debug("Session timer refresh with success");
+                }
 
                 // Start processing the session timer
                 startProcessing();
             }
-	    } catch (Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Session timer refresh has failed", e);
-			}
-			
-	    	// Close the session
-	    	session.abortSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
-	    }
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Session timer refresh has failed", e);
+            }
+
+            // Close the session
+            session.abortSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
+        }
     }
 
     /**
-     * Receive RE-INVITE request 
+     * Receive RE-INVITE request
      * 
      * @param reInvite RE-INVITE request
      */
@@ -360,15 +367,17 @@ public class SessionTimerManager extends PeriodicRefresher {
             if (logger.isActivated()) {
                 logger.debug("Send 200 OK");
             }
-            SipResponse resp = SipMessageFactory.create200OkReInviteResponse(session.getDialogPath(), reInvite);
+            SipResponse resp = SipMessageFactory.create200OkReInviteResponse(
+                    session.getDialogPath(), reInvite);
 
             // The signalisation is established
             session.getDialogPath().sigEstablished();
 
             // Send response
-            SipTransactionContext ctx = session.getImsService().getImsModule().getSipManager().sendSipMessageAndWait(resp);
+            SipTransactionContext ctx = session.getImsService().getImsModule().getSipManager()
+                    .sendSipMessageAndWait(resp);
 
-            // Analyze the received response 
+            // Analyze the received response
             if (ctx.isSipAck()) {
                 // ACK received
                 if (logger.isActivated()) {
@@ -382,7 +391,7 @@ public class SessionTimerManager extends PeriodicRefresher {
                 }
                 // TODO ?
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             if (logger.isActivated()) {
                 logger.error("Session timer refresh has failed", e);
             }
@@ -390,29 +399,30 @@ public class SessionTimerManager extends PeriodicRefresher {
     }
 
     /**
-	 * Receive UPDATE request 
-	 * 
-	 * @param update UPDATE request
-	 */
-	public void receiveUpdate(SipRequest update) {
-		try {
-        	if (logger.isActivated()) {
-        		logger.debug("Session refresh request received");
-        	}
+     * Receive UPDATE request
+     * 
+     * @param update UPDATE request
+     */
+    public void receiveUpdate(SipRequest update) {
+        try {
+            if (logger.isActivated()) {
+                logger.debug("Session refresh request received");
+            }
 
-        	// Update last session refresh time
-			lastSessionRefresh = System.currentTimeMillis();
+            // Update last session refresh time
+            lastSessionRefresh = System.currentTimeMillis();
 
-			// Send 200 OK response
-        	if (logger.isActivated()) {
-        		logger.debug("Send 200 OK");
-        	}
-	        SipResponse resp = SipMessageFactory.create200OkUpdateResponse(session.getDialogPath(), update);
-	        session.getImsService().getImsModule().getSipManager().sendSipResponse(resp);
-		} catch(Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Session timer refresh has failed", e);
-			}
-		}
-	}
+            // Send 200 OK response
+            if (logger.isActivated()) {
+                logger.debug("Send 200 OK");
+            }
+            SipResponse resp = SipMessageFactory.create200OkUpdateResponse(session.getDialogPath(),
+                    update);
+            session.getImsService().getImsModule().getSipManager().sendSipResponse(resp);
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Session timer refresh has failed", e);
+            }
+        }
+    }
 }

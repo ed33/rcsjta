@@ -93,8 +93,8 @@ public class RtcpSession {
     public double timeOfLastRTPSent = 0;
 
     /**
-    * The last time an RTCP packet was transmitted.
-    */
+     * The last time an RTCP packet was transmitted.
+     */
     public double timeOfLastRTCPSent = 0;
 
     /**
@@ -128,9 +128,9 @@ public class RtcpSession {
     public long packetCount;
 
     /**
-    * Total Number of payload octets (i.e not including header or padding)
-    * sent out by this source since starting transmission.
-    */
+     * Total Number of payload octets (i.e not including header or padding) sent out by this source
+     * since starting transmission.
+     */
     public long octetCount;
 
     /**
@@ -215,7 +215,7 @@ public class RtcpSession {
         }
 
         // get interval
-        t = (double)avgrtcpsize * n / bandwidth;
+        t = (double) avgrtcpsize * n / bandwidth;
         if (t < rtcp_min_time)
             t = rtcp_min_time;
 
@@ -232,7 +232,7 @@ public class RtcpSession {
      * @param size
      */
     public void updateavgrtcpsize(int size) {
-        avgrtcpsize = (int)(0.0625 * (double)size + 0.9375 * (double)avgrtcpsize);
+        avgrtcpsize = (int) (0.0625 * (double) size + 0.9375 * (double) avgrtcpsize);
     }
 
     /**
@@ -251,6 +251,6 @@ public class RtcpSession {
      */
     public long currentTime() {
         tc = System.currentTimeMillis();
-        return (long)tc;
+        return (long) tc;
     }
 }

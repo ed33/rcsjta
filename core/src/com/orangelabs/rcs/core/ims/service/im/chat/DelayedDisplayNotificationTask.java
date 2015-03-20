@@ -8,13 +8,12 @@ package com.orangelabs.rcs.core.ims.service.im.chat;
 import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 
 /**
- * Delayed Display Notification Manager tries to dispatch all pending display
- * notifications
+ * Delayed Display Notification Manager tries to dispatch all pending display notifications
  */
 public class DelayedDisplayNotificationTask {
 
-	public DelayedDisplayNotificationTask(InstantMessagingService instantMessagingService) {
-		instantMessagingService.getImsModule().getCore().getListener()
-				.tryToDispatchAllPendingDisplayNotifications();
-	}
+    public DelayedDisplayNotificationTask(InstantMessagingService instantMessagingService) {
+        instantMessagingService.getImsModule().getCore().getListener()
+                .tryToDispatchAllPendingDisplayNotifications();
+    }
 }

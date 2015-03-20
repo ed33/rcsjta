@@ -22,30 +22,30 @@ import com.orangelabs.rcs.utils.DateUtils;
 
 public class OverridingWillingness {
 
-	private Basic basic = null;
-	
-	private long until = -1;
+    private Basic basic = null;
 
-	public OverridingWillingness(Basic basic) {
-		this.basic = basic;
-	}
+    private long until = -1;
 
-	public OverridingWillingness() {
-	}
+    public OverridingWillingness(Basic basic) {
+        this.basic = basic;
+    }
 
-	public Basic getBasic() {
-		return basic;
-	}
+    public OverridingWillingness() {
+    }
 
-	public void setBasic(Basic basic) {
-		this.basic = basic;
-	}
+    public Basic getBasic() {
+        return basic;
+    }
 
-	public long getUntilTimestamp() {
-		return until;
-	}
+    public void setBasic(Basic basic) {
+        this.basic = basic;
+    }
 
-	public void setUntilTimestamp(String ts) {
-		this.until = DateUtils.decodeDate(ts);
-	}	
+    public long getUntilTimestamp() {
+        return until;
+    }
+
+    public void setUntilTimestamp(String ts) {
+        this.until = DateUtils.decodeDate(ts);
+    }
 }

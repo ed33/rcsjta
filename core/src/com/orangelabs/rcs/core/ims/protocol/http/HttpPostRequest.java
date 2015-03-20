@@ -18,31 +18,29 @@
 
 package com.orangelabs.rcs.core.ims.protocol.http;
 
-
-
 /**
  * HTTP POST request
  * 
  * @author vfml3370
  */
 public class HttpPostRequest extends HttpRequest {
-	/**
-	 * Constructor
-	 * 
-	 * @param url URL
-	 * @param content Content
-	 * @param contentType Content type
-	 */
-	public HttpPostRequest(String url, String content, String contentType) {
-		super(url, content, contentType);
-	}
-	
-	/**
-	 * Returns the HTTP method
-	 * 
-	 * @return Method
-	 */
-	public String getMethod() {
-		return "POST";
-	}
+    /**
+     * Constructor
+     * 
+     * @param url URL
+     * @param content Content
+     * @param contentType Content type
+     */
+    public HttpPostRequest(String url, String content, String contentType) {
+        super(url, content, contentType);
+    }
+
+    /**
+     * Returns the HTTP method
+     * 
+     * @return Method
+     */
+    public String getMethod() {
+        return "POST";
+    }
 }

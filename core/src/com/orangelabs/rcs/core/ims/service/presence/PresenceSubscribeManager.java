@@ -49,7 +49,7 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author jexa7410
  */
 public class PresenceSubscribeManager extends SubscribeManager {
-	/**
+    /**
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
@@ -60,7 +60,7 @@ public class PresenceSubscribeManager extends SubscribeManager {
      * @param parent IMS module
      */
     public PresenceSubscribeManager(ImsModule parent) {
-    	super(parent);
+        super(parent);
     }
 
     /**
@@ -69,31 +69,32 @@ public class PresenceSubscribeManager extends SubscribeManager {
      * @return Presentity
      */
     public String getPresentity() {
-    	return ImsModule.IMS_USER_PROFILE.getPublicUri()+";pres-list=rcs";
-    }    
-    
+        return ImsModule.IMS_USER_PROFILE.getPublicUri() + ";pres-list=rcs";
+    }
+
     /**
      * Create a SUBSCRIBE request
      * 
-	 * @param dialog SIP dialog path
-	 * @param expirePeriod Expiration period
-	 * @return SIP request
-	 * @throws SipException
+     * @param dialog SIP dialog path
+     * @param expirePeriod Expiration period
+     * @return SIP request
+     * @throws SipException
      */
     public SipRequest createSubscribe(SipDialogPath dialog, int expirePeriod) throws SipException {
-    	// Create SUBSCRIBE message
-    	SipRequest subscribe = SipMessageFactory.createSubscribe(dialog, expirePeriod);
+        // Create SUBSCRIBE message
+        SipRequest subscribe = SipMessageFactory.createSubscribe(dialog, expirePeriod);
 
-    	// Set the Event header
-    	subscribe.addHeader(EventHeader.NAME, "presence");
+        // Set the Event header
+        subscribe.addHeader(EventHeader.NAME, "presence");
 
-    	// Set the Accept header
-    	subscribe.addHeader(AcceptHeader.NAME, "application/pidf+xml, application/rlmi+xml, multipart/related");
+        // Set the Accept header
+        subscribe.addHeader(AcceptHeader.NAME,
+                "application/pidf+xml, application/rlmi+xml, multipart/related");
 
-    	// Set the Supported header
-    	subscribe.addHeader(SupportedHeader.NAME, "eventlist");
+        // Set the Supported header
+        subscribe.addHeader(SupportedHeader.NAME, "eventlist");
 
-    	return subscribe;
+        return subscribe;
     }
 
     /**
@@ -102,87 +103,97 @@ public class PresenceSubscribeManager extends SubscribeManager {
      * @param notify Received notify
      */
     public void receiveNotification(SipRequest notify) {
-    	// Check notification
-    	if (!isNotifyForThisSubscriber(notify)) {
-    		return;
-    	}    	
-    	
-		if (logger.isActivated()) {
-			logger.debug("New presence notification received");
-		}    	
+        // Check notification
+        if (!isNotifyForThisSubscriber(notify)) {
+            return;
+        }
 
-		// Parse XML part
-	    String content = notify.getContent();
-		if (content != null) {
-	    	try {
-	    		String boundary = notify.getBoundaryContentType();
-				Multipart multi = new Multipart(content, boundary);
-			    if (multi.isMultipart()) {
-			    	// RLMI
-			    	String rlmiPart = multi.getPart("application/rlmi+xml");
-			    	if (rlmiPart != null) {
-    					try {
-	    	    			// Parse RLMI part
-	    					InputSource rlmiInput = new InputSource(new ByteArrayInputStream(rlmiPart.getBytes()));
-	    					RlmiParser rlmiParser = new RlmiParser(rlmiInput);
-	    					RlmiDocument rlmiInfo = rlmiParser.getResourceInfo();
-	    					Vector<ResourceInstance> list = rlmiInfo.getResourceList();
-	    					for(int i=0; i < list.size(); i++) {
-	    						ResourceInstance res = (ResourceInstance)list.elementAt(i);
-	    						ContactId contact = ContactUtils.createContactId(res.getUri());
-	    						String state = res.getState();
-	    						String reason = res.getReason();
-	    						
-	    						if ((state != null) && (reason != null)) {
-	    							if (state.equalsIgnoreCase("terminated") && reason.equalsIgnoreCase("rejected")) {
-	    								// It's a "terminated" event with status "rejected" the contact
-	    								// should be removed from the "rcs" list
-	    								getImsModule().getPresenceService().getXdmManager().removeContactFromGrantedList(contact);
-	    							}				
-	    							
-	    							// Notify listener
-	    					    	getImsModule().getCore().getListener().handlePresenceSharingNotification(
-	    					    			contact, state, reason);
-	    						}
-	    					}
-    			    	} catch(Exception e) {
-    			    		if (logger.isActivated()) {
-    			    			logger.error("Can't parse RLMI notification", e);
-    			    		}
-    			    	}
-			    	}
+        if (logger.isActivated()) {
+            logger.debug("New presence notification received");
+        }
 
-			    	// PIDF 
-			    	String pidfPart = multi.getPart("application/pidf+xml");
-					try {
-    	    			// Parse PIDF part
-						InputSource pidfInput = new InputSource(new ByteArrayInputStream(pidfPart.getBytes()));
-    					PidfParser pidfParser = new PidfParser(pidfInput);
-    					PidfDocument presenceInfo = pidfParser.getPresence();
+        // Parse XML part
+        String content = notify.getContent();
+        if (content != null) {
+            try {
+                String boundary = notify.getBoundaryContentType();
+                Multipart multi = new Multipart(content, boundary);
+                if (multi.isMultipart()) {
+                    // RLMI
+                    String rlmiPart = multi.getPart("application/rlmi+xml");
+                    if (rlmiPart != null) {
+                        try {
+                            // Parse RLMI part
+                            InputSource rlmiInput = new InputSource(new ByteArrayInputStream(
+                                    rlmiPart.getBytes()));
+                            RlmiParser rlmiParser = new RlmiParser(rlmiInput);
+                            RlmiDocument rlmiInfo = rlmiParser.getResourceInfo();
+                            Vector<ResourceInstance> list = rlmiInfo.getResourceList();
+                            for (int i = 0; i < list.size(); i++) {
+                                ResourceInstance res = (ResourceInstance) list.elementAt(i);
+                                ContactId contact = ContactUtils.createContactId(res.getUri());
+                                String state = res.getState();
+                                String reason = res.getReason();
 
-						ContactId contact = ContactUtils.createContactId(presenceInfo.getEntity());
-						// Notify listener
-						getImsModule().getCore().getListener().handlePresenceInfoNotification(contact, presenceInfo);
-			    	} catch(Exception e) {
-			    		if (logger.isActivated()) {
-			    			logger.error("Can't parse PIDF notification", e);
-			    		}
-			    	}
-			    }
-	    	} catch(Exception e) {
-	    		if (logger.isActivated()) {
-	    			logger.error("Can't parse presence notification", e);
-	    		}
-	    	}
-	    	
-			// Check subscription state
-	    	SubscriptionStateHeader stateHeader = (SubscriptionStateHeader)notify.getHeader(SubscriptionStateHeader.NAME);
-	    	if ((stateHeader != null) && stateHeader.getState().equalsIgnoreCase("terminated")) {
-				if (logger.isActivated()) {
-					logger.info("Presence subscription has been terminated by server");
-				}
-				terminatedByServer();
-			}
-		}
-    }   
+                                if ((state != null) && (reason != null)) {
+                                    if (state.equalsIgnoreCase("terminated")
+                                            && reason.equalsIgnoreCase("rejected")) {
+                                        // It's a "terminated" event with status "rejected" the
+                                        // contact
+                                        // should be removed from the "rcs" list
+                                        getImsModule().getPresenceService().getXdmManager()
+                                                .removeContactFromGrantedList(contact);
+                                    }
+
+                                    // Notify listener
+                                    getImsModule()
+                                            .getCore()
+                                            .getListener()
+                                            .handlePresenceSharingNotification(contact, state,
+                                                    reason);
+                                }
+                            }
+                        } catch (Exception e) {
+                            if (logger.isActivated()) {
+                                logger.error("Can't parse RLMI notification", e);
+                            }
+                        }
+                    }
+
+                    // PIDF
+                    String pidfPart = multi.getPart("application/pidf+xml");
+                    try {
+                        // Parse PIDF part
+                        InputSource pidfInput = new InputSource(new ByteArrayInputStream(
+                                pidfPart.getBytes()));
+                        PidfParser pidfParser = new PidfParser(pidfInput);
+                        PidfDocument presenceInfo = pidfParser.getPresence();
+
+                        ContactId contact = ContactUtils.createContactId(presenceInfo.getEntity());
+                        // Notify listener
+                        getImsModule().getCore().getListener()
+                                .handlePresenceInfoNotification(contact, presenceInfo);
+                    } catch (Exception e) {
+                        if (logger.isActivated()) {
+                            logger.error("Can't parse PIDF notification", e);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                if (logger.isActivated()) {
+                    logger.error("Can't parse presence notification", e);
+                }
+            }
+
+            // Check subscription state
+            SubscriptionStateHeader stateHeader = (SubscriptionStateHeader) notify
+                    .getHeader(SubscriptionStateHeader.NAME);
+            if ((stateHeader != null) && stateHeader.getState().equalsIgnoreCase("terminated")) {
+                if (logger.isActivated()) {
+                    logger.info("Presence subscription has been terminated by server");
+                }
+                terminatedByServer();
+            }
+        }
+    }
 }

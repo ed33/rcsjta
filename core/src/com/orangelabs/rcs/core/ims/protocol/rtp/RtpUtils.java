@@ -26,8 +26,8 @@ package com.orangelabs.rcs.core.ims.protocol.rtp;
 public class RtpUtils {
 
     /**
-     * RTP Extension ID used by the client. The extension ID is a value between
-     * 1 and 15 arbitrarily chosen by the sender, as defined in RFC5285
+     * RTP Extension ID used by the client. The extension ID is a value between 1 and 15 arbitrarily
+     * chosen by the sender, as defined in RFC5285
      */
     public static final int RTP_DEFAULT_EXTENSION_ID = 9;
 }

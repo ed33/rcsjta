@@ -58,242 +58,242 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * 
  * @author jexa7410
  */
-public class TerminatingGeolocTransferSession extends GeolocTransferSession implements MsrpEventListener {
-	/**
-	 * MSRP manager
-	 */
-	private MsrpManager msrpMgr;
-	
-	/**
+public class TerminatingGeolocTransferSession extends GeolocTransferSession implements
+        MsrpEventListener {
+    /**
+     * MSRP manager
+     */
+    private MsrpManager msrpMgr;
+
+    /**
      * The logger
      */
-    private final static Logger logger = Logger.getLogger(TerminatingGeolocTransferSession.class.getSimpleName());
+    private final static Logger logger = Logger.getLogger(TerminatingGeolocTransferSession.class
+            .getSimpleName());
 
     /**
      * Constructor
      * 
-	 * @param parent IMS service
-	 * @param invite Initial INVITE request
-	 * @param contact Contact Id
-	 */
-	public TerminatingGeolocTransferSession(ImsService parent, SipRequest invite, ContactId contact) {
-		super(parent, ContentManager.createMmContentFromSdp(invite), contact);
+     * @param parent IMS service
+     * @param invite Initial INVITE request
+     * @param contact Contact Id
+     */
+    public TerminatingGeolocTransferSession(ImsService parent, SipRequest invite, ContactId contact) {
+        super(parent, ContentManager.createMmContentFromSdp(invite), contact);
 
-		// Create dialog path
-		createTerminatingDialogPath(invite);
-	}
-	
-	/**
-	 * Background processing
-	 */
-	public void run() {
-		try {
-	    	if (logger.isActivated()) {
-	    		logger.info("Initiate a new sharing session as terminating");
-	    	}
+        // Create dialog path
+        createTerminatingDialogPath(invite);
+    }
 
-	    	send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+    /**
+     * Background processing
+     */
+    public void run() {
+        try {
+            if (logger.isActivated()) {
+                logger.info("Initiate a new sharing session as terminating");
+            }
 
-	    	// Check if the MIME type is supported
-	    	if (getContent() == null) {
-	    		if (logger.isActivated()){
-    				logger.debug("MIME type is not supported");
-    			}
+            send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
-    			// Send a 415 Unsupported media type response
-				send415Error(getDialogPath().getInvite());
+            // Check if the MIME type is supported
+            if (getContent() == null) {
+                if (logger.isActivated()) {
+                    logger.debug("MIME type is not supported");
+                }
 
-				// Unsupported media type
-				handleError(new ContentSharingError(ContentSharingError.UNSUPPORTED_MEDIA_TYPE));
-        		return;
-        	}
+                // Send a 415 Unsupported media type response
+                send415Error(getDialogPath().getInvite());
 
-			Collection<ImsSessionListener> listeners = getListeners();
-			for (ImsSessionListener listener : listeners) {
-				listener.handleSessionInvited();
-			}
+                // Unsupported media type
+                handleError(new ContentSharingError(ContentSharingError.UNSUPPORTED_MEDIA_TYPE));
+                return;
+            }
 
-			int answer = waitInvitationAnswer();
-			switch (answer) {
-				case ImsServiceSession.INVITATION_REJECTED:
-					if (logger.isActivated()) {
-						logger.debug("Session has been rejected by user");
-					}
+            Collection<ImsSessionListener> listeners = getListeners();
+            for (ImsSessionListener listener : listeners) {
+                listener.handleSessionInvited();
+            }
 
-					removeSession();
+            int answer = waitInvitationAnswer();
+            switch (answer) {
+                case ImsServiceSession.INVITATION_REJECTED:
+                    if (logger.isActivated()) {
+                        logger.debug("Session has been rejected by user");
+                    }
 
-					for (ImsSessionListener listener : listeners) {
-						listener.handleSessionRejectedByUser();
-					}
-					return;
+                    removeSession();
 
-				case ImsServiceSession.INVITATION_NOT_ANSWERED:
-					if (logger.isActivated()) {
-						logger.debug("Session has been rejected on timeout");
-					}
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionRejectedByUser();
+                    }
+                    return;
 
-					// Ringing period timeout
-					send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+                case ImsServiceSession.INVITATION_NOT_ANSWERED:
+                    if (logger.isActivated()) {
+                        logger.debug("Session has been rejected on timeout");
+                    }
 
-					removeSession();
+                    // Ringing period timeout
+                    send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
-					for (ImsSessionListener listener : listeners) {
-						listener.handleSessionRejectedByTimeout();
-					}
-					return;
+                    removeSession();
 
-				case ImsServiceSession.INVITATION_CANCELED:
-					if (logger.isActivated()) {
-						logger.debug("Session has been rejected by remote");
-					}
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionRejectedByTimeout();
+                    }
+                    return;
 
-					removeSession();
+                case ImsServiceSession.INVITATION_CANCELED:
+                    if (logger.isActivated()) {
+                        logger.debug("Session has been rejected by remote");
+                    }
 
-					for (ImsSessionListener listener : listeners) {
-						listener.handleSessionRejectedByRemote();
-					}
-					return;
-				case ImsServiceSession.INVITATION_ACCEPTED:
-					setSessionAccepted();
+                    removeSession();
 
-					for (ImsSessionListener listener : listeners) {
-						listener.handleSessionAccepted();
-					}
-					break;
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionRejectedByRemote();
+                    }
+                    return;
+                case ImsServiceSession.INVITATION_ACCEPTED:
+                    setSessionAccepted();
 
-				default:
-					if (logger.isActivated()) {
-						logger.debug("Unknown invitation answer in run; answer="
-									.concat(String.valueOf(answer)));
-					}
-					return;
-			}
+                    for (ImsSessionListener listener : listeners) {
+                        listener.handleSessionAccepted();
+                    }
+                    break;
 
-	    	// Parse the remote SDP part
-			String remoteSdp = getDialogPath().getInvite().getSdpContent();
-        	SdpParser parser = new SdpParser(remoteSdp.getBytes());
-    		Vector<MediaDescription> media = parser.getMediaDescriptions();
-			MediaDescription mediaDesc = media.elementAt(0);
-			MediaAttribute attr1 = mediaDesc.getMediaAttribute("file-selector");
+                default:
+                    if (logger.isActivated()) {
+                        logger.debug("Unknown invitation answer in run; answer=".concat(String
+                                .valueOf(answer)));
+                    }
+                    return;
+            }
+
+            // Parse the remote SDP part
+            String remoteSdp = getDialogPath().getInvite().getSdpContent();
+            SdpParser parser = new SdpParser(remoteSdp.getBytes());
+            Vector<MediaDescription> media = parser.getMediaDescriptions();
+            MediaDescription mediaDesc = media.elementAt(0);
+            MediaAttribute attr1 = mediaDesc.getMediaAttribute("file-selector");
             String fileSelector = attr1.getName() + ":" + attr1.getValue();
-			MediaAttribute attr2 = mediaDesc.getMediaAttribute("file-transfer-id");
+            MediaAttribute attr2 = mediaDesc.getMediaAttribute("file-transfer-id");
             String fileTransferId = attr2.getName() + ":" + attr2.getValue();
-			MediaAttribute attr3 = mediaDesc.getMediaAttribute("path");
+            MediaAttribute attr3 = mediaDesc.getMediaAttribute("path");
             String remotePath = attr3.getValue();
             String remoteHost = SdpUtils.extractRemoteHost(parser.sessionDescription, mediaDesc);
-    		int remotePort = mediaDesc.port;
-			
+            int remotePort = mediaDesc.port;
+
             // Extract the "setup" parameter
             String remoteSetup = "passive";
-			MediaAttribute attr4 = mediaDesc.getMediaAttribute("setup");
-			if (attr4 != null) {
-				remoteSetup = attr4.getValue();
-			}
-            if (logger.isActivated()){
-				logger.debug("Remote setup attribute is " + remoteSetup);
-			}
-            
-    		// Set setup mode
+            MediaAttribute attr4 = mediaDesc.getMediaAttribute("setup");
+            if (attr4 != null) {
+                remoteSetup = attr4.getValue();
+            }
+            if (logger.isActivated()) {
+                logger.debug("Remote setup attribute is " + remoteSetup);
+            }
+
+            // Set setup mode
             String localSetup = createSetupAnswer(remoteSetup);
-            if (logger.isActivated()){
-				logger.debug("Local setup attribute is " + localSetup);
-			}
+            if (logger.isActivated()) {
+                logger.debug("Local setup attribute is " + localSetup);
+            }
 
-    		// Set local port
-	    	int localMsrpPort;
-	    	if (localSetup.equals("active")) {
-		    	localMsrpPort = 9; // See RFC4145, Page 4
-	    	} else {
-				localMsrpPort = NetworkRessourceManager.generateLocalMsrpPort();
-	    	}
-	    	
+            // Set local port
+            int localMsrpPort;
+            if (localSetup.equals("active")) {
+                localMsrpPort = 9; // See RFC4145, Page 4
+            } else {
+                localMsrpPort = NetworkRessourceManager.generateLocalMsrpPort();
+            }
+
             // Create the MSRP manager
-			String localIpAddress = getImsService().getImsModule().getCurrentNetworkInterface().getNetworkAccess().getIpAddress();
-			msrpMgr = new MsrpManager(localIpAddress, localMsrpPort);
-    		
-			// Build SDP part
-	    	String ntpTime = SipUtils.constructNTPtime(System.currentTimeMillis());
-	    	String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
-	    	String sdp =
-	    		"v=0" + SipUtils.CRLF +
-	            "o=- " + ntpTime + " " + ntpTime + " " + SdpUtils.formatAddressType(ipAddress) + SipUtils.CRLF +
-	            "s=-" + SipUtils.CRLF +
-				"c=" + SdpUtils.formatAddressType(ipAddress) + SipUtils.CRLF +
-	            "t=0 0" + SipUtils.CRLF +			
-	            "m=message " + localMsrpPort + " TCP/MSRP *" + SipUtils.CRLF +
-	            "a=" + fileSelector + SipUtils.CRLF +
-	    		"a=" + fileTransferId + SipUtils.CRLF +
-	            "a=accept-types:" + getContent().getEncoding() + SipUtils.CRLF +
-	            "a=setup:" + localSetup + SipUtils.CRLF +
-	            "a=path:" + msrpMgr.getLocalMsrpPath() + SipUtils.CRLF +
-	    		"a=recvonly" + SipUtils.CRLF;
+            String localIpAddress = getImsService().getImsModule().getCurrentNetworkInterface()
+                    .getNetworkAccess().getIpAddress();
+            msrpMgr = new MsrpManager(localIpAddress, localMsrpPort);
 
-	    	// Set the local SDP part in the dialog path
-	        getDialogPath().setLocalContent(sdp);
+            // Build SDP part
+            String ntpTime = SipUtils.constructNTPtime(System.currentTimeMillis());
+            String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
+            String sdp = "v=0" + SipUtils.CRLF + "o=- " + ntpTime + " " + ntpTime + " "
+                    + SdpUtils.formatAddressType(ipAddress) + SipUtils.CRLF + "s=-" + SipUtils.CRLF
+                    + "c=" + SdpUtils.formatAddressType(ipAddress) + SipUtils.CRLF + "t=0 0"
+                    + SipUtils.CRLF + "m=message " + localMsrpPort + " TCP/MSRP *" + SipUtils.CRLF
+                    + "a=" + fileSelector + SipUtils.CRLF + "a=" + fileTransferId + SipUtils.CRLF
+                    + "a=accept-types:" + getContent().getEncoding() + SipUtils.CRLF + "a=setup:"
+                    + localSetup + SipUtils.CRLF + "a=path:" + msrpMgr.getLocalMsrpPath()
+                    + SipUtils.CRLF + "a=recvonly" + SipUtils.CRLF;
 
-	        // Test if the session should be interrupted
+            // Set the local SDP part in the dialog path
+            getDialogPath().setLocalContent(sdp);
+
+            // Test if the session should be interrupted
             if (isInterrupted()) {
-            	if (logger.isActivated()) {
-            		logger.debug("Session has been interrupted: end of processing");
-            	}
-            	return;
+                if (logger.isActivated()) {
+                    logger.debug("Session has been interrupted: end of processing");
+                }
+                return;
             }
 
             // Create the MSRP server session
             if (localSetup.equals("passive")) {
-            	// Passive mode: client wait a connection
-            	msrpMgr.createMsrpServerSession(remotePath, this);
-            	
-    			// Open the connection
-    			Thread thread = new Thread(){
-    				public void run(){
-    					try {
-    						// Open the MSRP session
-    						msrpMgr.openMsrpSession(GeolocTransferSession.DEFAULT_SO_TIMEOUT);
+                // Passive mode: client wait a connection
+                msrpMgr.createMsrpServerSession(remotePath, this);
 
-			    	        // Send an empty packet
-			            	sendEmptyDataChunk();
-    					} catch (IOException e) {
-							if (logger.isActivated()) {
-				        		logger.error("Can't create the MSRP server session", e);
-				        	}
-						}		
-    				}
-    			};
-    			thread.start();            
-    		}
-            
+                // Open the connection
+                Thread thread = new Thread() {
+                    public void run() {
+                        try {
+                            // Open the MSRP session
+                            msrpMgr.openMsrpSession(GeolocTransferSession.DEFAULT_SO_TIMEOUT);
+
+                            // Send an empty packet
+                            sendEmptyDataChunk();
+                        } catch (IOException e) {
+                            if (logger.isActivated()) {
+                                logger.error("Can't create the MSRP server session", e);
+                            }
+                        }
+                    }
+                };
+                thread.start();
+            }
+
             // Create a 200 OK response
-        	if (logger.isActivated()) {
-        		logger.info("Send 200 OK");
-        	}
+            if (logger.isActivated()) {
+                logger.info("Send 200 OK");
+            }
             SipResponse resp = SipMessageFactory.create200OkInviteResponse(getDialogPath(),
-            		RichcallService.FEATURE_TAGS_GEOLOC_SHARE, sdp);
+                    RichcallService.FEATURE_TAGS_GEOLOC_SHARE, sdp);
 
             // The signalisation is established
             getDialogPath().sigEstablished();
 
-	        // Send response
-            SipTransactionContext ctx = getImsService().getImsModule().getSipManager().sendSipMessageAndWait(resp);
+            // Send response
+            SipTransactionContext ctx = getImsService().getImsModule().getSipManager()
+                    .sendSipMessageAndWait(resp);
 
-            // Analyze the received response 
+            // Analyze the received response
             if (ctx.isSipAck()) {
-    	        // ACK received
-    			if (logger.isActivated()) {
-    				logger.info("ACK request received");
-    			}
+                // ACK received
+                if (logger.isActivated()) {
+                    logger.info("ACK request received");
+                }
 
-    	        // Create the MSRP client session
+                // Create the MSRP client session
                 if (localSetup.equals("active")) {
-                	String fingerprint = SdpUtils.extractFingerprint(parser, mediaDesc);
-                	// Active mode: client should connect
-                	msrpMgr.createMsrpClientSession(remoteHost, remotePort, remotePath, this, fingerprint);
+                    String fingerprint = SdpUtils.extractFingerprint(parser, mediaDesc);
+                    // Active mode: client should connect
+                    msrpMgr.createMsrpClientSession(remoteHost, remotePort, remotePath, this,
+                            fingerprint);
 
-					// Open the MSRP session
-					msrpMgr.openMsrpSession(GeolocTransferSession.DEFAULT_SO_TIMEOUT);
-					
-	    	        // Send an empty packet
-	            	sendEmptyDataChunk();
+                    // Open the MSRP session
+                    msrpMgr.openMsrpSession(GeolocTransferSession.DEFAULT_SO_TIMEOUT);
+
+                    // Send an empty packet
+                    sendEmptyDataChunk();
                 }
 
                 // The session is established
@@ -301,99 +301,103 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
 
                 for (ImsSessionListener listener : listeners) {
                     listener.handleSessionStarted();
-            }
+                }
 
-            	// Start session timer
-            	if (getSessionTimerManager().isSessionTimerActivated(resp)) {        	
-            		getSessionTimerManager().start(SessionTimerManager.UAS_ROLE, getDialogPath().getSessionExpireTime());
-            	}
+                // Start session timer
+                if (getSessionTimerManager().isSessionTimerActivated(resp)) {
+                    getSessionTimerManager().start(SessionTimerManager.UAS_ROLE,
+                            getDialogPath().getSessionExpireTime());
+                }
             } else {
-        		if (logger.isActivated()) {
-            		logger.debug("No ACK received for INVITE");
-            	}
+                if (logger.isActivated()) {
+                    logger.debug("No ACK received for INVITE");
+                }
 
-        		// No response received: timeout
-            	handleError(new ContentSharingError(ContentSharingError.SESSION_INITIATION_FAILED));
+                // No response received: timeout
+                handleError(new ContentSharingError(ContentSharingError.SESSION_INITIATION_FAILED));
             }
-		} catch(Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Session initiation has failed", e);
-        	}
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Session initiation has failed", e);
+            }
 
-        	// Unexpected error
-			handleError(new ContentSharingError(ContentSharingError.UNEXPECTED_EXCEPTION,
-					e.getMessage()));
-		}		
+            // Unexpected error
+            handleError(new ContentSharingError(ContentSharingError.UNEXPECTED_EXCEPTION,
+                    e.getMessage()));
+        }
 
-		if (logger.isActivated()) {
-    		logger.debug("End of thread");
-    	}
-	}
+        if (logger.isActivated()) {
+            logger.debug("End of thread");
+        }
+    }
 
-	/**
-	 * Send an empty data chunk
-	 */
-	public void sendEmptyDataChunk() {
-		try {
-			msrpMgr.sendEmptyChunk();
-		} catch(Exception e) {
-	   		if (logger.isActivated()) {
-	   			logger.error("Problem while sending empty data chunk", e);
-	   		}
-		}
-	}	
+    /**
+     * Send an empty data chunk
+     */
+    public void sendEmptyDataChunk() {
+        try {
+            msrpMgr.sendEmptyChunk();
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Problem while sending empty data chunk", e);
+            }
+        }
+    }
 
-	/**
-	 * Data has been transfered
-	 * 
-	 * @param msgId Message ID
-	 */
-	public void msrpDataTransfered(String msgId) {
-		// Not used in terminating side
-	}
-	
-	/**
-	 * Data transfer has been received
-	 * 
-	 * @param msgId Message ID
+    /**
+     * Data has been transfered
+     * 
+     * @param msgId Message ID
+     */
+    public void msrpDataTransfered(String msgId) {
+        // Not used in terminating side
+    }
+
+    /**
+     * Data transfer has been received
+     * 
+     * @param msgId Message ID
      * @param data Last received data chunk
-	 * @param mimeType Data mime-type 
-	 */
-	public void msrpDataReceived(String msgId, byte[] data, String mimeType) {
-    	if (logger.isActivated()) {
-    		logger.info("Data received");
-    	}
-    	
-	   	try {
-            // Parse received geoloc info
-			String geolocDoc = new String(data);
-            GeolocPush geoloc = ChatUtils.parseGeolocDocument(geolocDoc);
-        	
-        	// Set geoloc
-        	setGeoloc(geoloc);
-        	
-        	// Geoloc has been transfered
-        	geolocTransfered();
+     * @param mimeType Data mime-type
+     */
+    public void msrpDataReceived(String msgId, byte[] data, String mimeType) {
+        if (logger.isActivated()) {
+            logger.info("Data received");
+        }
 
-        	// Notify listeners
-	    	for(int j=0; j < getListeners().size(); j++) {
-	    		((GeolocTransferSessionListener)getListeners().get(j)).handleContentTransfered(geoloc);
-	    	}
-	   	} catch(Exception e) {
-	   		// Notify listeners
-	    	for(int j=0; j < getListeners().size(); j++) {
-	    		((GeolocTransferSessionListener)getListeners().get(j)).handleSharingError(new ContentSharingError(ContentSharingError.MEDIA_TRANSFER_FAILED));
-	    	}
-	   	}
-	}
-    
-	/**
-	 * Data transfer in progress
-	 * 
-	 * @param currentSize Current transfered size in bytes
-	 * @param totalSize Total size in bytes
-	 */
-	public void msrpTransferProgress(long currentSize, long totalSize) {
+        try {
+            // Parse received geoloc info
+            String geolocDoc = new String(data);
+            GeolocPush geoloc = ChatUtils.parseGeolocDocument(geolocDoc);
+
+            // Set geoloc
+            setGeoloc(geoloc);
+
+            // Geoloc has been transfered
+            geolocTransfered();
+
+            // Notify listeners
+            for (int j = 0; j < getListeners().size(); j++) {
+                ((GeolocTransferSessionListener) getListeners().get(j))
+                        .handleContentTransfered(geoloc);
+            }
+        } catch (Exception e) {
+            // Notify listeners
+            for (int j = 0; j < getListeners().size(); j++) {
+                ((GeolocTransferSessionListener) getListeners().get(j))
+                        .handleSharingError(new ContentSharingError(
+                                ContentSharingError.MEDIA_TRANSFER_FAILED));
+            }
+        }
+    }
+
+    /**
+     * Data transfer in progress
+     * 
+     * @param currentSize Current transfered size in bytes
+     * @param totalSize Total size in bytes
+     */
+    public void msrpTransferProgress(long currentSize, long totalSize) {
         // Not used
     }
 
@@ -407,16 +411,16 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
     public boolean msrpTransferProgress(long currentSize, long totalSize, byte[] data) {
         // Not used for geolocation sharing
         return true;
-	}
+    }
 
-	/**
-	 * Data transfer has been aborted
-	 */
-	public void msrpTransferAborted() {
-    	if (logger.isActivated()) {
-    		logger.info("Data transfer aborted");
-    	}
-	}
+    /**
+     * Data transfer has been aborted
+     */
+    public void msrpTransferAborted() {
+        if (logger.isActivated()) {
+            logger.info("Data transfer aborted");
+        }
+    }
 
     /**
      * Data transfer error
@@ -430,39 +434,42 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
             return;
         }
 
-		if (logger.isActivated()) {
+        if (logger.isActivated()) {
             logger.info("Data transfer error " + error);
-    	}
+        }
 
         // Close the media session
         closeMediaSession();
-        
-		// Terminate session
-		terminateSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
+
+        // Terminate session
+        terminateSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
 
         try {
-			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
-			// Request capabilities to the remote
-	        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
-		} catch (RcsContactFormatException e) {
-			if (logger.isActivated()) {
-				logger.warn("Cannot parse contact "+getDialogPath().getRemoteParty());
-			}
-		}
-        
-    	// Remove the current session
-    	removeSession();
-
-    	// Notify listeners
-    	for(int j=0; j < getListeners().size(); j++) {
-    		((GeolocTransferSessionListener)getListeners().get(j)).handleSharingError(new ContentSharingError(ContentSharingError.MEDIA_TRANSFER_FAILED, error));
+            ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+            // Request capabilities to the remote
+            getImsService().getImsModule().getCapabilityService()
+                    .requestContactCapabilities(remote);
+        } catch (RcsContactFormatException e) {
+            if (logger.isActivated()) {
+                logger.warn("Cannot parse contact " + getDialogPath().getRemoteParty());
+            }
         }
-	}
+
+        // Remove the current session
+        removeSession();
+
+        // Notify listeners
+        for (int j = 0; j < getListeners().size(); j++) {
+            ((GeolocTransferSessionListener) getListeners().get(j))
+                    .handleSharingError(new ContentSharingError(
+                            ContentSharingError.MEDIA_TRANSFER_FAILED, error));
+        }
+    }
 
     /**
      * Prepare media session
      * 
-     * @throws Exception 
+     * @throws Exception
      */
     public void prepareMediaSession() throws Exception {
         // Nothing to do in terminating side
@@ -471,7 +478,7 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
     /**
      * Start media session
      * 
-     * @throws Exception 
+     * @throws Exception
      */
     public void startMediaSession() throws Exception {
         // Nothing to do in terminating side
@@ -490,9 +497,8 @@ public class TerminatingGeolocTransferSession extends GeolocTransferSession impl
         }
     }
 
-	@Override
-	public boolean isInitiatedByRemote() {
-		return true;
-	}
+    @Override
+    public boolean isInitiatedByRemote() {
+        return true;
+    }
 }
-

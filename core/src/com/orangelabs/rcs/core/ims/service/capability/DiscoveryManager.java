@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.capability;
 
 import com.gsma.services.rcs.contacts.ContactId;
@@ -25,7 +26,7 @@ import com.gsma.services.rcs.contacts.ContactId;
  * @author jexa7410
  */
 public interface DiscoveryManager {
-	/**
+    /**
      * Request contact capabilities
      * 
      * @param contact Remote contact identifier

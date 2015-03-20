@@ -46,95 +46,93 @@ import java.util.Arrays;
  * @author jexa7410
  */
 public abstract class ImageTransferSession extends ContentSharingSession {
-	/**
-	 * Boundary tag
-	 */
-	private final static String BOUNDARY_TAG = "boundary1";
-	
-	/**
-	 * Default SO_TIMEOUT value (in seconds)
-	 */
-	public final static int DEFAULT_SO_TIMEOUT = 30;
-	
-	/**
-	 * Image transfered
-	 */
-	private boolean imageTransfered = false;
+    /**
+     * Boundary tag
+     */
+    private final static String BOUNDARY_TAG = "boundary1";
 
-	/**
-	 * Thumbnail
-	 */
-	MmContent thumbnail;
-    
+    /**
+     * Default SO_TIMEOUT value (in seconds)
+     */
+    public final static int DEFAULT_SO_TIMEOUT = 30;
+
+    /**
+     * Image transfered
+     */
+    private boolean imageTransfered = false;
+
+    /**
+     * Thumbnail
+     */
+    MmContent thumbnail;
+
     /**
      * The logger
      */
-    private static final Logger logger = Logger.getLogger(ImageTransferSession.class.getSimpleName());
+    private static final Logger logger = Logger.getLogger(ImageTransferSession.class
+            .getSimpleName());
 
     /**
-	 * Constructor
-	 * 
-	 * @param parent IMS service
-	 * @param content Content to be shared
-	 * @param contact Remote contact Id
-	 * @param thumbnail The thumbnail content
-	 */
-	public ImageTransferSession(ImsService parent, MmContent content, ContactId contact, MmContent thumbnail) {
-		super(parent, content, contact);
-		
-		this.thumbnail = thumbnail;
-		setFeatureTags(new ArrayList<String>(Arrays.asList(RichcallService.FEATURE_TAGS_IMAGE_SHARE)));
-	}
-	
-	/**
-	 * Image has been transfered
-	 */
-	public void imageTransfered() {
-		this.imageTransfered = true;
-	}
-	
-	/**
-	 * Is image transfered
-	 * 
-	 * @retrurn Boolean
-	 */
-	public boolean isImageTransfered() {
-		return imageTransfered; 
-	}
-	
-	/**
-	 * Returns max image sharing size
-	 * 
-	 * @return Size in bytes
-	 */
-	public static int getMaxImageSharingSize() {
-		return RcsSettings.getInstance().getMaxImageSharingSize()*1024;
-	}
+     * Constructor
+     * 
+     * @param parent IMS service
+     * @param content Content to be shared
+     * @param contact Remote contact Id
+     * @param thumbnail The thumbnail content
+     */
+    public ImageTransferSession(ImsService parent, MmContent content, ContactId contact,
+            MmContent thumbnail) {
+        super(parent, content, contact);
+
+        this.thumbnail = thumbnail;
+        setFeatureTags(new ArrayList<String>(
+                Arrays.asList(RichcallService.FEATURE_TAGS_IMAGE_SHARE)));
+    }
+
+    /**
+     * Image has been transfered
+     */
+    public void imageTransfered() {
+        this.imageTransfered = true;
+    }
+
+    /**
+     * Is image transfered
+     * 
+     * @retrurn Boolean
+     */
+    public boolean isImageTransfered() {
+        return imageTransfered;
+    }
+
+    /**
+     * Returns max image sharing size
+     * 
+     * @return Size in bytes
+     */
+    public static int getMaxImageSharingSize() {
+        return RcsSettings.getInstance().getMaxImageSharingSize() * 1024;
+    }
 
     /**
      * Create an INVITE request
      *
      * @return the INVITE request
-     * @throws SipException 
+     * @throws SipException
      */
     public SipRequest createInvite() throws SipException {
-    	
-    	if (thumbnail != null) {
-	        return SipMessageFactory.createMultipartInvite(
-	                getDialogPath(),
-	                getFeatureTags(),
-	                getDialogPath().getLocalContent(),
-	                BOUNDARY_TAG);
-    	} else {
-	        return SipMessageFactory.createInvite(
-	                getDialogPath(),
-	                getFeatureTags(),
-	                getDialogPath().getLocalContent());
-    	}
+
+        if (thumbnail != null) {
+            return SipMessageFactory.createMultipartInvite(getDialogPath(), getFeatureTags(),
+                    getDialogPath().getLocalContent(), BOUNDARY_TAG);
+        } else {
+            return SipMessageFactory.createInvite(getDialogPath(), getFeatureTags(),
+                    getDialogPath().getLocalContent());
+        }
     }
-    
+
     /**
-     * Handle error 
+     * Handle error
      *
      * @param error Error
      */
@@ -155,8 +153,9 @@ public abstract class ImageTransferSession extends ContentSharingSession {
         removeSession();
 
         // Notify listeners
-        for(int j=0; j < getListeners().size(); j++) {
-            ((ImageTransferSessionListener)getListeners().get(j)).handleSharingError(new ContentSharingError(error));
+        for (int j = 0; j < getListeners().size(); j++) {
+            ((ImageTransferSessionListener) getListeners().get(j))
+                    .handleSharingError(new ContentSharingError(error));
         }
     }
 
@@ -166,42 +165,44 @@ public abstract class ImageTransferSession extends ContentSharingSession {
      * @return Thumbnail
      */
     public MmContent getThumbnail() {
-    	return thumbnail;
+        return thumbnail;
     }
 
-	/**
-	 * Check if image capacity is acceptable
-	 * 
-	 * @param imageSize Image size in bytes
-	 * @return Error or null if image capacity is acceptable
-	 */
-	public static ContentSharingError isImageCapacityAcceptable(long imageSize) {
-		boolean fileIsToBig = (ImageTransferSession.getMaxImageSharingSize() > 0) ? imageSize > ImageTransferSession.getMaxImageSharingSize() : false;
-		boolean storageIsTooSmall = (StorageUtils.getExternalStorageFreeSpace() > 0) ? imageSize > StorageUtils.getExternalStorageFreeSpace() : false;
-		if (fileIsToBig) {
-			if (logger.isActivated()) {
-				logger.warn("Image is too big, reject the image sharing");
-			}
-			return new ContentSharingError(ContentSharingError.MEDIA_SIZE_TOO_BIG);
-		} else {
-			if (storageIsTooSmall) {
-				if (logger.isActivated()) {
-					logger.warn("Not enough storage capacity, reject the image sharing");
-				}
-				return new ContentSharingError(ContentSharingError.NOT_ENOUGH_STORAGE_SPACE);
-			}
-		}
-		return null;
-	}
+    /**
+     * Check if image capacity is acceptable
+     * 
+     * @param imageSize Image size in bytes
+     * @return Error or null if image capacity is acceptable
+     */
+    public static ContentSharingError isImageCapacityAcceptable(long imageSize) {
+        boolean fileIsToBig = (ImageTransferSession.getMaxImageSharingSize() > 0) ? imageSize > ImageTransferSession
+                .getMaxImageSharingSize() : false;
+        boolean storageIsTooSmall = (StorageUtils.getExternalStorageFreeSpace() > 0) ? imageSize > StorageUtils
+                .getExternalStorageFreeSpace() : false;
+        if (fileIsToBig) {
+            if (logger.isActivated()) {
+                logger.warn("Image is too big, reject the image sharing");
+            }
+            return new ContentSharingError(ContentSharingError.MEDIA_SIZE_TOO_BIG);
+        } else {
+            if (storageIsTooSmall) {
+                if (logger.isActivated()) {
+                    logger.warn("Not enough storage capacity, reject the image sharing");
+                }
+                return new ContentSharingError(ContentSharingError.NOT_ENOUGH_STORAGE_SPACE);
+            }
+        }
+        return null;
+    }
 
-	@Override
-	public void startSession() {
-		getImsService().getImsModule().getRichcallService().addSession(this);
-		start();
-	}
+    @Override
+    public void startSession() {
+        getImsService().getImsModule().getRichcallService().addSession(this);
+        start();
+    }
 
-	@Override
-	public void removeSession() {
-		getImsService().getImsModule().getRichcallService().removeSession(this);
-	}
+    @Override
+    public void removeSession() {
+        getImsService().getImsModule().getRichcallService().removeSession(this);
+    }
 }

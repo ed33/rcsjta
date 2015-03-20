@@ -4,4 +4,6 @@
  * any contact.
  * <p>
  */
+
 package com.gsma.services.rcs.upload;
+

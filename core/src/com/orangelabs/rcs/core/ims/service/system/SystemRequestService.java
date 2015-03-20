@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.system;
 
 import java.io.ByteArrayInputStream;
@@ -37,102 +38,101 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author jexa7410
  */
 public class SystemRequestService extends ImsService {
-	/**
+    /**
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
 
-	/**
+    /**
      * Constructor
      * 
      * @param parent IMS module
      * @throws CoreException
      */
-	public SystemRequestService(ImsModule parent) throws CoreException {
+    public SystemRequestService(ImsModule parent) throws CoreException {
         super(parent, true);
-	}
+    }
 
-	/**
-	 * Start the IMS service
-	 */
-	public synchronized void start() {
-		if (isServiceStarted()) {
-			// Already started
-			return;
-		}
-		setServiceStarted(true);
-	}
+    /**
+     * Start the IMS service
+     */
+    public synchronized void start() {
+        if (isServiceStarted()) {
+            // Already started
+            return;
+        }
+        setServiceStarted(true);
+    }
 
     /**
      * Stop the IMS service
      */
-	public synchronized void stop() {
-		if (!isServiceStarted()) {
-			// Already stopped
-			return;
-		}
-		setServiceStarted(false);
-	}
+    public synchronized void stop() {
+        if (!isServiceStarted()) {
+            // Already stopped
+            return;
+        }
+        setServiceStarted(false);
+    }
 
-	/**
+    /**
      * Check the IMS service
      */
-	public void check() {
-	}
+    public void check() {
+    }
 
-	/**
+    /**
      * Receive a SIP message
      * 
      * @param message Received message
      */
     public void receiveMessage(SipRequest message) {
-    	if (logger.isActivated()) {
-    		logger.debug("Receive system request");
-    	}
-    	
-		// Send a 200 OK response
-		try {
-			if (logger.isActivated()) {
-				logger.info("Send 200 OK");
-			}
-	        SipResponse response = SipMessageFactory.createResponse(message,
-	        		IdGenerator.getIdentifier(), 200);
-			getImsModule().getSipManager().sendSipResponse(response);
-		} catch(Exception e) {
-	       	if (logger.isActivated()) {
-	    		logger.error("Can't send 200 OK response", e);
-	    	}
-	       	return;
-		}
+        if (logger.isActivated()) {
+            logger.debug("Receive system request");
+        }
 
-		// Parse received request
-		try {
-	    	// Parse system request
-			InputSource input = new InputSource(new ByteArrayInputStream(message.getContentBytes()));
-			SystemRequestParser parser = new SystemRequestParser(input);
+        // Send a 200 OK response
+        try {
+            if (logger.isActivated()) {
+                logger.info("Send 200 OK");
+            }
+            SipResponse response = SipMessageFactory.createResponse(message,
+                    IdGenerator.getIdentifier(), 200);
+            getImsModule().getSipManager().sendSipResponse(response);
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't send 200 OK response", e);
+            }
+            return;
+        }
 
-			// Update the security model
-			SupportedExtensionUpdater.revokeExtensions(parser.getRevokedExtensions());
-    	} catch(Exception e) {
-    		if (logger.isActivated()) {
-    			logger.error("Can't parse system request", e);
-    		}
-    	}
+        // Parse received request
+        try {
+            // Parse system request
+            InputSource input = new InputSource(new ByteArrayInputStream(message.getContentBytes()));
+            SystemRequestParser parser = new SystemRequestParser(input);
+
+            // Update the security model
+            SupportedExtensionUpdater.revokeExtensions(parser.getRevokedExtensions());
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't parse system request", e);
+            }
+        }
     }
 
-	/**
-	 * Is a system request
-	 * 
+    /**
+     * Is a system request
+     * 
      * @param request Request
      * @return Boolean
-	 */
-	public static boolean isSystemRequest(SipRequest request) {
-    	String contentType = request.getContentType();
-    	if ((contentType != null) &&
-                contentType.startsWith("application/system-request+xml")) {
-    		return true;
-    	} else {
-    		return false;
-    	}
-	}
+     */
+    public static boolean isSystemRequest(SipRequest request) {
+        String contentType = request.getContentType();
+        if ((contentType != null) && contentType.startsWith("application/system-request+xml")) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

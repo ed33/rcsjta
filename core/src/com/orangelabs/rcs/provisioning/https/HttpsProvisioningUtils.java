@@ -57,8 +57,7 @@ public class HttpsProvisioningUtils {
     protected static final int RETRY_BASE_TIMEOUT = 300000;
 
     /**
-     * Retry after an 511 "Network authentication required" timeout (in
-     * milliseconds)
+     * Retry after an 511 "Network authentication required" timeout (in milliseconds)
      */
     protected static final int RETRY_AFTER_511_ERROR_TIMEOUT = 5000;
 
@@ -85,7 +84,7 @@ public class HttpsProvisioningUtils {
     /**
      * Default SMS port
      */
-	public static final int DEFAULT_SMS_PORT = 37273;
+    public static final int DEFAULT_SMS_PORT = 37273;
 
     /**
      * Get the current device language
@@ -136,8 +135,7 @@ public class HttpsProvisioningUtils {
     }
 
     /**
-     * Returns the client version see RCS-e implementation guideline v3.1 at
-     * ID_2_4 (page 12)
+     * Returns the client version see RCS-e implementation guideline v3.1 at ID_2_4 (page 12)
      * 
      * @return String(15)
      */

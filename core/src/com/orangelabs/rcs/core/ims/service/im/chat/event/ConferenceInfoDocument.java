@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.im.chat.event;
 
 import java.util.Vector;
@@ -27,7 +28,7 @@ import java.util.Vector;
 public class ConferenceInfoDocument {
     /**
      * State values
-     */ 
+     */
     public final static String STATE_PARTIAL = "partial";
     public final static String STATE_FULL = "full";
     public final static String STATE_DELETED = "deleted";

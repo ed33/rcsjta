@@ -228,8 +228,8 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
                     + "' not available.");
         }
 
-		ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
-		
+        ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
+
         // Accept invitation
         new Thread() {
             public void run() {
@@ -257,8 +257,8 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
                     + "' not available.");
         }
 
-		// Test API permission
-		ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
+        // Test API permission
+        ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
 
         // Reject invitation
         new Thread() {
@@ -286,8 +286,8 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
                     + "' not available.");
         }
 
-		// Test API permission
-		ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
+        // Test API permission
+        ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
 
         // Abort the session
         new Thread() {
@@ -314,8 +314,8 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
                     + "' not available.");
         }
 
-		// Test API permission
-		ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
+        // Test API permission
+        ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
 
         /* TODO: This exception handling is not correct. Will be fixed CR037. */
         // Do not consider max message size if null
@@ -468,11 +468,13 @@ public class MultimediaMessagingSessionImpl extends IMultimediaMessagingSession.
     @Override
     public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
             throws android.os.RemoteException {
- 
-        if(logger.isActivated()){
-            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+
+        if (logger.isActivated()) {
+            logger.debug("Api access control for implementation class : ".concat(this.getClass()
+                    .getName()));
         }
-        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.MULTIMEDIA_SESSION);
-        return super.onTransact(code, data, reply, flags);        
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(),
+                Extension.Type.MULTIMEDIA_SESSION);
+        return super.onTransact(code, data, reply, flags);
     }
 }

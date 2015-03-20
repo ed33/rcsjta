@@ -59,368 +59,371 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * 
  * @author jexa7410
  */
-public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession implements MsrpEventListener {
-	/**
+public class TerminatingStoreAndForwardMsgSession extends OneToOneChatSession implements
+        MsrpEventListener {
+    /**
      * The logger
      */
-    private static final Logger logger = Logger.getLogger(TerminatingStoreAndForwardMsgSession.class.getSimpleName());
+    private static final Logger logger = Logger
+            .getLogger(TerminatingStoreAndForwardMsgSession.class.getSimpleName());
 
     /**
      * Constructor
      * 
-	 * @param parent IMS service
-	 * @param invite Initial INVITE request
-	 * @param contact the remote ContactId
-	 */
-	public TerminatingStoreAndForwardMsgSession(ImsService parent, SipRequest invite, ContactId contact) {
-		super(parent, contact, PhoneUtils.formatContactIdToUri(contact));
+     * @param parent IMS service
+     * @param invite Initial INVITE request
+     * @param contact the remote ContactId
+     */
+    public TerminatingStoreAndForwardMsgSession(ImsService parent, SipRequest invite,
+            ContactId contact) {
+        super(parent, contact, PhoneUtils.formatContactIdToUri(contact));
 
-		// Set feature tags
-		setFeatureTags(ChatUtils.getSupportedFeatureTagsForChat());
+        // Set feature tags
+        setFeatureTags(ChatUtils.getSupportedFeatureTagsForChat());
 
-		// Set first message
-    	InstantMessage firstMsg = ChatUtils.getFirstMessage(invite);
-		setFirstMesssage(firstMsg);
-		
-		// Create dialog path
-		createTerminatingDialogPath(invite);
+        // Set first message
+        InstantMessage firstMsg = ChatUtils.getFirstMessage(invite);
+        setFirstMesssage(firstMsg);
 
-		// Set contribution ID
-		String id = ChatUtils.getContributionId(invite);
-		setContributionID(id);
+        // Create dialog path
+        createTerminatingDialogPath(invite);
 
-		if (shouldBeAutoAccepted()) {
-			setSessionAccepted();
-		}
-	}
+        // Set contribution ID
+        String id = ChatUtils.getContributionId(invite);
+        setContributionID(id);
 
-	/**
-	 * Check is session should be auto accepted. This method should only be
-	 * called once per session
-	 *
-	 * @return true if one-to-one chat session should be auto accepted
-	 */
-	private boolean shouldBeAutoAccepted() {
-		/*
-		 * In case the invite contains a http file transfer info the chat session
-		 * should be auto-accepted so that the file transfer session can be started.
-		 */
-		if (FileTransferUtils.getHttpFTInfo(getDialogPath().getInvite()) != null) {
-			return true;
-		}
+        if (shouldBeAutoAccepted()) {
+            setSessionAccepted();
+        }
+    }
 
-		return RcsSettings.getInstance().isChatAutoAccepted();
-	}
-	
-	/**
-	 * Background processing
-	 */
-	public void run() {
-		try {
-	    	if (logger.isActivated()) {
-	    		logger.info("Initiate a store & forward session for messages");
-	    	}
+    /**
+     * Check is session should be auto accepted. This method should only be called once per session
+     *
+     * @return true if one-to-one chat session should be auto accepted
+     */
+    private boolean shouldBeAutoAccepted() {
+        /*
+         * In case the invite contains a http file transfer info the chat session should be
+         * auto-accepted so that the file transfer session can be started.
+         */
+        if (FileTransferUtils.getHttpFTInfo(getDialogPath().getInvite()) != null) {
+            return true;
+        }
 
-			// Send message delivery report if requested
-			if (ChatUtils.isImdnDeliveredRequested(getDialogPath().getInvite())) {
-				// Check notification disposition
-				String msgId = ChatUtils.getMessageId(getDialogPath().getInvite());
-				if (msgId != null) {
-					// Send message delivery status via a SIP MESSAGE
-					getImdnManager().sendMessageDeliveryStatusImmediately(getRemoteContact(),
-							msgId, ImdnDocument.DELIVERY_STATUS_DELIVERED,
-							SipUtils.getRemoteInstanceID(getDialogPath().getInvite()));
-				}
-			}
+        return RcsSettings.getInstance().isChatAutoAccepted();
+    }
 
-			Collection<ImsSessionListener> listeners = getListeners();
-			/* Check if session should be auto-accepted once */
-			if (isSessionAccepted()) {
-				if (logger.isActivated()) {
-					logger.debug("Auto accept store and forward chat invitation");
-				}
+    /**
+     * Background processing
+     */
+    public void run() {
+        try {
+            if (logger.isActivated()) {
+                logger.info("Initiate a store & forward session for messages");
+            }
 
-				for (ImsSessionListener listener : listeners) {
-					((ChatSessionListener)listener).handleSessionAutoAccepted();
-				}
-			} else {
-				if (logger.isActivated()) {
-					logger.debug("Accept manually store and forward chat invitation");
-				}
+            // Send message delivery report if requested
+            if (ChatUtils.isImdnDeliveredRequested(getDialogPath().getInvite())) {
+                // Check notification disposition
+                String msgId = ChatUtils.getMessageId(getDialogPath().getInvite());
+                if (msgId != null) {
+                    // Send message delivery status via a SIP MESSAGE
+                    getImdnManager().sendMessageDeliveryStatusImmediately(getRemoteContact(),
+                            msgId, ImdnDocument.DELIVERY_STATUS_DELIVERED,
+                            SipUtils.getRemoteInstanceID(getDialogPath().getInvite()));
+                }
+            }
 
-				for (ImsSessionListener listener : listeners) {
-					listener.handleSessionInvited();
-				}
+            Collection<ImsSessionListener> listeners = getListeners();
+            /* Check if session should be auto-accepted once */
+            if (isSessionAccepted()) {
+                if (logger.isActivated()) {
+                    logger.debug("Auto accept store and forward chat invitation");
+                }
 
-				send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+                for (ImsSessionListener listener : listeners) {
+                    ((ChatSessionListener) listener).handleSessionAutoAccepted();
+                }
+            } else {
+                if (logger.isActivated()) {
+                    logger.debug("Accept manually store and forward chat invitation");
+                }
 
-				int answer = waitInvitationAnswer();
-				switch (answer) {
-					case ImsServiceSession.INVITATION_REJECTED:
-						if (logger.isActivated()) {
-							logger.debug("Session has been rejected by user");
-						}
+                for (ImsSessionListener listener : listeners) {
+                    listener.handleSessionInvited();
+                }
 
-						removeSession();
+                send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
-						for (ImsSessionListener listener : listeners) {
-							listener.handleSessionRejectedByUser();
-						}
-						return;
+                int answer = waitInvitationAnswer();
+                switch (answer) {
+                    case ImsServiceSession.INVITATION_REJECTED:
+                        if (logger.isActivated()) {
+                            logger.debug("Session has been rejected by user");
+                        }
 
-					case ImsServiceSession.INVITATION_NOT_ANSWERED:
-						if (logger.isActivated()) {
-							logger.debug("Session has been rejected on timeout");
-						}
+                        removeSession();
 
-						// Ringing period timeout
-						send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
+                        for (ImsSessionListener listener : listeners) {
+                            listener.handleSessionRejectedByUser();
+                        }
+                        return;
 
-						removeSession();
+                    case ImsServiceSession.INVITATION_NOT_ANSWERED:
+                        if (logger.isActivated()) {
+                            logger.debug("Session has been rejected on timeout");
+                        }
 
-						for (ImsSessionListener listener : listeners) {
-							listener.handleSessionRejectedByTimeout();
-						}
-						return;
+                        // Ringing period timeout
+                        send486Busy(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
-					case ImsServiceSession.INVITATION_CANCELED:
-						if (logger.isActivated()) {
-							logger.debug("Session has been rejected by remote");
-						}
+                        removeSession();
 
-						removeSession();
+                        for (ImsSessionListener listener : listeners) {
+                            listener.handleSessionRejectedByTimeout();
+                        }
+                        return;
 
-						for (ImsSessionListener listener : listeners) {
-							listener.handleSessionRejectedByRemote();
-						}
-						return;
+                    case ImsServiceSession.INVITATION_CANCELED:
+                        if (logger.isActivated()) {
+                            logger.debug("Session has been rejected by remote");
+                        }
 
-					case ImsServiceSession.INVITATION_ACCEPTED:
-						setSessionAccepted();
+                        removeSession();
 
-						for (ImsSessionListener listener : listeners) {
-							listener.handleSessionAccepted();
-						}
-						break;
+                        for (ImsSessionListener listener : listeners) {
+                            listener.handleSessionRejectedByRemote();
+                        }
+                        return;
 
-					default:
-						if (logger.isActivated()) {
-							logger.debug("Unknown invitation answer in run; answer="
-									.concat(String.valueOf(answer)));
-						}
-						return;
-				}
-			}
+                    case ImsServiceSession.INVITATION_ACCEPTED:
+                        setSessionAccepted();
 
-        	// Parse the remote SDP part
-			String remoteSdp = getDialogPath().getInvite().getSdpContent();
-        	SdpParser parser = new SdpParser(remoteSdp.getBytes());
-    		Vector<MediaDescription> media = parser.getMediaDescriptions();
-			MediaDescription mediaDesc = media.elementAt(0);
-			MediaAttribute attr1 = mediaDesc.getMediaAttribute("path");
+                        for (ImsSessionListener listener : listeners) {
+                            listener.handleSessionAccepted();
+                        }
+                        break;
+
+                    default:
+                        if (logger.isActivated()) {
+                            logger.debug("Unknown invitation answer in run; answer=".concat(String
+                                    .valueOf(answer)));
+                        }
+                        return;
+                }
+            }
+
+            // Parse the remote SDP part
+            String remoteSdp = getDialogPath().getInvite().getSdpContent();
+            SdpParser parser = new SdpParser(remoteSdp.getBytes());
+            Vector<MediaDescription> media = parser.getMediaDescriptions();
+            MediaDescription mediaDesc = media.elementAt(0);
+            MediaAttribute attr1 = mediaDesc.getMediaAttribute("path");
             String remotePath = attr1.getValue();
             String remoteHost = SdpUtils.extractRemoteHost(parser.sessionDescription, mediaDesc);
-    		int remotePort = mediaDesc.port;
-			
-    		// Changed by Deutsche Telekom
-    		String fingerprint = SdpUtils.extractFingerprint(parser, mediaDesc);
-    		
+            int remotePort = mediaDesc.port;
+
+            // Changed by Deutsche Telekom
+            String fingerprint = SdpUtils.extractFingerprint(parser, mediaDesc);
+
             // Extract the "setup" parameter
             String remoteSetup = "passive";
-			MediaAttribute attr2 = mediaDesc.getMediaAttribute("setup");
-			if (attr2 != null) {
-				remoteSetup = attr2.getValue();
-			}
-            if (logger.isActivated()){
-				logger.debug("Remote setup attribute is " + remoteSetup);
-			}
-            
-    		// Set setup mode
+            MediaAttribute attr2 = mediaDesc.getMediaAttribute("setup");
+            if (attr2 != null) {
+                remoteSetup = attr2.getValue();
+            }
+            if (logger.isActivated()) {
+                logger.debug("Remote setup attribute is " + remoteSetup);
+            }
+
+            // Set setup mode
             String localSetup = createSetupAnswer(remoteSetup);
-            if (logger.isActivated()){
-				logger.debug("Local setup attribute is " + localSetup);
-			}
-			
-    		// Set local port
-	    	int localMsrpPort;
-	    	if (localSetup.equals("active")) {
-		    	localMsrpPort = 9; // See RFC4145, Page 4
-	    	} else {
-	    		localMsrpPort = getMsrpMgr().getLocalMsrpPort();
-	    	}            
-            
-			// Build SDP part
-	    	String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
-	    	String sdp = SdpUtils.buildChatSDP(ipAddress, localMsrpPort, getMsrpMgr().getLocalSocketProtocol(),
-                    getAcceptTypes(), getWrappedTypes(), localSetup, getMsrpMgr().getLocalMsrpPath(), getSdpDirection());
+            if (logger.isActivated()) {
+                logger.debug("Local setup attribute is " + localSetup);
+            }
 
-	    	// Set the local SDP part in the dialog path
-	        getDialogPath().setLocalContent(sdp);
+            // Set local port
+            int localMsrpPort;
+            if (localSetup.equals("active")) {
+                localMsrpPort = 9; // See RFC4145, Page 4
+            } else {
+                localMsrpPort = getMsrpMgr().getLocalMsrpPort();
+            }
 
-	        // Test if the session should be interrupted
+            // Build SDP part
+            String ipAddress = getDialogPath().getSipStack().getLocalIpAddress();
+            String sdp = SdpUtils.buildChatSDP(ipAddress, localMsrpPort, getMsrpMgr()
+                    .getLocalSocketProtocol(), getAcceptTypes(), getWrappedTypes(), localSetup,
+                    getMsrpMgr().getLocalMsrpPath(), getSdpDirection());
+
+            // Set the local SDP part in the dialog path
+            getDialogPath().setLocalContent(sdp);
+
+            // Test if the session should be interrupted
             if (isInterrupted()) {
-            	if (logger.isActivated()) {
-            		logger.debug("Session has been interrupted: end of processing");
-            	}
-            	return;
+                if (logger.isActivated()) {
+                    logger.debug("Session has been interrupted: end of processing");
+                }
+                return;
             }
 
             // Create the MSRP server session
             if (localSetup.equals("passive")) {
-            	// Passive mode: client wait a connection
-            	MsrpSession session = getMsrpMgr().createMsrpServerSession(remotePath, this);
-    			session.setFailureReportOption(false);
-    			session.setSuccessReportOption(false);
-    			
-    			// Open the connection
-    			Thread thread = new Thread(){
-    				public void run(){
-    					try {
-							// Open the MSRP session
-							getMsrpMgr().openMsrpSession();
-							
-			    	        // Send an empty packet
-			            	sendEmptyDataChunk();
-						} catch (IOException e) {
-							if (logger.isActivated()) {
-				        		logger.error("Can't create the MSRP server session", e);
-				        	}
-						}		
-    				}
-    			};
-    			thread.start();
+                // Passive mode: client wait a connection
+                MsrpSession session = getMsrpMgr().createMsrpServerSession(remotePath, this);
+                session.setFailureReportOption(false);
+                session.setSuccessReportOption(false);
+
+                // Open the connection
+                Thread thread = new Thread() {
+                    public void run() {
+                        try {
+                            // Open the MSRP session
+                            getMsrpMgr().openMsrpSession();
+
+                            // Send an empty packet
+                            sendEmptyDataChunk();
+                        } catch (IOException e) {
+                            if (logger.isActivated()) {
+                                logger.error("Can't create the MSRP server session", e);
+                            }
+                        }
+                    }
+                };
+                thread.start();
             }
-            
+
             // Create a 200 OK response
-        	if (logger.isActivated()) {
-        		logger.info("Send 200 OK");
-        	}
+            if (logger.isActivated()) {
+                logger.info("Send 200 OK");
+            }
             SipResponse resp = SipMessageFactory.create200OkInviteResponse(getDialogPath(),
-            		getFeatureTags(), sdp);
+                    getFeatureTags(), sdp);
 
             // The signalisation is established
             getDialogPath().sigEstablished();
 
             // Send response
-            SipTransactionContext ctx = getImsService().getImsModule().getSipManager().sendSipMessageAndWait(resp);
+            SipTransactionContext ctx = getImsService().getImsModule().getSipManager()
+                    .sendSipMessageAndWait(resp);
 
-            // Analyze the received response 
+            // Analyze the received response
             if (ctx.isSipAck()) {
-    	        // ACK received
-    			if (logger.isActivated()) {
-    				logger.info("ACK request received");
-    			}
+                // ACK received
+                if (logger.isActivated()) {
+                    logger.info("ACK request received");
+                }
 
                 // The session is established
-    	        getDialogPath().sessionEstablished();
-    	                        
-        		// Create the MSRP client session
+                getDialogPath().sessionEstablished();
+
+                // Create the MSRP client session
                 if (localSetup.equals("active")) {
-                	// Active mode: client should connect
-                	MsrpSession session = getMsrpMgr().createMsrpClientSession(remoteHost, remotePort, remotePath, this, fingerprint);
-        			session.setFailureReportOption(false);
-        			session.setSuccessReportOption(false);
-        			
-					// Open the MSRP session
-					getMsrpMgr().openMsrpSession();
-					
-	    	        // Send an empty packet
-	            	sendEmptyDataChunk();
+                    // Active mode: client should connect
+                    MsrpSession session = getMsrpMgr().createMsrpClientSession(remoteHost,
+                            remotePort, remotePath, this, fingerprint);
+                    session.setFailureReportOption(false);
+                    session.setSuccessReportOption(false);
+
+                    // Open the MSRP session
+                    getMsrpMgr().openMsrpSession();
+
+                    // Send an empty packet
+                    sendEmptyDataChunk();
                 }
 
                 for (ImsSessionListener listener : listeners) {
-                        listener.handleSessionStarted();
+                    listener.handleSessionStarted();
                 }
-    	    	
-            	// Start session timer
-            	if (getSessionTimerManager().isSessionTimerActivated(resp)) {        	
-            		getSessionTimerManager().start(SessionTimerManager.UAS_ROLE, getDialogPath().getSessionExpireTime());
-            	}
 
-            	// Start the activity manager
-    			getActivityManager().start();
-    	    	
+                // Start session timer
+                if (getSessionTimerManager().isSessionTimerActivated(resp)) {
+                    getSessionTimerManager().start(SessionTimerManager.UAS_ROLE,
+                            getDialogPath().getSessionExpireTime());
+                }
+
+                // Start the activity manager
+                getActivityManager().start();
+
             } else {
-        		if (logger.isActivated()) {
-            		logger.debug("No ACK received for INVITE");
-            	}
+                if (logger.isActivated()) {
+                    logger.debug("No ACK received for INVITE");
+                }
 
-        		// No response received: timeout
-            	handleError(new ChatError(ChatError.SESSION_INITIATION_FAILED));
+                // No response received: timeout
+                handleError(new ChatError(ChatError.SESSION_INITIATION_FAILED));
             }
-		} catch(Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Session initiation has failed", e);
-        	}
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Session initiation has failed", e);
+            }
 
-        	// Unexpected error
-			handleError(new ChatError(ChatError.UNEXPECTED_EXCEPTION,
-					e.getMessage()));
-		}
-	}
-	
+            // Unexpected error
+            handleError(new ChatError(ChatError.UNEXPECTED_EXCEPTION, e.getMessage()));
+        }
+    }
+
     @Override
     public String getSdpDirection() {
         return SdpUtils.DIRECTION_RECVONLY;
     }
 
-	@Override
-	public boolean isInitiatedByRemote() {
-		return true;
-	}
+    @Override
+    public boolean isInitiatedByRemote() {
+        return true;
+    }
 
-	@Override
-	public void startSession() {
-		ContactId contact = getRemoteContact();
-		if (logger.isActivated()) {
-			logger.debug("Start OneToOneChatSession with '" + contact + "'");
-		}
-		InstantMessagingService imService = getImsService().getImsModule()
-				.getInstantMessagingService();
-		OneToOneChatSession currentSession = imService.getOneToOneChatSession(contact);
-		if (currentSession != null) {
-			boolean currentSessionInitiatedByRemote = currentSession.isInitiatedByRemote();
-			boolean currentSessionEstablished = currentSession.getDialogPath()
-					.isSessionEstablished();
-			if (!currentSessionEstablished && !currentSessionInitiatedByRemote) {
-				/*
-				 * Rejecting the NEW invitation since there is already a PENDING
-				 * OneToOneChatSession that was locally originated with the same
-				 * contact.
-				 */
-				if (logger.isActivated()) {
-					logger.warn("Rejecting OneToOneChatSession (session id '" + getSessionID()
-							+ "') with '" + contact + "'");
-				}
-				rejectSession();
-				return;
-			}
-			/*
-			 * If this oneToOne session does NOT already contain another
-			 * oneToOne chat session which in state PENDING and also LOCALLY
-			 * originating we should leave (reject or abort) the CURRENT rcs
-			 * chat session if there is one and replace it with the new one.
-			 */
-			if (logger.isActivated()) {
-				logger.warn("Rejecting/Aborting existing OneToOneChatSession (session id '"
-						+ getSessionID() + "') with '" + contact + "'");
-			}
-			if (currentSessionInitiatedByRemote) {
-				if (currentSessionEstablished) {
-					currentSession.abortSession(ImsServiceSession.TERMINATION_BY_USER);
-				} else {
-					currentSession.rejectSession();
-				}
-			} else {
-				currentSession.abortSession(ImsServiceSession.TERMINATION_BY_USER);
-			}
-		}
-		imService.addSession(this);
-		start();
-	}
+    @Override
+    public void startSession() {
+        ContactId contact = getRemoteContact();
+        if (logger.isActivated()) {
+            logger.debug("Start OneToOneChatSession with '" + contact + "'");
+        }
+        InstantMessagingService imService = getImsService().getImsModule()
+                .getInstantMessagingService();
+        OneToOneChatSession currentSession = imService.getOneToOneChatSession(contact);
+        if (currentSession != null) {
+            boolean currentSessionInitiatedByRemote = currentSession.isInitiatedByRemote();
+            boolean currentSessionEstablished = currentSession.getDialogPath()
+                    .isSessionEstablished();
+            if (!currentSessionEstablished && !currentSessionInitiatedByRemote) {
+                /*
+                 * Rejecting the NEW invitation since there is already a PENDING OneToOneChatSession
+                 * that was locally originated with the same contact.
+                 */
+                if (logger.isActivated()) {
+                    logger.warn("Rejecting OneToOneChatSession (session id '" + getSessionID()
+                            + "') with '" + contact + "'");
+                }
+                rejectSession();
+                return;
+            }
+            /*
+             * If this oneToOne session does NOT already contain another oneToOne chat session which
+             * in state PENDING and also LOCALLY originating we should leave (reject or abort) the
+             * CURRENT rcs chat session if there is one and replace it with the new one.
+             */
+            if (logger.isActivated()) {
+                logger.warn("Rejecting/Aborting existing OneToOneChatSession (session id '"
+                        + getSessionID() + "') with '" + contact + "'");
+            }
+            if (currentSessionInitiatedByRemote) {
+                if (currentSessionEstablished) {
+                    currentSession.abortSession(ImsServiceSession.TERMINATION_BY_USER);
+                } else {
+                    currentSession.rejectSession();
+                }
+            } else {
+                currentSession.abortSession(ImsServiceSession.TERMINATION_BY_USER);
+            }
+        }
+        imService.addSession(this);
+        start();
+    }
 
-	@Override
-	public void removeSession() {
-		getImsService().getImsModule().getInstantMessagingService().removeSession(this);
-	}
+    @Override
+    public void removeSession() {
+        getImsService().getImsModule().getInstantMessagingService().removeSession(this);
+    }
 }

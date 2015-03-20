@@ -53,42 +53,42 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author jexa7410
  */
 public abstract class ImsServiceSession extends Thread {
-	/**
-	 * Session invitation status
-	 */
-	public final static int INVITATION_NOT_ANSWERED = 0;
-	public final static int INVITATION_ACCEPTED = 1;
-	public final static int INVITATION_REJECTED = 2;
-    public final static int INVITATION_CANCELED = 3; 
+    /**
+     * Session invitation status
+     */
+    public final static int INVITATION_NOT_ANSWERED = 0;
+    public final static int INVITATION_ACCEPTED = 1;
+    public final static int INVITATION_REJECTED = 2;
+    public final static int INVITATION_CANCELED = 3;
 
-	/**
-	 * Session termination reason
-	 */
+    /**
+     * Session termination reason
+     */
     public final static int TERMINATION_BY_SYSTEM = 0;
     public final static int TERMINATION_BY_USER = 1;
     public final static int TERMINATION_BY_TIMEOUT = 2;
-    
-	private final static int SESSION_INTERVAL_TOO_SMALL = 422;
-    
-	/**
+
+    private final static int SESSION_INTERVAL_TOO_SMALL = 422;
+
+    /**
      * IMS service
      */
     private ImsService imsService;
-    
+
     /**
      * Session ID
      */
-    private String sessionId =  SessionIdGenerator.getNewId();
+    private String sessionId = SessionIdGenerator.getNewId();
 
-	/**
-	 * Remote contactId
-	 */
-	private ContactId contact;
-		
-	/**
-	 * Remote contactUri
-	 */
-	private String remoteUri;
+    /**
+     * Remote contactId
+     */
+    private ContactId contact;
+
+    /**
+     * Remote contactUri
+     */
+    private String remoteUri;
 
     /**
      * Remote display name
@@ -96,47 +96,47 @@ public abstract class ImsServiceSession extends Thread {
     private String remoteDisplayName;
 
     /**
-	 * Dialog path
-	 */
+     * Dialog path
+     */
     private SipDialogPath dialogPath;
 
-	/**
-	 * Authentication agent
-	 */
-	private SessionAuthenticationAgent authenticationAgent;
+    /**
+     * Authentication agent
+     */
+    private SessionAuthenticationAgent authenticationAgent;
 
-	/**
-	 * Session invitation status
-	 */
-	protected int invitationStatus = INVITATION_NOT_ANSWERED;
-	
-	/**
-	 * Wait user answer for session invitation
-	 */
-	protected Object waitUserAnswer = new Object();
+    /**
+     * Session invitation status
+     */
+    protected int invitationStatus = INVITATION_NOT_ANSWERED;
 
-	/**
-	 * Session listeners
-	 */
-	private Vector<ImsSessionListener> listeners = new Vector<ImsSessionListener>();
+    /**
+     * Wait user answer for session invitation
+     */
+    protected Object waitUserAnswer = new Object();
 
-	/**
-	 * Session timer manager
-	 */
-	private SessionTimerManager sessionTimer = new SessionTimerManager(this);
+    /**
+     * Session listeners
+     */
+    private Vector<ImsSessionListener> listeners = new Vector<ImsSessionListener>();
 
-	/**
-	 * Update session manager
-	 */
-	protected UpdateSessionManager updateMgr;
-	
+    /**
+     * Session timer manager
+     */
+    private SessionTimerManager sessionTimer = new SessionTimerManager(this);
+
+    /**
+     * Update session manager
+     */
+    protected UpdateSessionManager updateMgr;
+
     /**
      * Ringing period (in seconds)
      */
     private int ringingPeriod = RcsSettings.getInstance().getRingingPeriod();
 
     /**
-     * Session interrupted flag 
+     * Session interrupted flag
      */
     private boolean sessionInterrupted = false;
 
@@ -149,167 +149,159 @@ public abstract class ImsServiceSession extends Thread {
      * Session accepting flag
      */
     private boolean mSessionAccepted = false;
-    
+
     /**
      * Feature tags
      */
     private List<String> featureTags = new ArrayList<String>();
-    
+
     /**
      * CallingUid : identify the client application bound to the API
      */
     private Integer mCallingUid;
-    
+
     /**
      * The logger
      */
     private static final Logger logger = Logger.getLogger(ImsServiceSession.class.getSimpleName());
 
     /**
-	 * Constructor
-	 * 
-	 * @param imsService IMS service
-	 * @param contact Remote contact Identifier
-	 * @param remoteUri Remote URI
-	 */
-	public ImsServiceSession(ImsService imsService, ContactId contact, String remoteUri) {
+     * Constructor
+     * 
+     * @param imsService IMS service
+     * @param contact Remote contact Identifier
+     * @param remoteUri Remote URI
+     */
+    public ImsServiceSession(ImsService imsService, ContactId contact, String remoteUri) {
         this.imsService = imsService;
-		this.contact = contact;
-		this.remoteUri =  remoteUri;
-		this.authenticationAgent = new SessionAuthenticationAgent(imsService.getImsModule());
-		this.updateMgr = new UpdateSessionManager(this);
-	}
+        this.contact = contact;
+        this.remoteUri = remoteUri;
+        this.authenticationAgent = new SessionAuthenticationAgent(imsService.getImsModule());
+        this.updateMgr = new UpdateSessionManager(this);
+    }
 
-	/**
-	 * Create originating dialog path
-	 */
-	public void createOriginatingDialogPath() {
+    /**
+     * Create originating dialog path
+     */
+    public void createOriginatingDialogPath() {
         // Set Call-Id
-    	String callId = getImsService().getImsModule().getSipManager().getSipStack().generateCallId();
+        String callId = getImsService().getImsModule().getSipManager().getSipStack()
+                .generateCallId();
 
-    	// Set the route path
-    	Vector<String> route = getImsService().getImsModule().getSipManager().getSipStack().getServiceRoutePath();
+        // Set the route path
+        Vector<String> route = getImsService().getImsModule().getSipManager().getSipStack()
+                .getServiceRoutePath();
 
-    	// Create a dialog path
-    	dialogPath = new SipDialogPath(
-    			getImsService().getImsModule().getSipManager().getSipStack(),
-    			callId,
-				1,
-				remoteUri,
-				ImsModule.IMS_USER_PROFILE.getPublicAddress(),
-				remoteUri,
-				route);
-    	
-    	// Set the authentication agent in the dialog path 
-    	dialogPath.setAuthenticationAgent(getAuthenticationAgent());
-    	
-    	if (contact != null) {
-    		try {
-        		remoteDisplayName = ContactsManager.getInstance().getContactDisplayName(contact);
-			} catch (Exception e) {
-				// RCS account does not exist
-			}
-    	}
-	}
-		
-	/**
-	 * Create terminating dialog path
-	 * 
-	 * @param invite Incoming invite
-	 */
-	public void createTerminatingDialogPath(SipRequest invite) {
-	    // Set the call-id
-		String callId = invite.getCallId();
-	
-	    // Set target
-	    String target = invite.getContactURI();
-	
-	    // Set local party
-	    String localParty = invite.getTo();
-	
-	    // Set remote party
-	    String remoteParty = invite.getFrom();
-	
-	    // Get the CSeq value
-	    long cseq = invite.getCSeq();
-	    
-	    // Set the route path with the Record-Route 
-	    Vector<String> route = SipUtils.routeProcessing(invite, false);
-	    
-	   	// Create a dialog path
-		dialogPath = new SipDialogPath(
-				getImsService().getImsModule().getSipManager().getSipStack(),
-				callId,
-				cseq,
-				target,
-				localParty,
-				remoteParty,
-				route);
-	
-	    // Set the INVITE request
-		dialogPath.setInvite(invite);
-	
-	    // Set the remote tag
-		dialogPath.setRemoteTag(invite.getFromTag());
-	
-	    // Set the remote content part
-		dialogPath.setRemoteContent(invite.getContent());
-		
-		// Set the session timer expire
-		dialogPath.setSessionExpireTime(invite.getSessionTimerExpire());
-		
-		remoteDisplayName = SipUtils.getDisplayNameFromUri(remoteParty);
-	}
-	
-	/**
-	 * Add a listener for receiving events
-	 * 
-	 * @param listener Listener
-	 */
-	public void addListener(ImsSessionListener listener) {
-		listeners.add(listener);
-	}
+        // Create a dialog path
+        dialogPath = new SipDialogPath(
+                getImsService().getImsModule().getSipManager().getSipStack(), callId, 1, remoteUri,
+                ImsModule.IMS_USER_PROFILE.getPublicAddress(), remoteUri, route);
 
-	/**
-	 * Remove a listener
-	 */
-	public void removeListener(ImsSessionListener listener) {
-		listeners.remove(listener);
-	}
-	
-	/**
-	 * Remove all listeners
-	 */
-	public void removeListeners() {
-		listeners.removeAllElements();
-	}
+        // Set the authentication agent in the dialog path
+        dialogPath.setAuthenticationAgent(getAuthenticationAgent());
 
-	/**
-	 * Returns the event listeners
-	 * 
-	 * @return Listeners
-	 */
-	public Vector<ImsSessionListener> getListeners() {
-		return listeners;
-	}
-	
-	/**
-	 * Get the session timer manager
-	 * 
-	 * @return Session timer manager
-	 */
-	public SessionTimerManager getSessionTimerManager() {
-		return sessionTimer;
-	}
-	
-	/**
-	 * Get the update session manager
-	 * 
-	 * @return UpdateSessionManager
-	 */
-	public UpdateSessionManager getUpdateSessionManager() {
-		return updateMgr;
-	}
+        if (contact != null) {
+            try {
+                remoteDisplayName = ContactsManager.getInstance().getContactDisplayName(contact);
+            } catch (Exception e) {
+                // RCS account does not exist
+            }
+        }
+    }
+
+    /**
+     * Create terminating dialog path
+     * 
+     * @param invite Incoming invite
+     */
+    public void createTerminatingDialogPath(SipRequest invite) {
+        // Set the call-id
+        String callId = invite.getCallId();
+
+        // Set target
+        String target = invite.getContactURI();
+
+        // Set local party
+        String localParty = invite.getTo();
+
+        // Set remote party
+        String remoteParty = invite.getFrom();
+
+        // Get the CSeq value
+        long cseq = invite.getCSeq();
+
+        // Set the route path with the Record-Route
+        Vector<String> route = SipUtils.routeProcessing(invite, false);
+
+        // Create a dialog path
+        dialogPath = new SipDialogPath(
+                getImsService().getImsModule().getSipManager().getSipStack(), callId, cseq, target,
+                localParty, remoteParty, route);
+
+        // Set the INVITE request
+        dialogPath.setInvite(invite);
+
+        // Set the remote tag
+        dialogPath.setRemoteTag(invite.getFromTag());
+
+        // Set the remote content part
+        dialogPath.setRemoteContent(invite.getContent());
+
+        // Set the session timer expire
+        dialogPath.setSessionExpireTime(invite.getSessionTimerExpire());
+
+        remoteDisplayName = SipUtils.getDisplayNameFromUri(remoteParty);
+    }
+
+    /**
+     * Add a listener for receiving events
+     * 
+     * @param listener Listener
+     */
+    public void addListener(ImsSessionListener listener) {
+        listeners.add(listener);
+    }
+
+    /**
+     * Remove a listener
+     */
+    public void removeListener(ImsSessionListener listener) {
+        listeners.remove(listener);
+    }
+
+    /**
+     * Remove all listeners
+     */
+    public void removeListeners() {
+        listeners.removeAllElements();
+    }
+
+    /**
+     * Returns the event listeners
+     * 
+     * @return Listeners
+     */
+    public Vector<ImsSessionListener> getListeners() {
+        return listeners;
+    }
+
+    /**
+     * Get the session timer manager
+     * 
+     * @return Session timer manager
+     */
+    public SessionTimerManager getSessionTimerManager() {
+        return sessionTimer;
+    }
+
+    /**
+     * Get the update session manager
+     * 
+     * @return UpdateSessionManager
+     */
+    public UpdateSessionManager getUpdateSessionManager() {
+        return updateMgr;
+    }
 
     /**
      * Is behind a NAT
@@ -317,73 +309,72 @@ public abstract class ImsServiceSession extends Thread {
      * @return Boolean
      */
     public boolean isBehindNat() {
-		return getImsService().getImsModule().getCurrentNetworkInterface().isBehindNat();
-    }	
+        return getImsService().getImsModule().getCurrentNetworkInterface().isBehindNat();
+    }
 
-	/**
-	 * Start the session in background
-	 */
-	public abstract void startSession();
+    /**
+     * Start the session in background
+     */
+    public abstract void startSession();
 
-	public abstract void removeSession();
-	
-	/**
-	 * Return the IMS service
-	 * 
-	 * @return IMS service
-	 */
-	public ImsService getImsService() {
-		return imsService;
-	}
-	
-	/**
-	 * Return the session ID
-	 * 
-	 * @return Session ID
-	 */
-	public String getSessionID() {
-		return sessionId;
-	}
+    public abstract void removeSession();
 
-	/**
-	 * Set the session ID
-	 * 
-	 * @param sessionId
-	 *            <p>
-	 *            <b>Be Careful:</b><br />
-	 *            Should only be called to resume session (like for FT HTTP).
-	 *            </p>
-	 */
-	public void setSessionID(String sessionId) {
-		this.sessionId = sessionId;
-	}
+    /**
+     * Return the IMS service
+     * 
+     * @return IMS service
+     */
+    public ImsService getImsService() {
+        return imsService;
+    }
 
-	/**
-	 * Returns the remote contactId
-	 * 
-	 * @return ContactId
-	 */
-	public ContactId getRemoteContact() {
-		return contact;
-	}
+    /**
+     * Return the session ID
+     * 
+     * @return Session ID
+     */
+    public String getSessionID() {
+        return sessionId;
+    }
 
-	/**
-	 * Returns the remote Uri
-	 * 
-	 * @return remoteUri
-	 */
-	public String getRemoteUri() {
-		return remoteUri;
-	}
-	
-	/**
-	 * Returns display name of the remote contact
-	 * 
-	 * @return String
-	 */
-	public String getRemoteDisplayName() {
-	    return remoteDisplayName;
-	}
+    /**
+     * Set the session ID
+     * 
+     * @param sessionId <p>
+     *            <b>Be Careful:</b><br />
+     *            Should only be called to resume session (like for FT HTTP).
+     *            </p>
+     */
+    public void setSessionID(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    /**
+     * Returns the remote contactId
+     * 
+     * @return ContactId
+     */
+    public ContactId getRemoteContact() {
+        return contact;
+    }
+
+    /**
+     * Returns the remote Uri
+     * 
+     * @return remoteUri
+     */
+    public String getRemoteUri() {
+        return remoteUri;
+    }
+
+    /**
+     * Returns display name of the remote contact
+     * 
+     * @return String
+     */
+    public String getRemoteDisplayName() {
+        return remoteDisplayName;
+    }
 
     /**
      * Set display name of the remote contact
@@ -394,363 +385,364 @@ public abstract class ImsServiceSession extends Thread {
         this.remoteDisplayName = remoteDisplayName;
     }
 
-	/**
-	 * Get the dialog path of the session
-	 * 
-	 * @return Dialog path object
-	 */
-	public SipDialogPath getDialogPath() {
-		return dialogPath;
-	}
+    /**
+     * Get the dialog path of the session
+     * 
+     * @return Dialog path object
+     */
+    public SipDialogPath getDialogPath() {
+        return dialogPath;
+    }
 
-	/**
-	 * Set the dialog path of the session
-	 * 
-	 * @param dialog Dialog path
-	 */
-	public void setDialogPath(SipDialogPath dialog) {
-		dialogPath = dialog;
-	}
-	
+    /**
+     * Set the dialog path of the session
+     * 
+     * @param dialog Dialog path
+     */
+    public void setDialogPath(SipDialogPath dialog) {
+        dialogPath = dialog;
+    }
+
     /**
      * Returns the authentication agent
      * 
      * @return Authentication agent
      */
-	public SessionAuthenticationAgent getAuthenticationAgent() {
-		return authenticationAgent;
-	}
-	
-	/**
-	 * Reject the session invitation
-	 * 
-	 * @param code Error code
-	 */
-	public void rejectSession(int code) {
-		if (logger.isActivated()) {
-			logger.debug("Session invitation has been rejected");
-		}
-		invitationStatus = INVITATION_REJECTED;
+    public SessionAuthenticationAgent getAuthenticationAgent() {
+        return authenticationAgent;
+    }
 
-		// Unblock semaphore
-		synchronized(waitUserAnswer) {
-			waitUserAnswer.notifyAll();
-		}
+    /**
+     * Reject the session invitation
+     * 
+     * @param code Error code
+     */
+    public void rejectSession(int code) {
+        if (logger.isActivated()) {
+            logger.debug("Session invitation has been rejected");
+        }
+        invitationStatus = INVITATION_REJECTED;
 
-		// Decline the invitation
-		sendErrorResponse(getDialogPath().getInvite(), getDialogPath().getLocalTag(), code);
-			
-		// Remove the session in the session manager
-		removeSession();
-	}	
-	
-	/**
-	 * Accept the session invitation
-	 * @param callingUid : identifier of the application bound to the APÏ
-	 */
-	public void acceptSession(Integer callingUid) {
-		if (logger.isActivated()) {
-			logger.debug("Session invitation has been accepted");
-		}
-		invitationStatus = INVITATION_ACCEPTED;
-		setCallingUid(callingUid);
-		// Unblock semaphore
-		synchronized(waitUserAnswer) {
-			waitUserAnswer.notifyAll();
-		}
-	}
-
-	/**
-	 * Wait session invitation answer
-	 * 
-	 * @return Answer
-	 */
-	public int waitInvitationAnswer() {
-		if (invitationStatus != INVITATION_NOT_ANSWERED) {
-			return invitationStatus;
-		}
-		
-		if (logger.isActivated()) {
-			logger.debug("Wait session invitation answer");
-		}
-		
-		// Wait until received response or received timeout
-		try {
-			synchronized(waitUserAnswer) {
-				waitUserAnswer.wait(ringingPeriod * 1000);
-			}
-		} catch(InterruptedException e) {
-			sessionInterrupted = true;
-		}
-		
-		return invitationStatus;
-	}
-	
-	/**
-	 * Interrupt session
-	 */
-	public void interruptSession() {
-		if (logger.isActivated()) {
-			logger.debug("Interrupt the session");
-		}
-		
-		try {
-			// Unblock semaphore
-			synchronized(waitUserAnswer) {
-				waitUserAnswer.notifyAll();
-			}
-			
-			if (!isSessionInterrupted()) {
-				// Interrupt thread
-                sessionInterrupted = true;
-                interrupt();
-			}
-		} catch (Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Can't interrupt the session correctly", e);
-        	}
-		}
-    	if (logger.isActivated()) {
-    		logger.debug("Session has been interrupted");
-    	}
-	}
-	
-	/**
-	 * Abort the session
-	 * 
-	 * @param reason Termination reason
-	 */
-	public void abortSession(int abortedReason) {
-		if (logger.isActivated()) {
-			logger.info("Abort the session " + abortedReason);
-		}
-
-		interruptSession();
-
-		terminateSession(abortedReason);
-
-		closeMediaSession();
-
-		removeSession();
-
-		/* TODO: This will be changed anyway by the implementation of CR018 */
-		Collection<ImsSessionListener> listeners = getListeners();
-		/* Handles the case of REJECTED_BY_USER on originating session */
-		if (abortedReason == ImsServiceSession.TERMINATION_BY_USER && dialogPath != null
-				&& !dialogPath.isSigEstablished()) {
-			for (ImsSessionListener listener : listeners) {
-				listener.handleSessionRejectedByUser();
-			}
-			return;
-		}
-
-		for (ImsSessionListener listener : listeners) {
-			listener.handleSessionAborted(abortedReason);
-		}
-	}
-	
-	/**
-	 * Terminate session
-	 * 
-	 * @param reason Reason
-	 */
-	public void terminateSession(int reason) {
-		if (logger.isActivated()) {
-			logger.debug("Terminate the session (reason " + reason + ")");
-		}
-		
-		if ((dialogPath == null) || dialogPath.isSessionTerminated()) {
-			// Already terminated
-			return;
-		}
-		
-    	// Stop session timer
-    	getSessionTimerManager().stop();		
-
-		// Update dialog path
-    	if (reason == ImsServiceSession.TERMINATION_BY_USER) {
-    		dialogPath.sessionTerminated(200, "Call completed");
-    	} else {
-    		dialogPath.sessionTerminated();
-    	}
-
-		// Unblock semaphore (used for terminating side only)
-		synchronized(waitUserAnswer) {
-			waitUserAnswer.notifyAll();
-		}
-
-		try {
-			// Terminate the session
-        	if (dialogPath.isSigEstablished()) {
-		        // Increment the Cseq number of the dialog path
-		        getDialogPath().incrementCseq();
-	
-		        // Send BYE without waiting a response
-		        getImsService().getImsModule().getSipManager().sendSipBye(getDialogPath());
-        	} else {
-		        // Send CANCEL without waiting a response
-		        getImsService().getImsModule().getSipManager().sendSipCancel(getDialogPath());
-        	}
-        	
-        	if (logger.isActivated()) {
-        		logger.debug("SIP session has been terminated");
-        	}
-		} catch(Exception e) { 
-        	if (logger.isActivated()) {
-        		logger.error("Session termination has failed", e);
-        	}
-		}
-	}
-
-	/**
-	 * Receive BYE request 
-	 * 
-	 * @param bye BYE request
-	 */
-	public void receiveBye(SipRequest bye) {
-    	if (logger.isActivated()) {
-    		logger.info("Receive a BYE message from the remote");
-    	}
-
-    	// Close media session
-    	closeMediaSession();
-    	
-        // Update the dialog path status
-		getDialogPath().sessionTerminated();
-        sessionTerminatedByRemote = true;
-
-    	// Remove the current session
-        removeSession();
-	
-    	// Stop session timer
-    	getSessionTimerManager().stop();		
-
-    	// Notify listeners
-    	for(int i=0; i < getListeners().size(); i++) {
-    		getListeners().get(i).handleSessionTerminatedByRemote();
+        // Unblock semaphore
+        synchronized (waitUserAnswer) {
+            waitUserAnswer.notifyAll();
         }
 
-		try {
-			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
-			// Request capabilities to the remote
-			getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
-		} catch (RcsContactFormatException e) {
-			if (logger.isActivated()) {
-				logger.debug("Cannot parse contact " + getDialogPath().getRemoteParty());
-			}
-		}
-	}
-	
-	/**
-	 * Receive CANCEL request
-	 * 
-	 * @param cancel
-	 *            CANCEL request
-	 */
-	public void receiveCancel(SipRequest cancel) {
-		if (logger.isActivated()) {
-			logger.info("Receive a CANCEL message from the remote");
-		}
+        // Decline the invitation
+        sendErrorResponse(getDialogPath().getInvite(), getDialogPath().getLocalTag(), code);
 
-		if (getDialogPath().isSigEstablished()) {
-			if (logger.isActivated()) {
-				logger.info("Ignore the received CANCEL message from the remote (session already established)");
-			}
-			return;
-		}
+        // Remove the session in the session manager
+        removeSession();
+    }
 
-		// Close media session
-		closeMediaSession();
+    /**
+     * Accept the session invitation
+     * 
+     * @param callingUid : identifier of the application bound to the APÏ
+     */
+    public void acceptSession(Integer callingUid) {
+        if (logger.isActivated()) {
+            logger.debug("Session invitation has been accepted");
+        }
+        invitationStatus = INVITATION_ACCEPTED;
+        setCallingUid(callingUid);
+        // Unblock semaphore
+        synchronized (waitUserAnswer) {
+            waitUserAnswer.notifyAll();
+        }
+    }
 
-		// Update dialog path
-		getDialogPath().sessionCancelled();
+    /**
+     * Wait session invitation answer
+     * 
+     * @return Answer
+     */
+    public int waitInvitationAnswer() {
+        if (invitationStatus != INVITATION_NOT_ANSWERED) {
+            return invitationStatus;
+        }
 
-		// Send a 487 Request terminated
-		try {
-			if (logger.isActivated()) {
-				logger.info("Send 487 Request terminated");
-			}
-			SipResponse terminatedResp = SipMessageFactory.createResponse(getDialogPath().getInvite(), getDialogPath()
-					.getLocalTag(), 487);
-			getImsService().getImsModule().getSipManager().sendSipResponse(terminatedResp);
-		} catch (Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Can't send 487 error response", e);
-			}
-		}
+        if (logger.isActivated()) {
+            logger.debug("Wait session invitation answer");
+        }
 
-		// Remove the current session
-		removeSession();
+        // Wait until received response or received timeout
+        try {
+            synchronized (waitUserAnswer) {
+                waitUserAnswer.wait(ringingPeriod * 1000);
+            }
+        } catch (InterruptedException e) {
+            sessionInterrupted = true;
+        }
 
-		// Set invitation status
-		invitationStatus = ImsServiceSession.INVITATION_CANCELED;
+        return invitationStatus;
+    }
 
-		// Unblock semaphore
-		synchronized (waitUserAnswer) {
-			waitUserAnswer.notifyAll();
-		}
-	}
+    /**
+     * Interrupt session
+     */
+    public void interruptSession() {
+        if (logger.isActivated()) {
+            logger.debug("Interrupt the session");
+        }
 
-	/**
-	 * Receive re-INVITE request 
-	 *
-	 * @param reInvite re-INVITE request
-	 */
-	public void receiveReInvite(SipRequest reInvite) {
-		// Session refresh management
-		sessionTimer.receiveReInvite(reInvite);
-	}
+        try {
+            // Unblock semaphore
+            synchronized (waitUserAnswer) {
+                waitUserAnswer.notifyAll();
+            }
 
-	/**
-	 * Receive UPDATE request 
-	 * 
-	 * @param update UPDATE request
-	 */
-	public void receiveUpdate(SipRequest update) {
-		sessionTimer.receiveUpdate(update);
-	}
+            if (!isSessionInterrupted()) {
+                // Interrupt thread
+                sessionInterrupted = true;
+                interrupt();
+            }
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't interrupt the session correctly", e);
+            }
+        }
+        if (logger.isActivated()) {
+            logger.debug("Session has been interrupted");
+        }
+    }
 
-	/**
-	 * Set session accepted
-	 */
-	public void setSessionAccepted() {
-		mSessionAccepted = true;
-	}
+    /**
+     * Abort the session
+     * 
+     * @param reason Termination reason
+     */
+    public void abortSession(int abortedReason) {
+        if (logger.isActivated()) {
+            logger.info("Abort the session " + abortedReason);
+        }
+
+        interruptSession();
+
+        terminateSession(abortedReason);
+
+        closeMediaSession();
+
+        removeSession();
+
+        /* TODO: This will be changed anyway by the implementation of CR018 */
+        Collection<ImsSessionListener> listeners = getListeners();
+        /* Handles the case of REJECTED_BY_USER on originating session */
+        if (abortedReason == ImsServiceSession.TERMINATION_BY_USER && dialogPath != null
+                && !dialogPath.isSigEstablished()) {
+            for (ImsSessionListener listener : listeners) {
+                listener.handleSessionRejectedByUser();
+            }
+            return;
+        }
+
+        for (ImsSessionListener listener : listeners) {
+            listener.handleSessionAborted(abortedReason);
+        }
+    }
+
+    /**
+     * Terminate session
+     * 
+     * @param reason Reason
+     */
+    public void terminateSession(int reason) {
+        if (logger.isActivated()) {
+            logger.debug("Terminate the session (reason " + reason + ")");
+        }
+
+        if ((dialogPath == null) || dialogPath.isSessionTerminated()) {
+            // Already terminated
+            return;
+        }
+
+        // Stop session timer
+        getSessionTimerManager().stop();
+
+        // Update dialog path
+        if (reason == ImsServiceSession.TERMINATION_BY_USER) {
+            dialogPath.sessionTerminated(200, "Call completed");
+        } else {
+            dialogPath.sessionTerminated();
+        }
+
+        // Unblock semaphore (used for terminating side only)
+        synchronized (waitUserAnswer) {
+            waitUserAnswer.notifyAll();
+        }
+
+        try {
+            // Terminate the session
+            if (dialogPath.isSigEstablished()) {
+                // Increment the Cseq number of the dialog path
+                getDialogPath().incrementCseq();
+
+                // Send BYE without waiting a response
+                getImsService().getImsModule().getSipManager().sendSipBye(getDialogPath());
+            } else {
+                // Send CANCEL without waiting a response
+                getImsService().getImsModule().getSipManager().sendSipCancel(getDialogPath());
+            }
+
+            if (logger.isActivated()) {
+                logger.debug("SIP session has been terminated");
+            }
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Session termination has failed", e);
+            }
+        }
+    }
+
+    /**
+     * Receive BYE request
+     * 
+     * @param bye BYE request
+     */
+    public void receiveBye(SipRequest bye) {
+        if (logger.isActivated()) {
+            logger.info("Receive a BYE message from the remote");
+        }
+
+        // Close media session
+        closeMediaSession();
+
+        // Update the dialog path status
+        getDialogPath().sessionTerminated();
+        sessionTerminatedByRemote = true;
+
+        // Remove the current session
+        removeSession();
+
+        // Stop session timer
+        getSessionTimerManager().stop();
+
+        // Notify listeners
+        for (int i = 0; i < getListeners().size(); i++) {
+            getListeners().get(i).handleSessionTerminatedByRemote();
+        }
+
+        try {
+            ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+            // Request capabilities to the remote
+            getImsService().getImsModule().getCapabilityService()
+                    .requestContactCapabilities(remote);
+        } catch (RcsContactFormatException e) {
+            if (logger.isActivated()) {
+                logger.debug("Cannot parse contact " + getDialogPath().getRemoteParty());
+            }
+        }
+    }
+
+    /**
+     * Receive CANCEL request
+     * 
+     * @param cancel CANCEL request
+     */
+    public void receiveCancel(SipRequest cancel) {
+        if (logger.isActivated()) {
+            logger.info("Receive a CANCEL message from the remote");
+        }
+
+        if (getDialogPath().isSigEstablished()) {
+            if (logger.isActivated()) {
+                logger.info("Ignore the received CANCEL message from the remote (session already established)");
+            }
+            return;
+        }
+
+        // Close media session
+        closeMediaSession();
+
+        // Update dialog path
+        getDialogPath().sessionCancelled();
+
+        // Send a 487 Request terminated
+        try {
+            if (logger.isActivated()) {
+                logger.info("Send 487 Request terminated");
+            }
+            SipResponse terminatedResp = SipMessageFactory.createResponse(getDialogPath()
+                    .getInvite(), getDialogPath().getLocalTag(), 487);
+            getImsService().getImsModule().getSipManager().sendSipResponse(terminatedResp);
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't send 487 error response", e);
+            }
+        }
+
+        // Remove the current session
+        removeSession();
+
+        // Set invitation status
+        invitationStatus = ImsServiceSession.INVITATION_CANCELED;
+
+        // Unblock semaphore
+        synchronized (waitUserAnswer) {
+            waitUserAnswer.notifyAll();
+        }
+    }
+
+    /**
+     * Receive re-INVITE request
+     *
+     * @param reInvite re-INVITE request
+     */
+    public void receiveReInvite(SipRequest reInvite) {
+        // Session refresh management
+        sessionTimer.receiveReInvite(reInvite);
+    }
+
+    /**
+     * Receive UPDATE request
+     * 
+     * @param update UPDATE request
+     */
+    public void receiveUpdate(SipRequest update) {
+        sessionTimer.receiveUpdate(update);
+    }
+
+    /**
+     * Set session accepted
+     */
+    public void setSessionAccepted() {
+        mSessionAccepted = true;
+    }
 
     /**
      * Prepare media session
      * 
-     * @throws Exception 
+     * @throws Exception
      */
     public abstract void prepareMediaSession() throws Exception;
 
     /**
      * Start media session
      * 
-     * @throws Exception 
+     * @throws Exception
      */
     public abstract void startMediaSession() throws Exception;
 
-	/**
-	 * Close media session
-	 */
-	public abstract void closeMediaSession();
+    /**
+     * Close media session
+     */
+    public abstract void closeMediaSession();
 
-	/**
+    /**
      * Send a 180 Ringing response to the remote party
      * 
      * @param request SIP request
      * @param localTag Local tag
      */
-	public void send180Ringing(SipRequest request, String localTag) {
-    	try {
-	    	SipResponse progress = SipMessageFactory.createResponse(request, localTag, 180);
+    public void send180Ringing(SipRequest request, String localTag) {
+        try {
+            SipResponse progress = SipMessageFactory.createResponse(request, localTag, 180);
             getImsService().getImsModule().getSipManager().sendSipResponse(progress);
-    	} catch(Exception e) {
-    		if (logger.isActivated()) {
-    			logger.error("Can't send a 180 Ringing response");
-    		}
-    	}
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't send a 180 Ringing response");
+            }
+        }
     }
 
     /**
@@ -760,176 +752,171 @@ public abstract class ImsServiceSession extends Thread {
      * @param localTag Local tag
      * @param code Response code
      */
-	public void sendErrorResponse(SipRequest request, String localTag, int code) {
-		try {
-	        // Send  error
-	    	if (logger.isActivated()) {
-	    		logger.info("Send " + code + " error response");
-	    	}
-	        SipResponse resp = SipMessageFactory.createResponse(request, localTag, code);
-	        getImsService().getImsModule().getSipManager().sendSipResponse(resp);
-		} catch(Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Can't send error response", e);
-			}
-		}
-	}
-	
-	/**
+    public void sendErrorResponse(SipRequest request, String localTag, int code) {
+        try {
+            // Send error
+            if (logger.isActivated()) {
+                logger.info("Send " + code + " error response");
+            }
+            SipResponse resp = SipMessageFactory.createResponse(request, localTag, code);
+            getImsService().getImsModule().getSipManager().sendSipResponse(resp);
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't send error response", e);
+            }
+        }
+    }
+
+    /**
      * Send a 603 "Decline" to the remote party
      * 
      * @param request SIP request
      * @param localTag Local tag
      */
-	public void send603Decline(SipRequest request, String localTag) {
-		try {
+    public void send603Decline(SipRequest request, String localTag) {
+        try {
             // Send a 603 Decline error
             if (logger.isActivated()) {
                 logger.info("Send 603 Decline");
             }
             SipResponse resp = SipMessageFactory.createResponse(request, localTag, 603);
             getImsService().getImsModule().getSipManager().sendSipResponse(resp);
-		} catch(Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Can't send 603 Decline response", e);
-			}
-		}
-	}
-	
-	/**
-	 * Send a 403 "Forbidden" to the remote party
-	 * 
-	 * @param request
-	 *            SIP request
-	 * @param localTag
-	 *            Local tag
-	 * @param warning
-	 *            the warning message
-	 */
-	public void send403Forbidden(SipRequest request, String localTag, String warning) {
-		try {
-			// Send a 403 Forbidden
-			if (logger.isActivated()) {
-				logger.info("Send 403 Forbidden (warning=" + warning + ")");
-			}
-			SipResponse resp = SipMessageFactory.createResponse(request, localTag, 403, warning);
-			getImsService().getImsModule().getSipManager().sendSipResponse(resp);
-		} catch (Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Can't send 403 Forbidden response", e);
-			}
-		}
-	}
-	
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't send 603 Decline response", e);
+            }
+        }
+    }
+
+    /**
+     * Send a 403 "Forbidden" to the remote party
+     * 
+     * @param request SIP request
+     * @param localTag Local tag
+     * @param warning the warning message
+     */
+    public void send403Forbidden(SipRequest request, String localTag, String warning) {
+        try {
+            // Send a 403 Forbidden
+            if (logger.isActivated()) {
+                logger.info("Send 403 Forbidden (warning=" + warning + ")");
+            }
+            SipResponse resp = SipMessageFactory.createResponse(request, localTag, 403, warning);
+            getImsService().getImsModule().getSipManager().sendSipResponse(resp);
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't send 403 Forbidden response", e);
+            }
+        }
+    }
+
     /**
      * Send a 486 "Busy" to the remote party
      * 
      * @param request SIP request
      * @param localTag Local tag
      */
-	public void send486Busy(SipRequest request, String localTag) {
-		try {
+    public void send486Busy(SipRequest request, String localTag) {
+        try {
             // Send a 486 Busy error
             if (logger.isActivated()) {
                 logger.info("Send 486 Busy");
             }
             SipResponse resp = SipMessageFactory.createResponse(request, localTag, 486);
             getImsService().getImsModule().getSipManager().sendSipResponse(resp);
-		} catch(Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Can't send 486 Busy response", e);
-			}
-		}
-	}	
-	
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't send 486 Busy response", e);
+            }
+        }
+    }
+
     /**
      * Send a 415 "Unsupported Media Type" to the remote party
      * 
      * @param request SIP request
      */
-	public void send415Error(SipRequest request) {
-		try {
-	    	if (logger.isActivated()) {
-	    		logger.info("Send 415 Unsupported Media Type");
-	    	}
-	        SipResponse resp = SipMessageFactory.createResponse(request, 415);
-	        // TODO: set Accept-Encoding header
-	        getImsService().getImsModule().getSipManager().sendSipResponse(resp);
-		} catch(Exception e) {
-			if (logger.isActivated()) {
-				logger.error("Can't send 415 error response", e);
-			}
-		}
-	}	
-	
-	/**
-	 * Create SDP setup offer (see RFC6135, RFC4145)
-	 * 
-	 * @return Setup offer
-	 */
-	public String createSetupOffer() {
-    	if (isBehindNat()) {
-    		// Active mode by default if there is a NAT
-    		return "active";
-    	} else {
-        	// Active/passive mode is exchanged in order to be compatible
-    		// with UE not supporting COMEDIA
-        	return "actpass";
-    	}
-	}
-	
-	/**
-	 * Create SDP setup offer for mobile to mobile (see RFC6135, RFC4145)
-	 * 
-	 * @return Setup offer
-	 */
-	public String createMobileToMobileSetupOffer() {
-		// Always active mode proposed here
-		return "active";
-	}
-	
-	/**
-	 * Create SDP setup answer (see RFC6135, RFC4145)
-	 * 
-	 * @param offer setup offer
-	 * @return Setup answer ("active" or "passive")
-	 */
-	public String createSetupAnswer(String offer) {
-    	if (offer.equals("actpass")) {
-        	// Active mode by default if there is a NAT or AS IM
-    		return "active";
-    	} else
-        if (offer.equals("active")) {
-        	// Passive mode
-			return "passive";
-        } else 
-        if (offer.equals("passive")) {
-        	// Active mode
-			return "active";
-        } else {
-        	// Passive mode by default
-			return "passive";
+    public void send415Error(SipRequest request) {
+        try {
+            if (logger.isActivated()) {
+                logger.info("Send 415 Unsupported Media Type");
+            }
+            SipResponse resp = SipMessageFactory.createResponse(request, 415);
+            // TODO: set Accept-Encoding header
+            getImsService().getImsModule().getSipManager().sendSipResponse(resp);
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't send 415 error response", e);
+            }
         }
-	}
-	
-	/**
-	 * Returns the response timeout (in seconds) 
-	 * 
-	 * @return Timeout
-	 */
-	public int getResponseTimeout() {
-		return ringingPeriod + SipManager.TIMEOUT;
-	}
-	
-	/**
-	 * Is session interrupted
-	 * 
-	 * @return Boolean
-	 */
-	public boolean isSessionInterrupted() {
-		return sessionInterrupted || isInterrupted() ||
-				(getDialogPath() != null && getDialogPath().isSessionTerminated());
-	}
+    }
+
+    /**
+     * Create SDP setup offer (see RFC6135, RFC4145)
+     * 
+     * @return Setup offer
+     */
+    public String createSetupOffer() {
+        if (isBehindNat()) {
+            // Active mode by default if there is a NAT
+            return "active";
+        } else {
+            // Active/passive mode is exchanged in order to be compatible
+            // with UE not supporting COMEDIA
+            return "actpass";
+        }
+    }
+
+    /**
+     * Create SDP setup offer for mobile to mobile (see RFC6135, RFC4145)
+     * 
+     * @return Setup offer
+     */
+    public String createMobileToMobileSetupOffer() {
+        // Always active mode proposed here
+        return "active";
+    }
+
+    /**
+     * Create SDP setup answer (see RFC6135, RFC4145)
+     * 
+     * @param offer setup offer
+     * @return Setup answer ("active" or "passive")
+     */
+    public String createSetupAnswer(String offer) {
+        if (offer.equals("actpass")) {
+            // Active mode by default if there is a NAT or AS IM
+            return "active";
+        } else if (offer.equals("active")) {
+            // Passive mode
+            return "passive";
+        } else if (offer.equals("passive")) {
+            // Active mode
+            return "active";
+        } else {
+            // Passive mode by default
+            return "passive";
+        }
+    }
+
+    /**
+     * Returns the response timeout (in seconds)
+     * 
+     * @return Timeout
+     */
+    public int getResponseTimeout() {
+        return ringingPeriod + SipManager.TIMEOUT;
+    }
+
+    /**
+     * Is session interrupted
+     * 
+     * @return Boolean
+     */
+    public boolean isSessionInterrupted() {
+        return sessionInterrupted || isInterrupted()
+                || (getDialogPath() != null && getDialogPath().isSessionTerminated());
+    }
 
     /**
      * Is session terminated by remote
@@ -964,64 +951,68 @@ public abstract class ImsServiceSession extends Thread {
      * @throws SipException
      */
     public void sendInvite(SipRequest invite) throws SipException {
-		// Send INVITE request
-		SipTransactionContext ctx = getImsService().getImsModule().getSipManager()
-				.sendSipMessageAndWait(invite, getResponseTimeout(), new SipTransactionContext.INotifySipProvisionalResponse() {
-					public void handle180Ringing(SipResponse response) {
-						ImsServiceSession.this.handle180Ringing(response);
-					}
+        // Send INVITE request
+        SipTransactionContext ctx = getImsService()
+                .getImsModule()
+                .getSipManager()
+                .sendSipMessageAndWait(invite, getResponseTimeout(),
+                        new SipTransactionContext.INotifySipProvisionalResponse() {
+                            public void handle180Ringing(SipResponse response) {
+                                ImsServiceSession.this.handle180Ringing(response);
+                            }
 
-				});
+                        });
 
-        // Analyze the received response 
-		if (ctx.isSipResponse()) {
-			// A response has been received
-			switch (ctx.getStatusCode()) {
-			case Response.OK:
-				// 200 OK
-				handle200OK(ctx.getSipResponse());
-				break;
-			case Response.NOT_FOUND:
-				// 404 session not found
-				handle404SessionNotFound(ctx.getSipResponse());
-				break;
-			case Response.PROXY_AUTHENTICATION_REQUIRED:
-				// 407 Proxy Authentication Required
-				handle407Authentication(ctx.getSipResponse());
-				break;
-			case SESSION_INTERVAL_TOO_SMALL:
-				// 422 Session Interval Too Small
-				handle422SessionTooSmall(ctx.getSipResponse());
-				break;
-			case Response.TEMPORARILY_UNAVAILABLE:
-                // 480 Temporarily Unavailable 
-                handle480Unavailable(ctx.getSipResponse());
-                break;
-			case Response.BUSY_HERE:
-                // 486 busy  
-				handle486Busy(ctx.getSipResponse());
-				break;
-			case Response.REQUEST_TERMINATED:
-                // 487 Invitation cancelled
-                handle487Cancel(ctx.getSipResponse());
-                break;
-			case Response.DECLINE:
-                // 603 Invitation declined
-                handle603Declined(ctx.getSipResponse());
-                break;
-			default:
-				// Other error response
-                handleDefaultError(ctx.getSipResponse());
-				break;
-			}
+        // Analyze the received response
+        if (ctx.isSipResponse()) {
+            // A response has been received
+            switch (ctx.getStatusCode()) {
+                case Response.OK:
+                    // 200 OK
+                    handle200OK(ctx.getSipResponse());
+                    break;
+                case Response.NOT_FOUND:
+                    // 404 session not found
+                    handle404SessionNotFound(ctx.getSipResponse());
+                    break;
+                case Response.PROXY_AUTHENTICATION_REQUIRED:
+                    // 407 Proxy Authentication Required
+                    handle407Authentication(ctx.getSipResponse());
+                    break;
+                case SESSION_INTERVAL_TOO_SMALL:
+                    // 422 Session Interval Too Small
+                    handle422SessionTooSmall(ctx.getSipResponse());
+                    break;
+                case Response.TEMPORARILY_UNAVAILABLE:
+                    // 480 Temporarily Unavailable
+                    handle480Unavailable(ctx.getSipResponse());
+                    break;
+                case Response.BUSY_HERE:
+                    // 486 busy
+                    handle486Busy(ctx.getSipResponse());
+                    break;
+                case Response.REQUEST_TERMINATED:
+                    // 487 Invitation cancelled
+                    handle487Cancel(ctx.getSipResponse());
+                    break;
+                case Response.DECLINE:
+                    // 603 Invitation declined
+                    handle603Declined(ctx.getSipResponse());
+                    break;
+                default:
+                    // Other error response
+                    handleDefaultError(ctx.getSipResponse());
+                    break;
+            }
         } else {
             // No response received: timeout
-            handleError(new ImsSessionBasedServiceError(ImsSessionBasedServiceError.SESSION_INITIATION_FAILED, "timeout"));
+            handleError(new ImsSessionBasedServiceError(
+                    ImsSessionBasedServiceError.SESSION_INITIATION_FAILED, "timeout"));
         }
     }
 
     /**
-     * Handle 200 0K response 
+     * Handle 200 0K response
      *
      * @param resp 200 OK response
      */
@@ -1037,7 +1028,7 @@ public abstract class ImsServiceSession extends Thread {
 
             // Set the remote tag
             getDialogPath().setRemoteTag(resp.getToTag());
-            
+
             // Set the target
             getDialogPath().setTarget(resp.getContactURI());
 
@@ -1049,9 +1040,10 @@ public abstract class ImsServiceSession extends Thread {
             getDialogPath().setRemoteContent(resp.getContent());
 
             // Set the remote SIP instance ID
-            ContactHeader remoteContactHeader = (ContactHeader)resp.getHeader(ContactHeader.NAME);
+            ContactHeader remoteContactHeader = (ContactHeader) resp.getHeader(ContactHeader.NAME);
             if (remoteContactHeader != null) {
-                getDialogPath().setRemoteSipInstance(remoteContactHeader.getParameter(SipUtils.SIP_INSTANCE_PARAM));
+                getDialogPath().setRemoteSipInstance(
+                        remoteContactHeader.getParameter(SipUtils.SIP_INSTANCE_PARAM));
             }
 
             // Prepare Media Session
@@ -1070,21 +1062,21 @@ public abstract class ImsServiceSession extends Thread {
             startMediaSession();
 
             // Notify listeners
-            for(int i=0; i < getListeners().size(); i++) {
+            for (int i = 0; i < getListeners().size(); i++) {
                 getListeners().get(i).handleSessionStarted();
             }
 
             // Start session timer
             if (getSessionTimerManager().isSessionTimerActivated(resp)) {
-                getSessionTimerManager().start(resp.getSessionTimerRefresher(), resp.getSessionTimerExpire());
+                getSessionTimerManager().start(resp.getSessionTimerRefresher(),
+                        resp.getSessionTimerExpire());
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             // Unexpected error
             if (logger.isActivated()) {
                 logger.error("Session initiation has failed", e);
             }
-            handleError(new ImsServiceError(ImsServiceError.UNEXPECTED_EXCEPTION,
-                    e.getMessage()));
+            handleError(new ImsServiceError(ImsServiceError.UNEXPECTED_EXCEPTION, e.getMessage()));
         }
     }
 
@@ -1095,8 +1087,9 @@ public abstract class ImsServiceSession extends Thread {
      */
     public void handleDefaultError(SipResponse resp) {
         // Default handle
-        handleError(new ImsSessionBasedServiceError(ImsSessionBasedServiceError.SESSION_INITIATION_FAILED,
-                resp.getStatusCode() + " " + resp.getReasonPhrase()));
+        handleError(new ImsSessionBasedServiceError(
+                ImsSessionBasedServiceError.SESSION_INITIATION_FAILED, resp.getStatusCode() + " "
+                        + resp.getReasonPhrase()));
     }
 
     /**
@@ -1149,19 +1142,18 @@ public abstract class ImsServiceSession extends Thread {
             // Send INVITE request
             sendInvite(invite);
 
-        } catch(Exception e) {
+        } catch (Exception e) {
             if (logger.isActivated()) {
                 logger.error("Session initiation has failed", e);
             }
 
             // Unexpected error
-            handleError(new ImsServiceError(ImsServiceError.UNEXPECTED_EXCEPTION,
-                    e.getMessage()));
+            handleError(new ImsServiceError(ImsServiceError.UNEXPECTED_EXCEPTION, e.getMessage()));
         }
     }
 
     /**
-     * Handle 422 response 
+     * Handle 422 response
      *
      * @param resp 422 response
      */
@@ -1178,7 +1170,8 @@ public abstract class ImsServiceSession extends Thread {
                 if (logger.isActivated()) {
                     logger.error("Can't read the Min-SE value");
                 }
-                handleError(new ImsSessionBasedServiceError(ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION, "No Min-SE value found"));
+                handleError(new ImsSessionBasedServiceError(
+                        ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION, "No Min-SE value found"));
                 return;
             }
 
@@ -1205,17 +1198,17 @@ public abstract class ImsServiceSession extends Thread {
 
             // Send INVITE request
             sendInvite(invite);
-        } catch(Exception e) {
+        } catch (Exception e) {
             if (logger.isActivated()) {
                 logger.error("Session initiation has failed", e);
             }
 
             // Unexpected error
-            handleError(new ImsSessionBasedServiceError(ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION,
-                    e.getMessage()));
+            handleError(new ImsSessionBasedServiceError(
+                    ImsSessionBasedServiceError.UNEXPECTED_EXCEPTION, e.getMessage()));
         }
     }
-    
+
     /**
      * Handle 480 Temporarily Unavailable
      *
@@ -1240,8 +1233,9 @@ public abstract class ImsServiceSession extends Thread {
      * @param resp 487 response
      */
     public void handle487Cancel(SipResponse resp) {
-        handleError(new ImsSessionBasedServiceError(ImsSessionBasedServiceError.SESSION_INITIATION_CANCELLED,
-                resp.getStatusCode() + " " + resp.getReasonPhrase()));
+        handleError(new ImsSessionBasedServiceError(
+                ImsSessionBasedServiceError.SESSION_INITIATION_CANCELLED, resp.getStatusCode()
+                        + " " + resp.getReasonPhrase()));
     }
 
     /**
@@ -1250,17 +1244,18 @@ public abstract class ImsServiceSession extends Thread {
      * @param resp 603 response
      */
     public void handle603Declined(SipResponse resp) {
-        handleError(new ImsSessionBasedServiceError(ImsSessionBasedServiceError.SESSION_INITIATION_DECLINED,
-                resp.getStatusCode() + " " + resp.getReasonPhrase()));
+        handleError(new ImsSessionBasedServiceError(
+                ImsSessionBasedServiceError.SESSION_INITIATION_DECLINED, resp.getStatusCode() + " "
+                        + resp.getReasonPhrase()));
     }
 
     /**
-     * Handle Error 
+     * Handle Error
      *
      * @param error ImsServiceError
      */
     public abstract void handleError(ImsServiceError error);
-    
+
     /**
      * Handle ReInvite Sip Response
      *
@@ -1268,67 +1263,67 @@ public abstract class ImsServiceSession extends Thread {
      * @param int code response code
      * @param reInvite reInvite SIP request
      */
-    public void handleReInviteResponse(int  code, SipResponse response, int requestType) {   	
+    public void handleReInviteResponse(int code, SipResponse response, int requestType) {
     }
-    
+
     /**
-     * Handle User Answer in Response to Session Update notification 
+     * Handle User Answer in Response to Session Update notification
      *
      * @param int code response code
      * @param reInvite reInvite SIP request
      */
-    public void handleReInviteUserAnswer(int  code, int requestType) {   	
+    public void handleReInviteUserAnswer(int code, int requestType) {
     }
-    
+
     /**
-     * Handle ACK sent in Response to 200Ok ReInvite 
+     * Handle ACK sent in Response to 200Ok ReInvite
      *
      * @param int code response code
      * @param reInvite reInvite SIP request
      */
-    public void handleReInviteAck(int  code, int requestType) {   	
+    public void handleReInviteAck(int code, int requestType) {
     }
-    
+
     /**
      * Handle 407 Proxy Authent error ReInvite Response
      *
      * @param response reInvite SIP response
-     * @param int requestType  service context of reInvite 
+     * @param int requestType service context of reInvite
      */
-    public void handleReInvite407ProxyAuthent(SipResponse response, int serviceContext){	
+    public void handleReInvite407ProxyAuthent(SipResponse response, int serviceContext) {
     }
- 
-    public String buildReInviteSdpResponse(SipRequest ReInvite, int serviceContext){
-    	return null;
+
+    public String buildReInviteSdpResponse(SipRequest ReInvite, int serviceContext) {
+        return null;
     }
- 
-	/**
-	 * Verify if session is initiated by remote part
-	 * 
-	 * @return true if session is initiated by remote part
-	 */
+
+    /**
+     * Verify if session is initiated by remote part
+     * 
+     * @return true if session is initiated by remote part
+     */
     abstract public boolean isInitiatedByRemote();
-    
-	/**
-	 * Handle 180 Ringing
-	 *
-	 * @param response
-	 */
-	public void handle180Ringing(SipResponse response) {
-	}
-	
-	   /**
+
+    /**
+     * Handle 180 Ringing
+     *
+     * @param response
+     */
+    public void handle180Ringing(SipResponse response) {
+    }
+
+    /**
      * Get feature tags
      * 
      * @return Feature tags
      */
     public String[] getFeatureTags() {
-        if(mCallingUid != null){
-            ServerApiUtils.addApplicationIdAsFeaturesTag(featureTags,  mCallingUid);
+        if (mCallingUid != null) {
+            ServerApiUtils.addApplicationIdAsFeaturesTag(featureTags, mCallingUid);
         }
         return featureTags.toArray(new String[featureTags.size()]);
     }
-    
+
     /**
      * Set feature tags
      * 
@@ -1340,6 +1335,7 @@ public abstract class ImsServiceSession extends Thread {
 
     /**
      * Get the UID of the application bound to the API
+     * 
      * @return UID or null when if there is no bound application to the API
      */
     public Integer getCallingUid() {
@@ -1348,9 +1344,10 @@ public abstract class ImsServiceSession extends Thread {
 
     /**
      * Set the UID of the application bound to the API
+     * 
      * @param callingUid
      */
     public void setCallingUid(Integer callingUid) {
         mCallingUid = callingUid;
-    }    
+    }
 }

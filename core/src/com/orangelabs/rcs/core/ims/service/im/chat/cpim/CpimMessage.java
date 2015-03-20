@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.im.chat.cpim;
 
 import java.util.Date;
@@ -28,104 +29,105 @@ import com.orangelabs.rcs.utils.DateUtils;
  * @author jexa7410
  */
 public class CpimMessage {
-	/**
-	 * MIME type
-	 */
-	public static final String MIME_TYPE = "message/cpim";
-	
-	/**
-	 * Header "Content-type"
-	 */
-	public static final String HEADER_CONTENT_TYPE = "Content-type";
-	public static final String HEADER_CONTENT_TYPE2 = "Content-Type";
+    /**
+     * MIME type
+     */
+    public static final String MIME_TYPE = "message/cpim";
 
-	/**
-	 * Header "From"
-	 */
-	public static final String HEADER_FROM = "From";
+    /**
+     * Header "Content-type"
+     */
+    public static final String HEADER_CONTENT_TYPE = "Content-type";
+    public static final String HEADER_CONTENT_TYPE2 = "Content-Type";
 
-	/**
-	 * Header "To"
-	 */
-	public static final String HEADER_TO = "To";
+    /**
+     * Header "From"
+     */
+    public static final String HEADER_FROM = "From";
 
-	/**
-	 * Header "cc"
-	 */
-	public static final String HEADER_CC = "cc";
+    /**
+     * Header "To"
+     */
+    public static final String HEADER_TO = "To";
 
-	/**
-	 * Header "DateTime"
-	 */
-	public static final String HEADER_DATETIME = "DateTime";
+    /**
+     * Header "cc"
+     */
+    public static final String HEADER_CC = "cc";
 
-	/**
-	 * Header "Subject"
-	 */
-	public static final String HEADER_SUBJECT = "Subject";
+    /**
+     * Header "DateTime"
+     */
+    public static final String HEADER_DATETIME = "DateTime";
 
-	/**
-	 * Header "NS"
-	 */
-	public static final String HEADER_NS = "NS";
+    /**
+     * Header "Subject"
+     */
+    public static final String HEADER_SUBJECT = "Subject";
 
-	/**
-	 * Header "Content-length"
-	 */
-	public static final String HEADER_CONTENT_LENGTH = "Content-length";
-	
-	/**
-	 * Header "Require"
-	 */
-	public static final String HEADER_REQUIRE = "Require";
-	
-	/**
-	 * Header "Content-Disposition"
-	 */
-	public static final String HEADER_CONTENT_DISPOSITION = "Content-Disposition";
-	
-	/**
-	 * Message content
-	 */
-	private String msgContent = null;
-	
-	/**
-	 * MIME headers
-	 */
-	private Hashtable<String, String> headers = new Hashtable<String, String>();
-	
-	/**
-	 * MIME content headers
-	 */
-	private Hashtable<String, String> contentHeaders = new Hashtable<String, String>();
-	
-	/**
-	 * Constructor
-	 * 
-	 * @param headers MIME headers
-	 * @param contentHeaders MIME content headers
-	 * @param msgContent Content
-	 */
-	public CpimMessage(Hashtable<String, String> headers, Hashtable<String, String> contentHeaders, String msgContent) {
-		this.headers = headers;
-		this.contentHeaders = contentHeaders;
-		this.msgContent = msgContent;
-	}
-	
+    /**
+     * Header "NS"
+     */
+    public static final String HEADER_NS = "NS";
+
+    /**
+     * Header "Content-length"
+     */
+    public static final String HEADER_CONTENT_LENGTH = "Content-length";
+
+    /**
+     * Header "Require"
+     */
+    public static final String HEADER_REQUIRE = "Require";
+
+    /**
+     * Header "Content-Disposition"
+     */
+    public static final String HEADER_CONTENT_DISPOSITION = "Content-Disposition";
+
+    /**
+     * Message content
+     */
+    private String msgContent = null;
+
+    /**
+     * MIME headers
+     */
+    private Hashtable<String, String> headers = new Hashtable<String, String>();
+
+    /**
+     * MIME content headers
+     */
+    private Hashtable<String, String> contentHeaders = new Hashtable<String, String>();
+
+    /**
+     * Constructor
+     * 
+     * @param headers MIME headers
+     * @param contentHeaders MIME content headers
+     * @param msgContent Content
+     */
+    public CpimMessage(Hashtable<String, String> headers, Hashtable<String, String> contentHeaders,
+            String msgContent) {
+        this.headers = headers;
+        this.contentHeaders = contentHeaders;
+        this.msgContent = msgContent;
+    }
+
     /**
      * Returns content type
      * 
      * @return Content type
      */
     public String getContentType() {
-    	String type = contentHeaders.get(CpimMessage.HEADER_CONTENT_TYPE);
-    	if (type == null) {
-    		return contentHeaders.get(CpimMessage.HEADER_CONTENT_TYPE2);
-    	} else {
-    		return type;
-    	}
+        String type = contentHeaders.get(CpimMessage.HEADER_CONTENT_TYPE);
+        if (type == null) {
+            return contentHeaders.get(CpimMessage.HEADER_CONTENT_TYPE2);
+        } else {
+            return type;
+        }
     }
-    
+
     /**
      * Returns MIME header
      * 
@@ -133,9 +135,9 @@ public class CpimMessage {
      * @return Header value
      */
     public String getHeader(String name) {
-		return headers.get(name);
-	}
-	
+        return headers.get(name);
+    }
+
     /**
      * Returns MIME content header
      * 
@@ -143,8 +145,8 @@ public class CpimMessage {
      * @return Header value
      */
     public String getContentHeader(String name) {
-		return contentHeaders.get(name);
-	}
+        return contentHeaders.get(name);
+    }
 
     /**
      * Returns message content
@@ -152,8 +154,8 @@ public class CpimMessage {
      * @return Content
      */
     public String getMessageContent() {
-		return msgContent;
-	}
+        return msgContent;
+    }
 
     /**
      * Returns message date
@@ -161,11 +163,11 @@ public class CpimMessage {
      * @return Date
      */
     public Date getMessageDate() {
-    	String header = getHeader(CpimMessage.HEADER_DATETIME);
-    	if (header != null) {
-    		return new Date(DateUtils.decodeDate(header));
-    	} else {
-    		return null;
-    	}
-	}
+        String header = getHeader(CpimMessage.HEADER_DATETIME);
+        if (header != null) {
+            return new Date(DateUtils.decodeDate(header));
+        } else {
+            return null;
+        }
+    }
 }

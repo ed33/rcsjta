@@ -26,100 +26,115 @@ import java.util.Map;
 import com.gsma.iariauth.validator.dsig.TrustStore;
 
 /**
- * A class that processes a package containing one or more
- * IARI Authorization documents.
+ * A class that processes a package containing one or more IARI Authorization documents.
  */
 public class PackageProcessor {
 
-	/*******************************
-	 *        Public API
-	 *******************************/
+    /*******************************
+     * Public API
+     *******************************/
 
-	/**
-	 * Construct a PackageProcessor given the known trusted certificates
-	 * and relevant package parameters.
-	 * @param trustStore: a keystore containing the known and enabled IARI range certificates
-	 * @param packageName: the package id
-	 * @param packageSigner: a byte array containing the serialised package signing certificate
-	 * as returned by PackageManager.getPackageInfo().signatures[0]
-	 */
-	public PackageProcessor(TrustStore trustStore, String packageName, String packageSigner) {
-		this.trustStore = trustStore;
-		this.packageName = packageName;
-		this.packageSigner = packageSigner;
-	}
+    /**
+     * Construct a PackageProcessor given the known trusted certificates and relevant package
+     * parameters.
+     * 
+     * @param trustStore: a keystore containing the known and enabled IARI range certificates
+     * @param packageName: the package id
+     * @param packageSigner: a byte array containing the serialised package signing certificate as
+     *            returned by PackageManager.getPackageInfo().signatures[0]
+     */
+    public PackageProcessor(TrustStore trustStore, String packageName, String packageSigner) {
+        this.trustStore = trustStore;
+        this.packageName = packageName;
+        this.packageSigner = packageSigner;
+    }
 
-	/**
-	 * Process an IARI Authorization document presented as an InputStream.
-	 * It is the caller's responsibility to close the stream after this method
-	 * has returned.
-	 * @param is
-	 * @return a ProcessingResult, containing details of the processing.
-	 */
-	public ProcessingResult processIARIauthorization(InputStream is) {
-		IARIAuthProcessor processor = new IARIAuthProcessor(trustStore);
-		processor.process(is);
-		if(processor.getStatus() == ProcessingResult.STATUS_OK) {
-			IARIAuthDocument authDocument = processor.getAuthDocument();
-			Artifact error = checkPackageDetails(authDocument);
-			if(error != null) {
-				return new ErrorResult(error);
-			}
-			authorizedIARIs.put(authDocument.iari, authDocument);
-		}
-		return processor;
-	}
+    /**
+     * Process an IARI Authorization document presented as an InputStream. It is the caller's
+     * responsibility to close the stream after this method has returned.
+     * 
+     * @param is
+     * @return a ProcessingResult, containing details of the processing.
+     */
+    public ProcessingResult processIARIauthorization(InputStream is) {
+        IARIAuthProcessor processor = new IARIAuthProcessor(trustStore);
+        processor.process(is);
+        if (processor.getStatus() == ProcessingResult.STATUS_OK) {
+            IARIAuthDocument authDocument = processor.getAuthDocument();
+            Artifact error = checkPackageDetails(authDocument);
+            if (error != null) {
+                return new ErrorResult(error);
+            }
+            authorizedIARIs.put(authDocument.iari, authDocument);
+        }
+        return processor;
+    }
 
-	/**
-	 * Process an IARI Authorization document presented as an File.
-	 * @param f
-	 * @return a ProcessingResult, containing details of the processing.
-	 */
-	public ProcessingResult processIARIauthorization(File f) {
-		FileInputStream fis = null;
-		try {
-			fis = new FileInputStream(f);
-			return processIARIauthorization(fis);
-		} catch (final FileNotFoundException e) {
-			return new ErrorResult(new Artifact("Unable to read IARI Authorization: " + e.getLocalizedMessage()));
-		} finally {
-			try { if(fis != null) fis.close(); } catch(Throwable t) {}
-		}
-	}
+    /**
+     * Process an IARI Authorization document presented as an File.
+     * 
+     * @param f
+     * @return a ProcessingResult, containing details of the processing.
+     */
+    public ProcessingResult processIARIauthorization(File f) {
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(f);
+            return processIARIauthorization(fis);
+        } catch (final FileNotFoundException e) {
+            return new ErrorResult(new Artifact("Unable to read IARI Authorization: "
+                    + e.getLocalizedMessage()));
+        } finally {
+            try {
+                if (fis != null)
+                    fis.close();
+            } catch (Throwable t) {
+            }
+        }
+    }
 
-	/*******************************
-	 *          Internal
-	 *******************************/
+    /*******************************
+     * Internal
+     *******************************/
 
-	private static class ErrorResult implements ProcessingResult {
+    private static class ErrorResult implements ProcessingResult {
 
-		@Override
-		public int getStatus() { return error.status; };
+        @Override
+        public int getStatus() {
+            return error.status;
+        };
 
-		@Override
-		public Artifact getError() { return error; }
+        @Override
+        public Artifact getError() {
+            return error;
+        }
 
-		@Override
-		public IARIAuthDocument getAuthDocument() { return null; }
+        @Override
+        public IARIAuthDocument getAuthDocument() {
+            return null;
+        }
 
-		private ErrorResult(Artifact error) { this.error = error; }
-		private final Artifact error;
-	}
+        private ErrorResult(Artifact error) {
+            this.error = error;
+        }
 
-	private Artifact checkPackageDetails(IARIAuthDocument authDocument) {
-		if(authDocument.packageName != null) {
-			if(!authDocument.packageName.equals(packageName)) {
-				return new Artifact("Mismatched package name");
-			}
-		}
-		if(!authDocument.packageSigner.equals(packageSigner)) {
-			return new Artifact("Mismatched package signer");
-		}
-		return null;
-	}
+        private final Artifact error;
+    }
 
-	private final TrustStore trustStore;
-	private final String packageName;
-	private final String packageSigner;
-	private final Map<String, IARIAuthDocument> authorizedIARIs = new HashMap<String, IARIAuthDocument>();
+    private Artifact checkPackageDetails(IARIAuthDocument authDocument) {
+        if (authDocument.packageName != null) {
+            if (!authDocument.packageName.equals(packageName)) {
+                return new Artifact("Mismatched package name");
+            }
+        }
+        if (!authDocument.packageSigner.equals(packageSigner)) {
+            return new Artifact("Mismatched package signer");
+        }
+        return null;
+    }
+
+    private final TrustStore trustStore;
+    private final String packageName;
+    private final String packageSigner;
+    private final Map<String, IARIAuthDocument> authorizedIARIs = new HashMap<String, IARIAuthDocument>();
 }

@@ -35,8 +35,7 @@ import android.net.wifi.WifiManager;
 public class HttpsProvisioningConnection {
 
     /**
-     * HttpsProvisioningManager manages HTTP and SMS reception to load
-     * provisioning from network
+     * HttpsProvisioningManager manages HTTP and SMS reception to load provisioning from network
      */
     private HttpsProvisioningManager manager;
 

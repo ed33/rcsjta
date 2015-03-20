@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.upload;
 
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.FileTransferHttpInfoDocument;
@@ -23,7 +24,6 @@ import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.FileTransferHttp
  * File upload session listener
  * 
  * @author Jean-Marc AUFFRET
- *
  */
 public interface FileUploadSessionListener {
     /**
@@ -31,14 +31,14 @@ public interface FileUploadSessionListener {
      */
     public void handleUploadStarted();
 
-	/**
-	 * Upload progress
-	 * 
-	 * @param currentSize Data size transfered 
-	 * @param totalSize Total size to be transfered
-	 */
+    /**
+     * Upload progress
+     * 
+     * @param currentSize Data size transfered
+     * @param totalSize Total size to be transfered
+     */
     public void handleUploadProgress(long currentSize, long totalSize);
-    
+
     /**
      * Upload terminated with success
      * 
@@ -51,12 +51,12 @@ public interface FileUploadSessionListener {
      * 
      * @param error Error
      */
-    public void handleUploadError(int error);    
+    public void handleUploadError(int error);
 
     /**
      * Upload aborted
      */
-    public void handleUploadAborted();    
+    public void handleUploadAborted();
 
     /**
      * Not allowed to send

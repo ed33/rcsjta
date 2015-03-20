@@ -104,106 +104,106 @@ import com.orangelabs.rcs.utils.IntentUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
- * RCS core service. This service offers a flat API to any other process (activities)
- * to access to RCS features. This service is started automatically at device boot.
+ * RCS core service. This service offers a flat API to any other process (activities) to access to
+ * RCS features. This service is started automatically at device boot.
  * 
  * @author Jean-Marc AUFFRET
  */
 public class RcsCoreService extends Service implements CoreListener {
-	/**
-	 * Notification ID
-	 */
-	private final static int SERVICE_NOTIFICATION = 1000;
-	
-	/**
-	 * CPU manager
-	 */
-	private CpuManager cpuManager = new CpuManager();
+    /**
+     * Notification ID
+     */
+    private final static int SERVICE_NOTIFICATION = 1000;
+
+    /**
+     * CPU manager
+     */
+    private CpuManager cpuManager = new CpuManager();
 
     /**
      * Account changed broadcast receiver
      */
     private AccountChangedReceiver accountChangedReceiver;
 
-	// --------------------- RCSJTA API -------------------------
-	
-	/**
-	 * Contacts API
-	 */
-    private ContactsServiceImpl contactsApi; 
+    // --------------------- RCSJTA API -------------------------
 
     /**
-	 * Capability API
-	 */
-    private CapabilityServiceImpl capabilityApi; 
-
-	/**
-	 * Chat API
-	 */
-    private ChatServiceImpl chatApi; 
-
-	/**
-	 * File transfer API
-	 */
-    private FileTransferServiceImpl ftApi; 
+     * Contacts API
+     */
+    private ContactsServiceImpl contactsApi;
 
     /**
-	 * Video sharing API
-	 */
-    private VideoSharingServiceImpl vshApi; 
+     * Capability API
+     */
+    private CapabilityServiceImpl capabilityApi;
 
     /**
-	 * Image sharing API
-	 */
-    private ImageSharingServiceImpl ishApi; 
+     * Chat API
+     */
+    private ChatServiceImpl chatApi;
 
     /**
-	 * Geoloc sharing API
-	 */
-    private GeolocSharingServiceImpl gshApi; 
+     * File transfer API
+     */
+    private FileTransferServiceImpl ftApi;
 
     /**
-	 * IP call API
-	 */
-    private IPCallServiceImpl ipcallApi; 
+     * Video sharing API
+     */
+    private VideoSharingServiceImpl vshApi;
 
     /**
-	 * Multimedia session API
-	 */
-	private MultimediaSessionServiceImpl sessionApi; 
-	
-    /**
-	 * File upload API
-	 */
-    private FileUploadServiceImpl uploadApi; 
+     * Image sharing API
+     */
+    private ImageSharingServiceImpl ishApi;
 
     /**
-	 * The logger
-	 */
-	private final static Logger logger = Logger.getLogger(RcsCoreService.class.getSimpleName());
+     * Geoloc sharing API
+     */
+    private GeolocSharingServiceImpl gshApi;
 
-	@Override
+    /**
+     * IP call API
+     */
+    private IPCallServiceImpl ipcallApi;
+
+    /**
+     * Multimedia session API
+     */
+    private MultimediaSessionServiceImpl sessionApi;
+
+    /**
+     * File upload API
+     */
+    private FileUploadServiceImpl uploadApi;
+
+    /**
+     * The logger
+     */
+    private final static Logger logger = Logger.getLogger(RcsCoreService.class.getSimpleName());
+
+    @Override
     public void onCreate() {
-		// Set application context
-		AndroidFactory.setApplicationContext(getApplicationContext());
+        // Set application context
+        AndroidFactory.setApplicationContext(getApplicationContext());
 
-		// Set the terminal version
-		TerminalInfo.setProductVersion(AppUtils.getApplicationVersion(this));
+        // Set the terminal version
+        TerminalInfo.setProductVersion(AppUtils.getApplicationVersion(this));
 
-    	// Start the core
-    	startCore();
+        // Start the core
+        startCore();
     }
 
     @Override
     public void onDestroy() {
         // Unregister account changed broadcast receiver
-	    if (accountChangedReceiver != null) {
-	        try {
-	        	unregisterReceiver(accountChangedReceiver);
-	        } catch (IllegalArgumentException e) {
-	        	// Nothing to do
-	        }
-	    }
+        if (accountChangedReceiver != null) {
+            try {
+                unregisterReceiver(accountChangedReceiver);
+            } catch (IllegalArgumentException e) {
+                // Nothing to do
+            }
+        }
 
         // Stop the core
         new Thread() {
@@ -220,46 +220,46 @@ public class RcsCoreService extends Service implements CoreListener {
      * Start core
      */
     public synchronized void startCore() {
-		if (Core.getInstance() != null) {
-			// Already started
-			return;
-		}
+        if (Core.getInstance() != null) {
+            // Already started
+            return;
+        }
 
-		boolean isLoggerActivated = logger.isActivated();
+        boolean isLoggerActivated = logger.isActivated();
         try {
-    		if (isLoggerActivated) {
-    			logger.debug("Start RCS core service");
-    		}
-    		
+            if (isLoggerActivated) {
+                logger.debug("Start RCS core service");
+            }
+
             Context ctx = getApplicationContext();
             // Instantiate the RCS settings provider
             RcsSettings.createInstance(ctx);
             RcsSettings rcsSettings = RcsSettings.getInstance();
-            
+
             // Instantiate the Security infos provider
             ContentResolver contentResolver = ctx.getContentResolver();
             LocalContentResolver localContentResolver = new LocalContentResolver(contentResolver);
-            
+
             SecurityLog.createInstance(localContentResolver);
             SecurityLog securityLog = SecurityLog.getInstance();
-            
+
             // Instantiate the Security infos provider
             ExtensionManager.createInstance(ctx, rcsSettings, securityLog);
-            
+
             // Instantiate the contactUtils instance (CountryCode is already set)
             com.gsma.services.rcs.contacts.ContactUtils.getInstance(this);
-         
+
             ContactsManager.createInstance(ctx, contentResolver, localContentResolver);
             MessagingLog.createInstance(ctx, localContentResolver);
             RichCallHistory.createInstance(localContentResolver);
             IPCallHistory.createInstance(localContentResolver);
             FtHttpResumeDaoImpl.createInstance(ctx);
-            
-            // Create the core
-			Core.createCore(this);
 
-        	// Instantiate API
-            contactsApi = new ContactsServiceImpl(); 
+            // Create the core
+            Core.createCore(this);
+
+            // Instantiate API
+            contactsApi = new ContactsServiceImpl();
             capabilityApi = new CapabilityServiceImpl();
             Core core = Core.getInstance();
             InstantMessagingService imService = core.getImService();
@@ -269,175 +269,173 @@ public class RcsCoreService extends Service implements CoreListener {
             MessagingLog messgaingLog = MessagingLog.getInstance();
             RichCallHistory richcallLog = RichCallHistory.getInstance();
             ContactsManager contactsManager = ContactsManager.getInstance();
-            chatApi = new ChatServiceImpl(imService, messgaingLog, rcsSettings, contactsManager, core);
-            ftApi = new FileTransferServiceImpl(imService, messgaingLog, rcsSettings, contactsManager, core);
-            vshApi = new VideoSharingServiceImpl(richCallService, richcallLog, rcsSettings, contactsManager, core);
-            ishApi = new ImageSharingServiceImpl(richCallService, richcallLog, rcsSettings, contactsManager);
+            chatApi = new ChatServiceImpl(imService, messgaingLog, rcsSettings, contactsManager,
+                    core);
+            ftApi = new FileTransferServiceImpl(imService, messgaingLog, rcsSettings,
+                    contactsManager, core);
+            vshApi = new VideoSharingServiceImpl(richCallService, richcallLog, rcsSettings,
+                    contactsManager, core);
+            ishApi = new ImageSharingServiceImpl(richCallService, richcallLog, rcsSettings,
+                    contactsManager);
             gshApi = new GeolocSharingServiceImpl(richCallService, contactsManager);
-            ipcallApi = new IPCallServiceImpl(ipCallService, IPCallHistory.getInstance(), contactsManager, rcsSettings);
-        	sessionApi = new MultimediaSessionServiceImpl(sipService, rcsSettings, contactsManager);
+            ipcallApi = new IPCallServiceImpl(ipCallService, IPCallHistory.getInstance(),
+                    contactsManager, rcsSettings);
+            sessionApi = new MultimediaSessionServiceImpl(sipService, rcsSettings, contactsManager);
             uploadApi = new FileUploadServiceImpl(imService);
-            
-            // Set the logger properties
-    		Logger.activationFlag = rcsSettings.isTraceActivated();
-    		Logger.traceLevel = rcsSettings.getTraceLevel();
 
-    		// Terminal version
+            // Set the logger properties
+            Logger.activationFlag = rcsSettings.isTraceActivated();
+            Logger.traceLevel = rcsSettings.getTraceLevel();
+
+            // Terminal version
             if (isLoggerActivated) {
                 logger.info("RCS stack release is ".concat(TerminalInfo.getProductVersion()));
             }
 
-			// Start the core
-			Core.getInstance().startCore();		
+            // Start the core
+            Core.getInstance().startCore();
 
-			// Create multimedia directory on sdcard
-			FileFactory.createDirectory(rcsSettings.getPhotoRootDirectory());
-			FileFactory.createDirectory(rcsSettings.getVideoRootDirectory());
-			FileFactory.createDirectory(rcsSettings.getFileRootDirectory());
-			
-			// Init CPU manager
-			cpuManager.init();
+            // Create multimedia directory on sdcard
+            FileFactory.createDirectory(rcsSettings.getPhotoRootDirectory());
+            FileFactory.createDirectory(rcsSettings.getVideoRootDirectory());
+            FileFactory.createDirectory(rcsSettings.getFileRootDirectory());
+
+            // Init CPU manager
+            cpuManager.init();
 
             // Register account changed event receiver
             if (accountChangedReceiver == null) {
                 accountChangedReceiver = new AccountChangedReceiver();
 
-                // Register account changed broadcast receiver after a timeout of 2s (This is not done immediately, as we do not want to catch
-                // the removal of the account (creating and removing accounts is done asynchronously). We can reasonably assume that no
-                // RCS account deletion will be done by user during this amount of time, as he just started his service.
+                // Register account changed broadcast receiver after a timeout of 2s (This is not
+                // done immediately, as we do not want to catch
+                // the removal of the account (creating and removing accounts is done
+                // asynchronously). We can reasonably assume that no
+                // RCS account deletion will be done by user during this amount of time, as he just
+                // started his service.
                 Handler handler = new Handler();
-                handler.postDelayed(
-                        new Runnable() {
-                            public void run() {
-                                registerReceiver(accountChangedReceiver, new IntentFilter(
-                                        "android.accounts.LOGIN_ACCOUNTS_CHANGED"));
-                            }},
-                        2000);
+                handler.postDelayed(new Runnable() {
+                    public void run() {
+                        registerReceiver(accountChangedReceiver, new IntentFilter(
+                                "android.accounts.LOGIN_ACCOUNTS_CHANGED"));
+                    }
+                }, 2000);
             }
 
-	        // Show a first notification
-	    	addRcsServiceNotification(false, getString(R.string.rcs_core_loaded));
+            // Show a first notification
+            addRcsServiceNotification(false, getString(R.string.rcs_core_loaded));
 
-			if (isLoggerActivated) {
-				logger.info("RCS core service started with success");
-			}
-		} catch(Exception e) {
-			// Unexpected error
-			if (isLoggerActivated) {
-				logger.error("Can't instanciate the RCS core service", e);
-			}
-			
-			// Show error in notification bar
-	    	addRcsServiceNotification(false, getString(R.string.rcs_core_failed));
-	    	
-			// Exit service
-	    	stopSelf();
-		}
+            if (isLoggerActivated) {
+                logger.info("RCS core service started with success");
+            }
+        } catch (Exception e) {
+            // Unexpected error
+            if (isLoggerActivated) {
+                logger.error("Can't instanciate the RCS core service", e);
+            }
+
+            // Show error in notification bar
+            addRcsServiceNotification(false, getString(R.string.rcs_core_failed));
+
+            // Exit service
+            stopSelf();
+        }
     }
-    
+
     /**
      * Stop core
      */
     public synchronized void stopCore() {
-		if (Core.getInstance() == null) {
-			// Already stopped
-			return;
-		}
-		
-		if (logger.isActivated()) {
-			logger.debug("Stop RCS core service");
-		}
+        if (Core.getInstance() == null) {
+            // Already stopped
+            return;
+        }
 
-    	// Close APIs
-	    contactsApi.close();
-		capabilityApi.close();
-		ftApi.close();
-		chatApi.close();
-		ishApi.close();
-		gshApi.close();
-		ipcallApi.close();
-    	vshApi.close();
-    	ipcallApi.close();
-    	sessionApi.close();
-    	uploadApi.close();
+        if (logger.isActivated()) {
+            logger.debug("Stop RCS core service");
+        }
 
-    	// Terminate the core in background
-		Core.terminateCore();
+        // Close APIs
+        contactsApi.close();
+        capabilityApi.close();
+        ftApi.close();
+        chatApi.close();
+        ishApi.close();
+        gshApi.close();
+        ipcallApi.close();
+        vshApi.close();
+        ipcallApi.close();
+        sessionApi.close();
+        uploadApi.close();
 
-		// Close CPU manager
-		cpuManager.close();
+        // Terminate the core in background
+        Core.terminateCore();
 
-		if (logger.isActivated()) {
-			logger.info("RCS core service stopped with success");
-		}
+        // Close CPU manager
+        cpuManager.close();
+
+        if (logger.isActivated()) {
+            logger.info("RCS core service stopped with success");
+        }
     }
 
     @Override
-    public IBinder onBind(Intent intent) {    	
+    public IBinder onBind(Intent intent) {
         if (IContactsService.class.getName().equals(intent.getAction())) {
-    		if (logger.isActivated()) {
-    			logger.debug("Contacts service API binding");
-    		}
+            if (logger.isActivated()) {
+                logger.debug("Contacts service API binding");
+            }
             return contactsApi;
-        } else
-        if (ICapabilityService.class.getName().equals(intent.getAction())) {
-    		if (logger.isActivated()) {
-    			logger.debug("Capability service API binding");
-    		}
+        } else if (ICapabilityService.class.getName().equals(intent.getAction())) {
+            if (logger.isActivated()) {
+                logger.debug("Capability service API binding");
+            }
             return capabilityApi;
-        } else
-        if (IFileTransferService.class.getName().equals(intent.getAction())) {
-    		if (logger.isActivated()) {
-    			logger.debug("File transfer service API binding");
-    		}
+        } else if (IFileTransferService.class.getName().equals(intent.getAction())) {
+            if (logger.isActivated()) {
+                logger.debug("File transfer service API binding");
+            }
             return ftApi;
-        } else
-        if (IChatService.class.getName().equals(intent.getAction())) {
-    		if (logger.isActivated()) {
-    			logger.debug("Chat service API binding");
-    		}
+        } else if (IChatService.class.getName().equals(intent.getAction())) {
+            if (logger.isActivated()) {
+                logger.debug("Chat service API binding");
+            }
             return chatApi;
-        } else
-        if (IVideoSharingService.class.getName().equals(intent.getAction())) {
-    		if (logger.isActivated()) {
-    			logger.debug("Video sharing service API binding");
-    		}
+        } else if (IVideoSharingService.class.getName().equals(intent.getAction())) {
+            if (logger.isActivated()) {
+                logger.debug("Video sharing service API binding");
+            }
             return vshApi;
-        } else
-        if (IImageSharingService.class.getName().equals(intent.getAction())) {
-    		if (logger.isActivated()) {
-    			logger.debug("Image sharing service API binding");
-    		}
+        } else if (IImageSharingService.class.getName().equals(intent.getAction())) {
+            if (logger.isActivated()) {
+                logger.debug("Image sharing service API binding");
+            }
             return ishApi;
-        } else
-        if (IGeolocSharingService.class.getName().equals(intent.getAction())) {
-    		if (logger.isActivated()) {
-    			logger.debug("Geoloc sharing service API binding");
-    		}
+        } else if (IGeolocSharingService.class.getName().equals(intent.getAction())) {
+            if (logger.isActivated()) {
+                logger.debug("Geoloc sharing service API binding");
+            }
             return gshApi;
-        } else
-        if (IIPCallService.class.getName().equals(intent.getAction())) {
-    		if (logger.isActivated()) {
-    			logger.debug("IP call service API binding");
-    		}
+        } else if (IIPCallService.class.getName().equals(intent.getAction())) {
+            if (logger.isActivated()) {
+                logger.debug("IP call service API binding");
+            }
             return ipcallApi;
-        } else
-        if (IMultimediaSessionService.class.getName().equals(intent.getAction())) {
-    		if (logger.isActivated()) {
-    			logger.debug("Multimedia session API binding");
-    		}
+        } else if (IMultimediaSessionService.class.getName().equals(intent.getAction())) {
+            if (logger.isActivated()) {
+                logger.debug("Multimedia session API binding");
+            }
             return sessionApi;
-        } else
-        if (IFileUploadService.class.getName().equals(intent.getAction())) {
-    		if (logger.isActivated()) {
-    			logger.debug("File upload service API binding");
-    		}
+        } else if (IFileUploadService.class.getName().equals(intent.getAction())) {
+            if (logger.isActivated()) {
+                logger.debug("File upload service API binding");
+            }
             return uploadApi;
         } else {
-        	return null;
+            return null;
         }
     }
-    
+
     /**
      * Add RCS service notification
      * 
@@ -445,80 +443,84 @@ public class RcsCoreService extends Service implements CoreListener {
      * @param label Label
      */
     public static void addRcsServiceNotification(boolean state, String label) {
-    	// Create notification
-    	Intent intent = new Intent(AndroidFactory.getApplicationContext(), SettingsDisplay.class);
-    	intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-		PendingIntent contentIntent = PendingIntent.getActivity(AndroidFactory.getApplicationContext(), 0, intent, 0);
-		int iconId; 
-		if (state) {
-			iconId  = R.drawable.rcs_core_notif_on_icon;
-		} else {
-			iconId  = R.drawable.rcs_core_notif_off_icon; 
-		}
+        // Create notification
+        Intent intent = new Intent(AndroidFactory.getApplicationContext(), SettingsDisplay.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent contentIntent = PendingIntent.getActivity(
+                AndroidFactory.getApplicationContext(), 0, intent, 0);
+        int iconId;
+        if (state) {
+            iconId = R.drawable.rcs_core_notif_on_icon;
+        } else {
+            iconId = R.drawable.rcs_core_notif_off_icon;
+        }
         Notification notif = new Notification(iconId, "", System.currentTimeMillis());
         notif.flags = Notification.FLAG_NO_CLEAR | Notification.FLAG_FOREGROUND_SERVICE;
-        notif.setLatestEventInfo(AndroidFactory.getApplicationContext(),
-        		AndroidFactory.getApplicationContext().getString(R.string.rcs_core_rcs_notification_title),
-        		label, contentIntent);
-        
+        notif.setLatestEventInfo(AndroidFactory.getApplicationContext(), AndroidFactory
+                .getApplicationContext().getString(R.string.rcs_core_rcs_notification_title),
+                label, contentIntent);
+
         // Send notification
-		NotificationManager notificationManager = (NotificationManager)AndroidFactory.getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationManager notificationManager = (NotificationManager) AndroidFactory
+                .getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(SERVICE_NOTIFICATION, notif);
     }
-    
+
     /*---------------------------- CORE EVENTS ---------------------------*/
 
     /**
-	 * Notify registration status to API
-	 * 
-	 * @param status Status
-	 */
-	private void notifyRegistrationStatusToApi(boolean status) {
-		if (capabilityApi != null) {
-			capabilityApi.notifyRegistrationEvent(status);
-		}
-		if (chatApi != null) {
-			chatApi.notifyRegistrationEvent(status);
-		}
-		if (ftApi != null) {
-			ftApi.notifyRegistrationEvent(status);
-		}
-		if (vshApi != null) {
-			vshApi.notifyRegistrationEvent(status);
-		}
-		if (ishApi != null) {
-			ishApi.notifyRegistrationEvent(status);
-		}
-		if (gshApi != null) {
-			gshApi.notifyRegistrationEvent(status);
-		}
-		if (ipcallApi != null) {
-			ipcallApi.notifyRegistrationEvent(status);
-		}
-		if (sessionApi != null) {
-			sessionApi.notifyRegistrationEvent(status);
-		}
-		// TODO check for missing API
-	}    
-    
-    /* (non-Javadoc)
+     * Notify registration status to API
+     * 
+     * @param status Status
+     */
+    private void notifyRegistrationStatusToApi(boolean status) {
+        if (capabilityApi != null) {
+            capabilityApi.notifyRegistrationEvent(status);
+        }
+        if (chatApi != null) {
+            chatApi.notifyRegistrationEvent(status);
+        }
+        if (ftApi != null) {
+            ftApi.notifyRegistrationEvent(status);
+        }
+        if (vshApi != null) {
+            vshApi.notifyRegistrationEvent(status);
+        }
+        if (ishApi != null) {
+            ishApi.notifyRegistrationEvent(status);
+        }
+        if (gshApi != null) {
+            gshApi.notifyRegistrationEvent(status);
+        }
+        if (ipcallApi != null) {
+            ipcallApi.notifyRegistrationEvent(status);
+        }
+        if (sessionApi != null) {
+            sessionApi.notifyRegistrationEvent(status);
+        }
+        // TODO check for missing API
+    }
+
+    /*
+     * (non-Javadoc)
      * @see com.orangelabs.rcs.core.CoreListener#handleCoreLayerStarted()
      */
     public void handleCoreLayerStarted() {
-		if (logger.isActivated()) {
-			logger.debug("Handle event core started");
-		}
+        if (logger.isActivated()) {
+            logger.debug("Handle event core started");
+        }
 
-		// Display a notification
-		addRcsServiceNotification(false, getString(R.string.rcs_core_started));
+        // Display a notification
+        addRcsServiceNotification(false, getString(R.string.rcs_core_started));
 
-		// Send service up intent
-		Intent serviceUp = new Intent(RcsService.ACTION_SERVICE_UP);
-		IntentUtils.tryToSetReceiverForegroundFlag(serviceUp);
-		getApplicationContext().sendBroadcast(serviceUp);
+        // Send service up intent
+        Intent serviceUp = new Intent(RcsService.ACTION_SERVICE_UP);
+        IntentUtils.tryToSetReceiverForegroundFlag(serviceUp);
+        getApplicationContext().sendBroadcast(serviceUp);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
      * @see com.orangelabs.rcs.core.CoreListener#handleCoreLayerStopped()
      */
     public void handleCoreLayerStopped() {
@@ -528,41 +530,46 @@ public class RcsCoreService extends Service implements CoreListener {
         }
         addRcsServiceNotification(false, getString(R.string.rcs_core_stopped));
     }
-    
-	/* (non-Javadoc)
-	 * @see com.orangelabs.rcs.core.CoreListener#handleRegistrationSuccessful()
-	 */
-	public void handleRegistrationSuccessful() {
-		if (logger.isActivated()) {
-			logger.debug("Handle event registration ok");
-		}
-		
-		// Display a notification
-		addRcsServiceNotification(true, getString(R.string.rcs_core_ims_connected));
-		
-		// Notify APIs
-		notifyRegistrationStatusToApi(true);
-	}
 
-	/* (non-Javadoc)
-	 * @see com.orangelabs.rcs.core.CoreListener#handleRegistrationFailed(com.orangelabs.rcs.core.ims.ImsError)
-	 */
-	public void handleRegistrationFailed(ImsError error) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event registration failed");
-		}
+    /*
+     * (non-Javadoc)
+     * @see com.orangelabs.rcs.core.CoreListener#handleRegistrationSuccessful()
+     */
+    public void handleRegistrationSuccessful() {
+        if (logger.isActivated()) {
+            logger.debug("Handle event registration ok");
+        }
 
-		// Display a notification
-		addRcsServiceNotification(false, getString(R.string.rcs_core_ims_connection_failed));
+        // Display a notification
+        addRcsServiceNotification(true, getString(R.string.rcs_core_ims_connected));
 
-		// Notify APIs
-		notifyRegistrationStatusToApi(false);
-	}
+        // Notify APIs
+        notifyRegistrationStatusToApi(true);
+    }
 
-	/* (non-Javadoc)
-	 * @see com.orangelabs.rcs.core.CoreListener#handleRegistrationTerminated()
-	 */
-	public void handleRegistrationTerminated() {
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.orangelabs.rcs.core.CoreListener#handleRegistrationFailed(com.orangelabs.rcs.core.ims
+     * .ImsError)
+     */
+    public void handleRegistrationFailed(ImsError error) {
+        if (logger.isActivated()) {
+            logger.debug("Handle event registration failed");
+        }
+
+        // Display a notification
+        addRcsServiceNotification(false, getString(R.string.rcs_core_ims_connection_failed));
+
+        // Notify APIs
+        notifyRegistrationStatusToApi(false);
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see com.orangelabs.rcs.core.CoreListener#handleRegistrationTerminated()
+     */
+    public void handleRegistrationTerminated() {
         if (logger.isActivated()) {
             logger.debug("Handle event registration terminated");
         }
@@ -572,111 +579,132 @@ public class RcsCoreService extends Service implements CoreListener {
             addRcsServiceNotification(false, getString(R.string.rcs_core_ims_battery_disconnected));
         } else {
             // Display a notification
-        	addRcsServiceNotification(false, getString(R.string.rcs_core_ims_disconnected));
+            addRcsServiceNotification(false, getString(R.string.rcs_core_ims_disconnected));
         }
-        
-		// Notify APIs
-		notifyRegistrationStatusToApi(false);
-	}
 
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handlePresenceSharingNotification(java.lang.String, java.lang.String, java.lang.String)
+        // Notify APIs
+        notifyRegistrationStatusToApi(false);
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see com.orangelabs.rcs.core.CoreListener#handlePresenceSharingNotification(java.lang.String,
+     * java.lang.String, java.lang.String)
      */
     public void handlePresenceSharingNotification(ContactId contact, String status, String reason) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event presence sharing notification for " + contact + " (" + status + ":" + reason + ")");
-		}
-		// Not used
+        if (logger.isActivated()) {
+            logger.debug("Handle event presence sharing notification for " + contact + " ("
+                    + status + ":" + reason + ")");
+        }
+        // Not used
     }
 
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handlePresenceInfoNotification(java.lang.String, com.orangelabs.rcs.core.ims.service.presence.pidf.PidfDocument)
+    /*
+     * (non-Javadoc)
+     * @see com.orangelabs.rcs.core.CoreListener#handlePresenceInfoNotification(java.lang.String,
+     * com.orangelabs.rcs.core.ims.service.presence.pidf.PidfDocument)
      */
     public void handlePresenceInfoNotification(ContactId contact, PidfDocument presence) {
-    	if (logger.isActivated()) {
-			logger.debug("Handle event presence info notification for " + contact);
-		}
-		// Not used
-	}
-    
-    public void handleCapabilitiesNotification(ContactId contact, Capabilities capabilities) {
-    	if (logger.isActivated()) {
-			logger.debug("Handle capabilities update notification for " + contact + " (" + capabilities.toString() + ")");
-		}
+        if (logger.isActivated()) {
+            logger.debug("Handle event presence info notification for " + contact);
+        }
+        // Not used
+    }
 
-		// Notify API
-		capabilityApi.receiveCapabilities(contact, capabilities);
+    public void handleCapabilitiesNotification(ContactId contact, Capabilities capabilities) {
+        if (logger.isActivated()) {
+            logger.debug("Handle capabilities update notification for " + contact + " ("
+                    + capabilities.toString() + ")");
+        }
+
+        // Notify API
+        capabilityApi.receiveCapabilities(contact, capabilities);
     }
-    
+
     public void handlePresenceSharingInvitation(ContactId contact) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event presence sharing invitation");
-		}
-		// Not used
+        if (logger.isActivated()) {
+            logger.debug("Handle event presence sharing invitation");
+        }
+        // Not used
     }
-    
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleContentSharingTransferInvitation(com.orangelabs.rcs.core.ims.service.richcall.image.ImageTransferSession)
+
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.orangelabs.rcs.core.CoreListener#handleContentSharingTransferInvitation(com.orangelabs
+     * .rcs.core.ims.service.richcall.image.ImageTransferSession)
      */
     public void handleContentSharingTransferInvitation(ImageTransferSession session) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event content sharing transfer invitation");
-		}
+        if (logger.isActivated()) {
+            logger.debug("Handle event content sharing transfer invitation");
+        }
 
-		// Broadcast the invitation
-		ishApi.receiveImageSharingInvitation(session);
+        // Broadcast the invitation
+        ishApi.receiveImageSharingInvitation(session);
     }
-    
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleContentSharingTransferInvitation(com.orangelabs.rcs.core.ims.service.richcall.geoloc.GeolocTransferSession)
+
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.orangelabs.rcs.core.CoreListener#handleContentSharingTransferInvitation(com.orangelabs
+     * .rcs.core.ims.service.richcall.geoloc.GeolocTransferSession)
      */
     public void handleContentSharingTransferInvitation(GeolocTransferSession session) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event content sharing transfer invitation");
-		}
+        if (logger.isActivated()) {
+            logger.debug("Handle event content sharing transfer invitation");
+        }
 
-		// Broadcast the invitation
-		gshApi.receiveGeolocSharingInvitation(session);
+        // Broadcast the invitation
+        gshApi.receiveGeolocSharingInvitation(session);
     }
-    
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleContentSharingStreamingInvitation(com.orangelabs.rcs.core.ims.service.richcall.video.VideoStreamingSession)
+
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.orangelabs.rcs.core.CoreListener#handleContentSharingStreamingInvitation(com.orangelabs
+     * .rcs.core.ims.service.richcall.video.VideoStreamingSession)
      */
     public void handleContentSharingStreamingInvitation(VideoStreamingSession session) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event content sharing streaming invitation");
-		}
+        if (logger.isActivated()) {
+            logger.debug("Handle event content sharing streaming invitation");
+        }
 
-		// Broadcast the invitation
-		vshApi.receiveVideoSharingInvitation(session);
+        // Broadcast the invitation
+        vshApi.receiveVideoSharingInvitation(session);
     }
-	
-    @Override
-	public void handleFileTransferInvitation(FileSharingSession fileSharingSession, boolean isGroup, ContactId contact,
-			String displayName) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event file transfer invitation");
-		}
 
-    	// Broadcast the invitation
-		ftApi.receiveFileTransferInvitation(fileSharingSession, isGroup, contact, displayName);
-	}
-    
     @Override
-	public void handleOneToOneFileTransferInvitation(FileSharingSession fileSharingSession, OneToOneChatSession oneToOneChatSession) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event file transfer invitation");
-		}
-		
-    	// Broadcast the invitation
-		ftApi.receiveFileTransferInvitation(fileSharingSession, false, oneToOneChatSession.getRemoteContact(),
-				oneToOneChatSession.getRemoteDisplayName());
-	}
+    public void handleFileTransferInvitation(FileSharingSession fileSharingSession,
+            boolean isGroup, ContactId contact, String displayName) {
+        if (logger.isActivated()) {
+            logger.debug("Handle event file transfer invitation");
+        }
 
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleIncomingFileTransferResuming(com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession, boolean, java.lang.String, java.lang.String)
+        // Broadcast the invitation
+        ftApi.receiveFileTransferInvitation(fileSharingSession, isGroup, contact, displayName);
+    }
+
+    @Override
+    public void handleOneToOneFileTransferInvitation(FileSharingSession fileSharingSession,
+            OneToOneChatSession oneToOneChatSession) {
+        if (logger.isActivated()) {
+            logger.debug("Handle event file transfer invitation");
+        }
+
+        // Broadcast the invitation
+        ftApi.receiveFileTransferInvitation(fileSharingSession, false,
+                oneToOneChatSession.getRemoteContact(), oneToOneChatSession.getRemoteDisplayName());
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.orangelabs.rcs.core.CoreListener#handleIncomingFileTransferResuming(com.orangelabs.rcs
+     * .core.ims.service.im.filetransfer.FileSharingSession, boolean, java.lang.String,
+     * java.lang.String)
      */
-    public void handleIncomingFileTransferResuming(FileSharingSession session, boolean isGroup, String chatSessionId, String chatId) {
+    public void handleIncomingFileTransferResuming(FileSharingSession session, boolean isGroup,
+            String chatSessionId, String chatId) {
         if (logger.isActivated()) {
             logger.debug("Handle event incoming file transfer resuming");
         }
@@ -685,8 +713,11 @@ public class RcsCoreService extends Service implements CoreListener {
         ftApi.resumeIncomingFileTransfer(session, isGroup, chatSessionId, chatId);
     }
 
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleOutgoingFileTransferResuming(com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession, boolean)
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.orangelabs.rcs.core.CoreListener#handleOutgoingFileTransferResuming(com.orangelabs.rcs
+     * .core.ims.service.im.filetransfer.FileSharingSession, boolean)
      */
     public void handleOutgoingFileTransferResuming(FileSharingSession session, boolean isGroup) {
         if (logger.isActivated()) {
@@ -697,130 +728,154 @@ public class RcsCoreService extends Service implements CoreListener {
         ftApi.resumeOutgoingFileTransfer(session, isGroup);
     }
 
-	/* (non-Javadoc)
-	 * @see com.orangelabs.rcs.core.CoreListener#handleOneOneChatSessionInvitation(com.orangelabs.rcs.core.ims.service.im.chat.TerminatingOne2OneChatSession)
-	 */
-	public void handleOneOneChatSessionInvitation(TerminatingOneToOneChatSession session) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event receive 1-1 chat session invitation");
-		}
-		
-    	// Broadcast the invitation
-		chatApi.receiveOneOneChatInvitation(session);
-    }
-
-	/* (non-Javadoc)
-	 * @see com.orangelabs.rcs.core.CoreListener#handleAdhocGroupChatSessionInvitation(com.orangelabs.rcs.core.ims.service.im.chat.TerminatingAdhocGroupChatSession)
-	 */
-	public void handleAdhocGroupChatSessionInvitation(TerminatingAdhocGroupChatSession session) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event receive ad-hoc group chat session invitation");
-		}
-
-    	// Broadcast the invitation
-		chatApi.receiveGroupChatInvitation(session);
-	}
-	
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleStoreAndForwardMsgSessionInvitation(com.orangelabs.rcs.core.ims.service.im.chat.standfw.TerminatingStoreAndForwardMsgSession)
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.orangelabs.rcs.core.CoreListener#handleOneOneChatSessionInvitation(com.orangelabs.rcs
+     * .core.ims.service.im.chat.TerminatingOne2OneChatSession)
      */
-    public void handleStoreAndForwardMsgSessionInvitation(TerminatingStoreAndForwardMsgSession session) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event S&F messages session invitation");
-		}
-		
-    	// Broadcast the invitation
-		chatApi.receiveOneOneChatInvitation(session);
+    public void handleOneOneChatSessionInvitation(TerminatingOneToOneChatSession session) {
+        if (logger.isActivated()) {
+            logger.debug("Handle event receive 1-1 chat session invitation");
+        }
+
+        // Broadcast the invitation
+        chatApi.receiveOneOneChatInvitation(session);
     }
-    
+
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.orangelabs.rcs.core.CoreListener#handleAdhocGroupChatSessionInvitation(com.orangelabs
+     * .rcs.core.ims.service.im.chat.TerminatingAdhocGroupChatSession)
+     */
+    public void handleAdhocGroupChatSessionInvitation(TerminatingAdhocGroupChatSession session) {
+        if (logger.isActivated()) {
+            logger.debug("Handle event receive ad-hoc group chat session invitation");
+        }
+
+        // Broadcast the invitation
+        chatApi.receiveGroupChatInvitation(session);
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.orangelabs.rcs.core.CoreListener#handleStoreAndForwardMsgSessionInvitation(com.orangelabs
+     * .rcs.core.ims.service.im.chat.standfw.TerminatingStoreAndForwardMsgSession)
+     */
+    public void handleStoreAndForwardMsgSessionInvitation(
+            TerminatingStoreAndForwardMsgSession session) {
+        if (logger.isActivated()) {
+            logger.debug("Handle event S&F messages session invitation");
+        }
+
+        // Broadcast the invitation
+        chatApi.receiveOneOneChatInvitation(session);
+    }
+
     public void handleMessageDeliveryStatus(ContactId contact, ImdnDocument imdn) {
-		if (logger.isActivated()) {
-			logger.debug("Handle message delivery status");
-		}
-    	
-		chatApi.receiveMessageDeliveryStatus(contact, imdn);
+        if (logger.isActivated()) {
+            logger.debug("Handle message delivery status");
+        }
+
+        chatApi.receiveMessageDeliveryStatus(contact, imdn);
     }
-    
+
     public void handleFileDeliveryStatus(ContactId contact, ImdnDocument imdn) {
-    	 if (logger.isActivated()) {
-        	 logger.debug("Handle file delivery status: fileTransferId=" + imdn.getMsgId()
-        			 + " notification_type=" + imdn.getNotificationType() + " status="
-        			 + imdn.getStatus() + " contact=" + contact);
-         }
+        if (logger.isActivated()) {
+            logger.debug("Handle file delivery status: fileTransferId=" + imdn.getMsgId()
+                    + " notification_type=" + imdn.getNotificationType() + " status="
+                    + imdn.getStatus() + " contact=" + contact);
+        }
 
-        ftApi.handleFileDeliveryStatus(imdn,  contact);
+        ftApi.handleFileDeliveryStatus(imdn, contact);
     }
 
-	public void handleGroupFileDeliveryStatus(String chatId, ContactId contact, ImdnDocument imdn) {
-		if (logger.isActivated()) {
-			logger.debug("Handle group file delivery status: fileTransferId=" + imdn.getMsgId()
-					+ " notification_type=" + imdn.getNotificationType() + " status="
-					+ imdn.getStatus() + " contact=" + contact);
-		}
+    public void handleGroupFileDeliveryStatus(String chatId, ContactId contact, ImdnDocument imdn) {
+        if (logger.isActivated()) {
+            logger.debug("Handle group file delivery status: fileTransferId=" + imdn.getMsgId()
+                    + " notification_type=" + imdn.getNotificationType() + " status="
+                    + imdn.getStatus() + " contact=" + contact);
+        }
 
-		ftApi.handleGroupFileDeliveryStatus(chatId, imdn, contact);
-	}
+        ftApi.handleGroupFileDeliveryStatus(chatId, imdn, contact);
+    }
 
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleSipSessionInvitation(android.content.Intent, com.orangelabs.rcs.core.ims.service.sip.GenericSipSession)
+    /*
+     * (non-Javadoc)
+     * @see com.orangelabs.rcs.core.CoreListener#handleSipSessionInvitation(android.content.Intent,
+     * com.orangelabs.rcs.core.ims.service.sip.GenericSipSession)
      */
     public void handleSipMsrpSessionInvitation(Intent intent, GenericSipMsrpSession session) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event receive SIP MSRP session invitation");
-		}
-		
-		// Broadcast the invitation
-		sessionApi.receiveSipMsrpSessionInvitation(intent, session);
-    }    
-    
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleSipSessionInvitation(android.content.Intent, com.orangelabs.rcs.core.ims.service.sip.GenericSipSession)
+        if (logger.isActivated()) {
+            logger.debug("Handle event receive SIP MSRP session invitation");
+        }
+
+        // Broadcast the invitation
+        sessionApi.receiveSipMsrpSessionInvitation(intent, session);
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see com.orangelabs.rcs.core.CoreListener#handleSipSessionInvitation(android.content.Intent,
+     * com.orangelabs.rcs.core.ims.service.sip.GenericSipSession)
      */
     public void handleSipRtpSessionInvitation(Intent intent, GenericSipRtpSession session) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event receive SIP RTP session invitation");
-		}
-		
-		// Broadcast the invitation
-		sessionApi.receiveSipRtpSessionInvitation(intent, session);
-    }    
-
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleUserConfirmationRequest(java.lang.String, java.lang.String, java.lang.String, boolean, java.lang.String, java.lang.String, java.lang.String, java.lang.String, int)
-     */
-    public void handleUserConfirmationRequest(ContactId remote, String id,
-    		String type, boolean pin, String subject, String text,
-    		String acceptButtonLabel, String rejectButtonLabel, int timeout) {
         if (logger.isActivated()) {
-			logger.debug("Handle event user terms confirmation request");
-		}
+            logger.debug("Handle event receive SIP RTP session invitation");
+        }
 
-		// Nothing to do here
+        // Broadcast the invitation
+        sessionApi.receiveSipRtpSessionInvitation(intent, session);
     }
 
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleUserConfirmationAck(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+    /*
+     * (non-Javadoc)
+     * @see com.orangelabs.rcs.core.CoreListener#handleUserConfirmationRequest(java.lang.String,
+     * java.lang.String, java.lang.String, boolean, java.lang.String, java.lang.String,
+     * java.lang.String, java.lang.String, int)
      */
-    public void handleUserConfirmationAck(ContactId remote, String id, String status, String subject, String text) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event user terms confirmation ack");
-		}
+    public void handleUserConfirmationRequest(ContactId remote, String id, String type,
+            boolean pin, String subject, String text, String acceptButtonLabel,
+            String rejectButtonLabel, int timeout) {
+        if (logger.isActivated()) {
+            logger.debug("Handle event user terms confirmation request");
+        }
 
-		// Nothing to do here
+        // Nothing to do here
     }
 
-    /* (non-Javadoc)
-     * @see com.orangelabs.rcs.core.CoreListener#handleUserNotification(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+    /*
+     * (non-Javadoc)
+     * @see com.orangelabs.rcs.core.CoreListener#handleUserConfirmationAck(java.lang.String,
+     * java.lang.String, java.lang.String, java.lang.String, java.lang.String)
      */
-    public void handleUserNotification(ContactId remote, String id, String subject, String text, String okButtonLabel) {
+    public void handleUserConfirmationAck(ContactId remote, String id, String status,
+            String subject, String text) {
+        if (logger.isActivated()) {
+            logger.debug("Handle event user terms confirmation ack");
+        }
+
+        // Nothing to do here
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see com.orangelabs.rcs.core.CoreListener#handleUserNotification(java.lang.String,
+     * java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+     */
+    public void handleUserNotification(ContactId remote, String id, String subject, String text,
+            String okButtonLabel) {
         if (logger.isActivated()) {
             logger.debug("Handle event user terms notification");
         }
 
-		// Nothing to do here
+        // Nothing to do here
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
      * @see com.orangelabs.rcs.core.CoreListener#handleSimHasChanged()
      */
     public void handleSimHasChanged() {
@@ -828,74 +883,79 @@ public class RcsCoreService extends Service implements CoreListener {
             logger.debug("Handle SIM has changed");
         }
 
-		// Restart the RCS service
+        // Restart the RCS service
         LauncherUtils.stopRcsService(getApplicationContext());
         LauncherUtils.launchRcsService(getApplicationContext(), true, false);
     }
 
-	/* (non-Javadoc)
-	 * @see com.orangelabs.rcs.core.CoreListener#handleIPCallInvitation(com.orangelabs.rcs.core.ims.service.ipcall.IPCallSession)
-	 */
-	public void handleIPCallInvitation(IPCallSession session) {
-		if (logger.isActivated()) {
-			logger.debug("Handle event IP call invitation");
-		}
-		
-		// Broadcast the invitation
-		ipcallApi.receiveIPCallInvitation(session);
-	}
+    /*
+     * (non-Javadoc)
+     * @see
+     * com.orangelabs.rcs.core.CoreListener#handleIPCallInvitation(com.orangelabs.rcs.core.ims.service
+     * .ipcall.IPCallSession)
+     */
+    public void handleIPCallInvitation(IPCallSession session) {
+        if (logger.isActivated()) {
+            logger.debug("Handle event IP call invitation");
+        }
 
-	@Override
-	public void tryToDispatchAllPendingDisplayNotifications() {
-		chatApi.tryToDispatchAllPendingDisplayNotifications();
-	}
+        // Broadcast the invitation
+        ipcallApi.receiveIPCallInvitation(session);
+    }
 
-	@Override
-	public void handleFileTransferInvitationRejected(ContactId contact, MmContent content,
-			MmContent fileicon, int reasonCode) {
-		ftApi.addAndBroadcastFileTransferInvitationRejected(contact, content, fileicon, reasonCode);
-	}
+    @Override
+    public void tryToDispatchAllPendingDisplayNotifications() {
+        chatApi.tryToDispatchAllPendingDisplayNotifications();
+    }
 
-	@Override
-	public void handleGroupChatInvitationRejected(String chatId, ContactId contact, String subject,
-			Set<ParticipantInfo> participants, int reasonCode) {
-		chatApi.addAndBroadcastGroupChatInvitationRejected(chatId, contact, subject, participants, reasonCode);
-	}
+    @Override
+    public void handleFileTransferInvitationRejected(ContactId contact, MmContent content,
+            MmContent fileicon, int reasonCode) {
+        ftApi.addAndBroadcastFileTransferInvitationRejected(contact, content, fileicon, reasonCode);
+    }
 
-	@Override
-	public void handleImageSharingInvitationRejected(ContactId contact, MmContent content,
-			int reasonCode) {
-		ishApi.addAndBroadcastImageSharingInvitationRejected(contact, content, reasonCode);
-	}
+    @Override
+    public void handleGroupChatInvitationRejected(String chatId, ContactId contact, String subject,
+            Set<ParticipantInfo> participants, int reasonCode) {
+        chatApi.addAndBroadcastGroupChatInvitationRejected(chatId, contact, subject, participants,
+                reasonCode);
+    }
 
-	@Override
-	public void handleVideoSharingInvitationRejected(ContactId contact, VideoContent content,
-			int reasonCode) {
-		vshApi.addAndBroadcastVideoSharingInvitationRejected(contact, content, reasonCode);
-	}
+    @Override
+    public void handleImageSharingInvitationRejected(ContactId contact, MmContent content,
+            int reasonCode) {
+        ishApi.addAndBroadcastImageSharingInvitationRejected(contact, content, reasonCode);
+    }
 
-	@Override
-	public void handleGeolocSharingInvitationRejected(ContactId contact, GeolocContent content,
-			int reasonCode) {
-		gshApi.addAndbroadcastGeolocSharingInvitationRejected(contact, content, reasonCode);
-	}
+    @Override
+    public void handleVideoSharingInvitationRejected(ContactId contact, VideoContent content,
+            int reasonCode) {
+        vshApi.addAndBroadcastVideoSharingInvitationRejected(contact, content, reasonCode);
+    }
 
-	@Override
-	public void handleIPCallInvitationRejected(ContactId contact, AudioContent audioContent,
-			VideoContent videoContent, int reasonCode) {
-		ipcallApi.addAndBroadcastIPCallInvitationRejected(contact, audioContent, videoContent, reasonCode);
-	}
+    @Override
+    public void handleGeolocSharingInvitationRejected(ContactId contact, GeolocContent content,
+            int reasonCode) {
+        gshApi.addAndbroadcastGeolocSharingInvitationRejected(contact, content, reasonCode);
+    }
 
-	public void handleOneOneChatSessionInitiation(OneToOneChatSession session) {
-		chatApi.handleOneToOneChatSessionInitiation(session);
-	}
+    @Override
+    public void handleIPCallInvitationRejected(ContactId contact, AudioContent audioContent,
+            VideoContent videoContent, int reasonCode) {
+        ipcallApi.addAndBroadcastIPCallInvitationRejected(contact, audioContent, videoContent,
+                reasonCode);
+    }
 
-	@Override
-	public void handleRejoinGroupChatAsPartOfSendOperation(String chatId) throws ServerApiException {
-		chatApi.handleRejoinGroupChatAsPartOfSendOperation(chatId);
-	}
+    public void handleOneOneChatSessionInitiation(OneToOneChatSession session) {
+        chatApi.handleOneToOneChatSessionInitiation(session);
+    }
 
-	public void handleAutoRejoinGroupChat(String chatId) throws ServerApiException {
-		chatApi.handleAutoRejoinGroupChat(chatId);
-	}
+    @Override
+    public void handleRejoinGroupChatAsPartOfSendOperation(String chatId) throws ServerApiException {
+        chatApi.handleRejoinGroupChatAsPartOfSendOperation(chatId);
+    }
+
+    public void handleAutoRejoinGroupChat(String chatId) throws ServerApiException {
+        chatApi.handleAutoRejoinGroupChat(chatId);
+    }
 }

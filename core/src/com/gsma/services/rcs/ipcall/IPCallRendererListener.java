@@ -15,8 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package com.gsma.services.rcs.ipcall;
 
+package com.gsma.services.rcs.ipcall;
 
 /**
  * This class offers callback methods on IP call renderer events
@@ -24,30 +24,30 @@ package com.gsma.services.rcs.ipcall;
  * @author Jean-Marc AUFFRET
  */
 public abstract class IPCallRendererListener extends IIPCallRendererListener.Stub {
-	/**
-	 * Callback called when the renderer is opened
-	 */
-	public abstract void onRendererOpened();
+    /**
+     * Callback called when the renderer is opened
+     */
+    public abstract void onRendererOpened();
 
-	/**
-	 * Callback called when the renderer is started
-	 */
-	public abstract void onRendererStarted();
+    /**
+     * Callback called when the renderer is started
+     */
+    public abstract void onRendererStarted();
 
-	/**
-	 * Callback called when the renderer is stopped
-	 */
-	public abstract void onRendererStopped();
+    /**
+     * Callback called when the renderer is stopped
+     */
+    public abstract void onRendererStopped();
 
-	/**
-	 * Callback called when the renderer is closed
-	 */
-	public abstract void onRendererClosed();
+    /**
+     * Callback called when the renderer is closed
+     */
+    public abstract void onRendererClosed();
 
-	/**
-	 * Callback called when the renderer has failed
-	 * 
-	 * @param error Error
-	 */
-	public abstract void onRendererError(int error);
+    /**
+     * Callback called when the renderer has failed
+     * 
+     * @param error Error
+     */
+    public abstract void onRendererError(int error);
 }

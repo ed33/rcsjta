@@ -33,84 +33,84 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author jexa7410
  */
 public class OriginatingSipMsrpSession extends GenericSipMsrpSession {
-	/**
+    /**
      * The logger
      */
-    private final static Logger logger = Logger.getLogger(OriginatingSipMsrpSession.class.getSimpleName());
+    private final static Logger logger = Logger.getLogger(OriginatingSipMsrpSession.class
+            .getSimpleName());
 
-	/**
-	 * Constructor
-	 * 
-	 * @param parent IMS service
-	 * @param contact Remote contact Id
-	 * @param featureTag Feature tag
-	 */
-	public OriginatingSipMsrpSession(ImsService parent, ContactId contact, String featureTag) {
-		super(parent, contact, featureTag);
-		
-		// Create dialog path
-		createOriginatingDialogPath();
-	}
+    /**
+     * Constructor
+     * 
+     * @param parent IMS service
+     * @param contact Remote contact Id
+     * @param featureTag Feature tag
+     */
+    public OriginatingSipMsrpSession(ImsService parent, ContactId contact, String featureTag) {
+        super(parent, contact, featureTag);
 
-	/**
-	 * Background processing
-	 */
-	public void run() {
-		try {
-	    	if (logger.isActivated()) {
-	    		logger.info("Initiate a new MSRP session as originating");
-	    	}
-	    	
-	    	// Set setup mode
+        // Create dialog path
+        createOriginatingDialogPath();
+    }
+
+    /**
+     * Background processing
+     */
+    public void run() {
+        try {
+            if (logger.isActivated()) {
+                logger.info("Initiate a new MSRP session as originating");
+            }
+
+            // Set setup mode
             String localSetup = createMobileToMobileSetupOffer();
-	    	if (logger.isActivated()){
-	    		logger.debug("Local setup attribute is " + localSetup);
-	    	}
+            if (logger.isActivated()) {
+                logger.debug("Local setup attribute is " + localSetup);
+            }
 
-			// Build SDP offer
-	    	String sdp = generateSdp(localSetup);
-	    	
-	    	// Set the local SDP part in the dialog path
-	        getDialogPath().setLocalContent(sdp);
+            // Build SDP offer
+            String sdp = generateSdp(localSetup);
 
-	        // Create an INVITE request
-	        if (logger.isActivated()) {
-	        	logger.info("Send INVITE");
-	        }
-	        SipRequest invite = createInvite();
+            // Set the local SDP part in the dialog path
+            getDialogPath().setLocalContent(sdp);
 
-	        // Set the Authorization header
-	        getAuthenticationAgent().setAuthorizationHeader(invite);
-	        
-	        // Set initial request in the dialog path
-	        getDialogPath().setInvite(invite);
-	        
-	        // Send INVITE request
-	        sendInvite(invite);	        
-		} catch(Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Session initiation has failed", e);
-        	}
+            // Create an INVITE request
+            if (logger.isActivated()) {
+                logger.info("Send INVITE");
+            }
+            SipRequest invite = createInvite();
 
-        	// Unexpected error
-			handleError(new SipSessionError(SipSessionError.UNEXPECTED_EXCEPTION,
-					e.getMessage()));
-		}
-	}
+            // Set the Authorization header
+            getAuthenticationAgent().setAuthorizationHeader(invite);
 
-	@Override
-	public boolean isInitiatedByRemote() {
-		return false;
-	}
-	
-	@Override
-	public void handle180Ringing(SipResponse response) {
-		if (logger.isActivated()) {
-			logger.debug("handle180Ringing");
-		}
-		// Notify listeners
-		for (ImsSessionListener listener : getListeners()) {
-			((SipSessionListener)listener).handle180Ringing();
-		}
-	}
+            // Set initial request in the dialog path
+            getDialogPath().setInvite(invite);
+
+            // Send INVITE request
+            sendInvite(invite);
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Session initiation has failed", e);
+            }
+
+            // Unexpected error
+            handleError(new SipSessionError(SipSessionError.UNEXPECTED_EXCEPTION, e.getMessage()));
+        }
+    }
+
+    @Override
+    public boolean isInitiatedByRemote() {
+        return false;
+    }
+
+    @Override
+    public void handle180Ringing(SipResponse response) {
+        if (logger.isActivated()) {
+            logger.debug("handle180Ringing");
+        }
+        // Notify listeners
+        for (ImsSessionListener listener : getListeners()) {
+            ((SipSessionListener) listener).handle180Ringing();
+        }
+    }
 }

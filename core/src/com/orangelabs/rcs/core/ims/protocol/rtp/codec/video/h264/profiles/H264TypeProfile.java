@@ -26,14 +26,8 @@ package com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.profiles;
 public enum H264TypeProfile {
 
     /* Non-scalable profile */
-    PROFILE_BASELINE(66),
-    PROFILE_MAIN(77),
-    PROFILE_EXTENDED(88),
-    PROFILE_HIGH(100),
-    PROFILE_HIGH10(110),
-    PROFILE_HIGH422(122),
-    PROFILE_HIGH444(244),
-    PROFILE_CAVLC444(44);
+    PROFILE_BASELINE(66), PROFILE_MAIN(77), PROFILE_EXTENDED(88), PROFILE_HIGH(100), PROFILE_HIGH10(
+            110), PROFILE_HIGH422(122), PROFILE_HIGH444(244), PROFILE_CAVLC444(44);
 
     /**
      * Type value
@@ -62,8 +56,7 @@ public enum H264TypeProfile {
      * Get instance of {@link H264TypeProfile}, using decimal value
      *
      * @param decimalValue
-     * @return {@link H264TypeProfile} if valid decimal, otherwise
-     *         <code>null</code>
+     * @return {@link H264TypeProfile} if valid decimal, otherwise <code>null</code>
      */
     public static H264TypeProfile getH264ProfileType(int decimalValue) {
         for (H264TypeProfile h264ProfileType : H264TypeProfile.values()) {

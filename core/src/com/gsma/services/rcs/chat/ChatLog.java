@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.chat;
 
 import java.util.HashSet;
@@ -34,10 +35,9 @@ import com.gsma.services.rcs.contacts.ContactUtils;
 
 /**
  * Content provider for chat history
- *  
+ * 
  * @author Jean-Marc AUFFRET
  * @author YPLO6403
- *
  */
 public class ChatLog {
     /**
@@ -47,95 +47,114 @@ public class ChatLog {
         /**
          * Content provider URI for chat conversations
          */
-        public static final Uri CONTENT_URI = Uri.parse("content://com.gsma.services.rcs.provider.chat/groupchat");
+        public static final Uri CONTENT_URI = Uri
+                .parse("content://com.gsma.services.rcs.provider.chat/groupchat");
 
         /**
          * The name of the column containing the unique ID of the group chat.
-         * <P>Type: TEXT</P>
+         * <P>
+         * Type: TEXT
+         * </P>
          */
         public static final String CHAT_ID = "chat_id";
-        
+
         /**
          * The name of the column containing the state of the group chat.
-         * <P>Type: INTEGER</P>
+         * <P>
+         * Type: INTEGER
+         * </P>
+         * 
          * @see GroupChat.State
          */
         public static final String STATE = "state";
 
         /**
          * The name of the column containing the reason code of the state of the group chat.
-         * <P>Type: INTEGER</P>
+         * <P>
+         * Type: INTEGER
+         * </P>
+         * 
          * @see ChatLog.Message.ReasonCode
          */
         public static final String REASON_CODE = "reason_code";
 
         /**
          * The name of the column containing the subject of the group chat.
-         * <P>Type: TEXT</P>
+         * <P>
+         * Type: TEXT
+         * </P>
          */
         public static final String SUBJECT = "subject";
-        
+
         /**
          * The name of the column containing the direction of the group chat.
-         * <P>Type: INTEGER</P>
+         * <P>
+         * Type: INTEGER
+         * </P>
+         * 
          * @see com.gsma.services.rcs.RcsCommon.Direction
          */
         public static final String DIRECTION = "direction";
 
         /**
          * The name of the column containing the time when group chat is created.
-         * <P>Type: LONG</P>
+         * <P>
+         * Type: LONG
+         * </P>
          */
         public static final String TIMESTAMP = "timestamp";
-        
+
         /**
          * The name of the column containing the list of participants and associated status.
-         * <P>Type: TEXT</P>
+         * <P>
+         * Type: TEXT
+         * </P>
+         * 
          * @see ParticipantInfo
          */
         public static final String PARTICIPANTS = "participants";
-        
+
         /**
-         * ContactId formatted number of the inviter of the group chat or null
-         * if this is a group chat initiated by the local user (ie outgoing
-         * group chat).
-         * <P>Type: TEXT</P>
+         * ContactId formatted number of the inviter of the group chat or null if this is a group
+         * chat initiated by the local user (ie outgoing group chat).
+         * <P>
+         * Type: TEXT
+         * </P>
          */
         public static final String CONTACT = "contact";
 
-		/**
-         * Utility method to get the set of ParticipantInfo objects from its string representation in the ChatLog provider.
+        /**
+         * Utility method to get the set of ParticipantInfo objects from its string representation
+         * in the ChatLog provider.
          *
-         * @param participants
-         *            the SET of participant information from the ChatLog provider
+         * @param participants the SET of participant information from the ChatLog provider
          * @return the SET of participant information
          */
-		public static Set<ParticipantInfo> getParticipantInfo(Context context, String participants) {
-			if (participants == null) {
-				return null;
-			}
-			ContactUtils contactUtils = ContactUtils.getInstance(context);
-			if (contactUtils == null) {
-				throw new IllegalStateException("Cannot read contact from provider");
-			}
-			String[] tokens = participants.split(",");
-			Set<ParticipantInfo> result = new HashSet<ParticipantInfo>();
-			for (String participant : tokens) {
-				String[] keyValue = participant.split("=");
-				if (keyValue.length == 2) {
-					String contact = keyValue[0];
-					int status = ParticipantInfo.Status.UNKNOWN;
-					try {
-						status = Integer.parseInt(keyValue[1]) % 9;
-					} catch (NumberFormatException e) {
-					}
-					result.add(new ParticipantInfo(contactUtils.formatContact(contact), status));
-				}
-			}
-			return result;
-		}
-	}
-
+        public static Set<ParticipantInfo> getParticipantInfo(Context context, String participants) {
+            if (participants == null) {
+                return null;
+            }
+            ContactUtils contactUtils = ContactUtils.getInstance(context);
+            if (contactUtils == null) {
+                throw new IllegalStateException("Cannot read contact from provider");
+            }
+            String[] tokens = participants.split(",");
+            Set<ParticipantInfo> result = new HashSet<ParticipantInfo>();
+            for (String participant : tokens) {
+                String[] keyValue = participant.split("=");
+                if (keyValue.length == 2) {
+                    String contact = keyValue[0];
+                    int status = ParticipantInfo.Status.UNKNOWN;
+                    try {
+                        status = Integer.parseInt(keyValue[1]) % 9;
+                    } catch (NumberFormatException e) {
+                    }
+                    result.add(new ParticipantInfo(contactUtils.formatContact(contact), status));
+                }
+            }
+            return result;
+        }
+    }
 
     /**
      * Chat message from a single chat or group chat
@@ -144,86 +163,116 @@ public class ChatLog {
         /**
          * Content provider URI for chat messages
          */
-        public static final Uri CONTENT_URI = Uri.parse("content://com.gsma.services.rcs.provider.chat/chatmessage");
+        public static final Uri CONTENT_URI = Uri
+                .parse("content://com.gsma.services.rcs.provider.chat/chatmessage");
 
         /**
          * The name of the column containing the chat ID.
-         * <P>Type: TEXT</P>
+         * <P>
+         * Type: TEXT
+         * </P>
          */
         public static final String CHAT_ID = "chat_id";
 
         /**
          * The name of the column containing the message ID.
-         * <P>Type: TEXT</P>
+         * <P>
+         * Type: TEXT
+         * </P>
          */
         public static final String MESSAGE_ID = "msg_id";
-        
+
         /**
          * The name of the column containing the message status.
-         * <P>Type: INTEGER</P>
+         * <P>
+         * Type: INTEGER
+         * </P>
          */
         public static final String STATUS = "status";
 
         /**
          * The name of the column containing the message status reason code.
-         * <P>Type: INTEGER</P>
+         * <P>
+         * Type: INTEGER
+         * </P>
+         * 
          * @see ChatLog.Message.ReasonCode
          */
         public static final String REASON_CODE = "reason_code";
 
         /**
          * The name of the column containing the message read status.
-         * <P>Type: INTEGER</P>
+         * <P>
+         * Type: INTEGER
+         * </P>
          */
         public static final String READ_STATUS = "read_status";
 
-        	
         /**
          * The name of the column containing the message direction.
-         * <P>Type: INTEGER</P>
+         * <P>
+         * Type: INTEGER
+         * </P>
+         * 
          * @see com.gsma.services.rcs.RcsCommon.Direction
          */
         public static final String DIRECTION = "direction";
 
         /**
          * The name of the column containing the MSISDN of the remote contact.
-         * <P>Type: TEXT</P>
+         * <P>
+         * Type: TEXT
+         * </P>
          */
         public static final String CONTACT = "contact";
-        
+
         /**
          * The name of the column containing the message content.
-         * <P>Type: TEXT</P>
+         * <P>
+         * Type: TEXT
+         * </P>
          */
         public static final String CONTENT = "content";
-     
+
         /**
          * The name of the column containing the time when message is created.
-         * <P>Type: LONG</P>
+         * <P>
+         * Type: LONG
+         * </P>
          */
         public static final String TIMESTAMP = "timestamp";
-        
+
         /**
          * The name of the column containing the time when message is sent. If 0 means not sent.
-         * <P>Type: LONG</P>
+         * <P>
+         * Type: LONG
+         * </P>
          */
         public static final String TIMESTAMP_SENT = "timestamp_sent";
-        
+
         /**
-         * The name of the column containing the time when message is delivered. If 0 means not delivered.
-         * <P>Type: LONG</P>
+         * The name of the column containing the time when message is delivered. If 0 means not
+         * delivered.
+         * <P>
+         * Type: LONG
+         * </P>
          */
         public static final String TIMESTAMP_DELIVERED = "timestamp_delivered";
-        
+
         /**
-         * The name of the column containing the time when message is displayed. If 0 means not displayed.
-         * <P>Type: LONG</P>
+         * The name of the column containing the time when message is displayed. If 0 means not
+         * displayed.
+         * <P>
+         * Type: LONG
+         * </P>
          */
         public static final String TIMESTAMP_DISPLAYED = "timestamp_displayed";
 
         /**
          * The name of the column containing the MIME-TYPE of the message body.
-         * <P>Type: TEXT</P>
+         * <P>
+         * Type: TEXT
+         * </P>
          */
         public static final String MIME_TYPE = "mime_type";
 
@@ -232,9 +281,9 @@ public class ChatLog {
          */
         public static class MimeType {
 
-           /*
-            * MIME-type of text messages
-            */
+            /*
+             * MIME-type of text messages
+             */
             public static final String TEXT_MESSAGE = "text/plain";
 
             /*
@@ -263,8 +312,7 @@ public class ChatLog {
                 public static final int REJECTED = 0;
 
                 /**
-                 * The message is queued to be sent by rcs service when
-                 * possible
+                 * The message is queued to be sent by rcs service when possible
                  */
                 public static final int QUEUED = 1;
 
@@ -289,14 +337,12 @@ public class ChatLog {
                 public static final int DELIVERED = 5;
 
                 /**
-                 * The message has been received and a displayed delivery report
-                 * is requested
+                 * The message has been received and a displayed delivery report is requested
                  */
                 public static final int DISPLAY_REPORT_REQUESTED = 6;
 
                 /**
-                 * The message is delivered and no display delivery report is
-                 * requested.
+                 * The message is delivered and no display delivery report is requested.
                  */
                 public static final int RECEIVED = 7;
 
@@ -341,8 +387,7 @@ public class ChatLog {
                 public static final int GONE = 5;
 
                 /**
-                 * Participant has been disconnected from the group chat (i.e.
-                 * booted)
+                 * Participant has been disconnected from the group chat (i.e. booted)
                  */
                 public static final int DISCONNECTED = 6;
 
@@ -385,31 +430,30 @@ public class ChatLog {
         }
     }
 
-	/**
-	 * Utility method to get a Geoloc object from its string representation in the ChatLog provider
-	 * 
-	 * @param body
-	 *            the string representation in the ChatLog provider
-	 * @return Geoloc object or null in case of error
-	 * @see Geoloc
-	 */
-	public static Geoloc getGeoloc(String body) {
-		try {
-			StringTokenizer items = new StringTokenizer(body, ",");
-			String label = null;
-			if (items.countTokens() > 4) {
-				label = items.nextToken();
-			}
-			double latitude = Double.valueOf(items.nextToken());
-			double longitude = Double.valueOf(items.nextToken());
-			long expiration = Long.valueOf(items.nextToken());
-			float accuracy = Float.valueOf(items.nextToken());
-			return new Geoloc(label, latitude, longitude, expiration, accuracy);
-		} catch (NoSuchElementException e) {
-			return null;
-		} catch (NumberFormatException e) {
-			return null;
-		}
+    /**
+     * Utility method to get a Geoloc object from its string representation in the ChatLog provider
+     * 
+     * @param body the string representation in the ChatLog provider
+     * @return Geoloc object or null in case of error
+     * @see Geoloc
+     */
+    public static Geoloc getGeoloc(String body) {
+        try {
+            StringTokenizer items = new StringTokenizer(body, ",");
+            String label = null;
+            if (items.countTokens() > 4) {
+                label = items.nextToken();
+            }
+            double latitude = Double.valueOf(items.nextToken());
+            double longitude = Double.valueOf(items.nextToken());
+            long expiration = Long.valueOf(items.nextToken());
+            float accuracy = Float.valueOf(items.nextToken());
+            return new Geoloc(label, latitude, longitude, expiration, accuracy);
+        } catch (NoSuchElementException e) {
+            return null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
 }

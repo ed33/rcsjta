@@ -24,14 +24,14 @@ package com.orangelabs.rcs.core;
  * @author JM. Auffret
  */
 public class CoreException extends java.lang.Exception {
-	static final long serialVersionUID = 1L;
-	
-	/**
-	 * Constructor
-	 *
-	 * @param error Error message
-	 */
-	public CoreException(String error) {
-		super(error);
-	}
+    static final long serialVersionUID = 1L;
+
+    /**
+     * Constructor
+     *
+     * @param error Error message
+     */
+    public CoreException(String error) {
+        super(error);
+    }
 }

@@ -25,21 +25,21 @@ import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
  * 
  * @author jexa7410
  */
-public interface SipSessionListener extends ImsSessionListener  {
+public interface SipSessionListener extends ImsSessionListener {
     /**
      * SIP session error
      * 
      * @param error Error
      */
     public void handleSessionError(SipSessionError error);
-    
+
     /**
      * Receive data
      * 
      * @param error Error
      */
     public void handleReceiveData(byte[] data);
-    
+
     /**
      * Destination user agent received INVITE, and is alerting user of call
      */

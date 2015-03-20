@@ -97,7 +97,7 @@ public class H264Config {
      * Get value of packetization mode
      *
      * @param codecParams
-     * @return 
+     * @return
      */
     public static int getCodecPacketizationMode(String codecParams) {
         int packetization_mode = 0;
@@ -122,13 +122,13 @@ public class H264Config {
     }
 
     /**
-     * Get parameter value from SDP parameters string with parameter-value
-     * format 'key1=value1; ... keyN=valueN'
+     * Get parameter value from SDP parameters string with parameter-value format 'key1=value1; ...
+     * keyN=valueN'
      *
      * @param paramKey parameter name
      * @param params parameters string
-     * @return if parameter exists return {@link String} with value, otherwise
-     *         return <code>null</code>
+     * @return if parameter exists return {@link String} with value, otherwise return
+     *         <code>null</code>
      */
     private static String getParameterValue(String paramKey, String params) {
         String value = null;

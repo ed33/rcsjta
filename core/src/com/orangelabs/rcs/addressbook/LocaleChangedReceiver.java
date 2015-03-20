@@ -35,22 +35,22 @@ import android.content.Intent;
  * The device's locale has changed
  */
 public class LocaleChangedReceiver extends BroadcastReceiver {
-	
-	/**
+
+    /**
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
 
-	@Override
-	public void onReceive(Context context, Intent intent) {
-		if (logger.isActivated()){
-			logger.debug("The Locale has changed, we update the RCS strings in Contacts");
-		}
-		
-		// We have to modify the strings that are used in contacts manager
-		ContentResolver contentResolver = context.getContentResolver();
-		LocalContentResolver localContentResolver = new LocalContentResolver(contentResolver);
-		ContactsManager.createInstance(context, contentResolver, localContentResolver);
-		ContactsManager.getInstance().updateStrings();
-	}
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        if (logger.isActivated()) {
+            logger.debug("The Locale has changed, we update the RCS strings in Contacts");
+        }
+
+        // We have to modify the strings that are used in contacts manager
+        ContentResolver contentResolver = context.getContentResolver();
+        LocalContentResolver localContentResolver = new LocalContentResolver(contentResolver);
+        ContactsManager.createInstance(context, contentResolver, localContentResolver);
+        ContactsManager.getInstance().updateStrings();
+    }
 }

@@ -40,20 +40,20 @@ public class ChatInvitationRingtone extends RingtonePreference {
     @Override
     protected Uri onRestoreRingtone() {
         String uri = RcsSettings.getInstance().getChatInvitationRingtone();
-        
+
         if (TextUtils.isEmpty(uri)) {
             return null;
         }
-        
+
         return Uri.parse(uri);
     }
 
     @Override
     protected void onSaveRingtone(Uri ringtoneUri) {
-    	if (ringtoneUri != null) {
-    		RcsSettings.getInstance().setChatInvitationRingtone(ringtoneUri.toString());
-    	} else {
-    		RcsSettings.getInstance().setChatInvitationRingtone("");
-    	}
+        if (ringtoneUri != null) {
+            RcsSettings.getInstance().setChatInvitationRingtone(ringtoneUri.toString());
+        } else {
+            RcsSettings.getInstance().setChatInvitationRingtone("");
+        }
     }
 }

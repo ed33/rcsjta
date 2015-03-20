@@ -71,58 +71,60 @@ public class HttpsProvisioningService extends Service {
     LocalContentResolver mLocalContentResolver;
 
     /**
-	 * Retry action for provisioning failure
-	 */
+     * Retry action for provisioning failure
+     */
     private static final String ACTION_RETRY = "com.orangelabs.rcs.provisioning.https.HttpsProvisioningService.ACTION_RETRY";
 
-	/**
-	 * The logger
-	 */
+    /**
+     * The logger
+     */
     private static Logger logger = Logger.getLogger(HttpsProvisioningService.class.getSimpleName());
 
-	@Override
-	public void onCreate() {
-		if (logger.isActivated()) {
-			logger.debug("onCreate");
-		}
-		Context ctx = getApplicationContext();
-		mLocalContentResolver = new LocalContentResolver(ctx.getContentResolver());
-		RcsSettings.createInstance(ctx);
-		this.retryIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(ACTION_RETRY), 0);
-	}
+    @Override
+    public void onCreate() {
+        if (logger.isActivated()) {
+            logger.debug("onCreate");
+        }
+        Context ctx = getApplicationContext();
+        mLocalContentResolver = new LocalContentResolver(ctx.getContentResolver());
+        RcsSettings.createInstance(ctx);
+        this.retryIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(
+                ACTION_RETRY), 0);
+    }
 
-	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
-		if (logger.isActivated()) {
-			logger.debug("Start HTTPS provisioning");
-		}
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (logger.isActivated()) {
+            logger.debug("Start HTTPS provisioning");
+        }
 
-		boolean first = false;
-		boolean user = false;
-		if (intent != null) {
-			first = intent.getBooleanExtra(FIRST_KEY, false);
-			user = intent.getBooleanExtra(USER_KEY, false);
-		}
-		String version = RcsSettings.getInstance().getProvisioningVersion();
-		// It makes no sense to start service if version is 0 (unconfigured)
-		// if version = 0, then (re)set first to true
-		try {
-			int ver = Integer.parseInt(version);
+        boolean first = false;
+        boolean user = false;
+        if (intent != null) {
+            first = intent.getBooleanExtra(FIRST_KEY, false);
+            user = intent.getBooleanExtra(USER_KEY, false);
+        }
+        String version = RcsSettings.getInstance().getProvisioningVersion();
+        // It makes no sense to start service if version is 0 (unconfigured)
+        // if version = 0, then (re)set first to true
+        try {
+            int ver = Integer.parseInt(version);
             if (ver == 0) {
                 first = true;
             }
-		} catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             // Nothing to do
-		}
-		registerReceiver(retryReceiver, new IntentFilter(ACTION_RETRY));
+        }
+        registerReceiver(retryReceiver, new IntentFilter(ACTION_RETRY));
 
-		httpsProvisioningMng = new HttpsProvisioningManager(getApplicationContext(),
-				mLocalContentResolver, retryIntent, first, user);
-		if (logger.isActivated()) {
-			logger.debug("Provisioning parameter: boot=" + first + ", user=" + user + ", version=" + version);
-		}
+        httpsProvisioningMng = new HttpsProvisioningManager(getApplicationContext(),
+                mLocalContentResolver, retryIntent, first, user);
+        if (logger.isActivated()) {
+            logger.debug("Provisioning parameter: boot=" + first + ", user=" + user + ", version="
+                    + version);
+        }
 
-		boolean requestConfig = false;
+        boolean requestConfig = false;
         if (first) {
             requestConfig = true;
         } else {
@@ -163,76 +165,74 @@ public class HttpsProvisioningService extends Service {
             }
         }
 
-		if (requestConfig) {
-			if (logger.isActivated())
-				logger.debug("Request HTTP configuration update");
-			// Send default connection event
-			if (!httpsProvisioningMng.connectionEvent(ConnectivityManager.CONNECTIVITY_ACTION)) {
-				// If the UpdateConfig has NOT been done:
-				httpsProvisioningMng.registerNetworkStateListener();
-			}
-		}
-		// We want this service to continue running until it is explicitly
-		// stopped, so return sticky.
-		return START_STICKY;
-	}
-    
+        if (requestConfig) {
+            if (logger.isActivated())
+                logger.debug("Request HTTP configuration update");
+            // Send default connection event
+            if (!httpsProvisioningMng.connectionEvent(ConnectivityManager.CONNECTIVITY_ACTION)) {
+                // If the UpdateConfig has NOT been done:
+                httpsProvisioningMng.registerNetworkStateListener();
+            }
+        }
+        // We want this service to continue running until it is explicitly
+        // stopped, so return sticky.
+        return START_STICKY;
+    }
 
-	/**
-	 * Start retry alarm
-	 * 
-	 * @param context
-	 * @param intent
-	 * @param delay
-	 *            delay in milli seconds
-	 */
-	public static void startRetryAlarm(Context context, PendingIntent intent, long delay) {
-		if (logger.isActivated()) {
-			logger.debug( "Retry HTTP configuration update in "+(delay/1000)+" secs");
-		}
-		AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-		am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + delay, intent);
-	}
+    /**
+     * Start retry alarm
+     * 
+     * @param context
+     * @param intent
+     * @param delay delay in milli seconds
+     */
+    public static void startRetryAlarm(Context context, PendingIntent intent, long delay) {
+        if (logger.isActivated()) {
+            logger.debug("Retry HTTP configuration update in " + (delay / 1000) + " secs");
+        }
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + delay, intent);
+    }
 
-	/**
-	 * Cancel retry alarm
-	 * 
-	 * @param context
-	 * @param intent
-	 */
-	public static void cancelRetryAlarm(Context context, PendingIntent intent) {
-		if (logger.isActivated()) {
-			logger.debug( "Stop retry configuration update");
-		}
-		AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-		am.cancel(intent);
-	}
-    
+    /**
+     * Cancel retry alarm
+     * 
+     * @param context
+     * @param intent
+     */
+    public static void cancelRetryAlarm(Context context, PendingIntent intent) {
+        if (logger.isActivated()) {
+            logger.debug("Stop retry configuration update");
+        }
+        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        am.cancel(intent);
+    }
+
     @Override
     public void onDestroy() {
-		if (httpsProvisioningMng != null) {
-			// Unregister network state listener
-			httpsProvisioningMng.unregisterNetworkStateListener();
+        if (httpsProvisioningMng != null) {
+            // Unregister network state listener
+            httpsProvisioningMng.unregisterNetworkStateListener();
 
-			// Unregister wifi disabling listener
-			httpsProvisioningMng.unregisterWifiDisablingListener();
+            // Unregister wifi disabling listener
+            httpsProvisioningMng.unregisterWifiDisablingListener();
 
-			// Unregister SMS provisioning receiver
-			httpsProvisioningMng.unregisterSmsProvisioningReceiver();
-		}
+            // Unregister SMS provisioning receiver
+            httpsProvisioningMng.unregisterSmsProvisioningReceiver();
+        }
 
-		cancelRetryAlarm(this, retryIntent);
+        cancelRetryAlarm(this, retryIntent);
         // Unregister retry receiver
         try {
-	        unregisterReceiver(retryReceiver);
-	    } catch (IllegalArgumentException e) {
-	    	// Nothing to do
-	    }
+            unregisterReceiver(retryReceiver);
+        } catch (IllegalArgumentException e) {
+            // Nothing to do
+        }
     }
 
     @Override
     public IBinder onBind(Intent intent) {
-    	return null;
+        return null;
     }
 
     /**
@@ -249,21 +249,20 @@ public class HttpsProvisioningService extends Service {
             t.start();
         }
     };
-    
-	/**
-	 * Start the HTTPs provisioning service
-	 * 
-	 * @param context
-	 * @param firstLaunch
-	 *            first launch after (re)boot
-	 * @param userLaunch
-	 *            launch is requested by user action
-	 */
-	public static void startHttpsProvisioningService(Context context , boolean firstLaunch, boolean userLaunch) {
-		// Start Https provisioning service
-		Intent provisioningIntent = new Intent(context, HttpsProvisioningService.class);
-		provisioningIntent.putExtra(FIRST_KEY, firstLaunch);
-		provisioningIntent.putExtra(USER_KEY, userLaunch);
-		context.startService(provisioningIntent);
-	}
+
+    /**
+     * Start the HTTPs provisioning service
+     * 
+     * @param context
+     * @param firstLaunch first launch after (re)boot
+     * @param userLaunch launch is requested by user action
+     */
+    public static void startHttpsProvisioningService(Context context, boolean firstLaunch,
+            boolean userLaunch) {
+        // Start Https provisioning service
+        Intent provisioningIntent = new Intent(context, HttpsProvisioningService.class);
+        provisioningIntent.putExtra(FIRST_KEY, firstLaunch);
+        provisioningIntent.putExtra(USER_KEY, userLaunch);
+        context.startService(provisioningIntent);
+    }
 }

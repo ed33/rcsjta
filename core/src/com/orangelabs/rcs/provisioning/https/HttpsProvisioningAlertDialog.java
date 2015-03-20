@@ -53,20 +53,20 @@ public class HttpsProvisioningAlertDialog extends Activity {
             }
         });
 
-		alert.setNegativeButton(R.string.label_cancel, new DialogInterface.OnClickListener() {
-		  public void onClick(DialogInterface dialog, int whichButton) {
-			  HttpsProvionningMSISDNInput.getInstance().responseReceived(null);
-			  finish();
-		  }
-		});
+        alert.setNegativeButton(R.string.label_cancel, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                HttpsProvionningMSISDNInput.getInstance().responseReceived(null);
+                finish();
+            }
+        });
 
-		final AlertDialog dial = alert.show();
-		new Handler().postDelayed(new Runnable() {
-		    public void run() {
-				HttpsProvionningMSISDNInput.getInstance().responseReceived(null);
-				dial.dismiss();
-				finish();
-		    }
-		}, HttpsProvisioningUtils.INPUT_MSISDN_TIMEOUT);
-	}
+        final AlertDialog dial = alert.show();
+        new Handler().postDelayed(new Runnable() {
+            public void run() {
+                HttpsProvionningMSISDNInput.getInstance().responseReceived(null);
+                dial.dismiss();
+                finish();
+            }
+        }, HttpsProvisioningUtils.INPUT_MSISDN_TIMEOUT);
+    }
 }

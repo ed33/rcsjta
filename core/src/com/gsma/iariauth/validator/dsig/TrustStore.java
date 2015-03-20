@@ -24,9 +24,10 @@ import java.util.Set;
  */
 public interface TrustStore {
 
-	/**
-	 * Get the applicable trust anchors for a given IARI range
-	 * @param range: the range string
-	 */
-	public Set<TrustAnchor> getTrustAnchorsForRange(String range);
+    /**
+     * Get the applicable trust anchors for a given IARI range
+     * 
+     * @param range: the range string
+     */
+    public Set<TrustAnchor> getTrustAnchorsForRange(String range);
 }

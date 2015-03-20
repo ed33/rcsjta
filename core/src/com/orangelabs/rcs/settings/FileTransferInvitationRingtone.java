@@ -40,20 +40,20 @@ public class FileTransferInvitationRingtone extends RingtonePreference {
     @Override
     protected Uri onRestoreRingtone() {
         String uri = RcsSettings.getInstance().getFileTransferInvitationRingtone();
-        
+
         if (TextUtils.isEmpty(uri)) {
             return null;
         }
-        
+
         return Uri.parse(uri);
     }
 
     @Override
     protected void onSaveRingtone(Uri ringtoneUri) {
-    	if (ringtoneUri != null) {
-    		RcsSettings.getInstance().setFileTransferInvitationRingtone(ringtoneUri.toString());
-    	} else {
-    		RcsSettings.getInstance().setFileTransferInvitationRingtone("");
-    	}
+        if (ringtoneUri != null) {
+            RcsSettings.getInstance().setFileTransferInvitationRingtone(ringtoneUri.toString());
+        } else {
+            RcsSettings.getInstance().setFileTransferInvitationRingtone("");
+        }
     }
 }

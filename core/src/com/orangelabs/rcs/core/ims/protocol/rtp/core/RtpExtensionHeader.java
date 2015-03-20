@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Represent a RTP extension header 
+ * Represent a RTP extension header
  *
  * @author Deutsche Telekom
  */

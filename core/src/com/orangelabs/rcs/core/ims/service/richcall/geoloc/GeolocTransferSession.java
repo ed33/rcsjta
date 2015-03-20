@@ -45,87 +45,87 @@ import java.util.Arrays;
  * @author jexa7410
  */
 public abstract class GeolocTransferSession extends ContentSharingSession {
-	/**
-	 * Default SO_TIMEOUT value (in seconds)
-	 */
-	public final static int DEFAULT_SO_TIMEOUT = 30;
-	
-	/**
-	 * Geoloc transfered
-	 */
-	private boolean geolocTransfered = false;
-
-	/**
-	 * Geoloc info
-	 */
-	private GeolocPush geoloc;
-	
-	/**
-     * The logger
+    /**
+     * Default SO_TIMEOUT value (in seconds)
      */
-    private static final Logger logger = Logger.getLogger(GeolocTransferSession.class.getSimpleName());
+    public final static int DEFAULT_SO_TIMEOUT = 30;
 
     /**
-	 * Constructor
-	 * 
-	 * @param parent IMS service
-	 * @param content Content to be shared
-	 * @param contact Remote contact Id
-	 */
-	public GeolocTransferSession(ImsService parent, MmContent content, ContactId contact) {
-		super(parent, content, contact);
-		setFeatureTags(new ArrayList<String>(Arrays.asList(RichcallService.FEATURE_TAGS_GEOLOC_SHARE))); 
-	}
-	
-	/**
-	 * Set geoloc
-	 * 
-	 * @param geoloc Geoloc
-	 */
-	public void setGeoloc(GeolocPush geoloc) {
-		this.geoloc = geoloc;
-	}
-	
-	/**
-	 * Get geoloc
-	 * 
-	 * @return Geoloc
-	 */
-	public GeolocPush getGeoloc() {
-		return geoloc;
-	}
-	
-	/**
-	 * Geoloc has been transfered
-	 */
-	public void geolocTransfered() {
-		this.geolocTransfered = true;
-	}
-	
-	/**
-	 * Is geoloc transfered
-	 * 
-	 * @retrurn Boolean
-	 */
-	public boolean isGeolocTransfered() {
-		return geolocTransfered; 
-	}
+     * Geoloc transfered
+     */
+    private boolean geolocTransfered = false;
+
+    /**
+     * Geoloc info
+     */
+    private GeolocPush geoloc;
+
+    /**
+     * The logger
+     */
+    private static final Logger logger = Logger.getLogger(GeolocTransferSession.class
+            .getSimpleName());
+
+    /**
+     * Constructor
+     * 
+     * @param parent IMS service
+     * @param content Content to be shared
+     * @param contact Remote contact Id
+     */
+    public GeolocTransferSession(ImsService parent, MmContent content, ContactId contact) {
+        super(parent, content, contact);
+        setFeatureTags(new ArrayList<String>(
+                Arrays.asList(RichcallService.FEATURE_TAGS_GEOLOC_SHARE)));
+    }
+
+    /**
+     * Set geoloc
+     * 
+     * @param geoloc Geoloc
+     */
+    public void setGeoloc(GeolocPush geoloc) {
+        this.geoloc = geoloc;
+    }
+
+    /**
+     * Get geoloc
+     * 
+     * @return Geoloc
+     */
+    public GeolocPush getGeoloc() {
+        return geoloc;
+    }
+
+    /**
+     * Geoloc has been transfered
+     */
+    public void geolocTransfered() {
+        this.geolocTransfered = true;
+    }
+
+    /**
+     * Is geoloc transfered
+     * 
+     * @retrurn Boolean
+     */
+    public boolean isGeolocTransfered() {
+        return geolocTransfered;
+    }
 
     /**
      * Create an INVITE request
      *
      * @return the INVITE request
-     * @throws SipException 
+     * @throws SipException
      */
     public SipRequest createInvite() throws SipException {
-        return SipMessageFactory.createInvite(
-                getDialogPath(),
-                getFeatureTags(),
-                getDialogPath().getLocalContent());
+        return SipMessageFactory.createInvite(getDialogPath(), getFeatureTags(), getDialogPath()
+                .getLocalContent());
     }
-    
+
     /**
-     * Handle error 
+     * Handle error
      *
      * @param error Error
      */
@@ -146,19 +146,20 @@ public abstract class GeolocTransferSession extends ContentSharingSession {
         removeSession();
 
         // Notify listeners
-        for(int j=0; j < getListeners().size(); j++) {
-            ((GeolocTransferSessionListener)getListeners().get(j)).handleSharingError(new ContentSharingError(error));
+        for (int j = 0; j < getListeners().size(); j++) {
+            ((GeolocTransferSessionListener) getListeners().get(j))
+                    .handleSharingError(new ContentSharingError(error));
         }
     }
 
-	@Override
-	public void startSession() {
-		getImsService().getImsModule().getRichcallService().addSession(this);
-		start();
-	}
+    @Override
+    public void startSession() {
+        getImsService().getImsModule().getRichcallService().addSession(this);
+        start();
+    }
 
-	@Override
-	public void removeSession() {
-		getImsService().getImsModule().getRichcallService().removeSession(this);
-	}
+    @Override
+    public void removeSession() {
+        getImsService().getImsModule().getRichcallService().removeSession(this);
+    }
 }

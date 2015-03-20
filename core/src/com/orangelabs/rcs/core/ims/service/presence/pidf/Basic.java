@@ -22,13 +22,11 @@ public class Basic {
 
     private String value = null;
 
-    public Basic(String value)
-    {
+    public Basic(String value) {
         this.value = value;
     }
 
-    public String getValue()
-    {
+    public String getValue() {
         return value;
     }
 }

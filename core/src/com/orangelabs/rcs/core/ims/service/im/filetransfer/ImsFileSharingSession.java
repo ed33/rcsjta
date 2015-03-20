@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.im.filetransfer;
 
 import com.gsma.services.rcs.RcsContactFormatException;
@@ -49,98 +50,95 @@ import java.util.Arrays;
  * @author jexa7410
  */
 public abstract class ImsFileSharingSession extends FileSharingSession {
-	/**
-	 * Boundary tag
-	 */
-	private final static String BOUNDARY_TAG = "boundary1";
-	
-	/**
-	 * Default SO_TIMEOUT value (in seconds)
-	 */
-	public final static int DEFAULT_SO_TIMEOUT = 30;
+    /**
+     * Boundary tag
+     */
+    private final static String BOUNDARY_TAG = "boundary1";
+
+    /**
+     * Default SO_TIMEOUT value (in seconds)
+     */
+    public final static int DEFAULT_SO_TIMEOUT = 30;
 
     /**
      * The logger
      */
-    private static final Logger logger = Logger.getLogger(ImsFileSharingSession.class.getSimpleName());
+    private static final Logger logger = Logger.getLogger(ImsFileSharingSession.class
+            .getSimpleName());
 
     /**
-	 * Constructor
-	 * 
-	 * @param parent IMS service
-	 * @param content Content of file to be shared
-	 * @param contact Remote contact identifier
-	 * @param fileIcon Content of file icon
-	 * @param filetransferId File transfer Id
-	 */
-	public ImsFileSharingSession(ImsService parent, MmContent content, ContactId contact, MmContent fileIcon, String filetransferId) {
-		super(parent, content, contact, PhoneUtils.formatContactIdToUri(contact), fileIcon, filetransferId);
-		setFeatureTags(new ArrayList<String>(Arrays.asList(InstantMessagingService.FT_FEATURE_TAGS)));
-	}
-	
+     * Constructor
+     * 
+     * @param parent IMS service
+     * @param content Content of file to be shared
+     * @param contact Remote contact identifier
+     * @param fileIcon Content of file icon
+     * @param filetransferId File transfer Id
+     */
+    public ImsFileSharingSession(ImsService parent, MmContent content, ContactId contact,
+            MmContent fileIcon, String filetransferId) {
+        super(parent, content, contact, PhoneUtils.formatContactIdToUri(contact), fileIcon,
+                filetransferId);
+        setFeatureTags(new ArrayList<String>(Arrays.asList(InstantMessagingService.FT_FEATURE_TAGS)));
+    }
+
     /**
-	 * Returns the "file-transfer-id" attribute
-	 * 
-	 * @return String
-	 */
-	public String getFileTransferIdAttribute() {
-		return "" + System.currentTimeMillis();
-	}	
-	
-	/**
-	 * Returns the "file-selector" attribute
-	 * 
-	 * @return String
-	 */
-	public String getFileSelectorAttribute() {
-		return "name:\"" + getContent().getName() + "\"" + 
-			" type:" + getContent().getEncoding() +
-			" size:" + getContent().getSize();
-	}
-	
-	/**
-	 * Returns the "file-location" attribute
-	 * 
-	 * @return Uri
-	 */
-	public Uri getFileLocationAttribute() {
-		Uri file = getContent().getUri();
-		if ((file != null) && file.getScheme().startsWith("http")) {
-			return file;
-		} else {
-			return null;
-		}
-	}
+     * Returns the "file-transfer-id" attribute
+     * 
+     * @return String
+     */
+    public String getFileTransferIdAttribute() {
+        return "" + System.currentTimeMillis();
+    }
+
+    /**
+     * Returns the "file-selector" attribute
+     * 
+     * @return String
+     */
+    public String getFileSelectorAttribute() {
+        return "name:\"" + getContent().getName() + "\"" + " type:" + getContent().getEncoding()
+                + " size:" + getContent().getSize();
+    }
+
+    /**
+     * Returns the "file-location" attribute
+     * 
+     * @return Uri
+     */
+    public Uri getFileLocationAttribute() {
+        Uri file = getContent().getUri();
+        if ((file != null) && file.getScheme().startsWith("http")) {
+            return file;
+        } else {
+            return null;
+        }
+    }
 
     /**
      * Create an INVITE request
      *
      * @return the INVITE request
-     * @throws SipException 
+     * @throws SipException
      */
     public SipRequest createInvite() throws SipException {
         SipRequest invite;
-    	if (getFileicon() != null) {
-	        invite = SipMessageFactory.createMultipartInvite(
-	                getDialogPath(),
-	                getFeatureTags(),
-	                getDialogPath().getLocalContent(),
-	                BOUNDARY_TAG);
-    	} else {
-	        invite = SipMessageFactory.createInvite(
-	                getDialogPath(),
-	                getFeatureTags(),
-	                getDialogPath().getLocalContent());
-    	}
-        
-    	// Add a contribution ID header
+        if (getFileicon() != null) {
+            invite = SipMessageFactory.createMultipartInvite(getDialogPath(), getFeatureTags(),
+                    getDialogPath().getLocalContent(), BOUNDARY_TAG);
+        } else {
+            invite = SipMessageFactory.createInvite(getDialogPath(), getFeatureTags(),
+                    getDialogPath().getLocalContent());
+        }
+
+        // Add a contribution ID header
         invite.addHeader(ChatUtils.HEADER_CONTRIBUTION_ID, getContributionID());
 
         return invite;
     }
 
     /**
-     * Handle error 
+     * Handle error
      * 
      * @param error Error
      */
@@ -149,7 +147,7 @@ public abstract class ImsFileSharingSession extends FileSharingSession {
             return;
         }
 
-        // Error    
+        // Error
         if (logger.isActivated()) {
             logger.info("Session error: " + error.getErrorCode() + ", reason=" + error.getMessage());
         }
@@ -161,8 +159,9 @@ public abstract class ImsFileSharingSession extends FileSharingSession {
         removeSession();
 
         // Notify listeners
-        for(int j=0; j < getListeners().size(); j++) {
-            ((FileSharingSessionListener)getListeners().get(j)).handleTransferError(new FileSharingError(error));
+        for (int j = 0; j < getListeners().size(); j++) {
+            ((FileSharingSessionListener) getListeners().get(j))
+                    .handleTransferError(new FileSharingError(error));
         }
     }
 
@@ -172,45 +171,50 @@ public abstract class ImsFileSharingSession extends FileSharingSession {
      * @param msgId Message ID
      * @param error Error code
      */
-    public void msrpTransferError(String msgId, String error, MsrpSession.TypeMsrpChunk typeMsrpChunk) {
+    public void msrpTransferError(String msgId, String error,
+            MsrpSession.TypeMsrpChunk typeMsrpChunk) {
         if (isSessionInterrupted() || getDialogPath().isSessionTerminated()) {
             return;
         }
-        
+
         if (logger.isActivated()) {
             logger.info("Data transfer error " + error);
         }
 
         try {
-			// Terminate session
-			terminateSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
+            // Terminate session
+            terminateSession(ImsServiceSession.TERMINATION_BY_SYSTEM);
 
-			// Close the media session
+            // Close the media session
             closeMediaSession();
-        } catch(Exception e) {
+        } catch (Exception e) {
             if (logger.isActivated()) {
                 logger.error("Can't close correctly the file transfer session", e);
             }
         }
 
-		try {
-			ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
-			// Request capabilities
-	        getImsService().getImsModule().getCapabilityService().requestContactCapabilities(remote);
+        try {
+            ContactId remote = ContactUtils.createContactId(getDialogPath().getRemoteParty());
+            // Request capabilities
+            getImsService().getImsModule().getCapabilityService()
+                    .requestContactCapabilities(remote);
 
-		} catch (RcsContactFormatException e) {
-			if (logger.isActivated()) {
-				logger.warn("Cannot request capabilities for contact "+getDialogPath().getRemoteParty() );
-			}
-		}
-        
+        } catch (RcsContactFormatException e) {
+            if (logger.isActivated()) {
+                logger.warn("Cannot request capabilities for contact "
+                        + getDialogPath().getRemoteParty());
+            }
+        }
+
         // Remove the current session
         removeSession();
 
         // Notify listeners
         if (!isSessionInterrupted() && !isSessionTerminatedByRemote()) {
-            for(int j=0; j < getListeners().size(); j++) {
-                ((FileSharingSessionListener)getListeners().get(j)).handleTransferError(new FileSharingError(FileSharingError.MEDIA_TRANSFER_FAILED, error));
+            for (int j = 0; j < getListeners().size(); j++) {
+                ((FileSharingSessionListener) getListeners().get(j))
+                        .handleTransferError(new FileSharingError(
+                                FileSharingError.MEDIA_TRANSFER_FAILED, error));
             }
         }
     }

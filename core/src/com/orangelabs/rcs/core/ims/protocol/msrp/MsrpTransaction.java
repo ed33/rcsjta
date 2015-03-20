@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.protocol.msrp;
 
 import java.util.Timer;
@@ -32,7 +33,7 @@ public class MsrpTransaction extends Object {
     private final static int TIMEOUT = 30;
 
     /**
-     * Count number of sent requests without response 
+     * Count number of sent requests without response
      */
     private int waitingCount = 0;
 
@@ -43,12 +44,12 @@ public class MsrpTransaction extends Object {
     private int totalReceivedResponses = 0;
 
     /**
-     * Count number of sent requests without response 
+     * Count number of sent requests without response
      */
     private boolean isWaiting = false;
 
     /**
-     * is MSRP session terminated ? 
+     * is MSRP session terminated ?
      */
     private boolean isTerminated = false;
 
@@ -75,7 +76,7 @@ public class MsrpTransaction extends Object {
 
                 // Wait semaphore
                 super.wait();
-            } catch(InterruptedException e) {
+            } catch (InterruptedException e) {
                 // Nothing to do
             }
         }
@@ -87,7 +88,7 @@ public class MsrpTransaction extends Object {
     public void handleRequest() {
         // Changed by Deutsche Telekom
         // requests and responses are handled in different threads which need to be synchronized
-        synchronized(this){
+        synchronized (this) {
             waitingCount++;
         }
     }
@@ -98,7 +99,7 @@ public class MsrpTransaction extends Object {
     public synchronized void handleResponse() {
         // Changed by Deutsche Telekom
         // requests and responses are handled in different threads which need to be synchronized
-        synchronized(this){
+        synchronized (this) {
             waitingCount--;
         }
         // Changed by Deutsche Telekom
@@ -135,7 +136,7 @@ public class MsrpTransaction extends Object {
         stopTimer();
     }
 
-    /** 
+    /**
      * Return isTerminated status.
      *
      * @return true if terminated
@@ -165,7 +166,7 @@ public class MsrpTransaction extends Object {
         timer.cancel();
     }
 
-    /** 
+    /**
      * Timer execution
      */
     private synchronized void timerExpire() {

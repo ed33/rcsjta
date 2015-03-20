@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.ft;
 
 import android.net.Uri;
@@ -37,68 +38,68 @@ public class FileTransfer {
      * File transfer state
      */
     public static class State {
-    	/**
-    	 * File transfer invitation received
-    	 */
-    	public final static int INVITED = 0;
-    	
-    	/**
-    	 * File transfer initiating
-    	 */
-    	public final static int INITIATING = 1;
-    	
-    	/**
-    	 * File transfer is started
-    	 */
-    	public final static int STARTED = 2;
-    	
-    	/**
-    	 * File transfer has been transferred with success 
-    	 */
-    	public final static int TRANSFERRED = 3;
-    	
-    	/**
-    	 * File transfer has been aborted 
-    	 */
-    	public final static int ABORTED = 4;
-    	
-    	/**
-    	 * File transfer has failed
-    	 */
-    	public final static int FAILED = 5;
+        /**
+         * File transfer invitation received
+         */
+        public final static int INVITED = 0;
 
-    	/**
-    	 * File transfer is paused
-    	 */
-    	public final static int PAUSED = 6;
+        /**
+         * File transfer initiating
+         */
+        public final static int INITIATING = 1;
 
-    	/**
-    	 * File transfer is rejected
-    	 */
-    	public final static int REJECTED = 7;
+        /**
+         * File transfer is started
+         */
+        public final static int STARTED = 2;
 
-    	/**
-    	 * File transfer has been accepted and is in the process of becoming started
-    	 */
-    	public final static int ACCEPTING = 8;
-    	
-    	/**
-    	 * File transfer has been delivered
-    	 */
-    	public final static int DELIVERED = 9;
+        /**
+         * File transfer has been transferred with success
+         */
+        public final static int TRANSFERRED = 3;
 
-    	/**
-    	 * File transfer has been displayed or opened
-    	 */
-    	public final static int DISPLAYED = 10;
+        /**
+         * File transfer has been aborted
+         */
+        public final static int ABORTED = 4;
 
-    	/**
-    	 * File transfer has been queued
-    	 */
-    	public final static int QUEUED = 11;
-    	
-    	private State() {
-        }    	
+        /**
+         * File transfer has failed
+         */
+        public final static int FAILED = 5;
+
+        /**
+         * File transfer is paused
+         */
+        public final static int PAUSED = 6;
+
+        /**
+         * File transfer is rejected
+         */
+        public final static int REJECTED = 7;
+
+        /**
+         * File transfer has been accepted and is in the process of becoming started
+         */
+        public final static int ACCEPTING = 8;
+
+        /**
+         * File transfer has been delivered
+         */
+        public final static int DELIVERED = 9;
+
+        /**
+         * File transfer has been displayed or opened
+         */
+        public final static int DISPLAYED = 10;
+
+        /**
+         * File transfer has been queued
+         */
+        public final static int QUEUED = 11;
+
+        private State() {
+        }
     }
 
     /**
@@ -141,7 +142,8 @@ public class FileTransfer {
         public final static int REJECTED_SPAM = 6;
 
         /**
-         * Incoming file transfer was rejected as is cannot be received due to lack of local storage space.
+         * Incoming file transfer was rejected as is cannot be received due to lack of local storage
+         * space.
          */
         public final static int REJECTED_LOW_SPACE = 7;
 
@@ -205,35 +207,35 @@ public class FileTransfer {
          */
         public final static int FAILED_NOT_ALLOWED_TO_SEND = 19;
     }
-    
+
     /**
      * File transfer error
      */
     public static class Error {
-    	/**
-    	 * Transfer has failed
-    	 */
-    	public final static int TRANSFER_FAILED = 0;
-    	
-    	/**
-    	 * Transfer invitation has been declined by remote
-    	 */
-    	public final static int INVITATION_DECLINED = 1;
+        /**
+         * Transfer has failed
+         */
+        public final static int TRANSFER_FAILED = 0;
 
-    	/**
-    	 * File saving has failed 
-       	 */
-    	public final static int SAVING_FAILED = 2;
-    	
+        /**
+         * Transfer invitation has been declined by remote
+         */
+        public final static int INVITATION_DECLINED = 1;
+
+        /**
+         * File saving has failed
+         */
+        public final static int SAVING_FAILED = 2;
+
         private Error() {
-        }    	
+        }
     }
 
     /**
      * File transfer interface
      */
     private final IFileTransfer mTransferInf;
-    
+
     /**
      * Constructor
      * 
@@ -241,78 +243,78 @@ public class FileTransfer {
      * @hide
      */
     public FileTransfer(IFileTransfer transferIntf) {
-    	mTransferInf = transferIntf;
+        mTransferInf = transferIntf;
     }
 
-	/**
-	 * Returns the chat ID if this file transfer is a group file transfer
-	 *
-	 * @return Chat ID
-	 * @throws RcsServiceException
-	 */
-	public String getChatId() throws RcsServiceException {
-		try {
-			return mTransferInf.getChatId();
-		} catch (Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
-    	
     /**
-	 * Returns the file transfer ID of the file transfer
-	 * 
-	 * @return Transfer ID
-	 * @throws RcsServiceException
-	 */
-	public String getTransferId() throws RcsServiceException {
-		try {
-			return mTransferInf.getTransferId();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
-	
-	/**
-	 * Returns the remote contact identifier
-	 * 
-	 * @return ContactId
-	 * @throws RcsServiceException
-	 */
-	public ContactId getRemoteContact() throws RcsServiceException {
-		try {
-			return mTransferInf.getRemoteContact();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
-	
-	/**
+     * Returns the chat ID if this file transfer is a group file transfer
+     *
+     * @return Chat ID
+     * @throws RcsServiceException
+     */
+    public String getChatId() throws RcsServiceException {
+        try {
+            return mTransferInf.getChatId();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the file transfer ID of the file transfer
+     * 
+     * @return Transfer ID
+     * @throws RcsServiceException
+     */
+    public String getTransferId() throws RcsServiceException {
+        try {
+            return mTransferInf.getTransferId();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
+
+    /**
+     * Returns the remote contact identifier
+     * 
+     * @return ContactId
+     * @throws RcsServiceException
+     */
+    public ContactId getRemoteContact() throws RcsServiceException {
+        try {
+            return mTransferInf.getRemoteContact();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
+
+    /**
      * Returns the complete filename including the path of the file to be transferred
      *
      * @return Filename
      * @throws RcsServiceException
      */
-	public String getFileName() throws RcsServiceException {
-		try {
-			return mTransferInf.getFileName();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
+    public String getFileName() throws RcsServiceException {
+        try {
+            return mTransferInf.getFileName();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
 
-	/**
+    /**
      * Returns the size of the file to be transferred
      *
      * @return Size in bytes
      * @throws RcsServiceException
      */
-	public long getFileSize() throws RcsServiceException {
-		try {
-			return mTransferInf.getFileSize();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}	
+    public long getFileSize() throws RcsServiceException {
+        try {
+            return mTransferInf.getFileSize();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
 
     /**
      * Returns the MIME type of the file to be transferred
@@ -321,148 +323,148 @@ public class FileTransfer {
      * @throws RcsServiceException
      */
     public String getMimeType() throws RcsServiceException {
-		try {
-			return mTransferInf.getMimeType();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
+        try {
+            return mTransferInf.getMimeType();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
     }
-    
-	/**
-	 * Returns the Uri of the file icon
-	 * 
-	 * @return the Uri of the file icon or thumbnail
-	 * @throws RcsServiceException
-	 */
-	public Uri getFileIcon() throws RcsServiceException {
-		try {
-			return mTransferInf.getFileIcon();
-		} catch (Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
 
-	/**
-	 * Returns the Uri of the file
-	 *
-	 * @return Uri of file
-	 * @throws RcsServiceException
-	 */
-	public Uri getFile() throws RcsServiceException {
-		try {
-			return mTransferInf.getFile();
-		} catch (Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
+    /**
+     * Returns the Uri of the file icon
+     * 
+     * @return the Uri of the file icon or thumbnail
+     * @throws RcsServiceException
+     */
+    public Uri getFileIcon() throws RcsServiceException {
+        try {
+            return mTransferInf.getFileIcon();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
 
-	/**
-	 * Returns the state of the file transfer
-	 * 
-	 * @return State
-	 * @see FileTransfer.State
-	 * @throws RcsServiceException
-	 */
-	public int getState() throws RcsServiceException {
-		try {
-			return mTransferInf.getState();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}		
+    /**
+     * Returns the Uri of the file
+     *
+     * @return Uri of file
+     * @throws RcsServiceException
+     */
+    public Uri getFile() throws RcsServiceException {
+        try {
+            return mTransferInf.getFile();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
 
-	/**
-	 * Returns the reason code of the state of the sharing
-	 *
-	 * @return ReasonCode
-	 * @see GeolocSharing.ReasonCode
-	 * @throws RcsServiceException
-	 */
-	public int getReasonCode() throws RcsServiceException {
-		try {
-			return mTransferInf.getReasonCode();
-		} catch (Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
+    /**
+     * Returns the state of the file transfer
+     * 
+     * @return State
+     * @see FileTransfer.State
+     * @throws RcsServiceException
+     */
+    public int getState() throws RcsServiceException {
+        try {
+            return mTransferInf.getState();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
 
-	/**
-	 * Returns the direction of the transfer (incoming or outgoing)
-	 * 
-	 * @return Direction
-	 * @see com.gsma.services.rcs.RcsCommon.Direction
-	 * @throws RcsServiceException
-	 */
-	public int getDirection() throws RcsServiceException {
-		try {
-			return mTransferInf.getDirection();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
-	
-	/**
-	 * Accepts file transfer invitation
-	 * 
-	 * @throws RcsServiceException
-	 */
-	public void acceptInvitation() throws RcsServiceException {
-		try {
-			mTransferInf.acceptInvitation();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
-	
-	/**
-	 * Rejects file transfer invitation
-	 * 
-	 * @throws RcsServiceException
-	 */
-	public void rejectInvitation() throws RcsServiceException {
-		try {
-			mTransferInf.rejectInvitation();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
+    /**
+     * Returns the reason code of the state of the sharing
+     *
+     * @return ReasonCode
+     * @see GeolocSharing.ReasonCode
+     * @throws RcsServiceException
+     */
+    public int getReasonCode() throws RcsServiceException {
+        try {
+            return mTransferInf.getReasonCode();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
 
-	/**
-	 * Aborts the file transfer
-	 * 
-	 * @throws RcsServiceException
-	 */
-	public void abortTransfer() throws RcsServiceException {
-		try {
-			mTransferInf.abortTransfer();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
-	
-	/**
-	 * Pauses the file transfer
-	 * 
-	 * @throws RcsServiceException
-	 */
-	public void pauseTransfer() throws RcsServiceException {
-		try {
-			mTransferInf.pauseTransfer();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
-	
-	/**
-	 * Resumes the file transfer
-	 * 
-	 * @throws RcsServiceException
-	 */
-	public void resumeTransfer() throws RcsServiceException {
-		try {
-			mTransferInf.resumeTransfer();
-		} catch(Exception e) {
-			throw new RcsServiceException(e.getMessage());
-		}
-	}
+    /**
+     * Returns the direction of the transfer (incoming or outgoing)
+     * 
+     * @return Direction
+     * @see com.gsma.services.rcs.RcsCommon.Direction
+     * @throws RcsServiceException
+     */
+    public int getDirection() throws RcsServiceException {
+        try {
+            return mTransferInf.getDirection();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
+
+    /**
+     * Accepts file transfer invitation
+     * 
+     * @throws RcsServiceException
+     */
+    public void acceptInvitation() throws RcsServiceException {
+        try {
+            mTransferInf.acceptInvitation();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
+
+    /**
+     * Rejects file transfer invitation
+     * 
+     * @throws RcsServiceException
+     */
+    public void rejectInvitation() throws RcsServiceException {
+        try {
+            mTransferInf.rejectInvitation();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
+
+    /**
+     * Aborts the file transfer
+     * 
+     * @throws RcsServiceException
+     */
+    public void abortTransfer() throws RcsServiceException {
+        try {
+            mTransferInf.abortTransfer();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
+
+    /**
+     * Pauses the file transfer
+     * 
+     * @throws RcsServiceException
+     */
+    public void pauseTransfer() throws RcsServiceException {
+        try {
+            mTransferInf.pauseTransfer();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
+
+    /**
+     * Resumes the file transfer
+     * 
+     * @throws RcsServiceException
+     */
+    public void resumeTransfer() throws RcsServiceException {
+        try {
+            mTransferInf.resumeTransfer();
+        } catch (Exception e) {
+            throw new RcsServiceException(e.getMessage());
+        }
+    }
 }

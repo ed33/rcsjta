@@ -30,84 +30,86 @@ public class ChatMessageImpl extends IChatMessage.Stub {
      * The logger
      */
     private final Logger logger = Logger.getLogger(getClass().getName());
-    
-	private final ChatMessagePersistedStorageAccessor mPersistentStorage;
 
-	/**
-	 * Constructor
-	 * 
-	 * @param persistentStorage ChatMessagePersistedStorageAccessor
-	 */
-	public ChatMessageImpl(ChatMessagePersistedStorageAccessor persistentStorage) {
-		mPersistentStorage = persistentStorage;
-	}
+    private final ChatMessagePersistedStorageAccessor mPersistentStorage;
 
-	public ContactId getContact() {
-		return mPersistentStorage.getRemoteContact();
-	}
+    /**
+     * Constructor
+     * 
+     * @param persistentStorage ChatMessagePersistedStorageAccessor
+     */
+    public ChatMessageImpl(ChatMessagePersistedStorageAccessor persistentStorage) {
+        mPersistentStorage = persistentStorage;
+    }
 
-	public String getId() {
-		return mPersistentStorage.getId();
-	}
+    public ContactId getContact() {
+        return mPersistentStorage.getRemoteContact();
+    }
 
-	public String getContent() {
-		return mPersistentStorage.getContent();
-	}
+    public String getId() {
+        return mPersistentStorage.getId();
+    }
 
-	public String getMimeType() {
-		return mPersistentStorage.getMimeType();
-	}
+    public String getContent() {
+        return mPersistentStorage.getContent();
+    }
 
-	public int getDirection() {
-		return mPersistentStorage.getDirection();
-	}
+    public String getMimeType() {
+        return mPersistentStorage.getMimeType();
+    }
 
-	public long getTimestamp() {
-		return mPersistentStorage.getTimestamp();
-	}
+    public int getDirection() {
+        return mPersistentStorage.getDirection();
+    }
 
-	public long getTimestampSent() {
-		return mPersistentStorage.getTimestampSent();
-	}
+    public long getTimestamp() {
+        return mPersistentStorage.getTimestamp();
+    }
 
-	public long getTimestampDelivered() {
-		return mPersistentStorage.getTimestampDelivered();
-	}
+    public long getTimestampSent() {
+        return mPersistentStorage.getTimestampSent();
+    }
 
-	public long getTimestampDisplayed() {
-		return mPersistentStorage.getTimestampDisplayed();
-	}
+    public long getTimestampDelivered() {
+        return mPersistentStorage.getTimestampDelivered();
+    }
 
-	public int getStatus() {
-		return mPersistentStorage.getStatus();
-	}
+    public long getTimestampDisplayed() {
+        return mPersistentStorage.getTimestampDisplayed();
+    }
 
-	public int getReasonCode() {
-		return mPersistentStorage.getReasonCode();
-	}
+    public int getStatus() {
+        return mPersistentStorage.getStatus();
+    }
 
-	public String getChatId() {
-		return mPersistentStorage.getChatId();
-	}
+    public int getReasonCode() {
+        return mPersistentStorage.getReasonCode();
+    }
 
-	public boolean isRead() {
-		return mPersistentStorage.isRead();
-	}
-	
+    public String getChatId() {
+        return mPersistentStorage.getChatId();
+    }
+
+    public boolean isRead() {
+        return mPersistentStorage.isRead();
+    }
+
     /**
      * Override the onTransact Binder method. It is used to check authorization for an application
      * before calling API method. Control of authorization is made for third party applications (vs.
-     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     * native application) by comparing the client application fingerprint with the RCS application
+     * fingerprint
      */
     @Override
     public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
             throws android.os.RemoteException {
- 
-        if(logger.isActivated()){
-            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+
+        if (logger.isActivated()) {
+            logger.debug("Api access control for implementation class : ".concat(this.getClass()
+                    .getName()));
         }
         ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
-        return super.onTransact(code, data, reply, flags); 
-       
+        return super.onTransact(code, data, reply, flags);
+
     }
 }

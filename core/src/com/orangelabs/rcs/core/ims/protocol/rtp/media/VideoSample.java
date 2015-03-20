@@ -52,7 +52,8 @@ public class VideoSample extends MediaSample {
      * @Param sequenceNumber Packet sequence number
      * @param videoOrientation Video orientation
      */
-    public VideoSample(byte[] data, long time, long sequenceNumber, VideoOrientation videoOrientation) {
+    public VideoSample(byte[] data, long time, long sequenceNumber,
+            VideoOrientation videoOrientation) {
         super(data, time, sequenceNumber);
         this.videoOrientation = videoOrientation;
     }

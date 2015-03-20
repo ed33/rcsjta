@@ -46,8 +46,8 @@ public class HexadecimalUtils {
 
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                    + Character.digit(s.charAt(i + 1), 16));
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4) + Character.digit(
+                    s.charAt(i + 1), 16));
         }
         return data;
     }
@@ -64,10 +64,12 @@ public class HexadecimalUtils {
             return null;
         }
 
-        final char[] hexArray = {'0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
+        final char[] hexArray = {
+                '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+        };
         char[] hexChars = new char[bytes.length * 2];
         int value;
-        for ( int j = 0; j < bytes.length; j++) {
+        for (int j = 0; j < bytes.length; j++) {
             value = bytes[j] & 0xFF;
             hexChars[j * 2] = hexArray[value >>> 4];
             hexChars[j * 2 + 1] = hexArray[value & 0x0F];

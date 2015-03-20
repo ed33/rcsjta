@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.provider.sharing;
 
 import com.gsma.services.rcs.vsh.VideoSharingLog;
@@ -33,6 +34,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.text.TextUtils;
+
 /**
  * Video sharing provider
  * 
@@ -50,8 +52,8 @@ public class VideoSharingProvider extends ContentProvider {
     private static final UriMatcher sUriMatcher;
     static {
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
-        sUriMatcher.addURI(VideoSharingLog.CONTENT_URI.getAuthority(),
-                VideoSharingLog.CONTENT_URI.getPath().substring(1), UriType.VIDEO_SHARING);
+        sUriMatcher.addURI(VideoSharingLog.CONTENT_URI.getAuthority(), VideoSharingLog.CONTENT_URI
+                .getPath().substring(1), UriType.VIDEO_SHARING);
         sUriMatcher.addURI(VideoSharingLog.CONTENT_URI.getAuthority(), VideoSharingLog.CONTENT_URI
                 .getPath().substring(1).concat("/*"), UriType.VIDEO_SHARING_WITH_ID);
     }
@@ -163,8 +165,8 @@ public class VideoSharingProvider extends ContentProvider {
                     /* Intentional fall through */
                 case UriType.VIDEO_SHARING:
                     SQLiteDatabase db = mOpenHelper.getReadableDatabase();
-                    cursor = db.query(TABLE, projection, selection, selectionArgs, null,
-                            null, sort);
+                    cursor = db
+                            .query(TABLE, projection, selection, selectionArgs, null, null, sort);
                     cursor.setNotificationUri(getContext().getContentResolver(), uri);
                     return cursor;
 

@@ -26,16 +26,15 @@ package com.orangelabs.rcs.core.ims.protocol.rtp.core;
  */
 public class RtpSource {
     /**
-     * RFC 3550: The dropout parameter MAX_DROPOUT should be a small fraction of
-     * the 16-bit sequence number space to give a reasonable probability that
-     * new sequence numbers after a restart will not fall in the acceptable
-     * range for sequence numbers from before the restart.
+     * RFC 3550: The dropout parameter MAX_DROPOUT should be a small fraction of the 16-bit sequence
+     * number space to give a reasonable probability that new sequence numbers after a restart will
+     * not fall in the acceptable range for sequence numbers from before the restart.
      */
     private static final int MAX_DROPOUT = 3000;
 
     /**
-     * RFC 3550: the sequence number is considered valid if it is no more than
-     * MAX_DROPOUT ahead of maxSeq nor more than MAX_MISORDER behind
+     * RFC 3550: the sequence number is considered valid if it is no more than MAX_DROPOUT ahead of
+     * maxSeq nor more than MAX_MISORDER behind
      */
     private static final int MAX_MISORDER = 100;
 
@@ -44,14 +43,14 @@ public class RtpSource {
      */
     private static final int RTP_SEQ_MOD = (1 << 16);
 
-	/**
-	 * CNAME value
-	 */
+    /**
+     * CNAME value
+     */
     public static String CNAME = "anonymous@127.0.0.1";
 
     /**
-     * Source is not valid until MIN_SEQUENTIAL packets with
-     * sequential sequence numbers have been received.
+     * Source is not valid until MIN_SEQUENTIAL packets with sequential sequence numbers have been
+     * received.
      */
     private static int MIN_SEQUENCIAL = 0;
 
@@ -109,18 +108,17 @@ public class RtpSource {
      * Estimated jitter.
      */
     public long jitter;
-    
+
     /**
      * Last SR Packet timestamp
      */
     private long lastSenderReport;
 
-
     /**
-     * Constructor requires an SSRC for it to be a valid source. The constructor initializes
-     * all the source class members to a default value
+     * Constructor requires an SSRC for it to be a valid source. The constructor initializes all the
+     * source class members to a default value
      *
-     * @param   sourceSSRC SSRC of the new source
+     * @param sourceSSRC SSRC of the new source
      */
     RtpSource(int sourceSSRC) {
         ssrc = sourceSSRC;
@@ -141,8 +139,8 @@ public class RtpSource {
     }
 
     /**
-     * Updates the statistics related to Sender Reports. Should be invoked when
-     * a RTCP Sender Report is received.
+     * Updates the statistics related to Sender Reports. Should be invoked when a RTCP Sender Report
+     * is received.
      *
      * @param srp Sender Report
      */
@@ -154,8 +152,8 @@ public class RtpSource {
     }
 
     /**
-     * Updates the statistics related to RTP packets Should be invoked every
-     * time this source receive an RTP Packet .
+     * Updates the statistics related to RTP packets Should be invoked every time this source
+     * receive an RTP Packet .
      *
      * @param packet
      */
@@ -179,8 +177,8 @@ public class RtpSource {
     }
 
     /**
-     * Updates the reception report with latest data. The statistics calculation
-     * is based on the algorithms present in RFC 3550
+     * Updates the reception report with latest data. The statistics calculation is based on the
+     * algorithms present in RFC 3550
      *
      * @param report Reception report to update
      */
@@ -238,11 +236,9 @@ public class RtpSource {
     }
 
     /**
-     * Ensures that a source is declared valid only after MIN_SEQUENTIAL packets
-     * have been received in sequence.It also validates the sequence number seq
-     * of a newly received packet and updates the sequence state.
-     *
-     * Algorithm in the RFC 3550 (Appendix A.1)
+     * Ensures that a source is declared valid only after MIN_SEQUENTIAL packets have been received
+     * in sequence.It also validates the sequence number seq of a newly received packet and updates
+     * the sequence state. Algorithm in the RFC 3550 (Appendix A.1)
      *
      * @param seq Sequence Number
      */
@@ -298,8 +294,7 @@ public class RtpSource {
     }
 
     /**
-     * Return the extended sequence number for a source considering that
-     * sequences cycle.
+     * Return the extended sequence number for a source considering that sequences cycle.
      *
      * @return Extended sequence number
      */

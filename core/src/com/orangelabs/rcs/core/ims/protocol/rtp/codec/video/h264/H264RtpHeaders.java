@@ -19,24 +19,11 @@
 package com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264;
 
 /**
- * H264RtpHeaders
- *
- * RFC 3984: Two special headers are added to each H264 packet that
- * immediately follows the RTP header:
- *
- * First Header - The FU indicator octet has the following format:
- * +---------------+
- * |0|1|2|3|4|5|6|7|
- * +-+-+-+-+-+-+-+-+
- * |F|NRI|  Type   |
- * +---------------+
- *
- * Second Header - The FU header has the following format:
- * +---------------+
- * |0|1|2|3|4|5|6|7|
- * +-+-+-+-+-+-+-+-+
- * |S|E|R|  Type   |
- * +---------------+
+ * H264RtpHeaders RFC 3984: Two special headers are added to each H264 packet that immediately
+ * follows the RTP header: First Header - The FU indicator octet has the following format:
+ * +---------------+ |0|1|2|3|4|5|6|7| +-+-+-+-+-+-+-+-+ |F|NRI| Type | +---------------+ Second
+ * Header - The FU header has the following format: +---------------+ |0|1|2|3|4|5|6|7|
+ * +-+-+-+-+-+-+-+-+ |S|E|R| Type | +---------------+
  *
  * @author Deutsche Telekom AG
  */
@@ -155,11 +142,11 @@ public class H264RtpHeaders {
         if (FUI_TYPE == (byte) 0x01) {
             return true;
         }
-        
+
         if (isFrameNonInterleaved() && FUH_TYPE == (byte) 0x01) {
             return true;
         }
-        
+
         return false;
     }
 

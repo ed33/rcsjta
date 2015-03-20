@@ -26,30 +26,30 @@ import java.util.Vector;
  * @author jexa7410
  */
 public class WatcherInfoDocument {
-	private String resource;
+    private String resource;
 
-	private String packageId;
+    private String packageId;
 
-	private Vector<Watcher> watcherList = new Vector<Watcher>();
+    private Vector<Watcher> watcherList = new Vector<Watcher>();
 
-	public WatcherInfoDocument(String resource, String packageId) {
-		this.resource = resource;
-		this.packageId = packageId;
-	}
-	
-	public void addWatcher(Watcher watcher) {
-		watcherList.addElement(watcher);
-	}
+    public WatcherInfoDocument(String resource, String packageId) {
+        this.resource = resource;
+        this.packageId = packageId;
+    }
 
-	public Vector<Watcher> getWatcherList() {
-		return watcherList;
-	}
+    public void addWatcher(Watcher watcher) {
+        watcherList.addElement(watcher);
+    }
 
-	public String getResource() {
-		return resource;
-	}
+    public Vector<Watcher> getWatcherList() {
+        return watcherList;
+    }
 
-	public String getPackageId() {
-		return packageId;
-	}	
+    public String getResource() {
+        return resource;
+    }
+
+    public String getPackageId() {
+        return packageId;
+    }
 }

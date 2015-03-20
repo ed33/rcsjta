@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.ish;
 
 /**
@@ -29,15 +30,16 @@ package com.gsma.services.rcs.ish;
 public class ImageSharingIntent {
     /**
      * Broadcast action: a new image sharing invitation has been received.
-     * <p>Intent includes the following extras:
+     * <p>
+     * Intent includes the following extras:
      * <ul>
      * <li> {@link #EXTRA_SHARING_ID} containing the unique ID of the image sharing.
      * </ul>
      */
-	public final static String ACTION_NEW_INVITATION = "com.gsma.services.rcs.ish.action.NEW_IMAGE_SHARING";
+    public final static String ACTION_NEW_INVITATION = "com.gsma.services.rcs.ish.action.NEW_IMAGE_SHARING";
 
-	/**
-	 * Unique ID of the image sharing
-	 */
-	public final static String EXTRA_SHARING_ID = "sharingId";
+    /**
+     * Unique ID of the image sharing
+     */
+    public final static String EXTRA_SHARING_ID = "sharingId";
 }

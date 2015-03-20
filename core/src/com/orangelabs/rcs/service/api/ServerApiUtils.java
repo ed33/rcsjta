@@ -100,7 +100,7 @@ public class ServerApiUtils {
      */
     public static void assertApiIsAuthorized(Integer packageUid, Extension.Type extensionType)
             throws ServerPermissionDeniedException {
-        
+
         ExtensionManager extensionManager = ExtensionManager.getInstance();
         if (extensionManager.isNativeApplication(packageUid)) {
             if (logger.isActivated()) {
@@ -114,15 +114,16 @@ public class ServerApiUtils {
     /**
      * Add IARI (application Identifier) as features tag in IMS session for third party application
      * 
-     * @param featureTags 
+     * @param featureTags
      * @param callingUid
      */
     public static void addApplicationIdAsFeaturesTag(List<String> featureTags, Integer callingUid) {
-        boolean isActivated = logger.isActivated(); 
+        boolean isActivated = logger.isActivated();
         if (isActivated) {
-            logger.debug("addApplicationIdAsFeaturesTag , callingUid : ".concat(String.valueOf(callingUid)));
+            logger.debug("addApplicationIdAsFeaturesTag , callingUid : ".concat(String
+                    .valueOf(callingUid)));
         }
-        
+
         ExtensionManager extensionManager = ExtensionManager.getInstance();
         if (extensionManager.isNativeApplication(callingUid)) {
             if (isActivated) {
@@ -138,9 +139,10 @@ public class ServerApiUtils {
             }
             return;
         }
-                
-        String appRef = new StringBuilder(FeatureTags.FEATURE_RCSE_EXTENSION).append(".").append(iari).toString();
-        
+
+        String appRef = new StringBuilder(FeatureTags.FEATURE_RCSE_EXTENSION).append(".")
+                .append(iari).toString();
+
         if (isActivated) {
             logger.debug(" --> iari : ".concat(appRef));
         }

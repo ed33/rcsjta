@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.upload;
 
 import android.net.Uri;
@@ -31,114 +32,115 @@ import android.os.Parcelable;
  * @author Jean-Marc AUFFRET
  */
 public class FileUploadInfo implements Parcelable {
-	/**
-	 * URI of the file on the content server
-	 */
-	private Uri mFile;
+    /**
+     * URI of the file on the content server
+     */
+    private Uri mFile;
 
-	/**
-	 * Validity of the file
-	 */
-	private long mValidity;
+    /**
+     * Validity of the file
+     */
+    private long mValidity;
 
-	/**
-	 * Original filename
-	 */
-	private String mFileName;
+    /**
+     * Original filename
+     */
+    private String mFileName;
 
-	/**
-	 * File size
-	 */
-	private long mSize;
+    /**
+     * File size
+     */
+    private long mSize;
 
-	/**
-	 * File MIME type
-	 */
-	private String mMimeType;
-	
-	/**
-	 * URI of the file icon on the content server
-	 */
-	private final Uri mFileIcon;
+    /**
+     * File MIME type
+     */
+    private String mMimeType;
 
-	/**
-	 * Validity of the file icon
-	 */
-	private final long mFileIconValidity;
+    /**
+     * URI of the file icon on the content server
+     */
+    private final Uri mFileIcon;
 
-	/**
-	 * File icon size
-	 */
-	private final long mFileIconSize;
+    /**
+     * Validity of the file icon
+     */
+    private final long mFileIconValidity;
 
-	/**
-	 * File icon MIME type
-	 */
-	private final String mFileIconMimeType;
+    /**
+     * File icon size
+     */
+    private final long mFileIconSize;
+
+    /**
+     * File icon MIME type
+     */
+    private final String mFileIconMimeType;
 
     /**
      * Constructor for outgoing message
      * 
      * @hide
-	 */
-	public FileUploadInfo(Uri file, long validity, String filename, long size, String type, Uri fileIcon, long fileIconValidity, long fileIconSize, String fileIconType) {
-		mFile = file;
-		mValidity = validity;
-		mFileName = filename;
-		mSize = size;
-		mMimeType = type;
-		mFileIcon = fileIcon;
-		mFileIconValidity = fileIconValidity;
-		mFileIconSize = fileIconSize;
-		mFileIconMimeType = fileIconType;
-	}
-	
-	/**
-	 * Constructor
-	 * 
-	 * @param source Parcelable source
-     * @hide
-	 */
-	public FileUploadInfo(Parcel source) {
-		mFile = Uri.parse(source.readString());
-		mValidity = source.readLong();
-		mFileName = source.readString();
-		mSize = source.readLong();
-		mMimeType = source.readString();
-		mFileIcon = Uri.parse(source.readString());
-		mFileIconValidity = source.readLong();
-		mFileIconSize = source.readLong();
-		mFileIconMimeType = source.readString();
+     */
+    public FileUploadInfo(Uri file, long validity, String filename, long size, String type,
+            Uri fileIcon, long fileIconValidity, long fileIconSize, String fileIconType) {
+        mFile = file;
+        mValidity = validity;
+        mFileName = filename;
+        mSize = size;
+        mMimeType = type;
+        mFileIcon = fileIcon;
+        mFileIconValidity = fileIconValidity;
+        mFileIconSize = fileIconSize;
+        mFileIconMimeType = fileIconType;
     }
-	
-	/**
-	 * Describe the kinds of special objects contained in this Parcelable's
-	 * marshalled representation
-	 * 
-	 * @return Integer
+
+    /**
+     * Constructor
+     * 
+     * @param source Parcelable source
      * @hide
-	 */
-	public int describeContents() {
+     */
+    public FileUploadInfo(Parcel source) {
+        mFile = Uri.parse(source.readString());
+        mValidity = source.readLong();
+        mFileName = source.readString();
+        mSize = source.readLong();
+        mMimeType = source.readString();
+        mFileIcon = Uri.parse(source.readString());
+        mFileIconValidity = source.readLong();
+        mFileIconSize = source.readLong();
+        mFileIconMimeType = source.readString();
+    }
+
+    /**
+     * Describe the kinds of special objects contained in this Parcelable's marshalled
+     * representation
+     * 
+     * @return Integer
+     * @hide
+     */
+    public int describeContents() {
         return 0;
     }
 
-	/**
-	 * Write parcelable object
-	 * 
-	 * @param dest The Parcel in which the object should be written
-	 * @param flags Additional flags about how the object should be written
+    /**
+     * Write parcelable object
+     * 
+     * @param dest The Parcel in which the object should be written
+     * @param flags Additional flags about how the object should be written
      * @hide
-	 */
+     */
     public void writeToParcel(Parcel dest, int flags) {
-    	dest.writeString(mFile.toString());
-    	dest.writeLong(mValidity);
-    	dest.writeString(mFileName);
-    	dest.writeLong(mSize);
-    	dest.writeString(mMimeType);
-    	dest.writeString(mFileIcon.toString());
-    	dest.writeLong(mFileIconValidity);
-    	dest.writeLong(mFileIconSize);
-    	dest.writeString(mFileIconMimeType);
+        dest.writeString(mFile.toString());
+        dest.writeLong(mValidity);
+        dest.writeString(mFileName);
+        dest.writeLong(mSize);
+        dest.writeString(mMimeType);
+        dest.writeString(mFileIcon.toString());
+        dest.writeLong(mFileIconValidity);
+        dest.writeLong(mFileIconSize);
+        dest.writeString(mFileIconMimeType);
     }
 
     /**
@@ -146,8 +148,7 @@ public class FileUploadInfo implements Parcelable {
      * 
      * @hide
      */
-    public static final Parcelable.Creator<FileUploadInfo> CREATOR
-            = new Parcelable.Creator<FileUploadInfo>() {
+    public static final Parcelable.Creator<FileUploadInfo> CREATOR = new Parcelable.Creator<FileUploadInfo>() {
         public FileUploadInfo createFromParcel(Parcel source) {
             return new FileUploadInfo(source);
         }
@@ -155,88 +156,88 @@ public class FileUploadInfo implements Parcelable {
         public FileUploadInfo[] newArray(int size) {
             return new FileUploadInfo[size];
         }
-    };	
-	
-	/**
-	 * Returns URI of the file on the content server
-	 *  
-	 * @return Uri
-	 */
-	public Uri getFile() {
-		return mFile;
-	}
+    };
 
-	/**
-	 * Returns the validity of the file on the content server. This corresponds
-	 * to the date and time from when the file will be removed on the content server.
-	 * 
-	 * @return Duration
-	 */
-	public long getValidity() {
-		return mValidity;
-	}
+    /**
+     * Returns URI of the file on the content server
+     * 
+     * @return Uri
+     */
+    public Uri getFile() {
+        return mFile;
+    }
 
-	/**
-	 * Returns the original filename
-	 * 
-	 * @return String
-	 */
-	public String getFileName() {
-		return mFileName;
-	}
+    /**
+     * Returns the validity of the file on the content server. This corresponds to the date and time
+     * from when the file will be removed on the content server.
+     * 
+     * @return Duration
+     */
+    public long getValidity() {
+        return mValidity;
+    }
 
-	/**
-	 * Returns the size of the file
-	 *  
-	 * @return Size
-	 */
-	public long getSize() {
-		return mSize;
-	}
+    /**
+     * Returns the original filename
+     * 
+     * @return String
+     */
+    public String getFileName() {
+        return mFileName;
+    }
 
-	/**
-	 * Returns the MIME type of the file
-	 * 
-	 * @return Content type
-	 */
-	public String getMimeType() {
-		return mMimeType;
-	}
+    /**
+     * Returns the size of the file
+     * 
+     * @return Size
+     */
+    public long getSize() {
+        return mSize;
+    }
 
-	/**
-	 * Returns URI of the file icon on the content server
-	 *  
-	 * @return Uri
-	 */	
-	public Uri getFileIcon() {
-		return mFileIcon;
-	}
+    /**
+     * Returns the MIME type of the file
+     * 
+     * @return Content type
+     */
+    public String getMimeType() {
+        return mMimeType;
+    }
 
-	/**
-	 * Returns the validity of the file icon on the content server. This corresponds
-	 * to the date and time from when the file icon will be removed on the content server.
-	 * 
-	 * @return Duration
-	 */
-	public long getFileIconValidity() {
-		return mFileIconValidity;
-	}
+    /**
+     * Returns URI of the file icon on the content server
+     * 
+     * @return Uri
+     */
+    public Uri getFileIcon() {
+        return mFileIcon;
+    }
 
-	/**
-	 * Returns the size of the file icon
-	 *  
-	 * @return Size
-	 */
-	public long getFileIconSize() {
-		return mFileIconSize;
-	}
+    /**
+     * Returns the validity of the file icon on the content server. This corresponds to the date and
+     * time from when the file icon will be removed on the content server.
+     * 
+     * @return Duration
+     */
+    public long getFileIconValidity() {
+        return mFileIconValidity;
+    }
 
-	/**
-	 * Returns the MIME type of the file icon
-	 * 
-	 * @return Content type
-	 */
-	public String getFileIconMimeType() {
-		return mFileIconMimeType;
-	}
+    /**
+     * Returns the size of the file icon
+     * 
+     * @return Size
+     */
+    public long getFileIconSize() {
+        return mFileIconSize;
+    }
+
+    /**
+     * Returns the MIME type of the file icon
+     * 
+     * @return Content type
+     */
+    public String getFileIconMimeType() {
+        return mFileIconMimeType;
+    }
 }

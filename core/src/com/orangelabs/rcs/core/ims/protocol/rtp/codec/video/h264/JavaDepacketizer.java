@@ -24,22 +24,21 @@ import com.orangelabs.rcs.core.ims.protocol.rtp.format.video.VideoOrientation;
 import com.orangelabs.rcs.core.ims.protocol.rtp.util.Buffer;
 
 /**
- * Reassembles H264 RTP packets into H264 frames, as per RFC 3984 Complete
- * frames are sent to decoder once reassembled
+ * Reassembles H264 RTP packets into H264 frames, as per RFC 3984 Complete frames are sent to
+ * decoder once reassembled
  *
  * @author Deutsche Telekom AG
  */
 public class JavaDepacketizer extends VideoCodec {
 
     /**
-     * Collection of frameAssemblers. Allows the construction of several frames
-     * if incoming packets are out of order
+     * Collection of frameAssemblers. Allows the construction of several frames if incoming packets
+     * are out of order
      */
     private FrameAssemblerCollection assemblersCollection = new FrameAssemblerCollection();
 
     /**
-     * Max frame size to give for next module, as some decoder have frame size
-     * limits
+     * Max frame size to give for next module, as some decoder have frame size limits
      */
     private static final int MAX_H264_FRAME_SIZE = 8192;
 
@@ -101,9 +100,9 @@ public class JavaDepacketizer extends VideoCodec {
      */
     private void extractNalUnitHeader(Buffer input) {
         if (mNalUnitHeader == null) {
-            mNalUnitHeader = NalUnitHeader.extract((byte[])input.getData());
+            mNalUnitHeader = NalUnitHeader.extract((byte[]) input.getData());
         } else {
-            NalUnitHeader.extract((byte[])input.getData(), mNalUnitHeader);
+            NalUnitHeader.extract((byte[]) input.getData(), mNalUnitHeader);
         }
     }
 
@@ -115,9 +114,9 @@ public class JavaDepacketizer extends VideoCodec {
      */
     private void extractNalUnitHeader(int position, Buffer input) {
         if (mNalUnitHeader == null) {
-            mNalUnitHeader = NalUnitHeader.extract(position, (byte[])input.getData());
+            mNalUnitHeader = NalUnitHeader.extract(position, (byte[]) input.getData());
         } else {
-            NalUnitHeader.extract(position, (byte[])input.getData(), mNalUnitHeader);
+            NalUnitHeader.extract(position, (byte[]) input.getData(), mNalUnitHeader);
         }
     }
 
@@ -163,7 +162,7 @@ public class JavaDepacketizer extends VideoCodec {
 
         // Get NALU size
         int nalu_size = (((bufferData[aggregationPositon] & 0xff) << 8) | (bufferData[aggregationPositon + 1] & 0xff));
-        aggregationPositon+=2;
+        aggregationPositon += 2;
         if (aggregationPositon + nalu_size > bufferData.length) {
             // Not a correct packet
             aggregationPositon = 1;
@@ -176,7 +175,7 @@ public class JavaDepacketizer extends VideoCodec {
             // Create output buffer
             byte[] data = new byte[nalu_size];
             System.arraycopy(bufferData, aggregationPositon, data, 0, nalu_size);
-            aggregationPositon+=nalu_size;
+            aggregationPositon += nalu_size;
 
             // Set buffer
             output.setData(data);
@@ -388,11 +387,9 @@ public class JavaDepacketizer extends VideoCodec {
         }
 
         /**
-         * Reset the FrameAssembler
-         *
-         * It as package access instead of private for improved performance.
-         * See: http://developer.android.com/guide/practices/performance.html 
-         *   Consider Package Instead of Private Access with Private Inner Classes
+         * Reset the FrameAssembler It as package access instead of private for improved
+         * performance. See: http://developer.android.com/guide/practices/performance.html Consider
+         * Package Instead of Private Access with Private Inner Classes
          */
         private void reset() {
             reassembledData = null;
@@ -418,9 +415,8 @@ public class JavaDepacketizer extends VideoCodec {
     }
 
     /**
-     * Used to manage different timestamps, as packets could be coming not in
-     * order. Data is an array of FrameAssemblers, sorted by timestamps (oldest
-     * is first, newest is last)
+     * Used to manage different timestamps, as packets could be coming not in order. Data is an
+     * array of FrameAssemblers, sorted by timestamps (oldest is first, newest is last)
      */
     public static class FrameAssemblerCollection {
         private final static int NUMBER_OF_ASSEMBLERS = 5;
@@ -524,9 +520,8 @@ public class JavaDepacketizer extends VideoCodec {
         }
 
         /**
-         * Remove oldest FrameAssembler than given timeStamp (if given timeStamp
-         * has been rendered, then oldest ones are no more of no use) This also
-         * removes given timeStamp
+         * Remove oldest FrameAssembler than given timeStamp (if given timeStamp has been rendered,
+         * then oldest ones are no more of no use) This also removes given timeStamp
          *
          * @param timeStamp
          */

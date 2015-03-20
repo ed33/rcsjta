@@ -33,20 +33,20 @@ import com.orangelabs.rcs.core.ims.service.im.chat.imdn.ImdnDocument;
  * @author Jean-Marc AUFFRET
  */
 public interface ChatSessionListener extends ImsSessionListener {
-	/**
-	 * New message received
-	 * 
-	 * @param message Message
-	 */
+    /**
+     * New message received
+     * 
+     * @param message Message
+     */
     public void handleReceiveMessage(InstantMessage message);
-    
+
     /**
      * IM error
      * 
      * @param error Error
      */
     public void handleImError(ChatError error);
-    
+
     /**
      * Is composing event
      * 
@@ -58,8 +58,8 @@ public interface ChatSessionListener extends ImsSessionListener {
     /**
      * New conference event
      * 
-	 * @param contact Contact identifier
-	 * @param contactDisplayname Contact display name
+     * @param contact Contact identifier
+     * @param contactDisplayname Contact display name
      * @param state State associated to the contact
      */
     public void handleConferenceEvent(ContactId contact, String contactDisplayname, String state);
@@ -70,12 +70,14 @@ public interface ChatSessionListener extends ImsSessionListener {
      * @param msg Instant message
      */
     public void handleMessageSending(InstantMessage msg);
+
     /**
      * Notifying that a message has been sent
      *
      * @param msgId Message ID
      */
     public void handleMessageSent(String msgId);
+
     /**
      * Notifying failure of sending message
      *
@@ -85,18 +87,19 @@ public interface ChatSessionListener extends ImsSessionListener {
 
     /**
      * New message delivery status that are received as part of imdn notification
+     * 
      * @param contact the remote contact identifier
      * @param ImdnDocument imdn Imdn document
      */
     public void handleMessageDeliveryStatus(ContactId contact, ImdnDocument imdn);
-    
+
     /**
      * Request to add participant is successful
      *
      * @param contact Contact ID
      */
     public void handleAddParticipantSuccessful(ContactId contact);
-    
+
     /**
      * Request to add participant has failed
      *
@@ -104,20 +107,19 @@ public interface ChatSessionListener extends ImsSessionListener {
      * @param reason Error reason
      */
     public void handleAddParticipantFailed(ContactId contact, String reason);
-    
+
     /**
      * New geoloc message received
      * 
      * @param geoloc Geoloc message
      */
     public void handleReceiveGeoloc(GeolocMessage geoloc);
-    
-	/**
-	 * Participant status changed
-	 * 
-	 * @param participantInfo
-	 *            the participant information
-	 */
+
+    /**
+     * Participant status changed
+     * 
+     * @param participantInfo the participant information
+     */
     public void handleParticipantStatusChanged(ParticipantInfo participantInfo);
 
     /**

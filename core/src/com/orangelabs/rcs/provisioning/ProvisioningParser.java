@@ -45,17 +45,17 @@ import com.orangelabs.rcs.utils.logger.Logger;
  * @author jexa7410
  */
 public class ProvisioningParser {
-	/**
-	 * Parameter type text
-	 */
-	private static final int TYPE_TXT = 0;
-	
-	/**
-	 * Parameter type integer
-	 */
-	private static final int TYPE_INT = 1;
-	
-	/**
+    /**
+     * Parameter type text
+     */
+    private static final int TYPE_TXT = 0;
+
+    /**
+     * Parameter type integer
+     */
+    private static final int TYPE_INT = 1;
+
+    /**
      * Provisioning info
      */
     private ProvisioningInfo provisioningInfo = new ProvisioningInfo();
@@ -64,39 +64,38 @@ public class ProvisioningParser {
      * Content
      */
     private String mContent;
-    
+
     private boolean first = false;
-    
+
     private ICertificateProvisioningListener mICertificateProvisioning;
 
     /**
      * The logger
      */
     private Logger logger = Logger.getLogger(this.getClass().getName());
-    
-	/**
-	 * Enumerated type for the root node
-	 *
-	 */
-	private enum RootNodeType {
-		VERS, TOKEN, MSG, APPLICATION, IMS, PRESENCE, XDMS, IM, CAPDISCOVERY, APN, OTHER, SERVICES, SUPL, SERVICEPROVIDEREXT, UX
-	};
 
-	/**
-	 * Enumerated type for the IMS server version
-	 *
-	 */
-	enum ImsServerVersion {
-		JOYN, NON_JOYN
-	};
-	
+    /**
+     * Enumerated type for the root node
+     */
+    private enum RootNodeType {
+        VERS, TOKEN, MSG, APPLICATION, IMS, PRESENCE, XDMS, IM, CAPDISCOVERY, APN, OTHER, SERVICES, SUPL, SERVICEPROVIDEREXT, UX
+    };
+
+    /**
+     * Enumerated type for the IMS server version
+     */
+    enum ImsServerVersion {
+        JOYN, NON_JOYN
+    };
+
     /**
      * Constructor
      *
      * @param content Content
      * @param certificateProvisioning the interface to handle certificate parsing events
      */
-    public ProvisioningParser(String content, ICertificateProvisioningListener certificateProvisioning) {
+    public ProvisioningParser(String content,
+            ICertificateProvisioningListener certificateProvisioning) {
         mContent = content;
         mICertificateProvisioning = certificateProvisioning;
     }
@@ -110,24 +109,22 @@ public class ProvisioningParser {
         return provisioningInfo;
     }
 
-	/**
-	 * Parse the provisioning document
-	 * 
-	 * @param release
-	 *            The GSMA release (Albatros, Blackbird, Crane...) before parsing
-	 * @param first
-	 *            True if it is a first provisioning
-	 * @return Boolean result
-	 * 
-	 *         <p>
-	 *         <b>Be Careful:</b><br />
-	 *         GSMA release is set to blackbird if SERVICES node is present, otherwise release is unchanged
-	 *         </p>
-	 */
-	public boolean parse(GsmaRelease release, boolean first) {
+    /**
+     * Parse the provisioning document
+     * 
+     * @param release The GSMA release (Albatros, Blackbird, Crane...) before parsing
+     * @param first True if it is a first provisioning
+     * @return Boolean result
+     *         <p>
+     *         <b>Be Careful:</b><br />
+     *         GSMA release is set to blackbird if SERVICES node is present, otherwise release is
+     *         unchanged
+     *         </p>
+     */
+    public boolean parse(GsmaRelease release, boolean first) {
         try {
             if (logger.isActivated()) {
-                logger.debug("Start the parsing of content first="+first);
+                logger.debug("Start the parsing of content first=" + first);
             }
             this.first = first;
             ByteArrayInputStream mInputStream = new ByteArrayInputStream(mContent.getBytes());
@@ -144,9 +141,9 @@ public class ProvisioningParser {
             }
 
             if (logger.isActivated()) {
-                logger.debug("Parsed Doc ="+doc);
+                logger.debug("Parsed Doc =" + doc);
             }
-            
+
             Node rootnode = doc.getDocumentElement();
             Node childnode = rootnode.getFirstChild();
             if (childnode == null) {
@@ -167,75 +164,76 @@ public class ProvisioningParser {
                                         + typenode.getNodeValue());
                             }
                             nodeNumber++;
-							String nodeType = typenode.getNodeValue().toUpperCase();
-							try {
-								RootNodeType rootNodeType = RootNodeType.valueOf(nodeType);
-								switch (rootNodeType) {
-								case VERS:
-									parseVersion(childnode);
-									break;
-								case TOKEN:
-									parseToken(childnode);
-									break;
-								case MSG:
-									parseTermsMessage(childnode);
-									break;
-								case APPLICATION:
-									parseApplication(childnode);
-									break;
-								case IMS:
-									parseIMS(childnode);
-									break;
-								case PRESENCE:
-									parsePresence(childnode);
-									break;
-								case XDMS:
-									parseXDMS(childnode);
-									break;
-								case IM:
-									parseIM(childnode);
-									break;
-								case APN:
-									parseAPN(childnode);
-									break;
-								case OTHER:
-									parseOther(childnode);
-									break;
-								case SERVICES:
-									parseServices(childnode);
-									break;
-								case SUPL:
-									parseSupl(childnode);
-									break;
-								case SERVICEPROVIDEREXT:
-									parseServiceProviderExt(childnode);
-									break;
-								case UX:
-									parseUx(childnode, ImsServerVersion.NON_JOYN);
-									break;
-								default:
-									if (logger.isActivated()) {
-										logger.warn("unhandled node type: " + nodeType);
-									}
-								}
-							} catch (IllegalArgumentException e) {
-								if (logger.isActivated()) {
-									logger.warn("invalid node type: " + nodeType);
-								}
-							}
+                            String nodeType = typenode.getNodeValue().toUpperCase();
+                            try {
+                                RootNodeType rootNodeType = RootNodeType.valueOf(nodeType);
+                                switch (rootNodeType) {
+                                    case VERS:
+                                        parseVersion(childnode);
+                                        break;
+                                    case TOKEN:
+                                        parseToken(childnode);
+                                        break;
+                                    case MSG:
+                                        parseTermsMessage(childnode);
+                                        break;
+                                    case APPLICATION:
+                                        parseApplication(childnode);
+                                        break;
+                                    case IMS:
+                                        parseIMS(childnode);
+                                        break;
+                                    case PRESENCE:
+                                        parsePresence(childnode);
+                                        break;
+                                    case XDMS:
+                                        parseXDMS(childnode);
+                                        break;
+                                    case IM:
+                                        parseIM(childnode);
+                                        break;
+                                    case APN:
+                                        parseAPN(childnode);
+                                        break;
+                                    case OTHER:
+                                        parseOther(childnode);
+                                        break;
+                                    case SERVICES:
+                                        parseServices(childnode);
+                                        break;
+                                    case SUPL:
+                                        parseSupl(childnode);
+                                        break;
+                                    case SERVICEPROVIDEREXT:
+                                        parseServiceProviderExt(childnode);
+                                        break;
+                                    case UX:
+                                        parseUx(childnode, ImsServerVersion.NON_JOYN);
+                                        break;
+                                    default:
+                                        if (logger.isActivated()) {
+                                            logger.warn("unhandled node type: " + nodeType);
+                                        }
+                                }
+                            } catch (IllegalArgumentException e) {
+                                if (logger.isActivated()) {
+                                    logger.warn("invalid node type: " + nodeType);
+                                }
+                            }
                         }
                     }
                 }
-            } while((childnode = childnode.getNextSibling()) != null);
-            if (nodeNumber ==1) {
-				// We received a single node (the version one) !
-				// This is the case if the version number is negative or in order to extend the validity of the provisioning.
-				// In that case we restore the relevant GSMA release saved before parsing.
-				RcsSettings.getInstance().setGsmaRelease(release);
+            } while ((childnode = childnode.getNextSibling()) != null);
+            if (nodeNumber == 1) {
+                // We received a single node (the version one) !
+                // This is the case if the version number is negative or in order to extend the
+                // validity of the provisioning.
+                // In that case we restore the relevant GSMA release saved before parsing.
+                RcsSettings.getInstance().setGsmaRelease(release);
             }
             if (mICertificateProvisioning != null) {
-        		mICertificateProvisioning.stop();
-        	}
+                mICertificateProvisioning.stop();
+            }
             return true;
         } catch (Exception e) {
             if (logger.isActivated()) {
@@ -245,7 +243,7 @@ public class ProvisioningParser {
         }
     }
 
-	/**
+    /**
      * Parse the provisioning version
      *
      * @param node Node
@@ -269,10 +267,10 @@ public class ProvisioningParser {
                         continue;
                     }
                 }
-            } while((versionchild = versionchild.getNextSibling()) != null);
+            } while ((versionchild = versionchild.getNextSibling()) != null);
         }
     }
-    
+
     /**
      * Parse the provisioning Token
      *
@@ -297,7 +295,7 @@ public class ProvisioningParser {
                         continue;
                     }
                 }
-            } while((tokenChild = tokenChild.getNextSibling()) != null);
+            } while ((tokenChild = tokenChild.getNextSibling()) != null);
         }
     }
 
@@ -347,7 +345,7 @@ public class ProvisioningParser {
                         continue;
                     }
                 }
-            } while((childnode = childnode.getNextSibling()) != null);
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
 
@@ -379,10 +377,11 @@ public class ProvisioningParser {
                         continue;
                     }
                 }
-            } while((childnode = childnode.getNextSibling()) != null);
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
 
-        if (appRef != null && (appRef.equalsIgnoreCase("IMS-Settings") || appRef.equalsIgnoreCase("ims-rcse"))) {
+        if (appRef != null
+                && (appRef.equalsIgnoreCase("IMS-Settings") || appRef.equalsIgnoreCase("ims-rcse"))) {
             parseIMS(node);
         }
 
@@ -406,8 +405,8 @@ public class ProvisioningParser {
      * @param node Node
      */
     private void parsePresenceWatcher(Node node) {
-    	// TODO: "FetchAuth"
-    	// TODO: "ContactCapPresAut"
+        // TODO: "FetchAuth"
+        // TODO: "ContactCapPresAut"
     }
 
     /**
@@ -416,7 +415,7 @@ public class ProvisioningParser {
      * @param node Node
      */
     private void parsePresentityWatcher(Node node) {
-    	// TODO: "WATCHERFETCHAUTH"
+        // TODO: "WATCHERFETCHAUTH"
     }
 
     /**
@@ -441,11 +440,10 @@ public class ProvisioningParser {
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("FAVLINK")) {
                                 parseFavoriteLink(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("SERVCAPWATCH")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("SERVCAPWATCH")) {
                                 parsePresenceWatcher(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("ServCapPresentity")) {
+                            } else if (typenode.getNodeValue()
+                                    .equalsIgnoreCase("ServCapPresentity")) {
                                 parsePresentityWatcher(childnode);
                             }
                         }
@@ -454,24 +452,27 @@ public class ProvisioningParser {
 
                 if (usePresence == null) {
                     if ((usePresence = getValueByParamName("usePresence", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_SOCIAL_PRESENCE, !usePresence.equals("0"));
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_SOCIAL_PRESENCE,
+                                !usePresence.equals("0"));
                         continue;
                     }
                 }
 
                 if (presencePrfl == null) {
-					if ((presencePrfl = getValueByParamName("presencePrfl", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_PRESENCE_DISCOVERY,
-								!presencePrfl.equals("0"));
-						continue;
-					}
+                    if ((presencePrfl = getValueByParamName("presencePrfl", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_PRESENCE_DISCOVERY,
+                                !presencePrfl.equals("0"));
+                        continue;
+                    }
                 }
 
                 if (iconMaxSize == null) {
                     if ((iconMaxSize = getValueByParamName("IconMaxSize", childnode, TYPE_INT)) != null) {
-        				int kb = Integer.parseInt(iconMaxSize) / 1024;
+                        int kb = Integer.parseInt(iconMaxSize) / 1024;
                         RcsSettings.getInstance().writeParameter(
-                                RcsSettingsData.MAX_PHOTO_ICON_SIZE, ""+kb);
+                                RcsSettingsData.MAX_PHOTO_ICON_SIZE, "" + kb);
                         continue;
                     }
                 }
@@ -498,8 +499,8 @@ public class ProvisioningParser {
                 // Not supported: "source-throttlepublish"
                 // Not supported: "max-number-ofsubscriptions-inpresence-list"
                 // TODO: "service-uritemplate"
-                
-            } while((childnode = childnode.getNextSibling()) != null);
+
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
 
@@ -510,8 +511,8 @@ public class ProvisioningParser {
      */
     private void parseServices(Node node) {
         String presencePrfl = null;
-        String chatAuth = null;        
-        String groupChatAuth = null;        
+        String chatAuth = null;
+        String groupChatAuth = null;
         String ftAuth = null;
         String geolocPushAuth = null;
         String vsAuth = null;
@@ -522,95 +523,109 @@ public class ProvisioningParser {
         Node childnode = node.getFirstChild();
 
         if (childnode != null) {
-			// Node "SERVICES" is mandatory in GSMA release Blackbird and not present in previous one Albatros.
-			// Only if the parsing result contains a SERVICE tree, Blackbird is assumed as release.
-			// This trick is used to detect the GSMA release as provisioned by the network.
-			RcsSettings.getInstance().setGsmaRelease(GsmaRelease.BLACKBIRD);
+            // Node "SERVICES" is mandatory in GSMA release Blackbird and not present in previous
+            // one Albatros.
+            // Only if the parsing result contains a SERVICE tree, Blackbird is assumed as release.
+            // This trick is used to detect the GSMA release as provisioned by the network.
+            RcsSettings.getInstance().setGsmaRelease(GsmaRelease.BLACKBIRD);
             do {
 
                 if (chatAuth == null) {
-					if ((chatAuth = getValueByParamName("ChatAuth", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_IM_SESSION, chatAuth.equals("1"));
-						continue;
-					}
+                    if ((chatAuth = getValueByParamName("ChatAuth", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_IM_SESSION, chatAuth.equals("1"));
+                        continue;
+                    }
                 }
 
-            	 if (groupChatAuth == null) {
-					if ((groupChatAuth = getValueByParamName("groupChatAuth", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_IM_GROUP_SESSION,
-								groupChatAuth.equals("1"));
-						continue;
-					}
-                 }
+                if (groupChatAuth == null) {
+                    if ((groupChatAuth = getValueByParamName("groupChatAuth", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_IM_GROUP_SESSION,
+                                groupChatAuth.equals("1"));
+                        continue;
+                    }
+                }
 
                 if (ftAuth == null) {
-					if ((ftAuth = getValueByParamName("ftAuth", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_FILE_TRANSFER, ftAuth.equals("1"));
-						continue;
-					}
+                    if ((ftAuth = getValueByParamName("ftAuth", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_FILE_TRANSFER, ftAuth.equals("1"));
+                        continue;
+                    }
                 }
 
                 if (vsAuth == null) {
-					if ((vsAuth = getValueByParamName("vsAuth", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_VIDEO_SHARING, vsAuth.equals("1"));
-						continue;
-					}
+                    if ((vsAuth = getValueByParamName("vsAuth", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_VIDEO_SHARING, vsAuth.equals("1"));
+                        continue;
+                    }
                 }
 
                 if (isAuth == null) {
-					if ((isAuth = getValueByParamName("isAuth", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_IMAGE_SHARING, isAuth.equals("1"));
-						continue;
-					}
+                    if ((isAuth = getValueByParamName("isAuth", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_IMAGE_SHARING, isAuth.equals("1"));
+                        continue;
+                    }
                 }
-                
-				if (geolocPushAuth == null) {
-					if ((geolocPushAuth = getValueByParamName("geolocPushAuth", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_GEOLOCATION_PUSH,
-								geolocPushAuth.equals("1"));
-						continue;
-					}
-				}
+
+                if (geolocPushAuth == null) {
+                    if ((geolocPushAuth = getValueByParamName("geolocPushAuth", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_GEOLOCATION_PUSH,
+                                geolocPushAuth.equals("1"));
+                        continue;
+                    }
+                }
 
                 if (presencePrfl == null) {
-					if ((presencePrfl = getValueByParamName("presencePrfl", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance()
-								.writeBoolean(RcsSettingsData.CAPABILITY_SOCIAL_PRESENCE, presencePrfl.equals("1"));
-						continue;
-					}
+                    if ((presencePrfl = getValueByParamName("presencePrfl", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_SOCIAL_PRESENCE,
+                                presencePrfl.equals("1"));
+                        continue;
+                    }
                 }
-                
+
                 if (rcsIPVoiceCallAuth == null) {
-					if ((rcsIPVoiceCallAuth = getValueByParamName("rcsIPVoiceCallAuth", childnode, TYPE_INT)) != null) {
-						int value = Integer.decode(rcsIPVoiceCallAuth);
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_IP_VOICE_CALL, (value % 16) != 0);
-						continue;
-					}
+                    if ((rcsIPVoiceCallAuth = getValueByParamName("rcsIPVoiceCallAuth", childnode,
+                            TYPE_INT)) != null) {
+                        int value = Integer.decode(rcsIPVoiceCallAuth);
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_IP_VOICE_CALL, (value % 16) != 0);
+                        continue;
+                    }
                 }
-                
+
                 if (rcsIPVideoCallAuth == null) {
-					if ((rcsIPVideoCallAuth = getValueByParamName("rcsIPVideoCallAuth", childnode, TYPE_INT)) != null) {
-						int value = Integer.decode(rcsIPVoiceCallAuth);
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_IP_VIDEO_CALL, (value % 16) != 0);
-						continue;
-					}
+                    if ((rcsIPVideoCallAuth = getValueByParamName("rcsIPVideoCallAuth", childnode,
+                            TYPE_INT)) != null) {
+                        int value = Integer.decode(rcsIPVoiceCallAuth);
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_IP_VIDEO_CALL, (value % 16) != 0);
+                        continue;
+                    }
                 }
-                
+
                 if (allowExtensions == null) {
-					if ((allowExtensions = getValueByParamName("allowRCSExtensions", childnode, TYPE_INT)) != null) {
-						int value = Integer.decode(allowExtensions);
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.ALLOW_EXTENSIONS, (value % 16) != 0);
-						continue;
-					}
+                    if ((allowExtensions = getValueByParamName("allowRCSExtensions", childnode,
+                            TYPE_INT)) != null) {
+                        int value = Integer.decode(allowExtensions);
+                        RcsSettings.getInstance().writeBoolean(RcsSettingsData.ALLOW_EXTENSIONS,
+                                (value % 16) != 0);
+                        continue;
+                    }
                 }
 
                 // Not used: "standaloneMsgAuth"
                 // Not used: "geolocPullAuth"
-                
-            } while((childnode = childnode.getNextSibling()) != null);
+
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
-    
+
     /**
      * Parse XDMS
      *
@@ -635,7 +650,8 @@ public class ProvisioningParser {
 
                 if (xcapRootURI == null) {
                     if ((xcapRootURI = getValueByParamName("XCAPRootURI", childnode, TYPE_TXT)) != null) {
-                        RcsSettings.getInstance().writeParameter(RcsSettingsData.XDM_SERVER, xcapRootURI);
+                        RcsSettings.getInstance().writeParameter(RcsSettingsData.XDM_SERVER,
+                                xcapRootURI);
                         continue;
                     }
                 }
@@ -643,26 +659,24 @@ public class ProvisioningParser {
                 if (xcapAuthenticationUsername == null) {
                     if ((xcapAuthenticationUsername = getValueByParamName(
                             "XCAPAuthenticationUserName", childnode, TYPE_TXT)) != null) {
-                        RcsSettings.getInstance().writeParameter(
-                                RcsSettingsData.XDM_LOGIN,
+                        RcsSettings.getInstance().writeParameter(RcsSettingsData.XDM_LOGIN,
                                 xcapAuthenticationUsername);
                         continue;
                     }
                 }
 
                 if (xcapAuthenticationSecret == null) {
-                    if ((xcapAuthenticationSecret = getValueByParamName(
-                            "XCAPAuthenticationSecret", childnode, TYPE_TXT)) != null) {
-                        RcsSettings.getInstance().writeParameter(
-                                RcsSettingsData.XDM_PASSWORD,
+                    if ((xcapAuthenticationSecret = getValueByParamName("XCAPAuthenticationSecret",
+                            childnode, TYPE_TXT)) != null) {
+                        RcsSettings.getInstance().writeParameter(RcsSettingsData.XDM_PASSWORD,
                                 xcapAuthenticationSecret);
                         continue;
                     }
                 }
 
                 // Not used (only Digest is used): "XCAPAuthenticationType"
-                
-            } while((childnode = childnode.getNextSibling()) != null);
+
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
 
@@ -680,15 +694,17 @@ public class ProvisioningParser {
             do {
                 if (textMaxLength == null) {
                     if ((textMaxLength = getValueByParamName("TextMaxLength", childnode, TYPE_INT)) != null) {
-                        RcsSettings.getInstance().writeParameter(RcsSettingsData.MAX_GEOLOC_LABEL_LENGTH,
-                        		textMaxLength);
+                        RcsSettings.getInstance().writeParameter(
+                                RcsSettingsData.MAX_GEOLOC_LABEL_LENGTH, textMaxLength);
                         continue;
                     }
                 }
 
                 if (locInfoMaxValidTime == null) {
-                    if ((locInfoMaxValidTime = getValueByParamName("LocInfoMaxValidTime", childnode, TYPE_INT)) != null) {
-                        RcsSettings.getInstance().writeParameter(RcsSettingsData.GEOLOC_EXPIRATION_TIME, locInfoMaxValidTime);
+                    if ((locInfoMaxValidTime = getValueByParamName("LocInfoMaxValidTime",
+                            childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeParameter(
+                                RcsSettingsData.GEOLOC_EXPIRATION_TIME, locInfoMaxValidTime);
                         continue;
                     }
                 }
@@ -696,11 +712,11 @@ public class ProvisioningParser {
                 // Not used: "geolocPullOpenValue"
                 // Not used: "geolocPullApiGwAddress"
                 // Not used: "geolocPullBlockTimer"
-                
-            } while((childnode = childnode.getNextSibling()) != null);
+
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
-    
+
     /**
      * Parse service provider ext
      * 
@@ -724,7 +740,7 @@ public class ProvisioningParser {
             } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
-    
+
     /**
      * Parse rcs
      * 
@@ -751,43 +767,43 @@ public class ProvisioningParser {
             } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
-    
+
     /**
      * Parse Ux
      * 
      * @param node Node
-     * @param isJoyn 
+     * @param isJoyn
      */
-	private void parseUx(Node node, ImsServerVersion isJoyn) {
-		String messagingUX = null;
+    private void parseUx(Node node, ImsServerVersion isJoyn) {
+        String messagingUX = null;
 
-		Node childnode = node.getFirstChild();
+        Node childnode = node.getFirstChild();
 
-		if (childnode != null) {
-			do {
+        if (childnode != null) {
+            do {
 
-				if (messagingUX == null) {
-					if ((messagingUX = getValueByParamName("messagingUX", childnode, TYPE_INT)) != null) {
-						if (messagingUX.equals("1")) {
-							RcsSettings.getInstance().setMessagingMode(MessagingMode.INTEGRATED);
-						} else {
-							if (ImsServerVersion.JOYN.equals(isJoyn)) {
-								RcsSettings.getInstance().setMessagingMode(MessagingMode.CONVERGED);
-							} else {
-								RcsSettings.getInstance().setMessagingMode(MessagingMode.SEAMLESS);
-							}
-						}
-						continue;
-					}
-				}
+                if (messagingUX == null) {
+                    if ((messagingUX = getValueByParamName("messagingUX", childnode, TYPE_INT)) != null) {
+                        if (messagingUX.equals("1")) {
+                            RcsSettings.getInstance().setMessagingMode(MessagingMode.INTEGRATED);
+                        } else {
+                            if (ImsServerVersion.JOYN.equals(isJoyn)) {
+                                RcsSettings.getInstance().setMessagingMode(MessagingMode.CONVERGED);
+                            } else {
+                                RcsSettings.getInstance().setMessagingMode(MessagingMode.SEAMLESS);
+                            }
+                        }
+                        continue;
+                    }
+                }
 
-			} while ((childnode = childnode.getNextSibling()) != null);
-		}
+            } while ((childnode = childnode.getNextSibling()) != null);
+        }
 
-		// Not used: oneButtonVoiceCall
-		// Not used: oneButtonVideoCall
-	}
-    
+        // Not used: oneButtonVoiceCall
+        // Not used: oneButtonVideoCall
+    }
+
     /**
      * Parse IM
      *
@@ -820,109 +836,122 @@ public class ProvisioningParser {
         String maxConcurrentSession = null;
         RcsSettings rcsSettings = RcsSettings.getInstance();
         Node childnode = node.getFirstChild();
-        
+
         if (childnode != null) {
             do {
-            	if (imCapAlwaysOn == null) {
-					if ((imCapAlwaysOn = getValueByParamName("imCapAlwaysON", childnode, TYPE_INT)) != null) {
-						boolean _imCapAlwaysOn = !imCapAlwaysOn.equals("0");
-						rcsSettings.writeBoolean(RcsSettingsData.IM_CAPABILITY_ALWAYS_ON, _imCapAlwaysOn);
-						// set default IM messaging method if first provisioning
-						if (first) {
-							if (_imCapAlwaysOn) {
-								rcsSettings.setDefaultMessagingMethod(DefaultMessagingMethod.RCS);
-							} else {
-								rcsSettings.setDefaultMessagingMethod(DefaultMessagingMethod.AUTOMATIC);
-							}
-						}
-						continue;
-					}
+                if (imCapAlwaysOn == null) {
+                    if ((imCapAlwaysOn = getValueByParamName("imCapAlwaysON", childnode, TYPE_INT)) != null) {
+                        boolean _imCapAlwaysOn = !imCapAlwaysOn.equals("0");
+                        rcsSettings.writeBoolean(RcsSettingsData.IM_CAPABILITY_ALWAYS_ON,
+                                _imCapAlwaysOn);
+                        // set default IM messaging method if first provisioning
+                        if (first) {
+                            if (_imCapAlwaysOn) {
+                                rcsSettings.setDefaultMessagingMethod(DefaultMessagingMethod.RCS);
+                            } else {
+                                rcsSettings
+                                        .setDefaultMessagingMethod(DefaultMessagingMethod.AUTOMATIC);
+                            }
+                        }
+                        continue;
+                    }
                 }
-            	
-            	if (ftCapAlwaysOn == null) {
-					if ((ftCapAlwaysOn = getValueByParamName("ftCapAlwaysON", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.FT_CAPABILITY_ALWAYS_ON, !ftCapAlwaysOn.equals("0"));
-						continue;
-					}
+
+                if (ftCapAlwaysOn == null) {
+                    if ((ftCapAlwaysOn = getValueByParamName("ftCapAlwaysON", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance()
+                                .writeBoolean(RcsSettingsData.FT_CAPABILITY_ALWAYS_ON,
+                                        !ftCapAlwaysOn.equals("0"));
+                        continue;
+                    }
                 }
 
                 if (maxConcurrentSession == null) {
-                    if ((maxConcurrentSession = getValueByParamName("MaxConcurrentSession", childnode, TYPE_INT)) != null) {
-                        RcsSettings.getInstance().writeParameter(
-                                RcsSettingsData.MAX_CHAT_SESSIONS,
+                    if ((maxConcurrentSession = getValueByParamName("MaxConcurrentSession",
+                            childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeParameter(RcsSettingsData.MAX_CHAT_SESSIONS,
                                 maxConcurrentSession);
                         continue;
                     }
                 }
 
                 if (groupChatSF == null) {
-					if ((groupChatSF = getValueByParamName("GroupChatFullStandFwd", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_GROUP_CHAT_SF, !groupChatSF.equals("0"));
-						continue;
-					}
+                    if ((groupChatSF = getValueByParamName("GroupChatFullStandFwd", childnode,
+                            TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_GROUP_CHAT_SF, !groupChatSF.equals("0"));
+                        continue;
+                    }
                 }
-                
+
                 if (imWarnSF == null) {
-					if ((imWarnSF = getValueByParamName("imWarnSF", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.WARN_SF_SERVICE, !imWarnSF.equals("0"));
-						continue;
-					}
+                    if ((imWarnSF = getValueByParamName("imWarnSF", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(RcsSettingsData.WARN_SF_SERVICE,
+                                !imWarnSF.equals("0"));
+                        continue;
+                    }
                 }
 
                 if (autoAcceptFt == null) {
                     if ((autoAcceptFt = getValueByParamName("ftAutAccept", childnode, TYPE_INT)) != null) {
                         boolean aaModeChangeable = !autoAcceptFt.equals("0");
                         // Check if first provisioning or transition of MNO setting
-                        if (first || (aaModeChangeable != rcsSettings.isFtAutoAcceptedModeChangeable())) {
-                        	// Save first or new setting value
-                        	rcsSettings.setFtAutoAcceptedModeChangeable(aaModeChangeable);
-                        	if (aaModeChangeable) {
-                        		// Enforce user settings for AA to default value
-            					// By default, AA is enabled in normal conditions
-            					rcsSettings.setFileTransferAutoAccepted(true);
-            					// By default, AA is disabled in roaming
-            					rcsSettings.setFileTransferAutoAcceptedInRoaming(false);
-                        	} else {
-                        		// Enforce user settings for AA for normal conditions and roaming
-                				rcsSettings.setFileTransferAutoAccepted(false);
-                				rcsSettings.setFileTransferAutoAcceptedInRoaming(false);
-                        	}
+                        if (first
+                                || (aaModeChangeable != rcsSettings
+                                        .isFtAutoAcceptedModeChangeable())) {
+                            // Save first or new setting value
+                            rcsSettings.setFtAutoAcceptedModeChangeable(aaModeChangeable);
+                            if (aaModeChangeable) {
+                                // Enforce user settings for AA to default value
+                                // By default, AA is enabled in normal conditions
+                                rcsSettings.setFileTransferAutoAccepted(true);
+                                // By default, AA is disabled in roaming
+                                rcsSettings.setFileTransferAutoAcceptedInRoaming(false);
+                            } else {
+                                // Enforce user settings for AA for normal conditions and roaming
+                                rcsSettings.setFileTransferAutoAccepted(false);
+                                rcsSettings.setFileTransferAutoAcceptedInRoaming(false);
+                            }
                         }
                         continue;
                     }
                 }
 
                 if (ftSF == null) {
-					if ((ftSF = getValueByParamName("ftStAndFwEnabled", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_FILE_TRANSFER_SF, !ftSF.equals("0"));
-						continue;
-					}
+                    if ((ftSF = getValueByParamName("ftStAndFwEnabled", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_FILE_TRANSFER_SF, !ftSF.equals("0"));
+                        continue;
+                    }
                 }
 
                 if (ftHttpCsUri == null) {
                     if ((ftHttpCsUri = getValueByParamName("ftHTTPCSURI", childnode, TYPE_TXT)) != null) {
-                        RcsSettings.getInstance().writeParameter(RcsSettingsData.FT_HTTP_SERVER, ftHttpCsUri);
+                        RcsSettings.getInstance().writeParameter(RcsSettingsData.FT_HTTP_SERVER,
+                                ftHttpCsUri);
                         continue;
                     }
                 }
 
                 if (ftHttpCsUser == null) {
                     if ((ftHttpCsUser = getValueByParamName("ftHTTPCSUser", childnode, TYPE_TXT)) != null) {
-                        RcsSettings.getInstance().writeParameter(RcsSettingsData.FT_HTTP_LOGIN, ftHttpCsUser);
+                        RcsSettings.getInstance().writeParameter(RcsSettingsData.FT_HTTP_LOGIN,
+                                ftHttpCsUser);
                         continue;
                     }
                 }
 
                 if (ftHttpCsPwd == null) {
                     if ((ftHttpCsPwd = getValueByParamName("ftHTTPCSPwd", childnode, TYPE_TXT)) != null) {
-                        RcsSettings.getInstance().writeParameter(RcsSettingsData.FT_HTTP_PASSWORD, ftHttpCsPwd);
+                        RcsSettings.getInstance().writeParameter(RcsSettingsData.FT_HTTP_PASSWORD,
+                                ftHttpCsPwd);
                         continue;
                     }
                 }
 
                 if (ftDefaultMech == null) {
                     if ((ftDefaultMech = getValueByParamName("ftDefaultMech", childnode, TYPE_TXT)) != null) {
-                    	FileTransferProtocol protocol = FileTransferProtocol.valueOf(ftDefaultMech);
+                        FileTransferProtocol protocol = FileTransferProtocol.valueOf(ftDefaultMech);
                         RcsSettings.getInstance().setFtProtocol(protocol);
                         continue;
                     }
@@ -945,35 +974,41 @@ public class ProvisioningParser {
                 }
 
                 if (chatAuth == null) {
-					if ((chatAuth = getValueByParamName("ChatAuth", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_IM_SESSION, !chatAuth.equals("0"));
-						continue;
-					}
+                    if ((chatAuth = getValueByParamName("ChatAuth", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_IM_SESSION, !chatAuth.equals("0"));
+                        continue;
+                    }
                 }
 
                 if (smsFallBackAuth == null) {
-					if ((smsFallBackAuth = getValueByParamName("SmsFallBackAuth", childnode, TYPE_INT)) != null) {
-						// Careful:
-						// 0- Indicates authorization is ok
-						// 1- Indicates authorization is non ok
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.SMS_FALLBACK_SERVICE, smsFallBackAuth.equals("0"));
-						continue;
-					}
+                    if ((smsFallBackAuth = getValueByParamName("SmsFallBackAuth", childnode,
+                            TYPE_INT)) != null) {
+                        // Careful:
+                        // 0- Indicates authorization is ok
+                        // 1- Indicates authorization is non ok
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.SMS_FALLBACK_SERVICE, smsFallBackAuth.equals("0"));
+                        continue;
+                    }
                 }
 
                 if (autoAcceptChat == null) {
-					if ((autoAcceptChat = getValueByParamName("AutAccept", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.AUTO_ACCEPT_CHAT, !autoAcceptChat.equals("0"));
-						continue;
-					}
+                    if ((autoAcceptChat = getValueByParamName("AutAccept", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(RcsSettingsData.AUTO_ACCEPT_CHAT,
+                                !autoAcceptChat.equals("0"));
+                        continue;
+                    }
                 }
 
                 if (autoAcceptGroupChat == null) {
-					if ((autoAcceptGroupChat = getValueByParamName("AutAcceptGroupChat", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.AUTO_ACCEPT_GROUP_CHAT,
-								!autoAcceptGroupChat.equals("0"));
-						continue;
-					}
+                    if ((autoAcceptGroupChat = getValueByParamName("AutAcceptGroupChat", childnode,
+                            TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.AUTO_ACCEPT_GROUP_CHAT,
+                                !autoAcceptGroupChat.equals("0"));
+                        continue;
+                    }
                 }
 
                 if (maxSize1to1 == null) {
@@ -1001,7 +1036,8 @@ public class ProvisioningParser {
                 }
 
                 if (maxSizeFileTransfer == null) {
-                    if ((maxSizeFileTransfer = getValueByParamName("MaxSizeFileTr", childnode, TYPE_INT)) != null) {
+                    if ((maxSizeFileTransfer = getValueByParamName("MaxSizeFileTr", childnode,
+                            TYPE_INT)) != null) {
                         RcsSettings.getInstance().writeParameter(
                                 RcsSettingsData.MAX_FILE_TRANSFER_SIZE, maxSizeFileTransfer);
                         continue;
@@ -1009,15 +1045,17 @@ public class ProvisioningParser {
                 }
 
                 if (ftThumb == null) {
-					if ((ftThumb = getValueByParamName("ftThumb", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_FILE_TRANSFER_THUMBNAIL,
-								!ftThumb.equals("0"));
-						continue;
-					}
+                    if ((ftThumb = getValueByParamName("ftThumb", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_FILE_TRANSFER_THUMBNAIL,
+                                !ftThumb.equals("0"));
+                        continue;
+                    }
                 }
-                
+
                 if (maxAdhocGroupSize == null) {
-                    if ((maxAdhocGroupSize = getValueByParamName("max_adhoc_group_size", childnode, TYPE_INT)) != null) {
+                    if ((maxAdhocGroupSize = getValueByParamName("max_adhoc_group_size", childnode,
+                            TYPE_INT)) != null) {
                         RcsSettings.getInstance().writeParameter(
                                 RcsSettingsData.MAX_CHAT_PARTICIPANTS, maxAdhocGroupSize);
                         continue;
@@ -1026,8 +1064,8 @@ public class ProvisioningParser {
 
                 if (confFctyUri == null) {
                     if ((confFctyUri = getValueByParamName("conf-fcty-uri", childnode, TYPE_TXT)) != null) {
-                        RcsSettings.getInstance().writeParameter(
-                                RcsSettingsData.IM_CONF_URI, formatSipUri(confFctyUri));
+                        RcsSettings.getInstance().writeParameter(RcsSettingsData.IM_CONF_URI,
+                                formatSipUri(confFctyUri));
                         continue;
                     }
                 }
@@ -1035,8 +1073,8 @@ public class ProvisioningParser {
                 // Not used for RCS: "pres-srv-cap"
                 // Not used for RCS: "deferred-msg-func-uri"
                 // Not used for RCS: "exploder-uri"
-                
-            } while((childnode = childnode.getNextSibling()) != null);
+
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
 
@@ -1073,13 +1111,15 @@ public class ProvisioningParser {
                 }
 
                 if (presenceDiscovery == null) {
-					if ((presenceDiscovery = getValueByParamName("presenceDisc", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.CAPABILITY_PRESENCE_DISCOVERY,
-								!presenceDiscovery.equals("0"));
-						continue;
-					}
+                    if ((presenceDiscovery = getValueByParamName("presenceDisc", childnode,
+                            TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.CAPABILITY_PRESENCE_DISCOVERY,
+                                !presenceDiscovery.equals("0"));
+                        continue;
+                    }
                 }
-            } while((childnode = childnode.getNextSibling()) != null);
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
 
@@ -1101,32 +1141,32 @@ public class ProvisioningParser {
      * @param index Index
      */
     private boolean parseIariX509Certificates(String iari, Node node, int index) {
-    	boolean found = false;
-        String cert = null;        
+        boolean found = false;
+        String cert = null;
         if (node == null) {
             return false;
         }
         if (logger.isActivated()) {
-			logger.debug("Parse X509 Certificates");
-		}
+            logger.debug("Parse X509 Certificates");
+        }
         Node childnode = node.getFirstChild();
         if (childnode != null) {
             do {
                 if (cert == null) {
-                    if ((cert = getValueByParamName("X509Certificate"+index, childnode, TYPE_TXT)) != null) {
-                    	found = true;
-                		if (mICertificateProvisioning != null) {
-                    		mICertificateProvisioning.addNewCertificate(iari, cert);
-                    	}
+                    if ((cert = getValueByParamName("X509Certificate" + index, childnode, TYPE_TXT)) != null) {
+                        found = true;
+                        if (mICertificateProvisioning != null) {
+                            mICertificateProvisioning.addNewCertificate(iari, cert);
+                        }
                         continue;
                     }
-                }                
+                }
             } while ((childnode = childnode.getNextSibling()) != null);
         }
         return found;
-    }    
-    
-	/**
+    }
+
+    /**
      * Parse IARI authorization
      *
      * @param node Node
@@ -1135,37 +1175,37 @@ public class ProvisioningParser {
         if (node == null) {
             return;
         }
-        
-        String iariRange = null;        
+
+        String iariRange = null;
         Node childnode = node.getFirstChild();
         if (childnode != null) {
             do {
                 if (childnode.getNodeName().equals("characteristic")) {
                     if (childnode.getAttributes().getLength() > 0) {
-                    	Node typenode = childnode.getAttributes().getNamedItem("type");
+                        Node typenode = childnode.getAttributes().getNamedItem("type");
                         if (typenode != null) {
                             if (typenode.getNodeValue().startsWith("X509Certificates")) {
-                            	int i = 1;
-                            	boolean found = true;
-                            	while(found) {
-                            		found = parseIariX509Certificates(iariRange, childnode, i);
-                            		i++;
-                            	}
+                                int i = 1;
+                                boolean found = true;
+                                while (found) {
+                                    found = parseIariX509Certificates(iariRange, childnode, i);
+                                    i++;
+                                }
                             }
                         }
                     }
                 }
-                
+
                 if (iariRange == null) {
                     if ((iariRange = getValueByParamName("iariRange", childnode, TYPE_TXT)) != null) {
                         continue;
                     }
-                }                
-                
+                }
+
             } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
-    
+
     /**
      * Parse IARI authorizations
      *
@@ -1175,7 +1215,7 @@ public class ProvisioningParser {
         if (node == null) {
             return;
         }
-        
+
         Node childnode = node.getFirstChild();
         if (childnode != null) {
             do {
@@ -1184,7 +1224,7 @@ public class ProvisioningParser {
                         Node typenode = childnode.getAttributes().getNamedItem("type");
                         if (typenode != null) {
                             if (typenode.getNodeValue().startsWith("iariRangeAuthorization")) {
-                            	parseIariAuthorization(childnode);
+                                parseIariAuthorization(childnode);
                             }
                         }
                     }
@@ -1202,7 +1242,7 @@ public class ProvisioningParser {
         if (node == null) {
             return;
         }
-        
+
         Node childnode = node.getFirstChild();
         if (childnode != null) {
             do {
@@ -1211,24 +1251,24 @@ public class ProvisioningParser {
                         Node typenode = childnode.getAttributes().getNamedItem("type");
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("iariRangeAuthorizations")) {
-                            	if (mICertificateProvisioning != null) {
-                            		mICertificateProvisioning.start();
-                            	} else {
-                            		if (logger.isActivated()) {
-                            			logger.warn("Cannot parse X509 certificate: no provisiong listener");
-                            		}
-                            	}
-                            	
-                            	// Parse new IARI authorizations
-                            	parseIariRangeAuthorizations(childnode);
+                                if (mICertificateProvisioning != null) {
+                                    mICertificateProvisioning.start();
+                                } else {
+                                    if (logger.isActivated()) {
+                                        logger.warn("Cannot parse X509 certificate: no provisiong listener");
+                                    }
+                                }
+
+                                // Parse new IARI authorizations
+                                parseIariRangeAuthorizations(childnode);
                             }
                         }
                     }
                 }
             } while ((childnode = childnode.getNextSibling()) != null);
         }
-    }    
-    
+    }
+
     /**
      * Parse API ext
      *
@@ -1238,7 +1278,7 @@ public class ProvisioningParser {
         if (node == null) {
             return;
         }
-        
+
         String extensionsPolicy = null;
         Node childnode = node.getFirstChild();
         if (childnode != null) {
@@ -1248,29 +1288,31 @@ public class ProvisioningParser {
                         Node typenode = childnode.getAttributes().getNamedItem("type");
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("iariAuthorizationInfo")) {
-                            	parseIariRangeAuthorizationInfo(childnode);
+                                parseIariRangeAuthorizationInfo(childnode);
                             }
                         }
                     }
                 }
-                
+
                 if (extensionsPolicy == null) {
-                    if ((extensionsPolicy = getValueByParamName("extensionsPolicy", childnode, TYPE_TXT)) != null) {
-						try {
-							ExtensionPolicy extensionPolicy = ExtensionPolicy.valueOf(Integer.parseInt(extensionsPolicy));
-							RcsSettings.getInstance().setExtensionspolicy(extensionPolicy);
-						} catch (IllegalArgumentException e) {
-							if (logger.isActivated()) {
-                    			logger.warn("Cannot parse extension policy ".concat(e.getMessage()));
-                    		}
-						}
+                    if ((extensionsPolicy = getValueByParamName("extensionsPolicy", childnode,
+                            TYPE_TXT)) != null) {
+                        try {
+                            ExtensionPolicy extensionPolicy = ExtensionPolicy.valueOf(Integer
+                                    .parseInt(extensionsPolicy));
+                            RcsSettings.getInstance().setExtensionspolicy(extensionPolicy);
+                        } catch (IllegalArgumentException e) {
+                            if (logger.isActivated()) {
+                                logger.warn("Cannot parse extension policy ".concat(e.getMessage()));
+                            }
+                        }
                         continue;
                     }
-                }                
+                }
             } while ((childnode = childnode.getNextSibling()) != null);
         }
-    }    
-    
+    }
+
     /**
      * Parse other ext
      *
@@ -1296,7 +1338,7 @@ public class ProvisioningParser {
             } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
-    
+
     /**
      * Parse transport protocol
      *
@@ -1317,19 +1359,17 @@ public class ProvisioningParser {
                 if (psSignalling == null) {
                     if ((psSignalling = getValueByParamName("psSignalling", childnode, TYPE_TXT)) != null) {
                         if (psSignalling.equals("SIPoUDP")) {
-	                        RcsSettings.getInstance().writeParameter(
-	                        		RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,
-	                                ListeningPoint.UDP);
-                        } else
-                        if (psSignalling.equals("SIPoTCP")) {
-	                        RcsSettings.getInstance().writeParameter(
-	                        		RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,
-	                                ListeningPoint.TCP);
-                        } else
-                        if (psSignalling.equals("SIPoTLS")) {
-	                        RcsSettings.getInstance().writeParameter(
-	                        		RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,
-	                                ListeningPoint.TLS);
+                            RcsSettings.getInstance().writeParameter(
+                                    RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,
+                                    ListeningPoint.UDP);
+                        } else if (psSignalling.equals("SIPoTCP")) {
+                            RcsSettings.getInstance().writeParameter(
+                                    RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,
+                                    ListeningPoint.TCP);
+                        } else if (psSignalling.equals("SIPoTLS")) {
+                            RcsSettings.getInstance().writeParameter(
+                                    RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_MOBILE,
+                                    ListeningPoint.TLS);
                         }
                         continue;
                     }
@@ -1338,16 +1378,17 @@ public class ProvisioningParser {
                 if (wifiSignalling == null) {
                     if ((wifiSignalling = getValueByParamName("wifiSignalling", childnode, TYPE_TXT)) != null) {
                         if (wifiSignalling.equals("SIPoUDP")) {
-	                        RcsSettings.getInstance().writeParameter(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI,
-	                                ListeningPoint.UDP);
-                        } else
-                        if (wifiSignalling.equals("SIPoTCP")) {
-	                        RcsSettings.getInstance().writeParameter(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI,
-	                                ListeningPoint.TCP);
-                        } else
-                        if (wifiSignalling.equals("SIPoTLS")) {
-	                        RcsSettings.getInstance().writeParameter(RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI,
-	                                ListeningPoint.TLS);
+                            RcsSettings.getInstance().writeParameter(
+                                    RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI,
+                                    ListeningPoint.UDP);
+                        } else if (wifiSignalling.equals("SIPoTCP")) {
+                            RcsSettings.getInstance().writeParameter(
+                                    RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI,
+                                    ListeningPoint.TCP);
+                        } else if (wifiSignalling.equals("SIPoTLS")) {
+                            RcsSettings.getInstance().writeParameter(
+                                    RcsSettingsData.SIP_DEFAULT_PROTOCOL_FOR_WIFI,
+                                    ListeningPoint.TLS);
                         }
                         continue;
                     }
@@ -1355,30 +1396,34 @@ public class ProvisioningParser {
 
                 if (wifiMedia == null) {
                     if ((wifiMedia = getValueByParamName("wifiMedia", childnode, TYPE_TXT)) != null) {
-						if (wifiMedia.equals("MSRP")) {
-							RcsSettings.getInstance().writeBoolean(RcsSettingsData.SECURE_MSRP_OVER_WIFI, false);
-						} else if (wifiMedia.equals("MSRPoTLS")) {
-							RcsSettings.getInstance().writeBoolean(RcsSettingsData.SECURE_MSRP_OVER_WIFI, true);
-						}
+                        if (wifiMedia.equals("MSRP")) {
+                            RcsSettings.getInstance().writeBoolean(
+                                    RcsSettingsData.SECURE_MSRP_OVER_WIFI, false);
+                        } else if (wifiMedia.equals("MSRPoTLS")) {
+                            RcsSettings.getInstance().writeBoolean(
+                                    RcsSettingsData.SECURE_MSRP_OVER_WIFI, true);
+                        }
                         continue;
                     }
                 }
 
                 if (wifiRtMedia == null) {
                     if ((wifiRtMedia = getValueByParamName("wifiRTMedia", childnode, TYPE_TXT)) != null) {
-						if (wifiMedia.equals("RTP")) {
-							RcsSettings.getInstance().writeBoolean(RcsSettingsData.SECURE_RTP_OVER_WIFI, false);
-						} else if (wifiMedia.equals("SRTP")) {
-							RcsSettings.getInstance().writeBoolean(RcsSettingsData.SECURE_RTP_OVER_WIFI, true);
-						}
+                        if (wifiMedia.equals("RTP")) {
+                            RcsSettings.getInstance().writeBoolean(
+                                    RcsSettingsData.SECURE_RTP_OVER_WIFI, false);
+                        } else if (wifiMedia.equals("SRTP")) {
+                            RcsSettings.getInstance().writeBoolean(
+                                    RcsSettingsData.SECURE_RTP_OVER_WIFI, true);
+                        }
                         continue;
                     }
                 }
-                
+
                 // Not supported: "psMedia"
                 // Not supported: "psRTMedia"
-                
-            } while((childnode = childnode.getNextSibling()) != null);
+
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
 
@@ -1396,20 +1441,19 @@ public class ProvisioningParser {
         String rcsIPVideoCallUpgradeOnCapError = null;
         String beIPVideoCallUpgradeAttemptEarly = null;
         String maxMsrpLengthExtensions = null;
-        
+
         Node typenode = null;
         Node childnode = node.getFirstChild();
 
         if (childnode != null) {
-            do {	
+            do {
                 if (childnode.getNodeName().equals("characteristic")) {
                     if (childnode.getAttributes().getLength() > 0) {
                         typenode = childnode.getAttributes().getNamedItem("type");
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("transportProto")) {
                                 parseTransportProtocol(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("Ext")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("Ext")) {
                                 parseOtherExt(childnode);
                             }
                         }
@@ -1417,69 +1461,84 @@ public class ProvisioningParser {
                 }
 
                 if (endUserConfReqId == null) {
-                    if ((endUserConfReqId = getValueByParamName("endUserConfReqId", childnode, TYPE_TXT)) != null) {
+                    if ((endUserConfReqId = getValueByParamName("endUserConfReqId", childnode,
+                            TYPE_TXT)) != null) {
                         RcsSettings.getInstance().writeParameter(
-                                RcsSettingsData.ENDUSER_CONFIRMATION_URI, formatSipUri(endUserConfReqId));
+                                RcsSettingsData.ENDUSER_CONFIRMATION_URI,
+                                formatSipUri(endUserConfReqId));
                         continue;
                     }
                 }
 
                 if (deviceID == null) {
-					if ((deviceID = getValueByParamName("deviceID", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.USE_IMEI_AS_DEVICE_ID, deviceID.equals("0"));
-						continue;
-					}
+                    if ((deviceID = getValueByParamName("deviceID", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.USE_IMEI_AS_DEVICE_ID, deviceID.equals("0"));
+                        continue;
+                    }
                 }
-                
+
                 if (aaIPCallBreakOut == null) {
-                    if ((aaIPCallBreakOut = getValueByParamName("IPCallBreakOut", childnode, TYPE_INT)) != null) {
-                        RcsSettings.getInstance().writeBoolean(RcsSettingsData.IPVOICECALL_BREAKOUT_AA, aaIPCallBreakOut.equals("1"));
+                    if ((aaIPCallBreakOut = getValueByParamName("IPCallBreakOut", childnode,
+                            TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.IPVOICECALL_BREAKOUT_AA,
+                                aaIPCallBreakOut.equals("1"));
                         continue;
                     }
                 }
-                
+
                 if (csIPCallBreakOut == null) {
-                    if ((csIPCallBreakOut = getValueByParamName("IPCallBreakOutCS", childnode, TYPE_INT)) != null) {
-                        RcsSettings.getInstance().writeBoolean(RcsSettingsData.IPVOICECALL_BREAKOUT_CS, csIPCallBreakOut.equals("1"));
+                    if ((csIPCallBreakOut = getValueByParamName("IPCallBreakOutCS", childnode,
+                            TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.IPVOICECALL_BREAKOUT_CS,
+                                csIPCallBreakOut.equals("1"));
                         continue;
                     }
                 }
-                
+
                 if (rcsIPVideoCallUpgradeFromCS == null) {
-					if ((rcsIPVideoCallUpgradeFromCS = getValueByParamName("rcsIPVideoCallUpgradeFromCS", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.IPVIDEOCALL_UPGRADE_FROM_CS,
-								rcsIPVideoCallUpgradeFromCS.equals("1"));
-						continue;
-					}
+                    if ((rcsIPVideoCallUpgradeFromCS = getValueByParamName(
+                            "rcsIPVideoCallUpgradeFromCS", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.IPVIDEOCALL_UPGRADE_FROM_CS,
+                                rcsIPVideoCallUpgradeFromCS.equals("1"));
+                        continue;
+                    }
                 }
-                
+
                 if (rcsIPVideoCallUpgradeOnCapError == null) {
-					if ((rcsIPVideoCallUpgradeOnCapError = getValueByParamName("rcsIPVideoCallUpgradeOnCapError", childnode,
-							TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.IPVIDEOCALL_UPGRADE_ON_CAPERROR,
-								rcsIPVideoCallUpgradeOnCapError.equals("1"));
-						continue;
-					}
+                    if ((rcsIPVideoCallUpgradeOnCapError = getValueByParamName(
+                            "rcsIPVideoCallUpgradeOnCapError", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.IPVIDEOCALL_UPGRADE_ON_CAPERROR,
+                                rcsIPVideoCallUpgradeOnCapError.equals("1"));
+                        continue;
+                    }
                 }
-                
+
                 if (beIPVideoCallUpgradeAttemptEarly == null) {
-					if ((beIPVideoCallUpgradeAttemptEarly = getValueByParamName("rcsIPVideoCallUpgradeAttemptEarly", childnode,
-							TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.IPVIDEOCALL_UPGRADE_ATTEMPT_EARLY,
-								beIPVideoCallUpgradeAttemptEarly.equals("1"));
-						continue;
-					}
+                    if ((beIPVideoCallUpgradeAttemptEarly = getValueByParamName(
+                            "rcsIPVideoCallUpgradeAttemptEarly", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(
+                                RcsSettingsData.IPVIDEOCALL_UPGRADE_ATTEMPT_EARLY,
+                                beIPVideoCallUpgradeAttemptEarly.equals("1"));
+                        continue;
+                    }
                 }
-                
+
                 if (maxMsrpLengthExtensions == null) {
-                	if ((maxMsrpLengthExtensions = getValueByParamName("extensionsMaxMSRPSize", childnode, TYPE_INT)) != null) {
-                        RcsSettings.getInstance().writeParameter(RcsSettingsData.MAX_MSRP_SIZE_EXTENSIONS, maxMsrpLengthExtensions);
+                    if ((maxMsrpLengthExtensions = getValueByParamName("extensionsMaxMSRPSize",
+                            childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeParameter(
+                                RcsSettingsData.MAX_MSRP_SIZE_EXTENSIONS, maxMsrpLengthExtensions);
                         continue;
                     }
                 }
 
                 // Not supported: "WarnSizeImageShare"
-                
+
             } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
@@ -1523,13 +1582,14 @@ public class ProvisioningParser {
         if (childnode != null) {
             do {
                 if (publicUserIdentity == null) {
-                    if ((publicUserIdentity = getValueByParamName("Public_User_Identity", childnode, TYPE_TXT)) != null) {
-                    	String username = extractUserNamePart(publicUserIdentity);
-                    	RcsSettings.getInstance().setUserProfileImsUserName(username);
+                    if ((publicUserIdentity = getValueByParamName("Public_User_Identity",
+                            childnode, TYPE_TXT)) != null) {
+                        String username = extractUserNamePart(publicUserIdentity);
+                        RcsSettings.getInstance().setUserProfileImsUserName(username);
                         continue;
                     }
                 }
-            } while((childnode = childnode.getNextSibling()) != null);
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
 
@@ -1539,92 +1599,38 @@ public class ProvisioningParser {
      * @param node Node
      */
     private void parseSecondaryDevicePar(Node node) {
-    	// TODO: to be managed thks to a flag main/secondary device
+        // TODO: to be managed thks to a flag main/secondary device
         /*
-        String voiceCall = null;
-        String chat = null;
-        String sendSms = null;
-        String fileTranfer = null;
-        String videoShare = null;
-        String imageShare = null;
-        String geolocPush = null;
-        if (node == null) {
-            return;
-        }
-        Node childnode = node.getFirstChild();
-
-        if (childnode != null) {
-            do {
-                if (chat == null) {
-                    if ((chat = getValueByParamName("Chat", childnode, TYPE_INT)) != null) {
-                        if (chat.equals("0")) {
-                            RcsSettings.getInstance().writeParameter(
-                                    RcsSettingsData.CAPABILITY_IM_SESSION, RcsSettingsData.TRUE);
-                        } else {
-                            RcsSettings.getInstance().writeParameter(
-                                    RcsSettingsData.CAPABILITY_IM_SESSION, RcsSettingsData.FALSE);
-                        }
-                        continue;
-                    }
-                }
-
-                if (fileTranfer == null) {
-                    if ((fileTranfer = getValueByParamName("FileTranfer", childnode, TYPE_INT)) != null) {
-                        if (fileTranfer.equals("0")) {
-                            RcsSettings.getInstance().writeParameter(
-                                    RcsSettingsData.CAPABILITY_FILE_TRANSFER, RcsSettingsData.TRUE);
-                        } else {
-                            RcsSettings.getInstance().writeParameter(
-                            		RcsSettingsData.CAPABILITY_FILE_TRANSFER, RcsSettingsData.FALSE);
-                        }
-                        continue;
-                    }
-                }
-
-                if (videoShare == null) {
-                    if ((videoShare = getValueByParamName("VideoShare", childnode, TYPE_INT)) != null) {
-                        if (videoShare.equals("0")) {
-                            RcsSettings.getInstance().writeParameter(
-                                    RcsSettingsData.CAPABILITY_VIDEO_SHARING, RcsSettingsData.TRUE);
-                        } else {
-                            RcsSettings.getInstance().writeParameter(
-                            		RcsSettingsData.CAPABILITY_VIDEO_SHARING, RcsSettingsData.FALSE);
-                        }
-                        continue;
-                    }
-                }
-
-                if (imageShare == null) {
-                    if ((imageShare = getValueByParamName("ImageShare", childnode, TYPE_INT)) != null) {
-                        if (imageShare.equals("0")) {
-                            RcsSettings.getInstance().writeParameter(
-                                    RcsSettingsData.CAPABILITY_IMAGE_SHARING, RcsSettingsData.TRUE);
-                        } else {
-                            RcsSettings.getInstance().writeParameter(
-                            		RcsSettingsData.CAPABILITY_IMAGE_SHARING, RcsSettingsData.FALSE);
-                        }
-                        continue;
-                    }
-                }
-                
-                if (geolocPush == null) {
-                    if ((geolocPush = getValueByParamName("GeoLocPush", childnode, TYPE_INT)) != null) {
-                        if (geolocPush.equals("0")) {
-                            RcsSettings.getInstance().writeParameter(
-                                    RcsSettingsData.CAPABILITY_GEOLOCATION_PUSH, RcsSettingsData.TRUE);
-                        } else {
-                            RcsSettings.getInstance().writeParameter(
-                            		RcsSettingsData.CAPABILITY_GEOLOCATION_PUSH, RcsSettingsData.FALSE);
-                        }
-                        continue;
-                    }
-                }
-                
-	        	// Not used for RCS: "SendSms"
-	        	// Not used for RCS: "VoiceCall"
-                
-            } while ((childnode = childnode.getNextSibling()) != null);
-        }*/
+         * String voiceCall = null; String chat = null; String sendSms = null; String fileTranfer =
+         * null; String videoShare = null; String imageShare = null; String geolocPush = null; if
+         * (node == null) { return; } Node childnode = node.getFirstChild(); if (childnode != null)
+         * { do { if (chat == null) { if ((chat = getValueByParamName("Chat", childnode, TYPE_INT))
+         * != null) { if (chat.equals("0")) { RcsSettings.getInstance().writeParameter(
+         * RcsSettingsData.CAPABILITY_IM_SESSION, RcsSettingsData.TRUE); } else {
+         * RcsSettings.getInstance().writeParameter( RcsSettingsData.CAPABILITY_IM_SESSION,
+         * RcsSettingsData.FALSE); } continue; } } if (fileTranfer == null) { if ((fileTranfer =
+         * getValueByParamName("FileTranfer", childnode, TYPE_INT)) != null) { if
+         * (fileTranfer.equals("0")) { RcsSettings.getInstance().writeParameter(
+         * RcsSettingsData.CAPABILITY_FILE_TRANSFER, RcsSettingsData.TRUE); } else {
+         * RcsSettings.getInstance().writeParameter( RcsSettingsData.CAPABILITY_FILE_TRANSFER,
+         * RcsSettingsData.FALSE); } continue; } } if (videoShare == null) { if ((videoShare =
+         * getValueByParamName("VideoShare", childnode, TYPE_INT)) != null) { if
+         * (videoShare.equals("0")) { RcsSettings.getInstance().writeParameter(
+         * RcsSettingsData.CAPABILITY_VIDEO_SHARING, RcsSettingsData.TRUE); } else {
+         * RcsSettings.getInstance().writeParameter( RcsSettingsData.CAPABILITY_VIDEO_SHARING,
+         * RcsSettingsData.FALSE); } continue; } } if (imageShare == null) { if ((imageShare =
+         * getValueByParamName("ImageShare", childnode, TYPE_INT)) != null) { if
+         * (imageShare.equals("0")) { RcsSettings.getInstance().writeParameter(
+         * RcsSettingsData.CAPABILITY_IMAGE_SHARING, RcsSettingsData.TRUE); } else {
+         * RcsSettings.getInstance().writeParameter( RcsSettingsData.CAPABILITY_IMAGE_SHARING,
+         * RcsSettingsData.FALSE); } continue; } } if (geolocPush == null) { if ((geolocPush =
+         * getValueByParamName("GeoLocPush", childnode, TYPE_INT)) != null) { if
+         * (geolocPush.equals("0")) { RcsSettings.getInstance().writeParameter(
+         * RcsSettingsData.CAPABILITY_GEOLOCATION_PUSH, RcsSettingsData.TRUE); } else {
+         * RcsSettings.getInstance().writeParameter( RcsSettingsData.CAPABILITY_GEOLOCATION_PUSH,
+         * RcsSettingsData.FALSE); } continue; } } // Not used for RCS: "SendSms" // Not used for
+         * RCS: "VoiceCall" } while ((childnode = childnode.getNextSibling()) != null); }
+         */
     }
 
     /**
@@ -1656,32 +1662,35 @@ public class ProvisioningParser {
                 }
 
                 if (intUrlFmt == null) {
-					if ((intUrlFmt = getValueByParamName("IntUrlFmt", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.TEL_URI_FORMAT, intUrlFmt.equals("0"));
-						continue;
-					}
+                    if ((intUrlFmt = getValueByParamName("IntUrlFmt", childnode, TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(RcsSettingsData.TEL_URI_FORMAT,
+                                intUrlFmt.equals("0"));
+                        continue;
+                    }
                 }
 
                 if (maxSizeImageShare == null) {
-                    if ((maxSizeImageShare = getValueByParamName("MaxSizeImageShare", childnode, TYPE_INT)) != null) {
-                    	int kb = Integer.parseInt(maxSizeImageShare) / 1024;
+                    if ((maxSizeImageShare = getValueByParamName("MaxSizeImageShare", childnode,
+                            TYPE_INT)) != null) {
+                        int kb = Integer.parseInt(maxSizeImageShare) / 1024;
                         RcsSettings.getInstance().writeParameter(
-                                RcsSettingsData.MAX_IMAGE_SHARE_SIZE, ""+kb);
+                                RcsSettingsData.MAX_IMAGE_SHARE_SIZE, "" + kb);
                         continue;
                     }
                 }
 
                 if (maxTimeVideoShare == null) {
-                    if ((maxTimeVideoShare = getValueByParamName("MaxTimeVideoShare", childnode, TYPE_INT)) != null) {
+                    if ((maxTimeVideoShare = getValueByParamName("MaxTimeVideoShare", childnode,
+                            TYPE_INT)) != null) {
                         RcsSettings.getInstance().writeParameter(
                                 RcsSettingsData.MAX_VIDEO_SHARE_DURATION, maxTimeVideoShare);
                         continue;
                     }
                 }
-                
+
                 // Not used (all number are formatted in international format): "NatUrlFmt"
                 // Not supported: "Q-Value"
-                
+
             } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
@@ -1728,8 +1737,8 @@ public class ProvisioningParser {
                 }
 
                 // Not used: "AddressType"
-                
-            } while((childnode = childnode.getNextSibling()) != null);
+
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
 
@@ -1763,9 +1772,11 @@ public class ProvisioningParser {
                 if (authType == null) {
                     if ((authType = getValueByParamName("AuthType", childnode, TYPE_TXT)) != null) {
                         if (authType.equals("EarlyIMS")) {
-                            RcsSettings.getInstance().setImsAuthenticationProcedureForMobile(AuthenticationProcedure.GIBA);
+                            RcsSettings.getInstance().setImsAuthenticationProcedureForMobile(
+                                    AuthenticationProcedure.GIBA);
                         } else {
-                            RcsSettings.getInstance().setImsAuthenticationProcedureForMobile(AuthenticationProcedure.DIGEST);
+                            RcsSettings.getInstance().setImsAuthenticationProcedureForMobile(
+                                    AuthenticationProcedure.DIGEST);
                         }
                         continue;
                     }
@@ -1782,8 +1793,7 @@ public class ProvisioningParser {
                 if (userName == null) {
                     if ((userName = getValueByParamName("UserName", childnode, TYPE_TXT)) != null) {
                         RcsSettings.getInstance().writeParameter(
-                                RcsSettingsData.USERPROFILE_IMS_PRIVATE_ID,
-                                userName);
+                                RcsSettingsData.USERPROFILE_IMS_PRIVATE_ID, userName);
                         continue;
                     }
                 }
@@ -1795,7 +1805,7 @@ public class ProvisioningParser {
                         continue;
                     }
                 }
-            } while((childnode = childnode.getNextSibling()) != null);
+            } while ((childnode = childnode.getNextSibling()) != null);
         }
     }
 
@@ -1819,29 +1829,21 @@ public class ProvisioningParser {
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("IMS")) {
                                 parseIMS(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("PRESENCE")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("PRESENCE")) {
                                 parsePresence(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("XDMS")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("XDMS")) {
                                 parseXDMS(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("IM")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("IM")) {
                                 parseIM(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("CAPDISCOVERY")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("CAPDISCOVERY")) {
                                 parseCapabilityDiscovery(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("APN")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("APN")) {
                                 parseAPN(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("OTHER")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("OTHER")) {
                                 parseOther(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("SERVICES")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("SERVICES")) {
                                 parseServices(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("SUPL")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("SUPL")) {
                                 parseSupl(childnode);
                             }
                         }
@@ -1876,23 +1878,20 @@ public class ProvisioningParser {
                         if (typenode != null) {
                             if (typenode.getNodeValue().equalsIgnoreCase("ConRefs")) {
                                 parseConRefs(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("Public_user_identity_List")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase(
+                                    "Public_user_identity_List")) {
                                 parsePublicUserIdentity(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("Ext")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("Ext")) {
                                 parseExt(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("ICSI_List")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("ICSI_List")) {
                                 parseICSI(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("LBO_P-CSCF_Address")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase(
+                                    "LBO_P-CSCF_Address")) {
                                 parsePcscfAddress(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("PhoneContext_List")) {
+                            } else if (typenode.getNodeValue()
+                                    .equalsIgnoreCase("PhoneContext_List")) {
                                 parsePhoneContextList(childnode);
-                            } else
-                            if (typenode.getNodeValue().equalsIgnoreCase("APPAUTH")) {
+                            } else if (typenode.getNodeValue().equalsIgnoreCase("APPAUTH")) {
                                 parseAppAuthent(childnode);
                             }
                         }
@@ -1924,32 +1923,35 @@ public class ProvisioningParser {
                 }
 
                 if (privateUserIdentity == null) {
-                    if ((privateUserIdentity = getValueByParamName("Private_User_Identity", childnode, TYPE_TXT)) != null) {
+                    if ((privateUserIdentity = getValueByParamName("Private_User_Identity",
+                            childnode, TYPE_TXT)) != null) {
                         RcsSettings.getInstance().writeParameter(
-                                RcsSettingsData.USERPROFILE_IMS_PRIVATE_ID,
-                                privateUserIdentity);
+                                RcsSettingsData.USERPROFILE_IMS_PRIVATE_ID, privateUserIdentity);
                         continue;
                     }
                 }
 
                 if (homeDomain == null) {
-                    if ((homeDomain = getValueByParamName("Home_network_domain_name", childnode, TYPE_TXT)) != null) {
+                    if ((homeDomain = getValueByParamName("Home_network_domain_name", childnode,
+                            TYPE_TXT)) != null) {
                         RcsSettings.getInstance().writeParameter(
-                                RcsSettingsData.USERPROFILE_IMS_HOME_DOMAIN,
-                                homeDomain);
+                                RcsSettingsData.USERPROFILE_IMS_HOME_DOMAIN, homeDomain);
                         continue;
                     }
                 }
 
                 if (keepAliveEnabled == null) {
-					if ((keepAliveEnabled = getValueByParamName("Keep_Alive_Enabled", childnode, TYPE_INT)) != null) {
-						RcsSettings.getInstance().writeBoolean(RcsSettingsData.SIP_KEEP_ALIVE, keepAliveEnabled.equals("1"));
-						continue;
-					}
+                    if ((keepAliveEnabled = getValueByParamName("Keep_Alive_Enabled", childnode,
+                            TYPE_INT)) != null) {
+                        RcsSettings.getInstance().writeBoolean(RcsSettingsData.SIP_KEEP_ALIVE,
+                                keepAliveEnabled.equals("1"));
+                        continue;
+                    }
                 }
 
                 if (regRetryBasetime == null) {
-                    if ((regRetryBasetime = getValueByParamName("RegRetryBaseTime", childnode, TYPE_INT)) != null) {
+                    if ((regRetryBasetime = getValueByParamName("RegRetryBaseTime", childnode,
+                            TYPE_INT)) != null) {
                         RcsSettings.getInstance().writeParameter(
                                 RcsSettingsData.REGISTER_RETRY_BASE_TIME, regRetryBasetime);
                         continue;
@@ -1957,13 +1959,14 @@ public class ProvisioningParser {
                 }
 
                 if (regRetryMaxtime == null) {
-                    if ((regRetryMaxtime = getValueByParamName("RegRetryMaxTime", childnode, TYPE_INT)) != null) {
+                    if ((regRetryMaxtime = getValueByParamName("RegRetryMaxTime", childnode,
+                            TYPE_INT)) != null) {
                         RcsSettings.getInstance().writeParameter(
                                 RcsSettingsData.REGISTER_RETRY_MAX_TIME, regRetryMaxtime);
                         continue;
                     }
                 }
-                
+
                 // Not supported under Android: "PDP_ContextOperPref"
                 // Not used for RCS: "Voice_Domain_Preference_E_UTRAN"
                 // Not used for RCS: "SMS_Over_IP_Networks_Indication"
@@ -1985,14 +1988,13 @@ public class ProvisioningParser {
     private String getValueByParamName(String paramName, Node node, int type) {
         Node nameNode = null;
         Node valueNode = null;
-        
-//        if (logger.isActivated()) {
-//            logger.debug("Get parameter " + paramName + ", node " + node);
-//        }
 
-        if ((node == null) ||
-        		!(node.getNodeName().equals("parm") ||
-        				node.getNodeName().equals("param"))) {
+        // if (logger.isActivated()) {
+        // logger.debug("Get parameter " + paramName + ", node " + node);
+        // }
+
+        if ((node == null)
+                || !(node.getNodeName().equals("parm") || node.getNodeName().equals("param"))) {
             return null;
         }
 
@@ -2006,31 +2008,31 @@ public class ProvisioningParser {
                 return null;
             }
             if (nameNode.getNodeValue().equalsIgnoreCase(paramName)) {
-            	String value = valueNode.getNodeValue();
-//                if (logger.isActivated()) {
-//                	logger.debug("Read parameter " + paramName);
-//                }
-            	
-            	// Check type
-            	if (type == TYPE_INT) {
-            		try {
-            			Integer.parseInt(value);
-            		} catch(NumberFormatException e) {
-            			if (logger.isActivated()) {
-            				logger.warn("Bad value for integer parameter " + paramName);
-            			}
-            			return null;
-            		}
-            	} 
-            	
-				return value;
+                String value = valueNode.getNodeValue();
+                // if (logger.isActivated()) {
+                // logger.debug("Read parameter " + paramName);
+                // }
+
+                // Check type
+                if (type == TYPE_INT) {
+                    try {
+                        Integer.parseInt(value);
+                    } catch (NumberFormatException e) {
+                        if (logger.isActivated()) {
+                            logger.warn("Bad value for integer parameter " + paramName);
+                        }
+                        return null;
+                    }
+                }
+
+                return value;
             } else {
                 return null;
             }
         }
         return null;
     }
-    
+
     /**
      * Extract the username part of the SIP-URI
      * 
@@ -2038,25 +2040,25 @@ public class ProvisioningParser {
      * @return Username
      */
     private String extractUserNamePart(String uri) {
-    	if ((uri == null) || (uri.trim().length() == 0)) {
-    		return "";
-    	}
+        if ((uri == null) || (uri.trim().length() == 0)) {
+            return "";
+        }
 
-    	try {
-    		uri = uri.trim();
-    		int index1 = uri.indexOf("sip:");
-    		if (index1 != -1) {
-				int index2 = uri.indexOf("@", index1);
-				String result = uri.substring(index1+4, index2);
-				return result;
-    		} else {
-    			return uri;
-    		}
-		} catch(Exception e) {
-			return "";
-		}
+        try {
+            uri = uri.trim();
+            int index1 = uri.indexOf("sip:");
+            if (index1 != -1) {
+                int index2 = uri.indexOf("@", index1);
+                String result = uri.substring(index1 + 4, index2);
+                return result;
+            } else {
+                return uri;
+            }
+        } catch (Exception e) {
+            return "";
+        }
     }
-    
+
     /**
      * Format to SIP-URI
      * 
@@ -2064,18 +2066,18 @@ public class ProvisioningParser {
      * @return SIP-URI
      */
     private String formatSipUri(String uri) {
-    	if ((uri == null) || (uri.trim().length() == 0)) {
-    		return "";
-    	}
+        if ((uri == null) || (uri.trim().length() == 0)) {
+            return "";
+        }
 
-    	try {
-    		uri = uri.trim();
-	    	if (!uri.startsWith("sip:")) {
-	    		uri = "sip:" + uri;
-	    	}
-	    	return uri;
-		} catch(Exception e) {
-			return "";
-		}
+        try {
+            uri = uri.trim();
+            if (!uri.startsWith("sip:")) {
+                uri = "sip:" + uri;
+            }
+            return uri;
+        } catch (Exception e) {
+            return "";
+        }
     }
 }

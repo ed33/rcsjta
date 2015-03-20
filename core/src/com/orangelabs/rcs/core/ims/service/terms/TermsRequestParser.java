@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.terms;
 
 import java.util.HashMap;
@@ -30,31 +31,24 @@ import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 /**
- * End User Confirmation Request request parser.
- * Parse message of type end-user-confirmation-request.
- * If the message contains the text in different languages it's returns the text
- * in the requested language if present or in the default language (English).
+ * End User Confirmation Request request parser. Parse message of type
+ * end-user-confirmation-request. If the message contains the text in different languages it's
+ * returns the text in the requested language if present or in the default language (English).
  *
  * @author jexa7410
  * @author Deutsche Telekom AG
  */
 public class TermsRequestParser extends DefaultHandler {
-    /* SAMPLE:
-     * <?xml version="1.0" standalone="yes"?>
-     * <EndUserConfirmationRequest id="xxxxxxx" type="xxxxxxx" pin="xxxxxx" timeout="120">
-     *   <Subject xml:lang="en">xxxxxxxxxx</Subject> 
-     *   <Subject xml:lang="de">xxxxxxxxxx</Subject> 
-     *   <Subject xml:lang="es">xxxxxxxxxx</Subject> 
-     *   <Text xml:lang="en">xxxxxxxxxx</Text> 
-     *   <Text xml:lang="de">xxxxxxxxxx</Text> 
-     *   <Text xml:lang="es">xxxxxxxxxx</Text> 
-     *   <ButtonAccept xml:lang="en">xxxxxxxxxx</ButtonAccept>
-     *   <ButtonAccept xml:lang="de">xxxxxxxxxx</ButtonAccept>
-     *   <ButtonAccept xml:lang="es">xxxxxxxxxx</ButtonAccept>
-     *   <ButtonReject xml:lang="en">xxxxxxxxxx</ButtonReject>
-     *   <ButtonReject xml:lang="de">xxxxxxxxxx</ButtonReject>
-     *   <ButtonReject xml:lang="es">xxxxxxxxxx</ButtonReject>
-     * </EndUserConfirmationRequest>
+    /*
+     * SAMPLE: <?xml version="1.0" standalone="yes"?> <EndUserConfirmationRequest id="xxxxxxx"
+     * type="xxxxxxx" pin="xxxxxx" timeout="120"> <Subject xml:lang="en">xxxxxxxxxx</Subject>
+     * <Subject xml:lang="de">xxxxxxxxxx</Subject> <Subject xml:lang="es">xxxxxxxxxx</Subject> <Text
+     * xml:lang="en">xxxxxxxxxx</Text> <Text xml:lang="de">xxxxxxxxxx</Text> <Text
+     * xml:lang="es">xxxxxxxxxx</Text> <ButtonAccept xml:lang="en">xxxxxxxxxx</ButtonAccept>
+     * <ButtonAccept xml:lang="de">xxxxxxxxxx</ButtonAccept> <ButtonAccept
+     * xml:lang="es">xxxxxxxxxx</ButtonAccept> <ButtonReject xml:lang="en">xxxxxxxxxx</ButtonReject>
+     * <ButtonReject xml:lang="de">xxxxxxxxxx</ButtonReject> <ButtonReject
+     * xml:lang="es">xxxxxxxxxx</ButtonReject> </EndUserConfirmationRequest>
      */
 
     /**
@@ -112,39 +106,39 @@ public class TermsRequestParser extends DefaultHandler {
      */
     private HashMap<String, String> elementMap = new HashMap<String, String>();
 
-	/**
-	 * The logger
-	 */
-	private Logger logger = Logger.getLogger(this.getClass().getName());
+    /**
+     * The logger
+     */
+    private Logger logger = Logger.getLogger(this.getClass().getName());
 
-	/**
-	 * Constructor
-	 *
-	 * @param inputSource Input source
-	 * @throws Exception
-	 */
-	public TermsRequestParser(InputSource inputSource, String requestedLanguage) throws Exception {
+    /**
+     * Constructor
+     *
+     * @param inputSource Input source
+     * @throws Exception
+     */
+    public TermsRequestParser(InputSource inputSource, String requestedLanguage) throws Exception {
         this.requestedLanguage = requestedLanguage;
-		SAXParserFactory factory = SAXParserFactory.newInstance();
-	    SAXParser parser = factory.newSAXParser();
-	    parser.parse(inputSource, this);
-	}
+        SAXParserFactory factory = SAXParserFactory.newInstance();
+        SAXParser parser = factory.newSAXParser();
+        parser.parse(inputSource, this);
+    }
 
-	public String getId() {
-		return id;
-	}
+    public String getId() {
+        return id;
+    }
 
-	public String getType() {
-		return type;
-	}
+    public String getType() {
+        return type;
+    }
 
     public int getTimeout() {
         return timeout;
     }
 
-	public boolean getPin() {
-		return pin;
-	}
+    public boolean getPin() {
+        return pin;
+    }
 
     public String getSubject() {
         return giveTextInBestLanguage("Subject");
@@ -162,36 +156,38 @@ public class TermsRequestParser extends DefaultHandler {
         return giveTextInBestLanguage("ButtonReject");
     }
 
-	public void startDocument() {
-		if (logger.isActivated()) {
+    public void startDocument() {
+        if (logger.isActivated()) {
             logger.debug("Start document 'EndUserConfirmationRequest'");
-		}
-		accumulator = new StringBuffer();
-	}
+        }
+        accumulator = new StringBuffer();
+    }
 
     @Override
-	public void characters(char buffer[], int start, int length) {
-		accumulator.append(buffer, start, length);
-	}
+    public void characters(char buffer[], int start, int length) {
+        accumulator.append(buffer, start, length);
+    }
 
     @Override
-	public void startElement(String namespaceURL, String localName,	String qname, Attributes attr) {
-		accumulator.setLength(0);
+    public void startElement(String namespaceURL, String localName, String qname, Attributes attr) {
+        accumulator.setLength(0);
 
-		if (localName.equals("EndUserConfirmationRequest")) {
-			id = attr.getValue("id").trim();
-			type = attr.getValue("type").trim();
+        if (localName.equals("EndUserConfirmationRequest")) {
+            id = attr.getValue("id").trim();
+            type = attr.getValue("type").trim();
             if (type.equalsIgnoreCase("Volatile")) {
                 try {
                     timeout = 1000 * Integer.parseInt(attr.getValue("timeout").trim());
                 } catch (Exception e) {
-                    // If the attribute timeout is not present a default value of 64*T1 seconds (with T1 as defined in
+                    // If the attribute timeout is not present a default value of 64*T1 seconds
+                    // (with T1 as defined in
                     // [RFC3261]) shall be used
                     RcsSettings rcsSettings = RcsSettings.getInstance();
                     if (rcsSettings != null) {
                         timeout = rcsSettings.getSipTimerT1() * 64;
                     } else {
-                        // T1 is an estimate of the round-trip time (RTT), and it defaults to 500 ms.
+                        // T1 is an estimate of the round-trip time (RTT), and it defaults to 500
+                        // ms.
                         timeout = 500 * 64;
                     }
                 }
@@ -206,7 +202,7 @@ public class TermsRequestParser extends DefaultHandler {
                 pin = Boolean.parseBoolean(attr.getValue("pin").trim());
             }
 
-        } else { //check lang attribute for all sub elements
+        } else { // check lang attribute for all sub elements
             currentLangAttribute = attr.getValue("xml:lang");
             if (currentLangAttribute == null) {
                 // for xml failure tolerance
@@ -227,26 +223,24 @@ public class TermsRequestParser extends DefaultHandler {
     }
 
     @Override
-	public void endElement(String namespaceURL, String localName, String qname) {
-		if (localName.equals("EndUserConfirmationRequest")) {
-			if (logger.isActivated()) {
-				logger.debug("Terms request document is complete");
-			}
+    public void endElement(String namespaceURL, String localName, String qname) {
+        if (localName.equals("EndUserConfirmationRequest")) {
+            if (logger.isActivated()) {
+                logger.debug("Terms request document is complete");
+            }
         } else if (currentLangAttribute.equals(requestedLanguage)
                 || currentLangAttribute.equals(DEFAULT_LANGUAGE)
-                || currentLangAttribute.equals(firstLanguage)
-                || currentLangAttribute.equals("")) {
+                || currentLangAttribute.equals(firstLanguage) || currentLangAttribute.equals("")) {
             elementMap.put(qname + currentLangAttribute, accumulator.toString().trim());
         }
-	}
+    }
 
-    /** 
-     * Returns text part off xml element,
-     * if found for requested language ('xml:lang' attribute == requestedLanguage)
-     * or with 'xml:lang' is equal "en" (english)
-     * or with 'xml:lang' attribute equals to this from the first 'Subject' element
-     * or the text from the element with out any 'xml:lang' attribute
-     * or null if element not found
+    /**
+     * Returns text part off xml element, if found for requested language ('xml:lang' attribute ==
+     * requestedLanguage) or with 'xml:lang' is equal "en" (english) or with 'xml:lang' attribute
+     * equals to this from the first 'Subject' element or the text from the element with out any
+     * 'xml:lang' attribute or null if element not found
+     * 
      * @param elementName
      * @return
      */
@@ -262,9 +256,9 @@ public class TermsRequestParser extends DefaultHandler {
         }
     }
 
-	public void endDocument() {
-		if (logger.isActivated()) {
-			logger.debug("End document");
-		}
-	}
+    public void endDocument() {
+        if (logger.isActivated()) {
+            logger.debug("End document");
+        }
+    }
 }

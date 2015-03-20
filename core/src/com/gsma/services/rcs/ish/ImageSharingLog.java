@@ -19,6 +19,7 @@
  * NOTE: This file has been modified by Sony Mobile Communications Inc.
  * Modifications are licensed under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.ish;
 
 import android.net.Uri;
@@ -37,69 +38,94 @@ public class ImageSharingLog {
 
     /**
      * The name of the column containing the unique ID of the image sharing.
-     * <P>Type: TEXT</P>
+     * <P>
+     * Type: TEXT
+     * </P>
      */
     public static final String SHARING_ID = "sharing_id";
 
     /**
      * The name of the column containing the MSISDN of the remote contact.
-     * <P>Type: TEXT</P>
+     * <P>
+     * Type: TEXT
+     * </P>
      */
     public static final String CONTACT = "contact";
 
     /**
      * The name of the column containing the URI of the file
-     * <P>Type: TEXT</P>
+     * <P>
+     * Type: TEXT
+     * </P>
      */
     public static final String FILE = "file";
-	
+
     /**
      * The name of the column containing the filename (absolute path).
-     * <P>Type: TEXT</P>
+     * <P>
+     * Type: TEXT
+     * </P>
      */
     public static final String FILENAME = "filename";
 
     /**
      * The name of the column containing the image size to be transferred (in bytes).
-     * <P>Type: LONG</P>
+     * <P>
+     * Type: LONG
+     * </P>
      */
     public static final String FILESIZE = "filesize";
 
     /**
      * The name of the column containing the MIME-type of the file.
-     * <P>Type: TEXT</P>
+     * <P>
+     * Type: TEXT
+     * </P>
      */
     public static final String MIME_TYPE = "mime_type";
-    
+
     /**
      * The name of the column containing the direction of the sharing.
-     * <P>Type: INTEGER</P>
+     * <P>
+     * Type: INTEGER
+     * </P>
+     * 
      * @see com.gsma.services.rcs.RcsCommon.Direction
      */
     public static final String DIRECTION = "direction";
-    
+
     /**
      * The name of the column containing the amount of data transferred (in bytes).
-     * <P>Type: LONG</P>
+     * <P>
+     * Type: LONG
+     * </P>
      */
     public static final String TRANSFERRED = "transferred";
 
     /**
      * The name of the column containing the date of the sharing (in milliseconds).
-     * <P>Type: LONG</P>
+     * <P>
+     * Type: LONG
+     * </P>
      */
     public static final String TIMESTAMP = "timestamp";
 
     /**
      * The name of the column containing the state of the sharing.
-     * <P>Type: INTEGER</P>
-	 * @see ImageSharing.State
+     * <P>
+     * Type: INTEGER
+     * </P>
+     * 
+     * @see ImageSharing.State
      */
-    public static final String STATE = "state";    
+    public static final String STATE = "state";
 
     /**
      * The name of the column containing the reason code of the state.
-     * <P>Type: INTEGER</P>
+     * <P>
+     * Type: INTEGER
+     * </P>
+     * 
      * @see ImageSharing.ReasonCode
      */
     public static final String REASON_CODE = "reason_code";

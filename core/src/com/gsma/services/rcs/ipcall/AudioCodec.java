@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs.ipcall;
 
 import android.os.Parcel;
@@ -26,26 +27,26 @@ import android.os.Parcelable;
  * @author Jean-Marc AUFFRET
  */
 public class AudioCodec implements Parcelable {
-	/**
-	 * Audio encoding
-	 */
-	private String encoding;
-	
-	/**
-	 * Payload
-	 */
-	private int payload;
-	
-	/**
-	 * Sample rate
-	 */
-	private int sampleRate;
+    /**
+     * Audio encoding
+     */
+    private String encoding;
 
-	/**
-	 * Audio parameters
-	 */
-	private String parameters;
-	
+    /**
+     * Payload
+     */
+    private int payload;
+
+    /**
+     * Sample rate
+     */
+    private int sampleRate;
+
+    /**
+     * Audio parameters
+     */
+    private String parameters;
+
     /**
      * Constructor
      *
@@ -56,57 +57,56 @@ public class AudioCodec implements Parcelable {
      * @hide
      */
     public AudioCodec(String encoding, int payload, int sampleRate, String parameters) {
-    	this.encoding = encoding;
-    	this.payload = payload;
-    	this.sampleRate = sampleRate;
-    	this.parameters = parameters;
+        this.encoding = encoding;
+        this.payload = payload;
+        this.sampleRate = sampleRate;
+        this.parameters = parameters;
     }
-    
-    /**
-	 * Constructor
-	 * 
-	 * @param source Parcelable source
-     * @hide
-	 */
-	public AudioCodec(Parcel source) {
-		this.encoding = source.readString();
-    	this.payload = source.readInt();
-    	this.sampleRate = source.readInt();
-		this.parameters = source.readString();
-	}
 
-	/**
-	 * Describe the kinds of special objects contained in this Parcelable's
-	 * marshalled representation
-	 * 
-	 * @return Integer
+    /**
+     * Constructor
+     * 
+     * @param source Parcelable source
      * @hide
-	 */
-	public int describeContents() {
+     */
+    public AudioCodec(Parcel source) {
+        this.encoding = source.readString();
+        this.payload = source.readInt();
+        this.sampleRate = source.readInt();
+        this.parameters = source.readString();
+    }
+
+    /**
+     * Describe the kinds of special objects contained in this Parcelable's marshalled
+     * representation
+     * 
+     * @return Integer
+     * @hide
+     */
+    public int describeContents() {
         return 0;
     }
 
-	/**
-	 * Write parcelable object
-	 * 
-	 * @param dest The Parcel in which the object should be written
-	 * @param flags Additional flags about how the object should be written
+    /**
+     * Write parcelable object
+     * 
+     * @param dest The Parcel in which the object should be written
+     * @param flags Additional flags about how the object should be written
      * @hide
-	 */
+     */
     public void writeToParcel(Parcel dest, int flags) {
-    	dest.writeString(encoding);
-    	dest.writeInt(payload);
-    	dest.writeInt(sampleRate);
-    	dest.writeString(parameters);
+        dest.writeString(encoding);
+        dest.writeInt(payload);
+        dest.writeInt(sampleRate);
+        dest.writeString(parameters);
     }
-    
+
     /**
      * Parcelable creator
      * 
      * @hide
      */
-    public static final Parcelable.Creator<AudioCodec> CREATOR
-            = new Parcelable.Creator<AudioCodec>() {
+    public static final Parcelable.Creator<AudioCodec> CREATOR = new Parcelable.Creator<AudioCodec>() {
         public AudioCodec createFromParcel(Parcel source) {
             return new AudioCodec(source);
         }
@@ -114,43 +114,43 @@ public class AudioCodec implements Parcelable {
         public AudioCodec[] newArray(int size) {
             return new AudioCodec[size];
         }
-    };	
+    };
 
     /**
-    * Returns the encoding name (e.g. H264)
-    * 
-    * @return Encoding name
-    */
+     * Returns the encoding name (e.g. H264)
+     * 
+     * @return Encoding name
+     */
     public String getEncoding() {
-    	return encoding;
+        return encoding;
     }
-    
+
     /**
      * Returns the codec payload type (e.g. 96)
      * 
      * @return Payload type
      */
     public int getPayloadType() {
-    	return payload;
+        return payload;
     }
-    
+
     /**
      * Returns the codec sample rate (e.g. 15)
      * 
      * @return Clock rate
      */
     public int getSampleRate() {
-    	return sampleRate;
+        return sampleRate;
     }
-    
+
     /**
-     * Returns the list of codec parameters (e.g. packetization-mode).
-     * Parameters are are semicolon separated.
+     * Returns the list of codec parameters (e.g. packetization-mode). Parameters are are semicolon
+     * separated.
      * 
      * @return Parameters
      */
     public String getParameters() {
-    	return parameters;    	
+        return parameters;
     }
 
     /**
@@ -160,9 +160,9 @@ public class AudioCodec implements Parcelable {
      * @return True if codecs are equals
      */
     public boolean compare(AudioCodec codec) {
-    	boolean ret = false;
+        boolean ret = false;
         if (getEncoding().equalsIgnoreCase(codec.getEncoding())) {
-        	ret = true;
+            ret = true;
         }
         return ret;
     }

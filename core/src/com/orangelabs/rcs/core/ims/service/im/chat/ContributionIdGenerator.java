@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.orangelabs.rcs.core.ims.service.im.chat;
 
 import java.util.UUID;
@@ -31,7 +32,7 @@ import com.orangelabs.rcs.utils.DeviceUtils;
  * @author jexa7410
  */
 public class ContributionIdGenerator {
-	/**
+    /**
      * Secret key
      */
     private static byte[] secretKey = generateSecretKey();
@@ -41,14 +42,14 @@ public class ContributionIdGenerator {
      */
     private static byte[] generateSecretKey() {
         // Get device ID
-    	UUID uuid = DeviceUtils.getDeviceUUID(AndroidFactory.getApplicationContext());
-    	byte[] key;
-    	if (uuid != null) {
+        UUID uuid = DeviceUtils.getDeviceUUID(AndroidFactory.getApplicationContext());
+        byte[] key;
+        if (uuid != null) {
             key = uuid.toString().getBytes();
-    	} else {
-    		String t = "" + System.currentTimeMillis(); 
+        } else {
+            String t = "" + System.currentTimeMillis();
             key = t.getBytes();
-    	}
+        }
 
         // Keep only 128 bits
         byte[] secretKey = new byte[16];
@@ -69,7 +70,7 @@ public class ContributionIdGenerator {
      * @return the Contribution ID
      */
     public synchronized static String getContributionId(String callId) {
-    	try {
+        try {
             // HMAC-SHA1 operation
             SecretKeySpec sks = new SecretKeySpec(secretKey, "HmacSHA1");
             Mac mac = Mac.getInstance("HmacSHA1");
@@ -85,10 +86,10 @@ public class ContributionIdGenerator {
                 }
                 hexString.append(hex);
             }
-            
+
             String id = hexString.toString();
             return id;
-        } catch(Exception e) {
+        } catch (Exception e) {
             return null;
         }
     }

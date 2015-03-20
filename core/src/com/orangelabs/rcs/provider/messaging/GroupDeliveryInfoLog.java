@@ -41,12 +41,14 @@ public class GroupDeliveryInfoLog implements IGroupDeliveryInfoLog {
 
     private static final String SELECTION_CONTACTS_NOT_RECEIVED_MESSAGE = new StringBuilder(
             GroupDeliveryInfoData.KEY_DELIVERY_STATUS).append("=")
-            .append(com.gsma.services.rcs.GroupDeliveryInfoLog.Status.NOT_DELIVERED).append(" OR (")
-            .append(GroupDeliveryInfoData.KEY_DELIVERY_STATUS).append("=")
+            .append(com.gsma.services.rcs.GroupDeliveryInfoLog.Status.NOT_DELIVERED)
+            .append(" OR (").append(GroupDeliveryInfoData.KEY_DELIVERY_STATUS).append("=")
             .append(com.gsma.services.rcs.GroupDeliveryInfoLog.Status.FAILED).append(" AND ")
             .append(GroupDeliveryInfoData.KEY_REASON_CODE).append(" IN (")
-            .append(com.gsma.services.rcs.GroupDeliveryInfoLog.ReasonCode.FAILED_DELIVERY).append(",")
-            .append(com.gsma.services.rcs.GroupDeliveryInfoLog.ReasonCode.FAILED_DISPLAY).append("))").toString();
+            .append(com.gsma.services.rcs.GroupDeliveryInfoLog.ReasonCode.FAILED_DELIVERY)
+            .append(",")
+            .append(com.gsma.services.rcs.GroupDeliveryInfoLog.ReasonCode.FAILED_DISPLAY)
+            .append("))").toString();
 
     private static final String SELECTION_DELIVERY_INFO_NOT_DISPLAYED = new StringBuilder(
             GroupDeliveryInfoData.KEY_DELIVERY_STATUS).append("!=")
@@ -62,7 +64,7 @@ public class GroupDeliveryInfoLog implements IGroupDeliveryInfoLog {
      *
      * @param localContentResolver Local content resolver
      */
-    /* package private */ GroupDeliveryInfoLog(LocalContentResolver localContentResolver) {
+    /* package private */GroupDeliveryInfoLog(LocalContentResolver localContentResolver) {
         mLocalContentResolver = localContentResolver;
     }
 
@@ -100,8 +102,7 @@ public class GroupDeliveryInfoLog implements IGroupDeliveryInfoLog {
         if (mLocalContentResolver.update(GroupDeliveryInfoData.CONTENT_URI, values,
                 SELECTION_DELIVERY_INFO_BY_MSG_ID_AND_CONTACT, selectionArgs) < 1) {
             /*
-             * TODO: Skip catching exception, which should be implemented in
-             * CR037.
+             * TODO: Skip catching exception, which should be implemented in CR037.
              */
             if (logger.isActivated()) {
                 logger.warn("There was not group chat delivery into for msgId '" + msgId
@@ -112,7 +113,6 @@ public class GroupDeliveryInfoLog implements IGroupDeliveryInfoLog {
 
     /*
      * (non-Javadoc)
-     *
      * @see com.orangelabs.rcs.provider.messaging.IGroupChatDeliveryInfoLog#
      * isDeliveredToAllRecipients(java.lang.String)
      */
@@ -134,7 +134,6 @@ public class GroupDeliveryInfoLog implements IGroupDeliveryInfoLog {
 
     /*
      * (non-Javadoc)
-     *
      * @see com.orangelabs.rcs.provider.messaging.IGroupChatDeliveryInfoLog#
      * isDisplayedByAllRecipients(java.lang.String)
      */

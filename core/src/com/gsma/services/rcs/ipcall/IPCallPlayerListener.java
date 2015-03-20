@@ -15,8 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package com.gsma.services.rcs.ipcall;
 
+package com.gsma.services.rcs.ipcall;
 
 /**
  * This class offers callback methods on IP call player events
@@ -24,30 +24,30 @@ package com.gsma.services.rcs.ipcall;
  * @author Jean-Marc AUFFRET
  */
 public abstract class IPCallPlayerListener extends IIPCallPlayerListener.Stub {
-	/**
-	 * Callback called when the player is opened
-	 */
-	public abstract void onPlayerOpened();
+    /**
+     * Callback called when the player is opened
+     */
+    public abstract void onPlayerOpened();
 
-	/**
-	 * Callback called when the player is started
-	 */
-	public abstract void onPlayerStarted();
+    /**
+     * Callback called when the player is started
+     */
+    public abstract void onPlayerStarted();
 
-	/**
-	 * Callback called when the player is stopped
-	 */
-	public abstract void onPlayerStopped();
+    /**
+     * Callback called when the player is stopped
+     */
+    public abstract void onPlayerStopped();
 
-	/**
-	 * Callback called when the player is closed
-	 */
-	public abstract void onPlayerClosed();
+    /**
+     * Callback called when the player is closed
+     */
+    public abstract void onPlayerClosed();
 
-	/**
-	 * Callback called when the player has failed
-	 * 
-	 * @param error Error
-	 */
-	public abstract void onPlayerError(int error);
+    /**
+     * Callback called when the player has failed
+     * 
+     * @param error Error
+     */
+    public abstract void onPlayerError(int error);
 }

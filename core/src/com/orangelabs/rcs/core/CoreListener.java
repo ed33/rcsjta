@@ -64,24 +64,24 @@ public interface CoreListener {
      * Core layer has been stopped
      */
     public void handleCoreLayerStopped();
-    
+
     /**
-     * Registered to IMS 
+     * Registered to IMS
      */
     public void handleRegistrationSuccessful();
-    
+
     /**
      * IMS registration has failed
      * 
      * @param error Error
      */
     public void handleRegistrationFailed(ImsError error);
-    
+
     /**
-     * Unregistered from IMS 
+     * Unregistered from IMS
      */
     public void handleRegistrationTerminated();
-    
+
     /**
      * A new presence sharing notification has been received
      * 
@@ -106,28 +106,28 @@ public interface CoreListener {
      * @param capabilities Capabilities
      */
     public void handleCapabilitiesNotification(ContactId contact, Capabilities capabilities);
-    
+
     /**
      * A new presence sharing invitation has been received
      * 
      * @param contact Contact identifier
      */
     public void handlePresenceSharingInvitation(ContactId contact);
-    
+
     /**
      * A new IP call invitation has been received
      * 
      * @param session IP call session
      */
     public void handleIPCallInvitation(IPCallSession session);
-    
+
     /**
      * A new content sharing transfer invitation has been received
      * 
      * @param session CSh session
      */
     public void handleContentSharingTransferInvitation(ImageTransferSession session);
-    
+
     /**
      * A new content sharing transfer invitation has been received
      * 
@@ -141,25 +141,26 @@ public interface CoreListener {
      * @param session CSh session
      */
     public void handleContentSharingStreamingInvitation(VideoStreamingSession session);
-    
-	/**
-	 * A new file transfer invitation has been received when already in a chat session
-	 * 
-	 * @param fileSharingSession File transfer session
-	 * @param isGroup is Group file transfer
-	 * @param contact Contact ID
-	 * @param displayName the display name of the remote contact
-	 */
-	public void handleFileTransferInvitation(FileSharingSession fileSharingSession, boolean isGroup, ContactId contact,
-			String displayName);
 
-	/**
-	 * A new file transfer invitation has been received
-	 * 
-	 * @param fileSharingSession File transfer session
-	 * @param oneToOneChatSession Chat session
-	 */
-	public void handleOneToOneFileTransferInvitation(FileSharingSession fileSharingSession, OneToOneChatSession oneToOneChatSession);
+    /**
+     * A new file transfer invitation has been received when already in a chat session
+     * 
+     * @param fileSharingSession File transfer session
+     * @param isGroup is Group file transfer
+     * @param contact Contact ID
+     * @param displayName the display name of the remote contact
+     */
+    public void handleFileTransferInvitation(FileSharingSession fileSharingSession,
+            boolean isGroup, ContactId contact, String displayName);
+
+    /**
+     * A new file transfer invitation has been received
+     * 
+     * @param fileSharingSession File transfer session
+     * @param oneToOneChatSession Chat session
+     */
+    public void handleOneToOneFileTransferInvitation(FileSharingSession fileSharingSession,
+            OneToOneChatSession oneToOneChatSession);
 
     /**
      * An incoming file transfer has been resumed
@@ -169,7 +170,8 @@ public interface CoreListener {
      * @param chatSessionId corresponding chatSessionId
      * @param chatId corresponding chatId
      */
-    public void handleIncomingFileTransferResuming(FileSharingSession session, boolean isGroup, String chatSessionId, String chatId);
+    public void handleIncomingFileTransferResuming(FileSharingSession session, boolean isGroup,
+            String chatSessionId, String chatId);
 
     /**
      * An outgoing file transfer has been resumed
@@ -185,7 +187,7 @@ public interface CoreListener {
      * @param session Chat session
      */
     public void handleOneOneChatSessionInvitation(TerminatingOneToOneChatSession session);
-    
+
     /**
      * New ad-hoc group chat session invitation
      * 
@@ -193,16 +195,16 @@ public interface CoreListener {
      */
     public void handleAdhocGroupChatSessionInvitation(TerminatingAdhocGroupChatSession session);
 
-    /**
- 
-     * Store and Forward messages session invitation
+    /** Store and Forward messages session invitation
      * 
      * @param session Chat session
      */
-    public void handleStoreAndForwardMsgSessionInvitation(TerminatingStoreAndForwardMsgSession session);
-    
+    public void handleStoreAndForwardMsgSessionInvitation(
+            TerminatingStoreAndForwardMsgSession session);
+
     /**
      * New message delivery status
+     * 
      * @param contact Contact identifier
      * @param ImdnDocument imdn Imdn document
      */
@@ -210,6 +212,7 @@ public interface CoreListener {
 
     /**
      * New file delivery status
+     * 
      * @param contact who notified status
      * @param ImdnDocument imdn Imdn document
      */
@@ -227,7 +230,7 @@ public interface CoreListener {
     /**
      * New SIP MSRP session invitation
      * 
-	 * @param intent Resolved intent
+     * @param intent Resolved intent
      * @param session SIP session
      */
     public void handleSipMsrpSessionInvitation(Intent intent, GenericSipMsrpSession session);
@@ -235,7 +238,7 @@ public interface CoreListener {
     /**
      * New SIP RTP session invitation
      * 
-	 * @param intent Resolved intent
+     * @param intent Resolved intent
      * @param session SIP session
      */
     public void handleSipRtpSessionInvitation(Intent intent, GenericSipRtpSession session);
@@ -253,9 +256,9 @@ public interface CoreListener {
      * @param btnLabelReject Label of Reject button
      * @param timeout Timeout request
      */
-    public void handleUserConfirmationRequest(ContactId contact, String id,
-            String type, boolean pin, String subject, String text,
-            String btnLabelAccept, String btnLabelReject, int timeout);
+    public void handleUserConfirmationRequest(ContactId contact, String id, String type,
+            boolean pin, String subject, String text, String btnLabelAccept, String btnLabelReject,
+            int timeout);
 
     /**
      * User terms confirmation acknowledge
@@ -266,7 +269,8 @@ public interface CoreListener {
      * @param subject Subject
      * @param text Text
      */
-    public void handleUserConfirmationAck(ContactId contact, String id, String status, String subject, String text);
+    public void handleUserConfirmationAck(ContactId contact, String id, String status,
+            String subject, String text);
 
     /**
      * User terms notification
@@ -277,7 +281,8 @@ public interface CoreListener {
      * @param text Text
      * @param btnLabel Label of OK button
      */
-    public void handleUserNotification(ContactId contact, String id, String subject, String text, String btnLabel);
+    public void handleUserNotification(ContactId contact, String id, String subject, String text,
+            String btnLabel);
 
     /**
      * SIM has changed
@@ -310,8 +315,8 @@ public interface CoreListener {
      * @param participants Participants
      * @param reasonCode Rejected reason code
      */
-    public void handleGroupChatInvitationRejected(String chatId, ContactId contact,
-            String subject, Set<ParticipantInfo> participants, int reasonCode);
+    public void handleGroupChatInvitationRejected(String chatId, ContactId contact, String subject,
+            Set<ParticipantInfo> participants, int reasonCode);
 
     /**
      * Handles image sharing rejection
@@ -320,8 +325,8 @@ public interface CoreListener {
      * @param content Multimedia content
      * @param reasonCode Rejected reason code
      */
-    public void handleImageSharingInvitationRejected(ContactId contact,
-            MmContent content, int reasonCode);
+    public void handleImageSharingInvitationRejected(ContactId contact, MmContent content,
+            int reasonCode);
 
     /**
      * Handle the case of rejected video sharing
@@ -361,7 +366,7 @@ public interface CoreListener {
      */
     public void handleOneOneChatSessionInitiation(OneToOneChatSession session);
 
-	/**
+    /**
      * Handle rejoin group chat as part of send operation
      * 
      * @param chatId

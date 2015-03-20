@@ -66,33 +66,33 @@ public class DummyPacketGenerator {
      */
     public void prepareSession(String remoteAddress, int remotePort, RtpInputStream rtpStream)
             throws RtpException {
-    	try {
-    		// Create the input stream
+        try {
+            // Create the input stream
             inputStream = new DummyPacketSourceStream();
-    		inputStream.open();
-			if (logger.isActivated()) {
-				logger.debug("Input stream: " + inputStream.getClass().getName());
-			}
+            inputStream.open();
+            if (logger.isActivated()) {
+                logger.debug("Input stream: " + inputStream.getClass().getName());
+            }
 
             // Create the output stream
             outputStream = new RtpOutputStream(remoteAddress, remotePort, rtpStream);
-    		outputStream.open();
-			if (logger.isActivated()) {
-				logger.debug("Output stream: " + outputStream.getClass().getName());
-			}
-
-            // Create the media processor
-    		processor = new Processor(inputStream, outputStream, new Codec[0]);
-
-        	if (logger.isActivated()) {
-        		logger.debug("Session has been prepared with success");
+            outputStream.open();
+            if (logger.isActivated()) {
+                logger.debug("Output stream: " + outputStream.getClass().getName());
             }
 
-        } catch(Exception e) {
-        	if (logger.isActivated()) {
-        		logger.error("Can't prepare resources correctly", e);
-        	}
-        	throw new RtpException("Can't prepare resources");
+            // Create the media processor
+            processor = new Processor(inputStream, outputStream, new Codec[0]);
+
+            if (logger.isActivated()) {
+                logger.debug("Session has been prepared with success");
+            }
+
+        } catch (Exception e) {
+            if (logger.isActivated()) {
+                logger.error("Can't prepare resources correctly", e);
+            }
+            throw new RtpException("Can't prepare resources");
         }
     }
 
@@ -100,28 +100,28 @@ public class DummyPacketGenerator {
      * Start the RTP session
      */
     public void startSession() {
-    	if (logger.isActivated()) {
-    		logger.debug("Start the session");
-    	}
+        if (logger.isActivated()) {
+            logger.debug("Start the session");
+        }
 
-    	// Start the media processor
-		if (processor != null) {
-			processor.startProcessing();
-		}
+        // Start the media processor
+        if (processor != null) {
+            processor.startProcessing();
+        }
     }
 
     /**
      * Stop the RTP session
      */
     public void stopSession() {
-    	if (logger.isActivated()) {
-    		logger.debug("Stop the session");
-    	}
+        if (logger.isActivated()) {
+            logger.debug("Stop the session");
+        }
 
-    	// Stop the media processor
-		if (processor != null) {
-			processor.stopProcessing();
-		}
+        // Stop the media processor
+        if (processor != null) {
+            processor.stopProcessing();
+        }
 
         if (outputStream != null)
             outputStream.close();

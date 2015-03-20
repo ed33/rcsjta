@@ -40,20 +40,20 @@ public class CShInvitationRingtone extends RingtonePreference {
     @Override
     protected Uri onRestoreRingtone() {
         String uri = RcsSettings.getInstance().getCShInvitationRingtone();
-        
+
         if (TextUtils.isEmpty(uri)) {
             return null;
         }
-        
+
         return Uri.parse(uri);
     }
 
     @Override
     protected void onSaveRingtone(Uri ringtoneUri) {
-    	if (ringtoneUri != null) {
-    		RcsSettings.getInstance().setCShInvitationRingtone(ringtoneUri.toString());
-    	} else {
-    		RcsSettings.getInstance().setCShInvitationRingtone("");
-    	}
+        if (ringtoneUri != null) {
+            RcsSettings.getInstance().setCShInvitationRingtone(ringtoneUri.toString());
+        } else {
+            RcsSettings.getInstance().setCShInvitationRingtone("");
+        }
     }
 }

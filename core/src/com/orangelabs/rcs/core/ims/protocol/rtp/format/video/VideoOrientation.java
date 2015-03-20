@@ -85,8 +85,7 @@ public class VideoOrientation {
     }
 
     /**
-     * Converts the video orientation into the byte used to transmit int RTP
-     * header
+     * Converts the video orientation into the byte used to transmit int RTP header
      *
      * @return Byte representing the video orientation
      */

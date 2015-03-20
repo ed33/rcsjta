@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package com.orangelabs.rcs.service.broadcaster;
 
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
@@ -21,52 +22,53 @@ import com.orangelabs.rcs.utils.logger.Logger;
 import android.os.RemoteCallbackList;
 
 /**
- * RcsServiceRegistrationEventBroadcaster maintains the registering and
- * unregistering of IRcsServiceRegistrationListener and also performs broadcast
- * events on these listeners upon the trigger of corresponding callbacks.
+ * RcsServiceRegistrationEventBroadcaster maintains the registering and unregistering of
+ * IRcsServiceRegistrationListener and also performs broadcast events on these listeners upon the
+ * trigger of corresponding callbacks.
  */
-public class RcsServiceRegistrationEventBroadcaster implements IRcsServiceRegistrationEventBroadcaster{
+public class RcsServiceRegistrationEventBroadcaster implements
+        IRcsServiceRegistrationEventBroadcaster {
 
-	private final RemoteCallbackList<IRcsServiceRegistrationListener> mServiceRegistrationListeners = new RemoteCallbackList<IRcsServiceRegistrationListener>();
+    private final RemoteCallbackList<IRcsServiceRegistrationListener> mServiceRegistrationListeners = new RemoteCallbackList<IRcsServiceRegistrationListener>();
 
-	private final Logger logger = Logger.getLogger(getClass().getName());
+    private final Logger logger = Logger.getLogger(getClass().getName());
 
-	public RcsServiceRegistrationEventBroadcaster() {
-	}
+    public RcsServiceRegistrationEventBroadcaster() {
+    }
 
-	public void addEventListener(IRcsServiceRegistrationListener listener) {
-		mServiceRegistrationListeners.register(listener);
-	}
+    public void addEventListener(IRcsServiceRegistrationListener listener) {
+        mServiceRegistrationListeners.register(listener);
+    }
 
-	public void removeEventListener(IRcsServiceRegistrationListener listener) {
-		mServiceRegistrationListeners.unregister(listener);
-	}
+    public void removeEventListener(IRcsServiceRegistrationListener listener) {
+        mServiceRegistrationListeners.unregister(listener);
+    }
 
-	public void broadcastServiceRegistered() {
-		final int N = mServiceRegistrationListeners.beginBroadcast();
-		for (int i = 0; i < N; i++) {
-			try {
-				mServiceRegistrationListeners.getBroadcastItem(i).onServiceRegistered();
-			} catch (Exception e) {
-				if (logger.isActivated()) {
-					logger.error("Can't notify listener", e);
-				}
-			}
-		}
-		mServiceRegistrationListeners.finishBroadcast();
-	}
+    public void broadcastServiceRegistered() {
+        final int N = mServiceRegistrationListeners.beginBroadcast();
+        for (int i = 0; i < N; i++) {
+            try {
+                mServiceRegistrationListeners.getBroadcastItem(i).onServiceRegistered();
+            } catch (Exception e) {
+                if (logger.isActivated()) {
+                    logger.error("Can't notify listener", e);
+                }
+            }
+        }
+        mServiceRegistrationListeners.finishBroadcast();
+    }
 
-	public void broadcastServiceUnRegistered() {
-		final int N = mServiceRegistrationListeners.beginBroadcast();
-		for (int i = 0; i < N; i++) {
-			try {
-				mServiceRegistrationListeners.getBroadcastItem(i).onServiceUnregistered();
-			} catch (Exception e) {
-				if (logger.isActivated()) {
-					logger.error("Can't notify listener", e);
-				}
-			}
-		}
-		mServiceRegistrationListeners.finishBroadcast();
-	}
+    public void broadcastServiceUnRegistered() {
+        final int N = mServiceRegistrationListeners.beginBroadcast();
+        for (int i = 0; i < N; i++) {
+            try {
+                mServiceRegistrationListeners.getBroadcastItem(i).onServiceUnregistered();
+            } catch (Exception e) {
+                if (logger.isActivated()) {
+                    logger.error("Can't notify listener", e);
+                }
+            }
+        }
+        mServiceRegistrationListeners.finishBroadcast();
+    }
 }

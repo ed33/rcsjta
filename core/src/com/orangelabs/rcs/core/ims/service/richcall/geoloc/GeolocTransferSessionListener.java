@@ -27,21 +27,21 @@ import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
  * 
  * @author jexa7410
  */
-public interface GeolocTransferSessionListener extends ImsSessionListener  {
+public interface GeolocTransferSessionListener extends ImsSessionListener {
     /**
      * Content sharing error
      * 
      * @param error Error
      */
     public void handleSharingError(ContentSharingError error);
-    
+
     /**
      * Content has been transfered
      * 
      * @param geoloc Geoloc info
      */
     public void handleContentTransfered(GeolocPush geoloc);
-    
+
     /**
      * Destination user agent received INVITE, and is alerting user of call
      */

@@ -15,20 +15,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
+
 package com.gsma.services.rcs;
 
 /**
  * Rcs service not registered exception
- *  
+ * 
  * @author Jean-Marc AUFFRET
  */
 public class RcsServiceNotRegisteredException extends RcsServiceException {
-	static final long serialVersionUID = 1L;
-	
-	/**
-	 * Constructor
-	 */
-	public RcsServiceNotRegisteredException() {
-		super("rcs service not registered");
-	}
+    static final long serialVersionUID = 1L;
+
+    /**
+     * Constructor
+     */
+    public RcsServiceNotRegisteredException() {
+        super("rcs service not registered");
+    }
 }
