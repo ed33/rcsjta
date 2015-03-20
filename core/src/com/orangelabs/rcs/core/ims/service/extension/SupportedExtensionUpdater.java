@@ -28,6 +28,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 
+import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.capability.CapabilityService;
 import com.orangelabs.rcs.core.ims.service.capability.ExternalCapabilityMonitoring;
 import com.orangelabs.rcs.provider.security.AuthorizationData;
@@ -90,7 +91,7 @@ public class SupportedExtensionUpdater implements Runnable {
 			Set<AuthorizationData> authorizationAfterUpdate = new HashSet<AuthorizationData>();
 
 			PackageManager packageManager = mContext.getPackageManager();
-			Map<String, Set<String>> packageNames = getPackagesManagingExtensions(packageManager);
+			Map<String, Set<Extension>> packageNames = getPackagesManagingExtensions(packageManager);
 			for (String packageName : packageNames.keySet()) {
 				
 				Integer uid = mExtensionManager.getUidForPackage(packageManager, packageName);
@@ -102,8 +103,8 @@ public class SupportedExtensionUpdater implements Runnable {
 					if (isLogActivated) {
 						logger.debug("No control on extensions");
 					}					
-					for (String extension : packageNames.get(packageName)) {
-						AuthorizationData authData = new AuthorizationData(uid, packageName, IARIUtils.getIARI(extension));
+					for (Extension extension : packageNames.get(packageName)) {
+						AuthorizationData authData = new AuthorizationData(uid, packageName,extension);
 						authorizationAfterUpdate.add(authData);
 						continue;
 
@@ -126,9 +127,9 @@ public class SupportedExtensionUpdater implements Runnable {
 			for (AuthorizationData authorizationData : authorizationsBeforeUpdate.keySet()) {
 				if (isLogActivated) {
 					logger.debug("Remove authorization for package '" + authorizationData.getPackageName() + "' extension:"
-							+ authorizationData.getIARI());
+							+ authorizationData.getExtension().getExtensionAsIari());
 				}
-				mSecurityLog.removeAuthorization(authorizationsBeforeUpdate.get(authorizationData), authorizationData.getIARI());
+				mSecurityLog.removeAuthorization(authorizationsBeforeUpdate.get(authorizationData), authorizationData.getExtension().getExtensionAsIari());
 			}
 			if (isLogActivated) {
 				logger.debug("Register for package installation/removal");
@@ -150,18 +151,29 @@ public class SupportedExtensionUpdater implements Runnable {
 	 * @param pkgManager
 	 * @return a map with package names (key) and associated extensions (value)
 	 */
-	private Map<String, Set<String>> getPackagesManagingExtensions(PackageManager pkgManager) {
-		Map<String, Set<String>> packagesWithMetaData = new HashMap<String, Set<String>>();
+	private Map<String, Set<Extension>> getPackagesManagingExtensions(PackageManager pkgManager) {
+		Map<String, Set<Extension>> packagesWithMetaDataMultimediaSession = new HashMap<String, Set<Extension>>();
+		Map<String, Set<Extension>> packagesWithMetaDataApplicationId = new HashMap<String, Set<Extension>>();
 		// Get all applications having CapabilityService.INTENT_EXTENSIONS for meta data
 		List<ApplicationInfo> apps = pkgManager.getInstalledApplications(PackageManager.GET_META_DATA);
 		for (ApplicationInfo appInfo : apps) {
 			Bundle appMeta = appInfo.metaData;
-			if (appMeta != null) {
+			if (appMeta != null) {			    			   
 				String extensions = appMeta.getString(CapabilityService.INTENT_EXTENSIONS);
-				Set<String> extensionSet = ExtensionManager.getExtensions(extensions);
+				Set<Extension> extensionSet = ExtensionManager.getMultimediaSessionExtensions(extensions);
+				
+				String extApplicationId  = appMeta.getString(RcsService.METADATA_APPLICATION_ID);
+				if(extApplicationId != null){				    
+				    Extension extension = new Extension(extApplicationId, Extension.Type.APPLICATION_ID);
+				    extensionSet.add(extension);
+				    
+				    Set<Extension> applicationIdSet = new HashSet<Extension>();
+				    applicationIdSet.add(extension);
+				    packagesWithMetaDataApplicationId.put(appInfo.packageName, applicationIdSet);
+				}
 				if (!extensionSet.isEmpty()) {
 					// Save package name
-					packagesWithMetaData.put(appInfo.packageName, extensionSet);
+				    packagesWithMetaDataMultimediaSession.put(appInfo.packageName, extensionSet);
 				}
 			}
 		}
@@ -176,8 +188,10 @@ public class SupportedExtensionUpdater implements Runnable {
 		}
 
 		// Only keep packages belonging to both sets
-		packagesWithMetaData.keySet().retainAll(packagesWithActivitiesProcessingIntentExtension);
-		return packagesWithMetaData;
+		packagesWithMetaDataMultimediaSession.keySet().retainAll(packagesWithActivitiesProcessingIntentExtension);
+				
+		packagesWithMetaDataApplicationId.putAll(packagesWithMetaDataMultimediaSession);
+		return packagesWithMetaDataApplicationId;
 	}
 
 	/**

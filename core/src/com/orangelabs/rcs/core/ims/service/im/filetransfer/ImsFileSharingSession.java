@@ -23,6 +23,7 @@ package com.orangelabs.rcs.core.ims.service.im.filetransfer;
 
 import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.contacts.ContactId;
+
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpSession;
@@ -38,6 +39,9 @@ import com.orangelabs.rcs.utils.PhoneUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
 import android.net.Uri;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Abstract IMS file transfer session
@@ -71,9 +75,10 @@ public abstract class ImsFileSharingSession extends FileSharingSession {
 	 */
 	public ImsFileSharingSession(ImsService parent, MmContent content, ContactId contact, MmContent fileIcon, String filetransferId) {
 		super(parent, content, contact, PhoneUtils.formatContactIdToUri(contact), fileIcon, filetransferId);
+		setFeatureTags(new ArrayList<String>(Arrays.asList(InstantMessagingService.FT_FEATURE_TAGS)));
 	}
 	
-	/**
+    /**
 	 * Returns the "file-transfer-id" attribute
 	 * 
 	 * @return String
@@ -118,13 +123,13 @@ public abstract class ImsFileSharingSession extends FileSharingSession {
     	if (getFileicon() != null) {
 	        invite = SipMessageFactory.createMultipartInvite(
 	                getDialogPath(),
-	                InstantMessagingService.FT_FEATURE_TAGS,
+	                getFeatureTags(),
 	                getDialogPath().getLocalContent(),
 	                BOUNDARY_TAG);
     	} else {
 	        invite = SipMessageFactory.createInvite(
 	                getDialogPath(),
-	                InstantMessagingService.FT_FEATURE_TAGS,
+	                getFeatureTags(),
 	                getDialogPath().getLocalContent());
     	}
         

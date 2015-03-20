@@ -22,11 +22,6 @@
 
 package com.orangelabs.rcs.core.ims.service.sip;
 
-import android.content.Intent;
-
-import java.util.HashMap;
-import java.util.Map;
-
 import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.orangelabs.rcs.core.CoreException;
@@ -37,20 +32,19 @@ import com.orangelabs.rcs.core.ims.protocol.sip.SipRequest;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipTransactionContext;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.SessionAuthenticationAgent;
-import com.orangelabs.rcs.core.ims.service.capability.CapabilityUtils;
-import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.core.ims.service.sip.messaging.GenericSipMsrpSession;
 import com.orangelabs.rcs.core.ims.service.sip.messaging.OriginatingSipMsrpSession;
 import com.orangelabs.rcs.core.ims.service.sip.messaging.TerminatingSipMsrpSession;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.GenericSipRtpSession;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.OriginatingSipRtpSession;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.TerminatingSipRtpSession;
-import com.orangelabs.rcs.service.api.ServerApiException;
-import com.orangelabs.rcs.service.api.ServerApiUtils;
-import com.orangelabs.rcs.service.api.ServerApiUtils.ExtensionCheckType;
-import com.orangelabs.rcs.service.api.ServerPermissionDeniedException;
 import com.orangelabs.rcs.utils.PhoneUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.content.Intent;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * SIP service
@@ -140,15 +134,8 @@ public class SipService extends ImsService {
      * @param sessionInvite Resolved intent
      * @param invite Initial invite
      * @throws RcsContactFormatException
-     * @throws RcsPermissionDeniedException 
      */
-	public void receiveMsrpSessionInvitation(Intent sessionInvite, SipRequest invite) throws RcsContactFormatException, ServerPermissionDeniedException, ServerApiException {
-
-		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(
-				ExtensionManager.getInstance(),
-				CapabilityUtils.extractServiceId(invite.getFeatureTags().get(0)),
-				ExtensionCheckType.WITHOUT_PROCESS_BINDING);
+	public void receiveMsrpSessionInvitation(Intent sessionInvite, SipRequest invite) throws RcsContactFormatException {
 		
 		// Create a new session
 		TerminatingSipMsrpSession session = new TerminatingSipMsrpSession(this, invite, sessionInvite);
@@ -182,16 +169,9 @@ public class SipService extends ImsService {
      * @param sessionInvite Resolved intent
      * @param invite Initial invite
      * @throws RcsContactFormatException
-	   * @throws ServerApiException 
      */
-	public void receiveRtpSessionInvitation(Intent sessionInvite, SipRequest invite) throws RcsContactFormatException, ServerApiException, ServerPermissionDeniedException {
-		
-		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(
-				ExtensionManager.getInstance(),
-				CapabilityUtils.extractServiceId(invite.getFeatureTags().get(0)),
-				ExtensionCheckType.WITHOUT_PROCESS_BINDING);
-		
+	public void receiveRtpSessionInvitation(Intent sessionInvite, SipRequest invite) throws RcsContactFormatException {
+				
 		// Create a new session
 		TerminatingSipRtpSession session = new TerminatingSipRtpSession(this, invite, sessionInvite);
 

@@ -16,17 +16,15 @@
 
 package com.orangelabs.rcs.service.api;
 
-import javax2.sip.message.Response;
-
-import android.net.Uri;
-
 import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ft.FileTransfer;
 import com.gsma.services.rcs.ft.FileTransfer.ReasonCode;
 import com.gsma.services.rcs.ft.IFileTransfer;
+
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingError;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession;
@@ -34,10 +32,14 @@ import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSessionLis
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileTransferPersistedStorageAccessor;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.HttpFileTransferSession;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.HttpTransferState;
-import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.provider.messaging.FileTransferStateAndReasonCode;
 import com.orangelabs.rcs.service.broadcaster.IGroupFileTransferBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.net.Uri;
+import android.os.Binder;
+
+import javax2.sip.message.Response;
 
 /**
  * File transfer implementation
@@ -283,9 +285,10 @@ public class GroupFileTransferImpl extends IFileTransfer.Stub implements FileSha
 					+ "' not available.");
 		}
 		// Accept invitation
+		final Integer callingUid = Binder.getCallingUid();
 		new Thread() {
 			public void run() {
-				session.acceptSession();
+				session.acceptSession(callingUid);
 			}
 		}.start();
 	}
@@ -715,4 +718,21 @@ public class GroupFileTransferImpl extends IFileTransfer.Stub implements FileSha
 
 		mBroadcaster.broadcastInvitation(mFileTransferId);
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

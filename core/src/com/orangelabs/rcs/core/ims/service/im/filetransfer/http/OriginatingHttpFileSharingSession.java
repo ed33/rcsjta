@@ -28,7 +28,6 @@ import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.protocol.msrp.MsrpSession;
 import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceError;
-import com.orangelabs.rcs.core.ims.service.im.chat.ChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatUtils;
 import com.orangelabs.rcs.core.ims.service.im.chat.FileTransferMessage;
 import com.orangelabs.rcs.core.ims.service.im.chat.OneToOneChatSession;
@@ -38,9 +37,7 @@ import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
 import com.orangelabs.rcs.provider.fthttp.FtHttpResumeDaoImpl;
 import com.orangelabs.rcs.provider.fthttp.FtHttpResumeUpload;
 import com.orangelabs.rcs.provider.messaging.MessagingLog;
-import com.orangelabs.rcs.service.api.ServerApiException;
 import com.orangelabs.rcs.utils.IdGenerator;
-import com.orangelabs.rcs.utils.MimeManager;
 import com.orangelabs.rcs.utils.PhoneUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -153,6 +150,7 @@ public class OriginatingHttpFileSharingSession extends HttpFileTransferSession i
                 FileTransferMessage firstMsg = ChatUtils.createFileTransferMessage(getRemoteContact(), fileInfo, false, msgId);
                 try {
 					chatSession = mCore.getImService().initiateOneToOneChatSession(getRemoteContact(), firstMsg);
+					chatSession.setCallingUid(getCallingUid());
 				} catch (CoreException e) {
 					if (logger.isActivated()) {
 	                    logger.debug("Couldn't initiate One to one session :"+e);

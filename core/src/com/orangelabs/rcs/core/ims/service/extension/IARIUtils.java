@@ -37,7 +37,7 @@ public class IARIUtils {
 	/**
 	 * Common prefix
 	 */
-	private static final String COMMON_PREFIX = "urn:urn-7:3gpp-application.ims.iari.rcs.";
+	public static final String COMMON_PREFIX = "urn:urn-7:3gpp-application.ims.iari.rcs.";
 		
 	/**
 	 * Is a valid IARI

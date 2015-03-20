@@ -22,7 +22,9 @@
 
 package com.orangelabs.rcs.core.ims.service;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Vector;
 
 import javax2.sip.header.ContactHeader;
@@ -41,6 +43,7 @@ import com.orangelabs.rcs.core.ims.protocol.sip.SipResponse;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipTransactionContext;
 import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
+import com.orangelabs.rcs.service.api.ServerApiUtils;
 import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -146,7 +149,17 @@ public abstract class ImsServiceSession extends Thread {
      * Session accepting flag
      */
     private boolean mSessionAccepted = false;
-
+    
+    /**
+     * Feature tags
+     */
+    private List<String> featureTags = new ArrayList<String>();
+    
+    /**
+     * CallingUid : identify the client application bound to the API
+     */
+    private Integer mCallingUid;
+    
     /**
      * The logger
      */
@@ -433,13 +446,14 @@ public abstract class ImsServiceSession extends Thread {
 	
 	/**
 	 * Accept the session invitation
+	 * @param callingUid : identifier of the application bound to the APÏ
 	 */
-	public void acceptSession() {
+	public void acceptSession(Integer callingUid) {
 		if (logger.isActivated()) {
 			logger.debug("Session invitation has been accepted");
 		}
 		invitationStatus = INVITATION_ACCEPTED;
-
+		setCallingUid(callingUid);
 		// Unblock semaphore
 		synchronized(waitUserAnswer) {
 			waitUserAnswer.notifyAll();
@@ -1302,4 +1316,41 @@ public abstract class ImsServiceSession extends Thread {
 	 */
 	public void handle180Ringing(SipResponse response) {
 	}
+	
+	   /**
+     * Get feature tags
+     * 
+     * @return Feature tags
+     */
+    public String[] getFeatureTags() {
+        if(mCallingUid != null){
+            ServerApiUtils.addApplicationIdAsFeaturesTag(featureTags,  mCallingUid);
+        }
+        return featureTags.toArray(new String[featureTags.size()]);
+    }
+    
+    /**
+     * Set feature tags
+     * 
+     * @param tags Feature tags
+     */
+    public void setFeatureTags(List<String> tags) {
+        this.featureTags = tags;
+    }
+
+    /**
+     * Get the UID of the application bound to the API
+     * @return UID or null when if there is no bound application to the API
+     */
+    public Integer getCallingUid() {
+        return mCallingUid;
+    }
+
+    /**
+     * Set the UID of the application bound to the API
+     * @param callingUid
+     */
+    public void setCallingUid(Integer callingUid) {
+        mCallingUid = callingUid;
+    }    
 }

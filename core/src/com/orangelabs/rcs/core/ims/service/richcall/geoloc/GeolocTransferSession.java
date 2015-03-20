@@ -23,6 +23,7 @@
 package com.orangelabs.rcs.core.ims.service.richcall.geoloc;
 
 import com.gsma.services.rcs.contacts.ContactId;
+
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipException;
@@ -34,6 +35,9 @@ import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingSession;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Geoloc sharing transfer session
@@ -70,6 +74,7 @@ public abstract class GeolocTransferSession extends ContentSharingSession {
 	 */
 	public GeolocTransferSession(ImsService parent, MmContent content, ContactId contact) {
 		super(parent, content, contact);
+		setFeatureTags(new ArrayList<String>(Arrays.asList(RichcallService.FEATURE_TAGS_GEOLOC_SHARE))); 
 	}
 	
 	/**
@@ -115,7 +120,7 @@ public abstract class GeolocTransferSession extends ContentSharingSession {
     public SipRequest createInvite() throws SipException {
         return SipMessageFactory.createInvite(
                 getDialogPath(),
-                RichcallService.FEATURE_TAGS_GEOLOC_SHARE,
+                getFeatureTags(),
                 getDialogPath().getLocalContent());
     }
     

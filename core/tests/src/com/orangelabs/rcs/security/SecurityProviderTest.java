@@ -23,6 +23,8 @@ import java.util.Map;
 import android.test.AndroidTestCase;
 
 import com.gsma.iariauth.validator.IARIAuthDocument.AuthType;
+
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.security.AuthorizationData;
 import com.orangelabs.rcs.provider.security.CacheAuth;
@@ -81,11 +83,11 @@ public class SecurityProviderTest extends AndroidTestCase {
 		mIariRange2Cert1 = new CertificateData(iari2, cert1);
 		mIariRange2Cert2 = new CertificateData(iari2, cert2);
 		mAuth1 = new AuthorizationData(UID1,"com.orangelabs.package1",
-				iari1, AuthType.RANGE, range1, "99:99:99");
+				new Extension(iari1,Extension.Type.APPLICATION_ID), AuthType.RANGE, range1, "99:99:99");
 		mAuth2 = new AuthorizationData(UID2,"com.orangelabs.package2",
-				iari2, AuthType.RANGE, range2, "00:00:00");
-		mAuth3 = new AuthorizationData(UID3,"com.orangelabs.package3", "demo3");
-		mAuth4 = new AuthorizationData(UID3,"com.orangelabs.package3", "demo4");
+		        new Extension(iari2,Extension.Type.MULTIMEDIA_SESSION), AuthType.RANGE, range2, "00:00:00");
+		mAuth3 = new AuthorizationData(UID3,"com.orangelabs.package3", new Extension("demo3",Extension.Type.MULTIMEDIA_SESSION));
+		mAuth4 = new AuthorizationData(UID3,"com.orangelabs.package3", new Extension("demo4",Extension.Type.MULTIMEDIA_SESSION));
 		mSecurityInfosTest = new SecurityLibTest();
 		mSecurityInfosTest.removeAllCertificates(mContentResolver);
 		mSecurityInfosTest.removeAllAuthorizations(mContentResolver);
@@ -229,7 +231,7 @@ public class SecurityProviderTest extends AndroidTestCase {
 		int id = mSecurityInfosTest.getIdForPackageUidAndIari(
 				mContentResolver,UID1, "urn:urn-7:3gpp-application.ims.iari.rcs.mnc099.mcc099.demo1");
 		assertNotSame(id, SecurityLibTest.INVALID_ID);
-		int count = mSecurityInfos.removeAuthorization(id, mAuth1.getIARI());
+		int count = mSecurityInfos.removeAuthorization(id, mAuth1.getExtension().getExtensionAsIari());
 		assertEquals(1, count);
 		Map<AuthorizationData, Integer> map = mSecurityInfos
 				.getAllAuthorizations();
@@ -250,17 +252,17 @@ public class SecurityProviderTest extends AndroidTestCase {
 		assertEquals(1, authorizationDatas.size());
 		assertTrue(authorizationDatas.containsKey(mAuth1));
 
-		id1 = mSecurityInfosTest.getIdForPackageUidAndIari(mContentResolver,UID1,mAuth1.getIARI());
-		id2 = mSecurityInfosTest.getIdForPackageUidAndIari(mContentResolver,UID1,mAuth1.getIARI());
+		id1 = mSecurityInfosTest.getIdForPackageUidAndIari(mContentResolver,UID1,mAuth1.getExtension().getExtensionAsIari());
+		id2 = mSecurityInfosTest.getIdForPackageUidAndIari(mContentResolver,UID1,mAuth1.getExtension().getExtensionAsIari());
 		assertEquals(id1,id2);
 		
 		localAuth = mSecurityInfosTest.getAuthorizationById(mContentResolver,id1);
 		assertEquals(mAuth1, localAuth);
 		
-		localAuth = mSecurityInfos.getAuthorizationByUidAndIari(mAuth1.getPackageUid(),mAuth1.getIARI());
+		localAuth = mSecurityInfos.getAuthorizationByUidAndIari(mAuth1.getPackageUid(),mAuth1.getExtension().getExtensionAsIari());
 		assertEquals(mAuth1, localAuth);	
 		
-		assertEquals(id1, mSecurityInfos.getAuthorizationIdByIARI(mAuth1.getIARI()));		
+		assertEquals(id1, mSecurityInfos.getAuthorizationIdByIARI(mAuth1.getExtension().getExtensionAsIari()));		
 		assertEquals(Integer.valueOf(SecurityLog.INVALID_ID), mSecurityInfos.getAuthorizationIdByIARI("notExistingIARI"));
 	}
 	

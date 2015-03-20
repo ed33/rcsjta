@@ -21,26 +21,28 @@
  ******************************************************************************/
 package com.orangelabs.rcs.service.api;
 
-import javax2.sip.message.Response;
-
-import android.net.Uri;
-
 import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ish.IImageSharing;
 import com.gsma.services.rcs.ish.ImageSharing;
 import com.gsma.services.rcs.ish.ImageSharing.ReasonCode;
+
 import com.orangelabs.rcs.core.ims.protocol.sip.SipDialogPath;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
 import com.orangelabs.rcs.core.ims.service.richcall.image.ImageSharingPersistedStorageAccessor;
 import com.orangelabs.rcs.core.ims.service.richcall.image.ImageTransferSession;
 import com.orangelabs.rcs.core.ims.service.richcall.image.ImageTransferSessionListener;
 import com.orangelabs.rcs.provider.sharing.ImageSharingStateAndReasonCode;
-import com.orangelabs.rcs.provider.sharing.RichCallHistory;
 import com.orangelabs.rcs.service.broadcaster.IImageSharingEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.net.Uri;
+import android.os.Binder;
+
+import javax2.sip.message.Response;
 
 /**
  * Image sharing implementation
@@ -292,9 +294,10 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 					+ "' not available.");
 		}
 		// Accept invitation
+		final Integer callingUid = Binder.getCallingUid();
         new Thread() {
     		public void run() {
-    			session.acceptSession();
+    			session.acceptSession(callingUid);
     		}
     	}.start();
 	}
@@ -518,4 +521,21 @@ public class ImageSharingImpl extends IImageSharing.Stub implements ImageTransfe
 					mSharingId, ImageSharing.State.RINGING, ReasonCode.UNSPECIFIED);
 		}
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

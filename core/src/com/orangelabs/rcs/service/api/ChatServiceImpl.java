@@ -21,19 +21,10 @@
  ******************************************************************************/
 package com.orangelabs.rcs.service.api;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-
-import android.os.RemoteException;
-
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
-import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.chat.ChatLog.Message;
 import com.gsma.services.rcs.chat.ChatLog.Message.ReasonCode;
 import com.gsma.services.rcs.chat.ChatServiceConfiguration;
@@ -46,13 +37,13 @@ import com.gsma.services.rcs.chat.IOneToOneChat;
 import com.gsma.services.rcs.chat.IOneToOneChatListener;
 import com.gsma.services.rcs.chat.ParticipantInfo;
 import com.gsma.services.rcs.contacts.ContactId;
+
 import com.orangelabs.rcs.core.Core;
 import com.orangelabs.rcs.core.CoreException;
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatSession;
-import com.orangelabs.rcs.core.ims.service.im.chat.ChatUtils;
 import com.orangelabs.rcs.core.ims.service.im.chat.ContributionIdGenerator;
-import com.orangelabs.rcs.core.ims.service.im.chat.FileTransferMessage;
 import com.orangelabs.rcs.core.ims.service.im.chat.GroupChatPersistedStorageAccessor;
 import com.orangelabs.rcs.core.ims.service.im.chat.GroupChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage;
@@ -67,6 +58,16 @@ import com.orangelabs.rcs.service.broadcaster.GroupChatEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.OneToOneChatEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.os.Binder;
+import android.os.RemoteException;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * Chat service implementation
@@ -424,7 +425,8 @@ public class ChatServiceImpl extends IChatService.Stub {
 
 		try {
 			final ChatSession session = mImService.initiateAdhocGroupChatSession(contacts, subject);
-
+			session.setCallingUid(Binder.getCallingUid());
+			
 			String chatId = session.getContributionID();
 			GroupChatPersistedStorageAccessor storageAccessor = new GroupChatPersistedStorageAccessor(
 					chatId, mMessagingLog);
@@ -675,4 +677,21 @@ public class ChatServiceImpl extends IChatService.Stub {
 		groupChat.rejoinGroupChat();
 		addGroupChat(groupChat);
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

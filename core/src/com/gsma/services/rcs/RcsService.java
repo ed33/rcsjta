@@ -39,6 +39,12 @@ public abstract class RcsService {
 	 */
 	public static final String ACTION_SERVICE_PROVISIONED = "com.gsma.services.rcs.action.SERVICE_PROVISIONED";
 
+    /**
+     * Intent broadcasted to discover applicationId
+     * 
+     */	
+	public final static String METADATA_APPLICATION_ID = "com.gsma.services.rcs.APPLICATION_ID";
+	
 	/**
 	 * Information about the current build
 	 */

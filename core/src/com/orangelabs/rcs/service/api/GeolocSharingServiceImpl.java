@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import android.os.Binder;
 import android.os.IBinder;
 
 import com.gsma.services.rcs.Geoloc;
@@ -37,10 +38,12 @@ import com.gsma.services.rcs.gsh.IGeolocSharing;
 import com.gsma.services.rcs.gsh.IGeolocSharingListener;
 import com.gsma.services.rcs.gsh.IGeolocSharingService;
 import com.gsma.services.rcs.gsh.GeolocSharing.ReasonCode;
+
 import com.orangelabs.rcs.core.content.GeolocContent;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.ImsModule;
 import com.orangelabs.rcs.core.ims.service.SessionIdGenerator;
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatUtils;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
@@ -234,6 +237,7 @@ public class GeolocSharingServiceImpl extends IGeolocSharingService.Stub {
 
 			// Initiate a sharing session
 			final GeolocTransferSession session = mRichcallService.initiateGeolocSharingSession(contact, content, geolocPush);
+			session.setCallingUid(Binder.getCallingUid());
 			String sharingId = session.getSessionID();
 			mBroadcaster.broadcastGeolocSharingStateChanged(contact,
 					sharingId, GeolocSharing.State.INITIATED, ReasonCode.UNSPECIFIED);
@@ -352,4 +356,21 @@ public class GeolocSharingServiceImpl extends IGeolocSharingService.Stub {
 		/* TODO: Persist in geoloc content provider */
 		mBroadcaster.broadcastInvitation(sharingId);
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

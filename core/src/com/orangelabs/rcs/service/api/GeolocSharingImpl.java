@@ -30,8 +30,10 @@ import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.gsh.GeolocSharing;
 import com.gsma.services.rcs.gsh.GeolocSharing.ReasonCode;
 import com.gsma.services.rcs.gsh.IGeolocSharing;
+
 import com.orangelabs.rcs.core.ims.protocol.sip.SipDialogPath;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocMessage;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
@@ -44,6 +46,8 @@ import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.service.broadcaster.IGeolocSharingEventBroadcaster;
 import com.orangelabs.rcs.utils.IdGenerator;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.os.Binder;
 
 /**
  * Geoloc sharing implementation
@@ -216,10 +220,11 @@ public class GeolocSharingImpl extends IGeolocSharing.Stub implements GeolocTran
 			throw new IllegalStateException("Session with sharing ID '" + mSharingId
 					+ "' not available.");
 		}
+		final Integer callingUid = Binder.getCallingUid();
 		// Accept invitation
         new Thread() {
     		public void run() {
-    			session.acceptSession();
+    			session.acceptSession(callingUid);
     		}
     	}.start();
 	}
@@ -490,4 +495,21 @@ public class GeolocSharingImpl extends IGeolocSharing.Stub implements GeolocTran
 					mSharingId, GeolocSharing.State.RINGING, ReasonCode.UNSPECIFIED);
 	    }
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

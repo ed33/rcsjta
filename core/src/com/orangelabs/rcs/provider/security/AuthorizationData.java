@@ -19,6 +19,8 @@ package com.orangelabs.rcs.provider.security;
 
 import com.gsma.iariauth.validator.IARIAuthDocument.AuthType;
 
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
+
 import android.net.Uri;
 
 /**
@@ -94,9 +96,17 @@ public class AuthorizationData {
 	 */
 	public static final String KEY_RANGE = "range";
 
+	 /**
+     * The name of the column containing the extension type.
+     * <P>
+     * Type: TEXT
+     * </P>
+     */
+    public static final String KEY_EXT_TYPE = "ext_type";
+    
 	final private AuthType mAuthType;
 	final private Integer mPackageUid;
-	final private String mIARI;
+	final private Extension mExtension;
 	final private String mRange;
 	final private String mPackageName;
 	final private String mPackageSigner;
@@ -104,16 +114,16 @@ public class AuthorizationData {
 	/**
 	 * @param packageUid
 	 * @param packageName
-	 * @param iari
+	 * @param extension
 	 * @param authType
 	 * @param range
 	 * @param packageSigner
 	 */
-	public AuthorizationData(Integer packageUid, String packageName, String iari, AuthType authType, String range,
+	public AuthorizationData(Integer packageUid, String packageName, Extension extension, AuthType authType, String range,
 			String packageSigner) {
 		mPackageUid = packageUid;
 		mAuthType = authType;
-		mIARI = iari;
+		mExtension = extension;
 		mRange = range;
 		mPackageName = packageName;
 		mPackageSigner = packageSigner;
@@ -122,13 +132,13 @@ public class AuthorizationData {
 	/**
 	 * @param packageUid
 	 * @param packageName
-	 * @param iari
+	 * @param extension
 	 */
-	public AuthorizationData(Integer packageUid, String packageName, String iari) {
+	public AuthorizationData(Integer packageUid, String packageName, Extension extension) {
 		mAuthType = AuthType.UNSPECIFIED;
 		mPackageUid = packageUid;
 		mPackageName = packageName;
-		mIARI = iari;
+		mExtension = extension;
 		mPackageSigner = null;
 		mRange = null;
 	}
@@ -143,12 +153,12 @@ public class AuthorizationData {
 	}
 
 	/**
-	 * Gets IARI
+	 * Gets extension
 	 * 
-	 * @return iari
+	 * @return extension
 	 */
-	public String getIARI() {
-		return mIARI;
+	public Extension getExtension() {
+		return mExtension;
 	}
 
 	/**
@@ -192,7 +202,7 @@ public class AuthorizationData {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((mAuthType == null) ? 0 : mAuthType.hashCode());
-		result = prime * result + ((mIARI == null) ? 0 : mIARI.hashCode());
+		result = prime * result + ((mExtension == null) ? 0 : mExtension.hashCode());
 		result = prime * result + ((mPackageName == null) ? 0 : mPackageName.hashCode());
 		result = prime * result + ((mPackageSigner == null) ? 0 : mPackageSigner.hashCode());
 		result = prime * result + ((mPackageUid == null) ? 0 : mPackageUid.hashCode());
@@ -211,10 +221,10 @@ public class AuthorizationData {
 		AuthorizationData other = (AuthorizationData) obj;
 		if (mAuthType != other.mAuthType)
 			return false;
-		if (mIARI == null) {
-			if (other.mIARI != null)
+		if (mExtension == null) {
+			if (other.mExtension != null)
 				return false;
-		} else if (!mIARI.equals(other.mIARI))
+		} else if (!mExtension.equals(other.mExtension))
 			return false;
 		if (mPackageName == null) {
 			if (other.mPackageName != null)

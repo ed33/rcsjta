@@ -21,17 +21,9 @@
  ******************************************************************************/
 package com.orangelabs.rcs.service.api;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import android.net.Uri;
-import android.os.IBinder;
-
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
-import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.RcsCommon.Direction;
+import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ish.IImageSharing;
 import com.gsma.services.rcs.ish.IImageSharingListener;
@@ -39,10 +31,11 @@ import com.gsma.services.rcs.ish.IImageSharingService;
 import com.gsma.services.rcs.ish.ImageSharing;
 import com.gsma.services.rcs.ish.ImageSharing.ReasonCode;
 import com.gsma.services.rcs.ish.ImageSharingServiceConfiguration;
-import com.orangelabs.rcs.core.Core;
+
 import com.orangelabs.rcs.core.content.ContentManager;
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.service.SessionIdGenerator;
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
 import com.orangelabs.rcs.core.ims.service.richcall.image.ImageSharingPersistedStorageAccessor;
 import com.orangelabs.rcs.core.ims.service.richcall.image.ImageTransferSession;
@@ -54,6 +47,15 @@ import com.orangelabs.rcs.provider.sharing.RichCallHistory;
 import com.orangelabs.rcs.service.broadcaster.ImageSharingEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.net.Uri;
+import android.os.Binder;
+import android.os.IBinder;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Image sharing service implementation
@@ -254,7 +256,7 @@ public class ImageSharingServiceImpl extends IImageSharingService.Stub {
 			MmContent content = ContentManager.createMmContent(file, desc.getSize(), desc.getName());
 
 			final ImageTransferSession session = mRichcallService.initiateImageSharingSession(contact, content, null);
-
+			session.setCallingUid(Binder.getCallingUid());
 			String sharingId = session.getSessionID();
 			mRichCallLog.addImageSharing(session.getSessionID(), contact,
 					Direction.OUTGOING, session.getContent(),
@@ -386,4 +388,21 @@ public class ImageSharingServiceImpl extends IImageSharingService.Stub {
 	public int getServiceVersion() throws ServerApiException {
 		return RcsService.Build.API_VERSION;
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

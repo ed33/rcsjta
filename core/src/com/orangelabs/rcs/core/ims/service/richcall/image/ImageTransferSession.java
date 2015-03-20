@@ -23,6 +23,7 @@
 package com.orangelabs.rcs.core.ims.service.richcall.image;
 
 import com.gsma.services.rcs.contacts.ContactId;
+
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipException;
@@ -35,6 +36,9 @@ import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.utils.StorageUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Image sharing transfer session
@@ -79,6 +83,7 @@ public abstract class ImageTransferSession extends ContentSharingSession {
 		super(parent, content, contact);
 		
 		this.thumbnail = thumbnail;
+		setFeatureTags(new ArrayList<String>(Arrays.asList(RichcallService.FEATURE_TAGS_IMAGE_SHARE)));
 	}
 	
 	/**
@@ -117,13 +122,13 @@ public abstract class ImageTransferSession extends ContentSharingSession {
     	if (thumbnail != null) {
 	        return SipMessageFactory.createMultipartInvite(
 	                getDialogPath(),
-	                RichcallService.FEATURE_TAGS_IMAGE_SHARE,
+	                getFeatureTags(),
 	                getDialogPath().getLocalContent(),
 	                BOUNDARY_TAG);
     	} else {
 	        return SipMessageFactory.createInvite(
 	                getDialogPath(),
-	                RichcallService.FEATURE_TAGS_IMAGE_SHARE,
+	                getFeatureTags(),
 	                getDialogPath().getLocalContent());
     	}
     }

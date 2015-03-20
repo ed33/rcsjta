@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import android.net.Uri;
+import android.os.Binder;
 import android.os.IBinder;
 
 import com.gsma.services.rcs.RcsService;
@@ -35,8 +36,10 @@ import com.gsma.services.rcs.upload.FileUploadServiceConfiguration;
 import com.gsma.services.rcs.upload.IFileUpload;
 import com.gsma.services.rcs.upload.IFileUploadListener;
 import com.gsma.services.rcs.upload.IFileUploadService;
+
 import com.orangelabs.rcs.core.content.ContentManager;
 import com.orangelabs.rcs.core.content.MmContent;
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession;
 import com.orangelabs.rcs.core.ims.service.upload.FileUploadSession;
@@ -279,4 +282,21 @@ public class FileUploadServiceImpl extends IFileUploadService.Stub {
 	public int getServiceVersion() throws ServerApiException {
 		return RcsService.Build.API_VERSION;
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

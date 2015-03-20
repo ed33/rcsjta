@@ -22,17 +22,9 @@
 
 package com.orangelabs.rcs.service.api;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import android.os.IBinder;
-
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
-import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.RcsCommon.Direction;
+import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.IVideoSharing;
@@ -41,9 +33,11 @@ import com.gsma.services.rcs.vsh.IVideoSharingService;
 import com.gsma.services.rcs.vsh.VideoSharing;
 import com.gsma.services.rcs.vsh.VideoSharing.ReasonCode;
 import com.gsma.services.rcs.vsh.VideoSharingServiceConfiguration;
+
 import com.orangelabs.rcs.core.Core;
 import com.orangelabs.rcs.core.content.VideoContent;
 import com.orangelabs.rcs.core.ims.service.SessionIdGenerator;
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
 import com.orangelabs.rcs.core.ims.service.richcall.video.VideoSharingPersistedStorageAccessor;
 import com.orangelabs.rcs.core.ims.service.richcall.video.VideoStreamingSession;
@@ -53,6 +47,14 @@ import com.orangelabs.rcs.provider.sharing.RichCallHistory;
 import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.VideoSharingEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.os.Binder;
+import android.os.IBinder;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Rich call API service
@@ -280,7 +282,7 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 
 		try {
             final VideoStreamingSession session = mRichcallService.initiateLiveVideoSharingSession(contact, player);
-
+            session.setCallingUid(Binder.getCallingUid());
 			String sharingId = session.getSessionID();
 			mRichCallLog.addVideoSharing(sharingId, contact,
 					Direction.OUTGOING, (VideoContent)session.getContent(),
@@ -412,4 +414,21 @@ public class VideoSharingServiceImpl extends IVideoSharingService.Stub {
 	public int getServiceVersion() throws ServerApiException {
 		return RcsService.Build.API_VERSION;
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

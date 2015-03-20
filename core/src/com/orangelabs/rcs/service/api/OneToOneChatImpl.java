@@ -24,22 +24,19 @@ package com.orangelabs.rcs.service.api;
 
 import com.gsma.services.rcs.Geoloc;
 import com.gsma.services.rcs.RcsCommon.Direction;
+import com.gsma.services.rcs.chat.ChatLog;
 import com.gsma.services.rcs.chat.ChatLog.Message;
 import com.gsma.services.rcs.chat.ChatLog.Message.ReasonCode;
-import com.gsma.services.rcs.chat.ChatLog;
-import com.gsma.services.rcs.chat.ChatMessage;
 import com.gsma.services.rcs.chat.IChatMessage;
 import com.gsma.services.rcs.chat.IOneToOneChat;
-import com.gsma.services.rcs.chat.IOneToOneChatListener;
 import com.gsma.services.rcs.chat.ParticipantInfo;
 import com.gsma.services.rcs.contacts.ContactId;
-import com.gsma.services.rcs.ft.FileTransfer;
-import com.orangelabs.rcs.core.Core;
+
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatError;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatSessionListener;
 import com.orangelabs.rcs.core.ims.service.im.chat.ChatUtils;
-import com.orangelabs.rcs.core.ims.service.im.chat.FileTransferMessage;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocMessage;
 import com.orangelabs.rcs.core.ims.service.im.chat.GeolocPush;
 import com.orangelabs.rcs.core.ims.service.im.chat.InstantMessage;
@@ -49,10 +46,9 @@ import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettings.ImSessionStartMode;
 import com.orangelabs.rcs.service.broadcaster.IOneToOneChatEventBroadcaster;
-import com.orangelabs.rcs.utils.IdGenerator;
 import com.orangelabs.rcs.utils.logger.Logger;
 
-import android.text.GetChars;
+import android.os.Binder;
 
 /**
  * One-to-One Chat implementation
@@ -216,6 +212,7 @@ public class OneToOneChatImpl extends IOneToOneChat.Stub implements ChatSessionL
 					addOutgoingChatMessage(msg, Message.Status.Content.SENDING);
 					final OneToOneChatSession newSession = mImService.initiateOneToOneChatSession(
 							mContact, msg);
+					newSession.setCallingUid(Binder.getCallingUid());
 					new Thread() {
 						public void run() {
 							newSession.startSession();
@@ -251,9 +248,10 @@ public class OneToOneChatImpl extends IOneToOneChat.Stub implements ChatSessionL
 				if (logger.isActivated()) {
 					logger.debug("Core chat session is pending: auto accept it.");
 				}
+				final Integer callingUid = Binder.getCallingUid();
 				new Thread() {
 					public void run() {
-						session.acceptSession();
+						session.acceptSession(callingUid);
 					}
 				}.start();
 			}
@@ -329,7 +327,7 @@ public class OneToOneChatImpl extends IOneToOneChat.Stub implements ChatSessionL
 				if (logger.isActivated()) {
 					logger.debug("Core chat session is pending: auto accept it.");
 				}
-				session.acceptSession();
+				session.acceptSession(Binder.getCallingUid());
 				break;
 			default:
 				break;
@@ -371,7 +369,7 @@ public class OneToOneChatImpl extends IOneToOneChat.Stub implements ChatSessionL
 					if (logger.isActivated()) {
 						logger.debug("Core chat session is pending: auto accept it, as IM_SESSION_START mode = 0");
 					}
-					session.acceptSession();
+					session.acceptSession(Binder.getCallingUid());
 				}
 			}
 		} catch (Exception e) {
@@ -690,4 +688,21 @@ public class OneToOneChatImpl extends IOneToOneChat.Stub implements ChatSessionL
 	public void handleSessionAutoAccepted() {
 		/* Not used by one-to-one chat */
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

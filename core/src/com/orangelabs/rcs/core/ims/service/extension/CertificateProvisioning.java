@@ -121,9 +121,9 @@ public class CertificateProvisioning implements ICertificateProvisioningListener
 			}
 			if (!iariRanges.contains(authorizationData.getRange())) {
 				if (isLoggerActive) {
-					logger.debug( "Remove authorization for IARI range: ".concat(authorizationData.getIARI()));
+					logger.debug( "Remove authorization for IARI range: ".concat(authorizationData.getExtension().getExtensionAsIari()));
 				}
-				mSecurityLog.removeAuthorization(authorizationDatas.get(authorizationData), authorizationData.getIARI());
+				mSecurityLog.removeAuthorization(authorizationDatas.get(authorizationData), authorizationData.getExtension().getExtensionAsIari());
 			}
 		}
 		if (newCertificate) {

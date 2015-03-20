@@ -22,10 +22,13 @@
 package com.orangelabs.rcs.service.api;
 
 import android.net.Uri;
+import android.os.Binder;
 
 import com.gsma.services.rcs.upload.FileUpload;
 import com.gsma.services.rcs.upload.FileUploadInfo;
 import com.gsma.services.rcs.upload.IFileUpload;
+
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.FileTransferHttpInfoDocument;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.http.FileTransferHttpThumbnail;
@@ -272,4 +275,21 @@ public class FileUploadImpl extends IFileUpload.Stub implements FileUploadSessio
 			mFileUploadService.removeFileUpload(mUploadId);
 		}
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

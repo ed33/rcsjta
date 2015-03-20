@@ -21,39 +21,26 @@
  ******************************************************************************/
 package com.orangelabs.rcs.service.api;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import android.net.Uri;
-import android.os.IBinder;
-import android.os.RemoteException;
-
 import com.gsma.services.rcs.GroupDeliveryInfoLog;
 import com.gsma.services.rcs.IRcsServiceRegistrationListener;
 import com.gsma.services.rcs.RcsCommon.Direction;
 import com.gsma.services.rcs.RcsService;
-import com.gsma.services.rcs.chat.ChatLog;
 import com.gsma.services.rcs.chat.ParticipantInfo;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.ft.FileTransfer;
-import com.gsma.services.rcs.ft.FileTransfer.State;
 import com.gsma.services.rcs.ft.FileTransfer.ReasonCode;
+import com.gsma.services.rcs.ft.FileTransfer.State;
 import com.gsma.services.rcs.ft.FileTransferServiceConfiguration;
 import com.gsma.services.rcs.ft.IFileTransfer;
 import com.gsma.services.rcs.ft.IFileTransferService;
 import com.gsma.services.rcs.ft.IGroupFileTransferListener;
 import com.gsma.services.rcs.ft.IOneToOneFileTransferListener;
+
 import com.orangelabs.rcs.core.Core;
-import com.orangelabs.rcs.core.CoreException;
 import com.orangelabs.rcs.core.content.ContentManager;
 import com.orangelabs.rcs.core.content.MmContent;
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.im.InstantMessagingService;
-import com.orangelabs.rcs.core.ims.service.im.chat.GroupChatPersistedStorageAccessor;
 import com.orangelabs.rcs.core.ims.service.im.chat.GroupChatSession;
 import com.orangelabs.rcs.core.ims.service.im.chat.imdn.ImdnDocument;
 import com.orangelabs.rcs.core.ims.service.im.filetransfer.FileSharingSession;
@@ -65,13 +52,23 @@ import com.orangelabs.rcs.provider.eab.ContactsManager;
 import com.orangelabs.rcs.provider.messaging.MessagingLog;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.provider.settings.RcsSettingsData.ImageResizeOption;
-import com.orangelabs.rcs.service.broadcaster.GroupChatEventBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.GroupFileTransferBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.OneToOneFileTransferBroadcaster;
 import com.orangelabs.rcs.service.broadcaster.RcsServiceRegistrationEventBroadcaster;
 import com.orangelabs.rcs.utils.IdGenerator;
 import com.orangelabs.rcs.utils.MimeManager;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.net.Uri;
+import android.os.Binder;
+import android.os.IBinder;
+import android.os.RemoteException;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * File transfer service implementation
@@ -358,7 +355,8 @@ public class FileTransferServiceImpl extends IFileTransferService.Stub {
 					FileTransfer.State.INITIATING);
 			final FileSharingSession session = mImService.initiateFileTransferSession(
 					fileTransferId, contact, file, fileIcon);
-
+			session.setCallingUid(Binder.getCallingUid());
+			
 			OneToOneFileTransferImpl oneToOneFileTransfer = new OneToOneFileTransferImpl(
 					fileTransferId, mOneToOneFileTransferBroadcaster, mImService,
 					new FileTransferPersistedStorageAccessor(fileTransferId, mMessagingLog), this);
@@ -481,8 +479,7 @@ public class FileTransferServiceImpl extends IFileTransferService.Stub {
 						mImService, new FileTransferPersistedStorageAccessor(fileTransferId,
 								mMessagingLog), this);
 				session.addListener(groupFileTransfer);
-				addFileTransfer(groupFileTransfer);
-
+				addFileTransfer(groupFileTransfer);				
 				new Thread() {
 					public void run() {
 						session.startSession();
@@ -501,9 +498,10 @@ public class FileTransferServiceImpl extends IFileTransferService.Stub {
 					if (logger.isActivated()) {
 						logger.debug("Group chat session is pending: auto accept it.");
 					}
+					final Integer callingUid = Binder.getCallingUid();
 					new Thread() {
 						public void run() {
-							groupChatSession.acceptSession();
+							groupChatSession.acceptSession(callingUid);
 						}
 					}.start();
 				}
@@ -958,4 +956,21 @@ public class FileTransferServiceImpl extends IFileTransferService.Stub {
 
 		mOneToOneFileTransferBroadcaster.broadcastInvitation(fileTransferId);
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

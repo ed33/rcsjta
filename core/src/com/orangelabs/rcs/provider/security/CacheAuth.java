@@ -1,13 +1,14 @@
 package com.orangelabs.rcs.provider.security;
 
+import com.orangelabs.rcs.core.ims.service.extension.Extension.Type;
+import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.annotation.SuppressLint;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import com.orangelabs.rcs.utils.logger.Logger;
-
-import android.annotation.SuppressLint;
 
 /**
  * Cache implementation for authorization data
@@ -38,10 +39,10 @@ public class CacheAuth {
 	 */
 	public void add(AuthorizationData authorization) {
 		if (logger.isActivated()) {
-			logger.debug(new StringBuilder("Add authorziation in cache for uid / iari : ").append(authorization.getPackageUid())
-					.append(",").append(authorization.getIARI()).toString());
+			logger.debug(new StringBuilder("Add authorization in cache for uid / iari : ").append(authorization.getPackageUid())
+					.append(",").append(authorization.getExtension().getExtensionAsIari()).toString());
 		}
-		iariMap.put(authorization.getIARI(), authorization);
+		iariMap.put(authorization.getExtension().getExtensionAsIari(), authorization);
 		Integer uid = authorization.getPackageUid();
 		Set<AuthorizationData> authorizationDatas = uidMap.get(uid);
 		if (authorizationDatas == null) {
@@ -86,6 +87,26 @@ public class CacheAuth {
 		return null;
 	}
 
+	/**
+	 * Get Authorizations by uid
+	 * @param uid
+	 * @param extensionType 
+	 * @return Set<AuthorizationData>
+	 */
+    public Set<AuthorizationData> get(Integer uid, Type extensionType) {
+        Set<AuthorizationData> auths = uidMap.get(uid);
+        if(auths == null){
+            return new HashSet<AuthorizationData>();
+        }
+        Set<AuthorizationData> matchExtensionType = new HashSet<AuthorizationData>();
+        for(AuthorizationData auth : auths){
+         if(auth.getExtension().getType().equals(extensionType)){
+             matchExtensionType.add(auth);
+         }   
+        }        
+        return matchExtensionType;
+    }
+    
 	/**
 	 * Remove an authorization by iari
 	 * 

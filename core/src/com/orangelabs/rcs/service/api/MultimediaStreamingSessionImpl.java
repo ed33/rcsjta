@@ -29,17 +29,20 @@ import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.extension.IMultimediaStreamingSession;
 import com.gsma.services.rcs.extension.MultimediaSession;
 import com.gsma.services.rcs.extension.MultimediaSession.ReasonCode;
+
 import com.orangelabs.rcs.core.ims.protocol.sip.SipDialogPath;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.core.ims.service.sip.SipService;
 import com.orangelabs.rcs.core.ims.service.sip.SipSessionError;
 import com.orangelabs.rcs.core.ims.service.sip.SipSessionListener;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.GenericSipRtpSession;
 import com.orangelabs.rcs.core.ims.service.sip.streaming.TerminatingSipRtpSession;
-import com.orangelabs.rcs.service.api.ServerApiUtils.ExtensionCheckType;
 import com.orangelabs.rcs.service.broadcaster.IMultimediaStreamingSessionEventBroadcaster;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.os.Binder;
 
 /**
  * Multimedia streaming session
@@ -229,12 +232,12 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		}
 
 		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
+		ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
 
 		// Accept invitation
         new Thread() {
     		public void run() {
-    			session.acceptSession();
+    			session.acceptSession(null);
     		}
     	}.start();
 	}
@@ -258,7 +261,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		}
 
 		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
+		ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
 
 		// Reject invitation
         new Thread() {
@@ -287,7 +290,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		}
 
 		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
+		ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
 
 		// Abort the session
         new Thread() {
@@ -314,7 +317,7 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 		}
 
 		// Test security extension
-		ServerApiUtils.assertExtensionIsAuthorized(mServiceExtensionManager, session.getServiceId(), ExtensionCheckType.WITH_PROCESS_BINDING);
+		ServerApiUtils.assertExtensionIsAuthorized(Binder.getCallingUid(), session.getServiceId());
 
 		/* TODO: This exception handling is not correct. Will be fixed CR037. */
 		if (!session.sendPlayload(content)) {
@@ -466,4 +469,22 @@ public class MultimediaStreamingSessionImpl extends IMultimediaStreamingSession.
 					ReasonCode.UNSPECIFIED);
 		}
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application
+     * fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.MULTIMEDIA_SESSION);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

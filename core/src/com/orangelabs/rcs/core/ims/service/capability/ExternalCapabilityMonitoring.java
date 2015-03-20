@@ -18,7 +18,9 @@
 
 package com.orangelabs.rcs.core.ims.service.capability;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -29,7 +31,10 @@ import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Bundle;
 
+import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.capability.CapabilityService;
+
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.core.ims.service.extension.ExtensionManager;
 import com.orangelabs.rcs.provider.settings.RcsSettings;
 import com.orangelabs.rcs.utils.logger.Logger;
@@ -108,6 +113,14 @@ public class ExternalCapabilityMonitoring extends BroadcastReceiver {
 
 						}
 
+						String extApplicationId = appMeta.getString(RcsService.METADATA_APPLICATION_ID); 
+						if(extApplicationId != null){
+						    Set<Extension> extension = new HashSet<Extension>();
+						    extension.add(new Extension(extApplicationId, Extension.Type.APPLICATION_ID));
+	                        mExtensionManager
+	                                .addSupportedExtensions(mPackageManager,uid , packageName, extension);
+						}
+						
 						String exts = appMeta.getString(CapabilityService.INTENT_EXTENSIONS);
 						if (exts == null) {
 							// No RCS extension
@@ -128,7 +141,7 @@ public class ExternalCapabilityMonitoring extends BroadcastReceiver {
 
 						// Add the new extension in the supported RCS extensions
 						mExtensionManager
-								.addSupportedExtensions(mPackageManager,uid , packageName, ExtensionManager.getExtensions(exts));
+								.addSupportedExtensions(mPackageManager,uid , packageName, ExtensionManager.getMultimediaSessionExtensions(exts));
 						return;
 
 					}

@@ -23,6 +23,7 @@ package com.orangelabs.rcs.service.api;
 
 import javax2.sip.message.Response;
 
+import android.os.Binder;
 import android.os.RemoteException;
 
 import com.gsma.services.rcs.RcsServiceException;
@@ -35,6 +36,7 @@ import com.gsma.services.rcs.ipcall.IIPCallRenderer;
 import com.gsma.services.rcs.ipcall.IPCall;
 import com.gsma.services.rcs.ipcall.IPCall.ReasonCode;
 import com.gsma.services.rcs.ipcall.VideoCodec;
+
 import com.orangelabs.rcs.core.ims.protocol.sip.SipDialogPath;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
 import com.orangelabs.rcs.core.ims.service.ipcall.IPCallError;
@@ -241,9 +243,10 @@ public class IPCallImpl extends IIPCall.Stub implements IPCallStreamingSessionLi
 		session.setRenderer(renderer);
 		
 		// Accept invitation
+		final Integer callingUid = Binder.getCallingUid();
         new Thread() {
     		public void run() {
-    			session.acceptSession();
+    			session.acceptSession(callingUid);
     		}
     	}.start();
 	}

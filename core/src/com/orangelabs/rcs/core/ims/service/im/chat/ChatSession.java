@@ -113,11 +113,6 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
     /**
      * Feature tags
      */
-    private List<String> featureTags = new ArrayList<String>();
-    
-    /**
-     * Feature tags
-     */
     private List<String> acceptContactTags = new ArrayList<String>();
 
     /**
@@ -167,15 +162,6 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
 			msrpMgr.setSecured(RcsSettings.getInstance().isSecureMsrpOverWifi());
 		}
 	}
-	
-	/**
-	 * Get feature tags
-	 * 
-	 * @return Feature tags
-	 */
-	public String[] getFeatureTags() {
-		return featureTags.toArray(new String[featureTags.size()]);
-	}
 
 	/**
      * Get Accept-Contact tags
@@ -185,15 +171,6 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
     public String[] getAcceptContactTags() {
         return acceptContactTags.toArray(new String[acceptContactTags.size()]);
     }
-
-    /**
-	 * Set feature tags
-	 * 
-	 * @param tags Feature tags
-	 */
-	public void setFeatureTags(List<String> tags) {
-		this.featureTags = tags;
-	}
 
 	/**
      * Set Accept-Contact tags

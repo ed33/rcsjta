@@ -27,6 +27,8 @@ import android.net.Uri;
 import android.test.AndroidTestCase;
 
 import com.gsma.iariauth.validator.IARIAuthDocument.AuthType;
+
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
 import com.orangelabs.rcs.provider.LocalContentResolver;
 import com.orangelabs.rcs.provider.security.AuthorizationData;
 import com.orangelabs.rcs.provider.security.CertificateData;
@@ -101,6 +103,7 @@ public class SecurityLibTest extends AndroidTestCase {
 			int rangeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_RANGE);
 			int signerColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_SIGNER);
 			int packageUidColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_PACK_UID);
+			int extTypeColumnIdx = cursor.getColumnIndexOrThrow(AuthorizationData.KEY_EXT_TYPE);
 			
 			String iari = cursor.getString(iariColumnIdx);
 			Integer authType = cursor.getInt(authTypeColumnIdx);
@@ -114,7 +117,8 @@ public class SecurityLibTest extends AndroidTestCase {
 				} catch (Exception e) {
 					fail("Invalid authorization type:".concat(Integer.toString(authType)));
 				}
-			authorizationData = new AuthorizationData(packageUid,packageName, iari, enumAuthType, range, signer);							
+			Integer extType = cursor.getInt(extTypeColumnIdx);				
+			authorizationData = new AuthorizationData(packageUid,packageName, new Extension(iari, Extension.Type.valueOf(extType)), enumAuthType, range, signer);							
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());		
@@ -171,7 +175,7 @@ public class SecurityLibTest extends AndroidTestCase {
 		Iterator<Entry<AuthorizationData, Integer>> iter = SecurityLog.getInstance().getAllAuthorizations().entrySet().iterator();
 		while(iter.hasNext()){
 			Entry<AuthorizationData, Integer> entry = iter.next();
-			SecurityLog.getInstance().removeAuthorization(entry.getValue(),entry.getKey().getIARI());	
+			SecurityLog.getInstance().removeAuthorization(entry.getValue(),entry.getKey().getExtension().getExtensionAsIari());	
 		}				
 	}
 	

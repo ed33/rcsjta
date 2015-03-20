@@ -19,8 +19,18 @@ package com.orangelabs.rcs.service.api;
 import com.gsma.services.rcs.chat.IChatMessage;
 import com.gsma.services.rcs.contacts.ContactId;
 
+import com.orangelabs.rcs.core.ims.service.extension.Extension;
+import com.orangelabs.rcs.utils.logger.Logger;
+
+import android.os.Binder;
+
 public class ChatMessageImpl extends IChatMessage.Stub {
 
+    /**
+     * The logger
+     */
+    private final Logger logger = Logger.getLogger(getClass().getName());
+    
 	private final ChatMessagePersistedStorageAccessor mPersistentStorage;
 
 	/**
@@ -83,4 +93,21 @@ public class ChatMessageImpl extends IChatMessage.Stub {
 	public boolean isRead() {
 		return mPersistentStorage.isRead();
 	}
+	
+    /**
+     * Override the onTransact Binder method. It is used to check authorization for an application
+     * before calling API method. Control of authorization is made for third party applications (vs.
+     * native application) by comparing the client application fingerprint with the RCS application fingerprint
+     */
+    @Override
+    public boolean onTransact(int code, android.os.Parcel data, android.os.Parcel reply, int flags)
+            throws android.os.RemoteException {
+ 
+        if(logger.isActivated()){
+            logger.debug("Api access control for implementation class : ".concat(this.getClass().getName()));
+        }
+        ServerApiUtils.assertApiIsAuthorized(Binder.getCallingUid(), Extension.Type.APPLICATION_ID);
+        return super.onTransact(code, data, reply, flags); 
+       
+    }
 }

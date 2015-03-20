@@ -40,7 +40,6 @@ import com.orangelabs.rcs.core.ims.service.ImsService;
 import com.orangelabs.rcs.core.ims.service.ImsServiceSession;
 import com.orangelabs.rcs.core.ims.service.ImsSessionListener;
 import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingError;
-import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
 import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
 
@@ -96,7 +95,7 @@ public class OriginatingVideoStreamingSession extends VideoStreamingSession {
                 logger.info("Send INVITE");
             }
             SipRequest invite = SipMessageFactory.createInvite(getDialogPath(),
-                    RichcallService.FEATURE_TAGS_VIDEO_SHARE, sdp);
+                    getFeatureTags(), sdp);
 
 	        // Set the Authorization header
 	        getAuthenticationAgent().setAuthorizationHeader(invite);

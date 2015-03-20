@@ -26,6 +26,7 @@ import com.gsma.services.rcs.RcsContactFormatException;
 import com.gsma.services.rcs.contacts.ContactId;
 import com.gsma.services.rcs.vsh.IVideoPlayer;
 import com.gsma.services.rcs.vsh.IVideoRenderer;
+
 import com.orangelabs.rcs.core.content.MmContent;
 import com.orangelabs.rcs.core.ims.network.sip.SipMessageFactory;
 import com.orangelabs.rcs.core.ims.protocol.sip.SipException;
@@ -37,6 +38,9 @@ import com.orangelabs.rcs.core.ims.service.richcall.ContentSharingSession;
 import com.orangelabs.rcs.core.ims.service.richcall.RichcallService;
 import com.orangelabs.rcs.utils.ContactUtils;
 import com.orangelabs.rcs.utils.logger.Logger;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Video sharing streaming session
@@ -78,6 +82,7 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
 	 */
 	public VideoStreamingSession(ImsService parent, MmContent content, ContactId contact) {
 		super(parent, content, contact);
+		setFeatureTags(new ArrayList<String>(Arrays.asList(RichcallService.FEATURE_TAGS_VIDEO_SHARE)));
 	}
 
 	/**
@@ -142,7 +147,7 @@ public abstract class VideoStreamingSession extends ContentSharingSession {
      */
     public SipRequest createInvite() throws SipException {
         return SipMessageFactory.createInvite(getDialogPath(),
-                RichcallService.FEATURE_TAGS_VIDEO_SHARE, getDialogPath().getLocalContent());
+                getFeatureTags(), getDialogPath().getLocalContent());
     }
 
     /**

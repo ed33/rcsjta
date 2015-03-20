@@ -142,6 +142,7 @@ public class SecurityProvider extends ContentProvider {
 					 	.append(AuthorizationData.KEY_PACK_NAME).append(" TEXT NOT NULL,")
 					 	.append(AuthorizationData.KEY_AUTH_TYPE).append(" INTEGER NOT NULL,")
 						.append(AuthorizationData.KEY_IARI).append(" TEXT NOT NULL,")
+						.append(AuthorizationData.KEY_EXT_TYPE).append(" INTEGER NOT NULL,")
 	                    .append(AuthorizationData.KEY_SIGNER).append(" TEXT,")
 	                    .append(AuthorizationData.KEY_RANGE).append(" TEXT,")
 	                    .append("UNIQUE(").append(AuthorizationData.KEY_IARI)

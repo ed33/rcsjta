@@ -430,16 +430,6 @@ public class ImsServiceDispatcher extends Thread {
 			    			if (logger.isActivated()) {
 				    			logger.warn("Cannot parse contact");
 				    		}
-			    		} catch (ServerPermissionDeniedException sae) {
-			    			if (logger.isActivated()) {
-				    			logger.warn("Unsupported Extension");
-				    		}
-			    			sendFinalResponse(request, Response.FORBIDDEN, "Unsupported Extension");
-			    		} catch (ServerApiException sae) {
-			    			if (logger.isActivated()) {
-				    			logger.warn("Unsupported Extension");
-				    		}
-			    			sendFinalResponse(request, Response.FORBIDDEN, "Initialization failed");
 			    		}
 		    		} else
 		    		if (isTagPresent(sdp, "rtp")) {
@@ -452,16 +442,6 @@ public class ImsServiceDispatcher extends Thread {
 			    			if (logger.isActivated()) {
 				    			logger.warn("Cannot parse contact");
 				    		}
-			    		} catch (ServerPermissionDeniedException sae) {
-			    			if (logger.isActivated()) {
-				    			logger.warn("Unsupported Extension");
-				    		}
-			    			sendFinalResponse(request, Response.FORBIDDEN, "Unsupported Extension");
-			    		} catch (ServerApiException sae) {
-			    			if (logger.isActivated()) {
-				    			logger.warn("Unsupported Extension");
-				    		}
-			    			sendFinalResponse(request, Response.FORBIDDEN, "Initialization failed");
 			    		}
 		    		} else {
 			    		if (logger.isActivated()) {
