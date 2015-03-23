@@ -31,7 +31,7 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.gsma.services.rcs.contacts.ContactId;
-import com.gsma.services.rcs.gsh.GeolocSharingIntent;
+import com.gsma.services.rcs.sharing.geoloc.GeolocSharingIntent;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.utils.LogUtils;
 import com.orangelabs.rcs.ri.utils.Utils;

@@ -25,9 +25,9 @@ import android.graphics.Bitmap;
 import android.os.RemoteException;
 import android.os.SystemClock;
 
-import com.gsma.services.rcs.vsh.IVideoRendererListener;
-import com.gsma.services.rcs.vsh.VideoCodec;
-import com.gsma.services.rcs.vsh.VideoRenderer;
+import com.gsma.services.rcs.sharing.video.IVideoRendererListener;
+import com.gsma.services.rcs.sharing.video.VideoCodec;
+import com.gsma.services.rcs.sharing.video.VideoRenderer;
 import com.orangelabs.rcs.core.ims.protocol.rtp.DummyPacketGenerator;
 import com.orangelabs.rcs.core.ims.protocol.rtp.VideoRtpReceiver;
 import com.orangelabs.rcs.core.ims.protocol.rtp.codec.video.h264.H264Config;

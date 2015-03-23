@@ -399,9 +399,8 @@
         <receiver android:name="com.orangelabs.rcs.ri.extension.SessionInvitationReceiver">
             <intent-filter>
 		    	<action android:name="com.gsma.services.rcs.extension.action.NEW_MESSAGING_SESSION"/>
-                <data android:mimeType="com.gsma.services.rcs/mnc099.mcc099.messaging-range-ext0" />
                 <data android:mimeType="com.gsma.services.rcs/mnc099.mcc099.messaging-range-ext1" />
-                <data android:mimeType="com.gsma.services.rcs/ext.NzSzFMKaLAr2ETLhHCvOV121gLO0kKNbUNU0kQ" />      
+                <data android:mimeType="com.gsma.services.rcs/ext.ext.WdPMyK6K8ZUIcUG-5ihSrC0ixMjPekjp9RohwA.xml" />      
         		<category android:name="android.intent.category.LAUNCHER" />
         		<category android:name="android.intent.category.DEFAULT" />
 	    	</intent-filter>
@@ -469,10 +468,16 @@
             android:name=".upload.InitiateFileUpload"
             android:label="@string/title_initiate_upload" />
          
+        <!-- Application Identifier -->
+         <meta-data
+            android:name="com.gsma.services.rcs.APPLICATION_ID"
+            android:value="mnc099.mcc099.messaging-range-ext0" />
+        
+         
         <!-- Extensions supported by application -->
          <meta-data
             android:name="com.gsma.services.rcs.capability.EXTENSION"
-            android:value="mnc099.mcc099.messaging-range-ext0;mnc099.mcc099.messaging-range-ext1;ext.NzSzFMKaLAr2ETLhHCvOV121gLO0kKNbUNU0kQ" />
+            android:value="mnc099.mcc099.messaging-range-ext1;ext.WdPMyK6K8ZUIcUG-5ihSrC0ixMjPekjp9RohwA" />
 	 		 	
  
 </application>

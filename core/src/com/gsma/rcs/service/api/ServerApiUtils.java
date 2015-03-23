@@ -24,9 +24,11 @@ import com.gsma.rcs.core.ims.service.ImsServiceSession;
 import com.gsma.rcs.core.ims.service.extension.Extension;
 import com.gsma.rcs.core.ims.service.extension.ExtensionManager;
 import com.gsma.rcs.core.ims.service.im.chat.OriginatingOneToOneChatSession;
+import com.gsma.rcs.provider.security.RevocationData;
 import com.gsma.rcs.utils.logger.Logger;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -139,9 +141,17 @@ public class ServerApiUtils {
             }
             return;
         }
-
-        String appRef = new StringBuilder(FeatureTags.FEATURE_RCSE_EXTENSION).append(".")
-                .append(iari).toString();
+        iari = new StringBuilder(FeatureTags.FEATURE_RCSE_EXTENSION).append(".").append(iari).toString();
+        
+        for (int i=0;i<featureTags.size();i++) {     
+            if(featureTags.get(i).startsWith(FeatureTags.FEATURE_RCSE)){
+                String featureTag = featureTags.get(i); 
+                featureTags.set(i, new StringBuilder(featureTag).insert(featureTag.length()-1,",".concat(iari)).toString());
+                return;
+            }
+        }
+                        
+        String appRef = new StringBuilder(FeatureTags.FEATURE_RCSE).append("=\"").append(iari).append("\"").toString();
 
         if (isActivated) {
             logger.debug(" --> iari : ".concat(appRef));

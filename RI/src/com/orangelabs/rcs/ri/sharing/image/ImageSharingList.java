@@ -37,8 +37,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.gsma.services.rcs.RcsCommon;
-import com.gsma.services.rcs.ish.ImageSharing;
-import com.gsma.services.rcs.ish.ImageSharingLog;
+import com.gsma.services.rcs.sharing.image.ImageSharing;
+import com.gsma.services.rcs.sharing.image.ImageSharingLog;
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.utils.RcsDisplayName;
 import com.orangelabs.rcs.ri.utils.Utils;

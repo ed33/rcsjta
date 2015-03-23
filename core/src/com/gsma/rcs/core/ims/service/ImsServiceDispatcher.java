@@ -257,7 +257,7 @@ public class ImsServiceDispatcher extends Thread {
             // New incoming session invitation
             if (isTagPresent(sdp, "msrp")
                     && SipUtils.isFeatureTagPresent(request, FeatureTags.FEATURE_3GPP_VIDEO_SHARE)
-                    && (SipUtils.isFeatureTagPresent(request, FeatureTags.FEATURE_3GPP_IMAGE_SHARE) || SipUtils
+                    && (SipUtils.isFeatureTagPresent(request, FeatureTags.FEATURE_RCSE_IMAGE_SHARE) || SipUtils
                             .isFeatureTagPresent(request, FeatureTags.FEATURE_3GPP_IMAGE_SHARE_RCS2))) {
                 // Image sharing
                 if (RcsSettings.getInstance().isImageSharingSupported()) {

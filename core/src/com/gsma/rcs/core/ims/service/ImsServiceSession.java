@@ -24,7 +24,9 @@ package com.gsma.rcs.core.ims.service;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import javax2.sip.header.ContactHeader;
@@ -153,7 +155,7 @@ public abstract class ImsServiceSession extends Thread {
     /**
      * Feature tags
      */
-    private List<String> featureTags = new ArrayList<String>();
+    private List<String> mfeatureTags = new ArrayList<String>();
 
     /**
      * CallingUid : identify the client application bound to the API
@@ -1319,9 +1321,9 @@ public abstract class ImsServiceSession extends Thread {
      */
     public String[] getFeatureTags() {
         if (mCallingUid != null) {
-            ServerApiUtils.addApplicationIdAsFeaturesTag(featureTags, mCallingUid);
+            ServerApiUtils.addApplicationIdAsFeaturesTag(mfeatureTags, mCallingUid);
         }
-        return featureTags.toArray(new String[featureTags.size()]);
+        return mfeatureTags.toArray(new String[mfeatureTags.size()]);
     }
 
     /**
@@ -1330,7 +1332,7 @@ public abstract class ImsServiceSession extends Thread {
      * @param tags Feature tags
      */
     public void setFeatureTags(List<String> tags) {
-        this.featureTags = tags;
+        this.mfeatureTags = tags;
     }
 
     /**
