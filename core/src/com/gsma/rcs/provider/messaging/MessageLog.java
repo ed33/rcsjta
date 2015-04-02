@@ -22,6 +22,7 @@
 
 package com.gsma.rcs.provider.messaging;
 
+import com.gsma.rcs.ServerApiPersistentStorageException;
 import com.gsma.rcs.core.ims.service.im.chat.ChatMessage;
 import com.gsma.rcs.core.ims.service.im.chat.ChatUtils;
 import com.gsma.rcs.provider.LocalContentResolver;
@@ -461,23 +462,14 @@ public class MessageLog implements IMessageLog {
 
     @Override
     public Cursor getCacheableChatMessageData(String msgId) {
-        Cursor cursor = null;
-        try {
-            cursor = mLocalContentResolver.query(Uri.withAppendedPath(Message.CONTENT_URI, msgId),
-                    null, null, null, null);
-            if (cursor.moveToFirst()) {
-                return cursor;
-            }
-
-            throw new SQLException("No row returned while querying for message data with msgId : "
-                    + msgId);
-
-        } catch (RuntimeException e) {
-            if (cursor != null) {
-                cursor.close();
-            }
-            throw e;
+        Cursor cursor = mLocalContentResolver.query(
+                Uri.withAppendedPath(Message.CONTENT_URI, msgId), null, null, null, null);
+        if (cursor.moveToFirst()) {
+            return cursor;
         }
+
+        throw new ServerApiPersistentStorageException(
+                "No row returned while querying for chat message data with msgId : ".concat(msgId));
     }
 
     @Override
