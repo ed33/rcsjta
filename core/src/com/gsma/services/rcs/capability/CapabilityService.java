@@ -18,8 +18,14 @@
 
 package com.gsma.services.rcs.capability;
 
-import java.util.Iterator;
-import java.util.Set;
+import com.gsma.services.rcs.RcsPermissionDeniedException;
+import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsServiceControl;
+import com.gsma.services.rcs.RcsServiceException;
+import com.gsma.services.rcs.RcsServiceListener;
+import com.gsma.services.rcs.RcsServiceListener.ReasonCode;
+import com.gsma.services.rcs.RcsServiceNotAvailableException;
+import com.gsma.services.rcs.contact.ContactId;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -28,13 +34,8 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.IInterface;
 
-import com.gsma.services.rcs.RcsService;
-import com.gsma.services.rcs.RcsServiceControl;
-import com.gsma.services.rcs.RcsServiceException;
-import com.gsma.services.rcs.RcsServiceListener;
-import com.gsma.services.rcs.RcsServiceListener.ReasonCode;
-import com.gsma.services.rcs.RcsServiceNotAvailableException;
-import com.gsma.services.rcs.contact.ContactId;
+import java.util.Iterator;
+import java.util.Set;
 
 /**
  * Capability service offers the main entry point to read capabilities of remote contacts, to
@@ -44,7 +45,7 @@ import com.gsma.services.rcs.contact.ContactId;
  * 
  * @author Jean-Marc AUFFRET
  */
-public class CapabilityService extends RcsService {
+public final class CapabilityService extends RcsService {
     /**
      * Intent broadcasted to discover extensions
      */
@@ -74,8 +75,20 @@ public class CapabilityService extends RcsService {
 
     /**
      * Connects to the API
+     * 
+     * @throws RcsPermissionDeniedException
      */
-    public void connect() {
+    public void connect() throws RcsPermissionDeniedException {
+        if (!sApiCompatible) {
+            try {
+                sApiCompatible = mRcsServiceControl.isCompatible();
+                if (!sApiCompatible) {
+                    throw new RcsPermissionDeniedException("API is not compatible");
+                }
+            } catch (RcsServiceException e) {
+                throw new RcsPermissionDeniedException("Cannot check API compatibility");
+            }
+        }
         Intent serviceIntent = new Intent(ICapabilityService.class.getName());
         serviceIntent.setPackage(RcsServiceControl.RCS_STACK_PACKAGENAME);
         mCtx.bindService(serviceIntent, apiConnection, 0);
