@@ -1078,10 +1078,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
 
     /*------------------------------- SESSION EVENTS ----------------------------------*/
 
-    /*
-     * (non-Javadoc)
-     * @see com.gsma.rcs.core.ims.service.ImsSessionListener#handleSessionStarted()
-     */
+    @Override
     public void handleSessionStarted(ContactId contact) {
         if (logger.isActivated()) {
             logger.info(new StringBuilder("Session status ").append(State.STARTED).toString());
@@ -1098,10 +1095,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
         listener.tryToDequeueGroupChatMessagesAndGroupFileTransfers(mChatId, mImService);
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.gsma.rcs.core.ims.service.ImsSessionListener#handleSessionAborted (int)
-     */
+    @Override
     public void handleSessionAborted(ContactId contact, TerminationReason reason) {
         GroupChatSession session = mImService.getGroupChatSession(mChatId);
         if (session != null && session.isPendingForRemoval()) {
@@ -1154,11 +1148,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.gsma.rcs.core.ims.service.im.chat.ChatSessionListener# handleReceiveMessage
-     * (com.gsma.rcs.core.ims.service.im.chat.ChatMessage, boolean)
-     */
+    @Override
     public void handleReceiveMessage(ChatMessage msg, boolean imdnDisplayedRequested) {
         String msgId = msg.getMessageId();
         if (logger.isActivated()) {
@@ -1175,11 +1165,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.orangelabs.rcs.core.ims.service.im.chat.ChatSessionListener#handleImError
-     * (com.orangelabs.rcs.core.ims.service.im.chat.ChatError)
-     */
+    @Override
     public void handleImError(ChatError error, ChatMessage message) {
         GroupChatSession session = mImService.getGroupChatSession(mChatId);
         int chatErrorCode = error.getErrorCode();
@@ -1246,11 +1232,6 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.gsma.rcs.core.ims.service.im.chat.ChatSessionListener# handleMessageSending
-     * (com.gsma.rcs.core.ims.service.im.chat.ChatMessage)
-     */
     @Override
     public void handleMessageSending(ChatMessage msg) {
         String msgId = msg.getMessageId();
@@ -1270,11 +1251,6 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.gsma.rcs.core.ims.service.im.chat.ChatSessionListener# handleMessageFailedSend
-     * (com.gsma.rcs.core.ims.service.im.chat.ChatMessage)
-     */
     @Override
     public void handleMessageFailedSend(String msgId, String mimeType) {
         if (logger.isActivated()) {
@@ -1291,11 +1267,6 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.gsma.rcs.core.ims.service.im.chat.ChatSessionListener#
-     * handleMessageSent(com.gsma.rcs.core.ims.service.im.chat.ChatMessage)
-     */
     @Override
     public void handleMessageSent(String msgId, String mimeType) {
         if (logger.isActivated()) {
@@ -1356,7 +1327,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
      * @param contact Contact ID
      * @param reason Error reason
      */
-    public void handleAddParticipantFailed(ContactId contact, String reason) {
+    private void handleAddParticipantFailed(ContactId contact, String reason) {
         if (logger.isActivated()) {
             logger.info("Add participant request has failed " + reason);
         }
@@ -1408,8 +1379,13 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
             logger.info("Invited to group chat session");
         }
         synchronized (lock) {
-            mPersistentStorage.addGroupChat(contact, subject, participants, State.INVITED,
-                    ReasonCode.UNSPECIFIED, Direction.INCOMING, timestamp);
+            if (mMessagingLog.isGroupChatPersisted(mChatId)) {
+                mPersistentStorage.setParticipantsStateAndReasonCode(participants, State.INVITED,
+                        ReasonCode.UNSPECIFIED);
+            } else {
+                mPersistentStorage.addGroupChat(contact, subject, participants, State.INVITED,
+                        ReasonCode.UNSPECIFIED, Direction.INCOMING, timestamp);
+            }
         }
 
         mBroadcaster.broadcastInvitation(mChatId);
@@ -1422,8 +1398,13 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
             logger.info("Session auto accepted");
         }
         synchronized (lock) {
-            mPersistentStorage.addGroupChat(contact, subject, participants, State.ACCEPTING,
-                    ReasonCode.UNSPECIFIED, Direction.INCOMING, timestamp);
+            if (mMessagingLog.isGroupChatPersisted(mChatId)) {
+                mPersistentStorage.setParticipantsStateAndReasonCode(participants, State.ACCEPTING,
+                        ReasonCode.UNSPECIFIED);
+            } else {
+                mPersistentStorage.addGroupChat(contact, subject, participants, State.ACCEPTING,
+                        ReasonCode.UNSPECIFIED, Direction.INCOMING, timestamp);
+            }
         }
 
         mBroadcaster.broadcastInvitation(mChatId);
