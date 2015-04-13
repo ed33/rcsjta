@@ -222,7 +222,7 @@ public class ExtensionManager {
             result.add(authData);
             if (isLogActivated) {
                 if (isLogActivated) {
-                    sLogger.debug(new StringBuilder("Extension '").append(extension)
+                    sLogger.debug(new StringBuilder("Extension '").append(extension.getExtensionAsIari())
                             .append("' is authorized. IARI tag: ").append(authDocument.iari)
                             .toString());
                 }
