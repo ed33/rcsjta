@@ -2,6 +2,7 @@
  * Software Name : RCS IMS Stack
  *
  * Copyright (C) 2010 France Telecom S.A.
+ * Copyright (C) 2014 Sony Mobile Communications Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,88 +15,119 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTE: This file has been modified by Sony Mobile Communications Inc.
+ * Modifications are licensed under the License.
  ******************************************************************************/
+package com.gsma.rcs.core.ims.service.im.chat;
 
-package com.orangelabs.rcs.ri.messaging.chat;
+import com.gsma.rcs.provider.settings.RcsSettings;
 
 import android.os.Handler;
 import android.os.Message;
 
 /**
- * Utility class to handle is_typing timers (see RFC3994)
+ * Is-composing events generator (see RFC3994)
+ * 
+ * @author jexa7410
  */
-public class IsComposingManager {
-    // Idle time out (in ms)
-    private int idleTimeOut = 0;
+public class IsComposingGenerator {
+    // Event IDs
+    private final static int IS_STARTING_COMPOSING = 1;
+    private final static int IS_STILL_COMPOSING = 2;
+    private final static int MESSAGE_WAS_SENT = 3;
+    private final static int ACTIVE_MESSAGE_NEEDS_REFRESH = 4;
+    private final static int IS_IDLE = 5;
 
     // Active state refresh interval (in ms)
     private final static int ACTIVE_STATE_REFRESH = 60 * 1000;
 
-    // Clock handler
-    private ClockHandler handler = new ClockHandler();
+    /**
+     * Idle timeout in ms
+     */
+    private int mIdleTimeOut = 0;
 
-    // Is composing state
-    private boolean isComposing = false;
+    /**
+     * Is composing state
+     */
+    private boolean mComposing = false;
+    
+    /**
+     * Timeout clock
+     */
+    private TimeoutClock mTimeoutClock = new TimeoutClock();
 
-    // Event IDs
-    private final static int IS_STARTING_COMPOSING = 1;
-
-    private final static int IS_STILL_COMPOSING = 2;
-
-    private final static int MESSAGE_WAS_SENT = 3;
-
-    private final static int ACTIVE_MESSAGE_NEEDS_REFRESH = 4;
-
-    private final static int IS_IDLE = 5;
-
-    private INotifyComposing mNotifyComposing;
-
+    /**
+     * Chat session
+     */
+    private ChatSession mSession;
+    
     /**
      * Constructor
      * 
-     * @param timeout
-     * @param notifyComposing interface to notify isComposing status
+     * @param session Chat session
+     * @param settings Settings
      */
-    public IsComposingManager(int timeout, INotifyComposing notifyComposing) {
-        idleTimeOut = timeout;
-        mNotifyComposing = notifyComposing;
+    public IsComposingGenerator(ChatSession session, RcsSettings rcsSettings) {
+        mSession = session;
+        mIdleTimeOut = rcsSettings.getIsComposingTimeout()*1000;
     }
 
     /**
-     * Interface to notify isComposing status
+     * Edit text has activity
      */
-    public interface INotifyComposing {
-        /**
-         * @param status
-         */
-        public void setTypingStatus(boolean status);
+    public void hasActivity() {
+        if (!mComposing) {
+            // If we were not already in isComposing state
+            mTimeoutClock.sendEmptyMessage(IS_STARTING_COMPOSING);
+            mComposing = true;
+        } else {
+            // We already were composing
+            mTimeoutClock.sendEmptyMessage(IS_STILL_COMPOSING);
+        }
     }
 
-    // Clock handler class
-    private class ClockHandler extends Handler {
+    /**
+     * Edit text has no activity anymore
+     */
+    public void hasNoActivity() {
+        mComposing = false;
+    }
+
+    /**
+     * The message was sent
+     */
+    public void messageWasSent() {
+        mTimeoutClock.sendEmptyMessage(MESSAGE_WAS_SENT);
+    }
+    
+    /**
+     * Timeout clock
+     */
+    private class TimeoutClock extends Handler {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case IS_STARTING_COMPOSING: {
                     // Send a typing status "active"
-                    mNotifyComposing.setTypingStatus(true);
+                    mSession.sendIsComposingStatus(true);
 
                     // In IDLE_TIME_OUT we will need to send a is-idle status
                     // message
-                    handler.sendEmptyMessageDelayed(IS_IDLE, idleTimeOut);
+                    mTimeoutClock.sendEmptyMessageDelayed(IS_IDLE, mIdleTimeOut);
 
                     // In ACTIVE_STATE_REFRESH we will need to send an active
                     // status message refresh
-                    handler.sendEmptyMessageDelayed(ACTIVE_MESSAGE_NEEDS_REFRESH,
+                    mTimeoutClock.sendEmptyMessageDelayed(ACTIVE_MESSAGE_NEEDS_REFRESH,
                             ACTIVE_STATE_REFRESH);
                     break;
                 }
                 case IS_STILL_COMPOSING: {
                     // Cancel the IS_IDLE messages in queue, if there was one
-                    handler.removeMessages(IS_IDLE);
+                    mTimeoutClock.removeMessages(IS_IDLE);
 
                     // In IDLE_TIME_OUT we will need to send a is-idle status
                     // message
-                    handler.sendEmptyMessageDelayed(IS_IDLE, idleTimeOut);
+                    mTimeoutClock.sendEmptyMessageDelayed(IS_IDLE, mIdleTimeOut);
                     break;
                 }
                 case MESSAGE_WAS_SENT: {
@@ -103,20 +135,20 @@ public class IsComposingManager {
                     hasNoActivity();
 
                     // Cancel the IS_IDLE messages in queue, if there was one
-                    handler.removeMessages(IS_IDLE);
+                    mTimeoutClock.removeMessages(IS_IDLE);
 
                     // Cancel the ACTIVE_MESSAGE_NEEDS_REFRESH messages in
                     // queue, if there was one
-                    handler.removeMessages(ACTIVE_MESSAGE_NEEDS_REFRESH);
+                    mTimeoutClock.removeMessages(ACTIVE_MESSAGE_NEEDS_REFRESH);
                     break;
                 }
                 case ACTIVE_MESSAGE_NEEDS_REFRESH: {
                     // We have to refresh the "active" state
-                    mNotifyComposing.setTypingStatus(true);
+                    mSession.sendIsComposingStatus(true);
 
                     // In ACTIVE_STATE_REFRESH we will need to send an active
                     // status message refresh
-                    handler.sendEmptyMessageDelayed(ACTIVE_MESSAGE_NEEDS_REFRESH,
+                    mTimeoutClock.sendEmptyMessageDelayed(ACTIVE_MESSAGE_NEEDS_REFRESH,
                             ACTIVE_STATE_REFRESH);
                     break;
                 }
@@ -125,43 +157,14 @@ public class IsComposingManager {
                     hasNoActivity();
 
                     // Send a typing status "idle"
-                    mNotifyComposing.setTypingStatus(false);
+                    mSession.sendIsComposingStatus(false);
 
                     // Cancel the ACTIVE_MESSAGE_NEEDS_REFRESH messages in
                     // queue, if there was one
-                    handler.removeMessages(ACTIVE_MESSAGE_NEEDS_REFRESH);
+                    mTimeoutClock.removeMessages(ACTIVE_MESSAGE_NEEDS_REFRESH);
                     break;
                 }
             }
         }
-    }
-
-    /**
-     * Edit text has activity
-     */
-    public void hasActivity() {
-        // We have activity on the edit text
-        if (!isComposing) {
-            // If we were not already in isComposing state
-            handler.sendEmptyMessage(IS_STARTING_COMPOSING);
-            isComposing = true;
-        } else {
-            // We already were composing
-            handler.sendEmptyMessage(IS_STILL_COMPOSING);
-        }
-    }
-
-    /**
-     * Edit text has no activity anymore
-     */
-    public void hasNoActivity() {
-        isComposing = false;
-    }
-
-    /**
-     * The message was sent
-     */
-    public void messageWasSent() {
-        handler.sendEmptyMessage(MESSAGE_WAS_SENT);
     }
 }

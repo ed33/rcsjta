@@ -178,11 +178,18 @@ public abstract class OneToOneChatSession extends ChatSession {
     }
 
     /**
+     * On is-composing event
+     */
+    public void onIsComposingEvent() {
+        mComposingMgr.hasActivity();
+    }
+    
+    /**
      * Send is composing status
      * 
-     * @param status Status
+     * @param status Status on is-composing event
      */
-    public void sendIsComposingStatus(boolean status) {
+    public void sendIsComposingStatus(boolean status) {        
         String content = IsComposingInfo.buildIsComposingInfo(status);
         String msgId = IdGenerator.generateMessageID();
         sendDataChunks(msgId, content, IsComposingInfo.MIME_TYPE,

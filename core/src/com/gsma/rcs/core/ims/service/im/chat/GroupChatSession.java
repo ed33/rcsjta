@@ -404,8 +404,21 @@ public abstract class GroupChatSession extends ChatSession {
         }
     }
 
-    @Override
-    public void sendIsComposingStatus(boolean status) {
+    private long lastIsComposing;
+
+    /**
+     * On is-composing event
+     */
+    public void onIsComposingEvent() {
+        mComposingMgr.hasActivity();
+    }
+    
+    /**
+     * Send is composing status
+     * 
+     * @param status Status on is-composing event
+     */
+    public void sendIsComposingStatus(boolean status) {        
         String from = ImsModule.IMS_USER_PROFILE.getPublicUri();
         String to = ChatUtils.ANOMYNOUS_URI;
         String msgId = IdGenerator.generateMessageID();

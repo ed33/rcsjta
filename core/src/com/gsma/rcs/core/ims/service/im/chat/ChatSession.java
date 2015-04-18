@@ -132,11 +132,22 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
     private boolean mFtSupportedByRemote = false;
 
     private static final Logger sLogger = Logger.getLogger(ChatSession.class.getSimpleName());
-
+ 
+    /**
+     * Messaging log
+     */
     protected final MessagingLog mMessagingLog;
 
+    /**
+     * First chat message
+     */
     private final ChatMessage mFirstMsg;
 
+    /**
+     * Is-composing generator
+     */
+    protected IsComposingGenerator mComposingMgr;
+    
     /**
      * Receive chat message
      * 
@@ -176,7 +187,8 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
 
         mMessagingLog = messagingLog;
         mActivityMgr = new ChatActivityManager(this, rcsSettings);
-
+        mComposingMgr = new IsComposingGenerator(this, rcsSettings);
+        
         // Create the MSRP manager
         int localMsrpPort = NetworkRessourceManager.generateLocalMsrpPort(rcsSettings);
         String localIpAddress = getImsService().getImsModule().getCurrentNetworkInterface()

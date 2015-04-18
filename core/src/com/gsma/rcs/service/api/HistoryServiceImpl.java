@@ -23,7 +23,6 @@ import com.gsma.rcs.provider.sharing.GeolocSharingData;
 import com.gsma.rcs.provider.sharing.ImageSharingData;
 import com.gsma.rcs.provider.sharing.VideoSharingData;
 import com.gsma.rcs.utils.logger.Logger;
-import com.gsma.services.rcs.RcsGenericException;
 import com.gsma.services.rcs.chat.ChatLog;
 import com.gsma.services.rcs.history.HistoryLog;
 import com.gsma.services.rcs.history.IHistoryService;
