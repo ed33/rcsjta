@@ -388,7 +388,6 @@ public abstract class GroupChatSession extends ChatSession {
         } else {
             sendOperationSucceeded = sendDataChunks(IdGenerator.generateMessageID(),
                     networkContent, CpimMessage.MIME_TYPE, TypeMsrpChunk.TextMessage);
-            mComposingMgr.messageWasSent();
         }
 
         /* TODO:This will be redone with CR037 */
@@ -409,7 +408,7 @@ public abstract class GroupChatSession extends ChatSession {
      * On is-composing event
      */
     public void onComposingEvent() {
-        mComposingMgr.setOngoingActivity(true);
+        mComposingMgr.handleIsComposingEvent();
     }
 
     /**
@@ -417,14 +416,14 @@ public abstract class GroupChatSession extends ChatSession {
      * 
      * @param status Status on is-composing event
      */
-    public void sendIsComposingStatus(boolean status) {
+    public boolean sendIsComposingStatus(boolean status) {
         String from = ImsModule.IMS_USER_PROFILE.getPublicUri();
         String to = ChatUtils.ANOMYNOUS_URI;
         String msgId = IdGenerator.generateMessageID();
         String content = ChatUtils.buildCpimMessage(from, to,
                 IsComposingInfo.buildIsComposingInfo(status), IsComposingInfo.MIME_TYPE,
                 System.currentTimeMillis());
-        sendDataChunks(msgId, content, CpimMessage.MIME_TYPE, TypeMsrpChunk.IsComposing);
+        return sendDataChunks(msgId, content, CpimMessage.MIME_TYPE, TypeMsrpChunk.IsComposing);
     }
 
     @Override

@@ -928,7 +928,7 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
      * 
      * @param status Status
      */
-    public abstract void sendIsComposingStatus(boolean status);
+    public abstract boolean sendIsComposingStatus(boolean status);
 
     /**
      * Send message delivery status via MSRP

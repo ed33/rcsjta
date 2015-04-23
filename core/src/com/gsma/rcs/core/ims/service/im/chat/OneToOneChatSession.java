@@ -162,7 +162,6 @@ public abstract class OneToOneChatSession extends ChatSession {
         } else {
             sendOperationSucceeded = sendDataChunks(IdGenerator.generateMessageID(),
                     networkContent, CpimMessage.MIME_TYPE, TypeMsrpChunk.TextMessage);
-            mComposingMgr.messageWasSent();
         }
 
         if (sendOperationSucceeded) {
@@ -182,7 +181,7 @@ public abstract class OneToOneChatSession extends ChatSession {
      * On is-composing event
      */
     public void onComposingEvent() {
-        mComposingMgr.setOngoingActivity(true);
+        mComposingMgr.handleIsComposingEvent();
     }
 
     /**
@@ -190,10 +189,10 @@ public abstract class OneToOneChatSession extends ChatSession {
      * 
      * @param status Status on is-composing event
      */
-    public void sendIsComposingStatus(boolean status) {
+    public boolean sendIsComposingStatus(boolean status) {
         String content = IsComposingInfo.buildIsComposingInfo(status);
         String msgId = IdGenerator.generateMessageID();
-        sendDataChunks(msgId, content, IsComposingInfo.MIME_TYPE,
+        return sendDataChunks(msgId, content, IsComposingInfo.MIME_TYPE,
                 MsrpSession.TypeMsrpChunk.IsComposing);
     }
 
