@@ -162,7 +162,7 @@ public abstract class ChatView extends FragmentActivity implements
                 // (like when sending message), is having activity
                 if (!TextUtils.isEmpty(s)) {
                     // Text composing in progress
-                    onIsComposing();
+                    onComposing();
                 }
             }
 

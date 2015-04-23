@@ -914,15 +914,15 @@ public class GroupChatView extends ChatView {
     }
 
     @Override
-    public void onIsComposing() {
+    public void onComposing() {
         if (LogUtils.isActive) {
-            Log.d(LOGTAG, "onIsComposing");
+            Log.d(LOGTAG, "onComposing");
         }
         try {
-            mGroupChat.onIsComposing();
+            mGroupChat.onComposing();
         } catch (Exception e) {
             if (LogUtils.isActive) {
-                Log.e(LOGTAG, "onIsComposing failed", e);
+                Log.e(LOGTAG, "onComposing failed", e);
             }
         }
     }

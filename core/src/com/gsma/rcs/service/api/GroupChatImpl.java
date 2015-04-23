@@ -1102,14 +1102,14 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
      * 
      * @throws RemoteException
      */
-    public void onIsComposing() throws RemoteException {    
+    public void onComposing() throws RemoteException {
         try {
             final GroupChatSession session = mImService.getGroupChatSession(mChatId);
             if (session == null) {
                 return;
             }
             if (session.getDialogPath().isSessionEstablished()) {
-                session.onIsComposingEvent();
+                session.onComposingEvent();
                 return;
             }
             if (!session.isInitiatedByRemote()) {

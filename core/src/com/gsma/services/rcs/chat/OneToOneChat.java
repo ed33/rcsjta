@@ -123,9 +123,9 @@ public class OneToOneChat {
      * 
      * @throws RcsServiceException
      */
-    public void onIsComposing() throws RcsServiceException {
+    public void onComposing() throws RcsServiceException {
         try {
-            mOneToOneChatInf.onIsComposing();
+            mOneToOneChatInf.onComposing();
         } catch (Exception e) {
             throw new RcsGenericException(e);
         }

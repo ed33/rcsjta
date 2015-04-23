@@ -77,5 +77,5 @@ public interface IChatView {
     /**
      * On is-composing event
      */
-    void onIsComposing();
+    void onComposing();
 }

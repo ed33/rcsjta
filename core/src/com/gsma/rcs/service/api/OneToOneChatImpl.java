@@ -520,14 +520,14 @@ public class OneToOneChatImpl extends IOneToOneChat.Stub implements OneToOneChat
      * 
      * @throws RemoteException
      */
-    public void onIsComposing() throws RemoteException {    
+    public void onComposing() throws RemoteException {
         try {
             final OneToOneChatSession session = mImService.getOneToOneChatSession(mContact);
             if (session == null) {
                 return;
             }
             if (session.getDialogPath().isSessionEstablished()) {
-                session.onIsComposingEvent();
+                session.onComposingEvent();
                 return;
             }
             if (!session.isInitiatedByRemote()) {

@@ -510,9 +510,9 @@ public class GroupChat {
      * 
      * @throws RcsServiceException
      */
-    public void onIsComposing() throws RcsServiceException {
+    public void onComposing() throws RcsServiceException {
         try {
-            mGroupChatInf.onIsComposing();
+            mGroupChatInf.onComposing();
         } catch (Exception e) {
             throw new RcsGenericException(e);
         }
