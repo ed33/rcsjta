@@ -388,6 +388,7 @@ public abstract class GroupChatSession extends ChatSession {
         } else {
             sendOperationSucceeded = sendDataChunks(IdGenerator.generateMessageID(),
                     networkContent, CpimMessage.MIME_TYPE, TypeMsrpChunk.TextMessage);
+            mComposingMgr.handleMessageWasSentEvent();
         }
 
         /* TODO:This will be redone with CR037 */

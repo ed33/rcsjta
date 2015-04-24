@@ -162,6 +162,7 @@ public abstract class OneToOneChatSession extends ChatSession {
         } else {
             sendOperationSucceeded = sendDataChunks(IdGenerator.generateMessageID(),
                     networkContent, CpimMessage.MIME_TYPE, TypeMsrpChunk.TextMessage);
+            mComposingMgr.handleMessageWasSentEvent();
         }
 
         if (sendOperationSucceeded) {

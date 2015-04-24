@@ -56,17 +56,17 @@ public class IsComposingGenerator {
     /**
      * The last composing event
      */
-    private ComposingEvent mLastComposingEvent = ComposingEvent.IS_NOT_COMPOSING;
+    private ComposingEvent mLastComposingEvent;
 
     /**
      * The timestamp of the last composing event
      */
-    private long mLastOnComposingTimestamp = -1;
+    private long mLastOnComposingTimestamp;
 
     /**
      * The status of the last sendIsComposingStatus command
      */
-    private boolean mIsLastCommandSucessfull = true;
+    private boolean mIsLastCommandSucessfull;
 
     /**
      * RcsSettings
@@ -79,6 +79,11 @@ public class IsComposingGenerator {
     private ChatSession mSession;
 
     /**
+     * Lock used for synchronization
+     */
+    private final Object mLock = new Object();
+
+    /**
      * Constructor
      * 
      * @param session Chat session
@@ -87,6 +92,16 @@ public class IsComposingGenerator {
     public IsComposingGenerator(ChatSession session, RcsSettings rcsSettings) {
         mSession = session;
         mRcsSettings = rcsSettings;
+        initializeParameters();
+    }
+
+    /**
+     * Initialize parameters used by the expiration timer.
+     */
+    private void initializeParameters() {
+        mLastComposingEvent = ComposingEvent.IS_NOT_COMPOSING;
+        mLastOnComposingTimestamp = -1;
+        mIsLastCommandSucessfull = true;
     }
 
     /**
@@ -115,6 +130,27 @@ public class IsComposingGenerator {
     }
 
     /**
+     * This method handles "message was sent" event from the session. 
+     * It will cancel the existing timer and set the IsComposingGenerator in its initial state
+     */
+    public void handleMessageWasSentEvent() {
+        boolean logActivated = sLogger.isActivated();
+        if (logActivated) {
+            sLogger.debug("--> handleMessageWasSentEvent");
+        }
+        synchronized (mLock) {
+            if (mExpirationTimer!= null) {
+                mExpirationTimer.stop();
+                mExpirationTimer = null;
+            }
+        }
+        initializeParameters();
+        if (logActivated) {
+            sLogger.debug("<-- handleMessageWasSentEvent");
+        }
+    }
+
+    /**
      * Expiration Timer
      */
     private class ExpirationTimer extends TimerTask {
@@ -134,38 +170,45 @@ public class IsComposingGenerator {
             mTimer = new Timer(TIMER_NAME);
             mTimer.schedule(this, mRcsSettings.getIsComposingTimeout());
         }
+        
+        public void stop(){
+            mTimer.cancel();
+            mTimer.purge();
+            mTimer = null;                    
+        }
 
         @Override
         public void run() {
-            boolean logActivated = sLogger.isActivated();
-            if (logActivated) {
-                sLogger.debug("OnComposing timer has expired: ");
-            }
+            synchronized (mLock) {
+                boolean logActivated = sLogger.isActivated();
+                if (logActivated) {
+                    sLogger.debug("OnComposing timer has expired: ");
+                }
 
-            long now = System.currentTimeMillis();
-            if (mActivationDate < mLastOnComposingTimestamp) {
-                if (logActivated) {
-                    sLogger.debug(" --> user is still composing");
-                }
-                if (!mIsLastCommandSucessfull) {
+                long now = System.currentTimeMillis();
+                if (mActivationDate < mLastOnComposingTimestamp) {
                     if (logActivated) {
-                        sLogger.debug(" --> The last sendIsComposingStatus command has failed. Send a new one");
+                        sLogger.debug(" --> user is still composing");
                     }
-                    mIsLastCommandSucessfull = mSession.sendIsComposingStatus(true);
+                    if (!mIsLastCommandSucessfull) {
+                        if (logActivated) {
+                            sLogger.debug(" --> The last sendIsComposingStatus command has failed. Send a new one");
+                        }
+                        mIsLastCommandSucessfull = mSession.sendIsComposingStatus(true);
+                    }
+                    mExpirationTimer = new ExpirationTimer(now);
+                } else {
+                    if (logActivated) {
+                        sLogger.debug(" --> go into IDLE state");
+                    }
+                    mLastComposingEvent = ComposingEvent.IS_NOT_COMPOSING;
+                    if (mIsLastCommandSucessfull) {
+                        mIsLastCommandSucessfull = mSession.sendIsComposingStatus(false);
+                    }
+                    mExpirationTimer = null;
                 }
-                mExpirationTimer = new ExpirationTimer(now);
-            } else {
-                if (logActivated) {
-                    sLogger.debug(" --> go into IDLE state");
-                }
-                mLastComposingEvent = ComposingEvent.IS_NOT_COMPOSING;
-                if(mIsLastCommandSucessfull){
-                    mIsLastCommandSucessfull = mSession.sendIsComposingStatus(false);    
-                }                
-                mExpirationTimer = null;
+                stop();
             }
-            mTimer.cancel();
-            mTimer = null;
         }
     }
 
