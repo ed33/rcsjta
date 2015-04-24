@@ -29,7 +29,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 /**
- * Is-composing events generator (see RFC3994)
+ * Is-composing events generator
  * 
  * @author jexa7410
  */
@@ -41,15 +41,31 @@ public class IsComposingGenerator {
     private static final Logger sLogger = Logger.getLogger(IsComposingGenerator.class
             .getSimpleName());
 
-    // Event IDs
+    /**
+     * OnComposing events
+     */
     private static enum ComposingEvent {
         IS_COMPOSING, IS_NOT_COMPOSING
     };
 
+    /**
+     * Expiration timer
+     */
     private ExpirationTimer mExpirationTimer;
 
+    /**
+     * The last composing event
+     */
     private ComposingEvent mLastComposingEvent = ComposingEvent.IS_NOT_COMPOSING;
+
+    /**
+     * The timestamp of the last composing event
+     */
     private long mLastOnComposingTimestamp = -1;
+
+    /**
+     * The status of the last sendIsComposingStatus command
+     */
     private boolean mIsLastCommandSucessfull = true;
 
     /**
@@ -75,28 +91,27 @@ public class IsComposingGenerator {
 
     /**
      * Handle isComposingEvent from API
-     * 
-     * @param isComposing
      */
     public void handleIsComposingEvent() {
-        boolean activated = sLogger.isActivated();
-        if (activated) {
+        boolean logActivated = sLogger.isActivated();
+        if (logActivated) {
             sLogger.debug("handleIsComposingEvent");
         }
-        long now = System.currentTimeMillis();
+
+        mLastOnComposingTimestamp = System.currentTimeMillis();
         if (ComposingEvent.IS_NOT_COMPOSING == mLastComposingEvent && mIsLastCommandSucessfull) {
             mIsLastCommandSucessfull = mSession.sendIsComposingStatus(true);
-            if (!mIsLastCommandSucessfull) {
-                sLogger.warn("mSession.sendIsComposingStatus command failed");
-            }
-            if (mExpirationTimer == null) {
-                if (activated) {
-                    sLogger.debug("No active ExpirationTimer : schedule new task");
-                }
-                mExpirationTimer = new ExpirationTimer(now);
-            }
         }
-        mLastOnComposingTimestamp = now;
+        mLastComposingEvent = ComposingEvent.IS_COMPOSING;
+        if (mExpirationTimer == null) {
+            if (logActivated) {
+                sLogger.debug("No active ExpirationTimer : schedule new task");
+            }
+            if (!mIsLastCommandSucessfull && logActivated) {
+                sLogger.debug("The last sendIsComposingStatus command has failed");
+            }
+            mExpirationTimer = new ExpirationTimer(mLastOnComposingTimestamp);
+        }
     }
 
     /**
@@ -109,6 +124,11 @@ public class IsComposingGenerator {
         private long mActivationDate;
         private Timer mTimer;
 
+        /**
+         * Default constructor
+         * 
+         * @param activationDate
+         */
         public ExpirationTimer(long activationDate) {
             mActivationDate = activationDate;
             mTimer = new Timer(TIMER_NAME);
@@ -117,26 +137,31 @@ public class IsComposingGenerator {
 
         @Override
         public void run() {
-            boolean activated = sLogger.isActivated();
-            if (activated) {
+            boolean logActivated = sLogger.isActivated();
+            if (logActivated) {
                 sLogger.debug("OnComposing timer has expired: ");
             }
 
             long now = System.currentTimeMillis();
             if (mActivationDate < mLastOnComposingTimestamp) {
-                if (activated) {
+                if (logActivated) {
                     sLogger.debug(" --> user is still composing");
+                }
+                if (!mIsLastCommandSucessfull) {
+                    if (logActivated) {
+                        sLogger.debug(" --> The last sendIsComposingStatus command has failed. Send a new one");
+                    }
+                    mIsLastCommandSucessfull = mSession.sendIsComposingStatus(true);
                 }
                 mExpirationTimer = new ExpirationTimer(now);
             } else {
-                if (activated) {
+                if (logActivated) {
                     sLogger.debug(" --> go into IDLE state");
                 }
                 mLastComposingEvent = ComposingEvent.IS_NOT_COMPOSING;
-                mIsLastCommandSucessfull = mSession.sendIsComposingStatus(false);
-                if (!mIsLastCommandSucessfull) {
-                    sLogger.warn("mSession.sendIsComposingStatus command failed");
-                }
+                if(mIsLastCommandSucessfull){
+                    mIsLastCommandSucessfull = mSession.sendIsComposingStatus(false);    
+                }                
                 mExpirationTimer = null;
             }
             mTimer.cancel();
