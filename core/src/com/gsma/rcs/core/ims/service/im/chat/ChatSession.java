@@ -132,7 +132,7 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
     private boolean mFtSupportedByRemote = false;
 
     private static final Logger sLogger = Logger.getLogger(ChatSession.class.getSimpleName());
- 
+
     /**
      * Messaging log
      */
@@ -147,7 +147,7 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
      * Is-composing generator
      */
     protected IsComposingGenerator mComposingMgr;
-    
+
     /**
      * Receive chat message
      * 
@@ -188,7 +188,7 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
         mMessagingLog = messagingLog;
         mActivityMgr = new ChatActivityManager(this, rcsSettings);
         mComposingMgr = new IsComposingGenerator(this, rcsSettings);
-        
+
         // Create the MSRP manager
         int localMsrpPort = NetworkRessourceManager.generateLocalMsrpPort(rcsSettings);
         String localIpAddress = getImsService().getImsModule().getCurrentNetworkInterface()
@@ -1108,5 +1108,15 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
      */
     public boolean isMediaEstablished() {
         return (getMsrpMgr().isEstablished() && !getDialogPath().isSessionTerminated());
+    }
+
+    /**
+     * On is-composing event
+     * 
+     * @param status The status should be set to true if user is composing and set to false when the
+     *            client application is leaving the chat UI
+     */
+    public void onComposingEvent(final boolean status) {
+        mComposingMgr.handleIsComposingEvent(status);
     }
 }

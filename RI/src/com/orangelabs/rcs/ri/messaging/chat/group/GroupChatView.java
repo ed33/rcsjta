@@ -324,7 +324,14 @@ public class GroupChatView extends ChatView {
     public void onDestroy() {
         if (LogUtils.isActive) {
             Log.d(LOGTAG, "onDestroy");
-        }
+        }        
+        try {
+            mGroupChat.onComposing(false);
+        } catch (Exception e) {
+            if (LogUtils.isActive) {
+                Log.e(LOGTAG, "onComposing failed", e);
+            }
+        }        
         super.onDestroy();
         chatIdOnForeground = null;
     }
@@ -919,7 +926,7 @@ public class GroupChatView extends ChatView {
             Log.d(LOGTAG, "onComposing");
         }
         try {
-            mGroupChat.onComposing();
+            mGroupChat.onComposing(true);
         } catch (Exception e) {
             if (LogUtils.isActive) {
                 Log.e(LOGTAG, "onComposing failed", e);

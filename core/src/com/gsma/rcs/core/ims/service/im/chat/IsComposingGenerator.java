@@ -35,47 +35,23 @@ import java.util.TimerTask;
  */
 public class IsComposingGenerator {
 
-    /**
-     * The logger
-     */
     private static final Logger sLogger = Logger.getLogger(IsComposingGenerator.class
             .getSimpleName());
 
-    /**
-     * OnComposing events
-     */
     private static enum ComposingEvent {
         IS_COMPOSING, IS_NOT_COMPOSING
     };
 
-    /**
-     * Expiration timer
-     */
     private ExpirationTimer mExpirationTimer;
 
-    /**
-     * The last composing event
-     */
     private ComposingEvent mLastComposingEvent;
 
-    /**
-     * The timestamp of the last composing event
-     */
     private long mLastOnComposingTimestamp;
 
-    /**
-     * The status of the last sendIsComposingStatus command
-     */
     private boolean mIsLastCommandSucessfull;
 
-    /**
-     * RcsSettings
-     */
     private RcsSettings mRcsSettings;
 
-    /**
-     * Chat session
-     */
     private ChatSession mSession;
 
     /**
@@ -87,30 +63,46 @@ public class IsComposingGenerator {
      * Constructor
      * 
      * @param session Chat session
-     * @param settings Settings
+     * @param rcsSettings Settings
      */
     public IsComposingGenerator(ChatSession session, RcsSettings rcsSettings) {
         mSession = session;
         mRcsSettings = rcsSettings;
-        initializeParameters();
+        resetParameters();
     }
 
     /**
-     * Initialize parameters used by the expiration timer.
+     * Reset parameters used by the expiration timer.
      */
-    private void initializeParameters() {
+    private void resetParameters() {
         mLastComposingEvent = ComposingEvent.IS_NOT_COMPOSING;
         mLastOnComposingTimestamp = -1;
         mIsLastCommandSucessfull = true;
     }
 
     /**
-     * Handle isComposingEvent from API
+     * Handle isComposingEvent from API.
+     * 
+     * @param status
      */
-    public void handleIsComposingEvent() {
+    public void handleIsComposingEvent(final boolean status) {
         boolean logActivated = sLogger.isActivated();
         if (logActivated) {
-            sLogger.debug("handleIsComposingEvent");
+            sLogger.debug("handleIsComposingEvent : ".concat(String.valueOf(status)));
+        }
+
+        if (!status) {
+            synchronized (mLock) {
+                if (mExpirationTimer != null) {
+                    mExpirationTimer.stop();
+                    mExpirationTimer = null;
+                }
+            }
+            if (ComposingEvent.IS_COMPOSING == mLastComposingEvent && mIsLastCommandSucessfull) {
+                mIsLastCommandSucessfull = mSession.sendIsComposingStatus(false);
+            }
+            resetParameters();
+            return;
         }
 
         mLastOnComposingTimestamp = System.currentTimeMillis();
@@ -130,8 +122,8 @@ public class IsComposingGenerator {
     }
 
     /**
-     * This method handles "message was sent" event from the session. 
-     * It will cancel the existing timer and set the IsComposingGenerator in its initial state
+     * This method handles "message was sent" event from the session. It will cancel the existing
+     * timer and set the IsComposingGenerator in its initial state
      */
     public void handleMessageWasSentEvent() {
         boolean logActivated = sLogger.isActivated();
@@ -139,12 +131,12 @@ public class IsComposingGenerator {
             sLogger.debug("--> handleMessageWasSentEvent");
         }
         synchronized (mLock) {
-            if (mExpirationTimer!= null) {
+            if (mExpirationTimer != null) {
                 mExpirationTimer.stop();
                 mExpirationTimer = null;
             }
         }
-        initializeParameters();
+        resetParameters();
         if (logActivated) {
             sLogger.debug("<-- handleMessageWasSentEvent");
         }
@@ -170,11 +162,11 @@ public class IsComposingGenerator {
             mTimer = new Timer(TIMER_NAME);
             mTimer.schedule(this, mRcsSettings.getIsComposingTimeout());
         }
-        
-        public void stop(){
+
+        public void stop() {
             mTimer.cancel();
             mTimer.purge();
-            mTimer = null;                    
+            mTimer = null;
         }
 
         @Override

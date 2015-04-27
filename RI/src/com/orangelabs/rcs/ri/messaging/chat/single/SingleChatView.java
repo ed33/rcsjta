@@ -190,6 +190,13 @@ public class SingleChatView extends ChatView {
         if (LogUtils.isActive) {
             Log.d(LOGTAG, "onDestroy");
         }
+        try {
+            mChat.onComposing(false);
+        } catch (Exception e) {
+            if (LogUtils.isActive) {
+                Log.e(LOGTAG, "onComposing failed", e);
+            }
+        }
         super.onDestroy();
         contactOnForeground = null;
     }
@@ -451,7 +458,7 @@ public class SingleChatView extends ChatView {
             Log.d(LOGTAG, "onComposing");
         }
         try {
-            mChat.onComposing();
+            mChat.onComposing(true);
         } catch (Exception e) {
             if (LogUtils.isActive) {
                 Log.e(LOGTAG, "onComposing failed", e);

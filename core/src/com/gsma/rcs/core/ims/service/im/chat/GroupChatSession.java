@@ -406,13 +406,6 @@ public abstract class GroupChatSession extends ChatSession {
     }
 
     /**
-     * On is-composing event
-     */
-    public void onComposingEvent() {
-        mComposingMgr.handleIsComposingEvent();
-    }
-
-    /**
      * Send is composing status
      * 
      * @param status Status on is-composing event

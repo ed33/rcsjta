@@ -518,16 +518,18 @@ public class OneToOneChatImpl extends IOneToOneChat.Stub implements OneToOneChat
     /**
      * Called when is composing a chat message
      * 
+     * @param status The status should be set to true if user is composing and set to false when the
+     *            client application is leaving the chat UI
      * @throws RemoteException
      */
-    public void onComposing() throws RemoteException {
+    public void onComposing(final boolean status) throws RemoteException {
         try {
             final OneToOneChatSession session = mImService.getOneToOneChatSession(mContact);
             if (session == null) {
                 return;
             }
             if (session.getDialogPath().isSessionEstablished()) {
-                session.onComposingEvent();
+                session.onComposingEvent(status);
                 return;
             }
             if (!session.isInitiatedByRemote()) {

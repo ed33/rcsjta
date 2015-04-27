@@ -121,11 +121,13 @@ public class OneToOneChat {
     /**
      * Called when is composing a chat message
      * 
+     * @param status The status should be set to true if user is composing and set to false when the
+     *            client application is leaving the chat UI
      * @throws RcsServiceException
      */
-    public void onComposing() throws RcsServiceException {
+    public void onComposing(final boolean status) throws RcsServiceException {
         try {
-            mOneToOneChatInf.onComposing();
+            mOneToOneChatInf.onComposing(status);
         } catch (Exception e) {
             throw new RcsGenericException(e);
         }

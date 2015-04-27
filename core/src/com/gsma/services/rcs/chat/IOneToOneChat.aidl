@@ -13,7 +13,7 @@ interface IOneToOneChat {
 
 	IChatMessage sendMessage(in String message);
 
-	void onComposing();
+	void onComposing(in boolean status);
 
 	IChatMessage sendMessage2(in Geoloc geoloc);
 
