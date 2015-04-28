@@ -881,6 +881,7 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
      */
     public boolean sendDataChunks(String msgId, String data, String mime,
             TypeMsrpChunk typeMsrpChunk) {
+        //TODO Change exception handling 
         try {
             byte[] bytes = data.getBytes(UTF8);
             ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
@@ -1113,10 +1114,10 @@ public abstract class ChatSession extends ImsServiceSession implements MsrpEvent
     /**
      * On is-composing event
      * 
-     * @param status The status should be set to true if user is composing and set to false when the
+     * @param enabled It should be set to true if user is composing and set to false when the
      *            client application is leaving the chat UI
      */
-    public void onComposingEvent(final boolean status) {
-        mComposingMgr.handleIsComposingEvent(status);
+    public void onComposingEvent(final boolean enabled) {
+        mComposingMgr.handleIsComposingEvent(enabled);
     }
 }

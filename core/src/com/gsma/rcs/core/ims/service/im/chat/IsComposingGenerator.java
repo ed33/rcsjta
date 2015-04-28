@@ -83,15 +83,15 @@ public class IsComposingGenerator {
     /**
      * Handle isComposingEvent from API.
      * 
-     * @param status
+     * @param enabled
      */
-    public void handleIsComposingEvent(final boolean status) {
+    public void handleIsComposingEvent(final boolean enabled) {
         boolean logActivated = sLogger.isActivated();
         if (logActivated) {
-            sLogger.debug("handleIsComposingEvent : ".concat(String.valueOf(status)));
+            sLogger.debug("handleIsComposingEvent : ".concat(String.valueOf(enabled)));
         }
 
-        if (!status) {
+        if (!enabled) {
             synchronized (mLock) {
                 if (mExpirationTimer != null) {
                     mExpirationTimer.stop();

@@ -508,13 +508,13 @@ public class GroupChat {
     /**
      * Called when is composing a chat message
      * 
-     * @param status The status should be set to true if user is composing and set to false when the
+     * @param enabled It should be set to true if user is composing and set to false when the
      *            client application is leaving the chat UI
      * @throws RcsServiceException
      */
-    public void onComposing(final boolean status) throws RcsServiceException {
+    public void onComposing(final boolean enabled) throws RcsServiceException {
         try {
-            mGroupChatInf.onComposing(status);
+            mGroupChatInf.onComposing(enabled);
         } catch (Exception e) {
             throw new RcsGenericException(e);
         }
