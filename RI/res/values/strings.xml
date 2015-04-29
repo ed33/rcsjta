@@ -363,11 +363,11 @@
 
     <!-- HistoryLog  menu -->
     <string name="menu_history_log">History Log</string>
-    <string name="menu_history_log_messaging">Conversation</string>
+    <string name="menu_history_log_messaging">Messaging</string>
     <string name="menu_history_log_sharing">Sharings</string>
     <string name="title_history_log">History Log</string>
     <string name="title_history_log_sharing">Sharing Log</string>
-    <string name="title_history_log_messaging">Conversation Log</string>
+    <string name="title_history_log_messaging">Messaging Log</string>
     <string name="title_history_log_item">History Log detail</string>
     <string name="label_history_log_menu_filter">Change filter</string>
     <string name="label_history_log_menu_chat">Chat</string>
