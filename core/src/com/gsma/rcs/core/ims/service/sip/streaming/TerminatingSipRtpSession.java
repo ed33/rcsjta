@@ -29,6 +29,7 @@ import com.gsma.rcs.core.ims.protocol.sip.SipTransactionContext;
 import com.gsma.rcs.core.ims.service.ImsService;
 import com.gsma.rcs.core.ims.service.ImsSessionListener;
 import com.gsma.rcs.core.ims.service.SessionTimerManager;
+import com.gsma.rcs.core.ims.service.sip.GenericSipSession;
 import com.gsma.rcs.core.ims.service.sip.SipSessionError;
 import com.gsma.rcs.core.ims.service.sip.SipSessionListener;
 import com.gsma.rcs.provider.contact.ContactManager;
@@ -46,9 +47,7 @@ import java.util.Collection;
  * @author jexa7410
  */
 public class TerminatingSipRtpSession extends GenericSipRtpSession {
-    /**
-     * The logger
-     */
+
     private final static Logger sLogger = Logger.getLogger(TerminatingSipRtpSession.class
             .getSimpleName());
 
@@ -68,8 +67,8 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
     public TerminatingSipRtpSession(ImsService parent, SipRequest invite, ContactId contact,
             Intent sessionInvite, RcsSettings rcsSettings, long timestamp,
             ContactManager contactManager) {
-        super(parent, contact, invite.getFeatureTags().get(0), rcsSettings, timestamp,
-                contactManager);
+        super(parent, contact, GenericSipSession.getIariFeatureTag(invite.getFeatureTags()),
+                rcsSettings, timestamp, contactManager);
 
         mSessionInvite = sessionInvite;
         // Create dialog path
@@ -80,11 +79,11 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
      * Background processing
      */
     public void run() {
+        boolean logActivated = sLogger.isActivated();
+        if (logActivated) {
+            sLogger.info("Initiate a new RTP session as terminating");
+        }
         try {
-            if (sLogger.isActivated()) {
-                sLogger.info("Initiate a new RTP session as terminating");
-            }
-
             send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
             Collection<ImsSessionListener> listeners = getListeners();
@@ -96,7 +95,7 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
             InvitationStatus answer = waitInvitationAnswer();
             switch (answer) {
                 case INVITATION_REJECTED:
-                    if (sLogger.isActivated()) {
+                    if (logActivated) {
                         sLogger.debug("Session has been rejected by user");
                     }
 
@@ -109,7 +108,7 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
                     return;
 
                 case INVITATION_TIMEOUT:
-                    if (sLogger.isActivated()) {
+                    if (logActivated) {
                         sLogger.debug("Session has been rejected on timeout");
                     }
 
@@ -125,14 +124,14 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
                     return;
 
                 case INVITATION_REJECTED_BY_SYSTEM:
-                    if (sLogger.isActivated()) {
+                    if (logActivated) {
                         sLogger.debug("Session has been aborted by system");
                     }
                     removeSession();
                     return;
 
                 case INVITATION_CANCELED:
-                    if (sLogger.isActivated()) {
+                    if (logActivated) {
                         sLogger.debug("Session has been canceled");
                     }
 
@@ -153,14 +152,14 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
                     break;
 
                 case INVITATION_DELETED:
-                    if (sLogger.isActivated()) {
+                    if (logActivated) {
                         sLogger.debug("Session has been deleted");
                     }
                     removeSession();
                     return;
 
                 default:
-                    if (sLogger.isActivated()) {
+                    if (logActivated) {
                         sLogger.debug("Unknown invitation answer in run; answer=".concat(String
                                 .valueOf(answer)));
                     }
@@ -175,7 +174,7 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
 
             // Test if the session should be interrupted
             if (isInterrupted()) {
-                if (sLogger.isActivated()) {
+                if (logActivated) {
                     sLogger.debug("Session has been interrupted: end of processing");
                 }
                 return;
@@ -183,7 +182,7 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
 
             // Test if the session should be interrupted
             if (isInterrupted()) {
-                if (sLogger.isActivated()) {
+                if (logActivated) {
                     sLogger.debug("Session has been interrupted: end of processing");
                 }
                 return;
@@ -193,7 +192,7 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
             prepareMediaSession();
 
             // Create a 200 OK response
-            if (sLogger.isActivated()) {
+            if (logActivated) {
                 sLogger.info("Send 200 OK");
             }
             SipResponse resp = create200OKResponse();
@@ -208,7 +207,7 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
             // Analyze the received response
             if (ctx.isSipAck()) {
                 // ACK received
-                if (sLogger.isActivated()) {
+                if (logActivated) {
                     sLogger.info("ACK request received");
                 }
 
@@ -229,7 +228,7 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
                     getListeners().get(j).handleSessionStarted(contact);
                 }
             } else {
-                if (sLogger.isActivated()) {
+                if (logActivated) {
                     sLogger.debug("No ACK received for INVITE");
                 }
 
@@ -237,7 +236,7 @@ public class TerminatingSipRtpSession extends GenericSipRtpSession {
                 handleError(new SipSessionError(SipSessionError.SESSION_INITIATION_FAILED));
             }
         } catch (Exception e) {
-            if (sLogger.isActivated()) {
+            if (logActivated) {
                 sLogger.error("Session initiation has failed", e);
             }
 

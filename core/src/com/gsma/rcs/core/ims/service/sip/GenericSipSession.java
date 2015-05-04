@@ -39,6 +39,7 @@ import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.contact.ContactId;
 
 import java.io.IOException;
+import java.util.Set;
 
 import gov2.nist.javax2.sip.header.ims.PPreferredServiceHeader;
 import javax2.sip.header.ExtensionHeader;
@@ -49,14 +50,9 @@ import javax2.sip.header.ExtensionHeader;
  * @author jexa7410
  */
 public abstract class GenericSipSession extends ImsServiceSession {
-    /**
-     * Feature tag
-     */
+
     private String mFeatureTag;
 
-    /**
-     * The logger
-     */
     private final static Logger sLogger = Logger.getLogger(GenericSipSession.class.getSimpleName());
 
     /**
@@ -204,5 +200,20 @@ public abstract class GenericSipSession extends ImsServiceSession {
         // Request capabilities to the remote
         getImsService().getImsModule().getCapabilityService()
                 .requestContactCapabilities(getRemoteContact());
+    }
+
+    /**
+     * Gets the IARI feature tag from the set of feature tags
+     * 
+     * @param featureTags
+     * @return the IARI feature tag or null
+     */
+    public static String getIariFeatureTag(Set<String> featureTags) {
+        for (String tag : featureTags) {
+            if (tag.startsWith(FeatureTags.FEATURE_RCSE)) {
+                return tag;
+            }
+        }
+        return null;
     }
 }

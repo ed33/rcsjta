@@ -35,6 +35,7 @@ import com.gsma.rcs.core.ims.protocol.sip.SipTransactionContext;
 import com.gsma.rcs.core.ims.service.ImsService;
 import com.gsma.rcs.core.ims.service.ImsSessionListener;
 import com.gsma.rcs.core.ims.service.SessionTimerManager;
+import com.gsma.rcs.core.ims.service.sip.GenericSipSession;
 import com.gsma.rcs.core.ims.service.sip.SipSessionError;
 import com.gsma.rcs.core.ims.service.sip.SipSessionListener;
 import com.gsma.rcs.provider.contact.ContactManager;
@@ -54,10 +55,7 @@ import java.util.Vector;
  * @author jexa7410
  */
 public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
-    /**
-     * The logger
-     */
-    private final static Logger logger = Logger.getLogger(TerminatingSipMsrpSession.class
+    private final static Logger sLogger = Logger.getLogger(TerminatingSipMsrpSession.class
             .getSimpleName());
 
     private final Intent mSessionInvite;
@@ -76,8 +74,8 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
     public TerminatingSipMsrpSession(ImsService parent, SipRequest invite, ContactId contact,
             Intent sessionInvite, RcsSettings rcsSettings, long timestamp,
             ContactManager contactManager) {
-        super(parent, contact, invite.getFeatureTags().get(0), rcsSettings, timestamp,
-                contactManager);
+        super(parent, contact, GenericSipSession.getIariFeatureTag(invite.getFeatureTags()),
+                rcsSettings, timestamp, contactManager);
 
         mSessionInvite = sessionInvite;
 
@@ -89,11 +87,11 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
      * Background processing
      */
     public void run() {
+        final boolean logActivated = sLogger.isActivated();
+        if (logActivated) {
+            sLogger.info("Initiate a new MSRP session as terminating");
+        }
         try {
-            if (logger.isActivated()) {
-                logger.info("Initiate a new MSRP session as terminating");
-            }
-
             send180Ringing(getDialogPath().getInvite(), getDialogPath().getLocalTag());
 
             Collection<ImsSessionListener> listeners = getListeners();
@@ -105,8 +103,8 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
             InvitationStatus answer = waitInvitationAnswer();
             switch (answer) {
                 case INVITATION_REJECTED:
-                    if (logger.isActivated()) {
-                        logger.debug("Session has been rejected by user");
+                    if (logActivated) {
+                        sLogger.debug("Session has been rejected by user");
                     }
 
                     removeSession();
@@ -118,8 +116,8 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
                     return;
 
                 case INVITATION_TIMEOUT:
-                    if (logger.isActivated()) {
-                        logger.debug("Session has been rejected on timeout");
+                    if (logActivated) {
+                        sLogger.debug("Session has been rejected on timeout");
                     }
 
                     // Ringing period timeout
@@ -134,15 +132,15 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
                     return;
 
                 case INVITATION_REJECTED_BY_SYSTEM:
-                    if (logger.isActivated()) {
-                        logger.debug("Session has been aborted by system");
+                    if (logActivated) {
+                        sLogger.debug("Session has been aborted by system");
                     }
                     removeSession();
                     return;
 
                 case INVITATION_CANCELED:
-                    if (logger.isActivated()) {
-                        logger.debug("Session has been rejected by remote");
+                    if (logActivated) {
+                        sLogger.debug("Session has been rejected by remote");
                     }
 
                     removeSession();
@@ -162,15 +160,15 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
                     break;
 
                 case INVITATION_DELETED:
-                    if (logger.isActivated()) {
-                        logger.debug("Session has been deleted");
+                    if (logActivated) {
+                        sLogger.debug("Session has been deleted");
                     }
                     removeSession();
                     return;
 
                 default:
-                    if (logger.isActivated()) {
-                        logger.debug("Unknown invitation answer in run; answer=".concat(String
+                    if (logActivated) {
+                        sLogger.debug("Unknown invitation answer in run; answer=".concat(String
                                 .valueOf(answer)));
                     }
                     return;
@@ -192,14 +190,14 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
             if (attr2 != null) {
                 remoteSetup = attr2.getValue();
             }
-            if (logger.isActivated()) {
-                logger.debug("Remote setup attribute is " + remoteSetup);
+            if (logActivated) {
+                sLogger.debug("Remote setup attribute is " + remoteSetup);
             }
 
             // Set setup mode
             String localSetup = createSetupAnswer(remoteSetup);
-            if (logger.isActivated()) {
-                logger.debug("Local setup attribute is " + localSetup);
+            if (logActivated) {
+                sLogger.debug("Local setup attribute is " + localSetup);
             }
 
             // Build SDP answer
@@ -210,8 +208,8 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
 
             // Test if the session should be interrupted
             if (isInterrupted()) {
-                if (logger.isActivated()) {
-                    logger.debug("Session has been interrupted: end of processing");
+                if (logActivated) {
+                    sLogger.debug("Session has been interrupted: end of processing");
                 }
                 return;
             }
@@ -230,8 +228,8 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
                             // Open the MSRP session
                             getMsrpMgr().openMsrpSession();
                         } catch (IOException e) {
-                            if (logger.isActivated()) {
-                                logger.error("Can't create the MSRP server session", e);
+                            if (logActivated) {
+                                sLogger.error("Can't create the MSRP server session", e);
                             }
                         }
                     }
@@ -251,8 +249,8 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
                         try {
                             getMsrpMgr().openMsrpSession();
                         } catch (IOException e) {
-                            if (logger.isActivated()) {
-                                logger.error("Can't create the MSRP server session", e);
+                            if (logActivated) {
+                                sLogger.error("Can't create the MSRP server session", e);
                             }
                         }
                     }
@@ -262,15 +260,15 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
 
             // Test if the session should be interrupted
             if (isInterrupted()) {
-                if (logger.isActivated()) {
-                    logger.debug("Session has been interrupted: end of processing");
+                if (logActivated) {
+                    sLogger.debug("Session has been interrupted: end of processing");
                 }
                 return;
             }
 
             // Create a 200 OK response
-            if (logger.isActivated()) {
-                logger.info("Send 200 OK");
+            if (logActivated) {
+                sLogger.info("Send 200 OK");
             }
             SipResponse resp = create200OKResponse();
 
@@ -284,8 +282,8 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
             // Analyze the received response
             if (ctx.isSipAck()) {
                 // ACK received
-                if (logger.isActivated()) {
-                    logger.info("ACK request received");
+                if (logActivated) {
+                    sLogger.info("ACK request received");
                 }
 
                 // The session is established
@@ -302,16 +300,16 @@ public class TerminatingSipMsrpSession extends GenericSipMsrpSession {
                     getListeners().get(j).handleSessionStarted(contact);
                 }
             } else {
-                if (logger.isActivated()) {
-                    logger.debug("No ACK received for INVITE");
+                if (logActivated) {
+                    sLogger.debug("No ACK received for INVITE");
                 }
 
                 // No response received: timeout
                 handleError(new SipSessionError(SipSessionError.SESSION_INITIATION_FAILED));
             }
         } catch (Exception e) {
-            if (logger.isActivated()) {
-                logger.error("Session initiation has failed", e);
+            if (logActivated) {
+                sLogger.error("Session initiation has failed", e);
             }
 
             // Unexpected error
