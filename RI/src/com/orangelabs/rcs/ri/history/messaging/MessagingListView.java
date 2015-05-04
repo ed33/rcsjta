@@ -16,6 +16,7 @@ import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -137,7 +138,6 @@ public class MessagingListView extends HistoryListView {
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-
             LayoutInflater inflater = ((Activity) mContext).getLayoutInflater();
             ViewHolder viewHolder;
             if (convertView == null) {
@@ -188,17 +188,20 @@ public class MessagingListView extends HistoryListView {
                 viewHolder.mConversationLabel.setText(contact);
             } else {
                 viewHolder.mConversationType.setText(R.string.label_history_log_group_conversation);
-                viewHolder.mConversationLabel.setText(truncateString(item.getSubject(),
-                        MAX_LENGTH_SUBJECT));
+                String subject = item.getSubject();
+                viewHolder.mConversationLabel.setText((TextUtils.isEmpty(subject)) ? "" : truncateString(
+                        subject, MAX_LENGTH_SUBJECT));
             }
 
             if (ChatLog.Message.HISTORYLOG_MEMBER_ID == providerId) {
                 viewHolder.mEvent.setImageDrawable(mDrawableChat);
-                viewHolder.mDescription.setText(truncateString(item.getContent(),
+                String content = item.getContent();
+                viewHolder.mDescription.setText(TextUtils.isEmpty(content) ? "" : truncateString(content,
                         MAX_LENGTH_DESCRIPTION));
             } else if (FileTransferLog.HISTORYLOG_MEMBER_ID == providerId) {
                 viewHolder.mEvent.setImageDrawable(mDrawableFileTransfer);
-                viewHolder.mDescription.setText(truncateString(item.getFilename(),
+                String filename = item.getFilename();
+                viewHolder.mDescription.setText(TextUtils.isEmpty(filename) ? "" : truncateString(filename,
                         MAX_LENGTH_DESCRIPTION));
             }
             return convertView;
@@ -207,49 +210,61 @@ public class MessagingListView extends HistoryListView {
 
     @Override
     protected void startQuery() {
-        Cursor cursor = null;
         List<Integer> providers = getSelectedProviderIds();
+        Map<String, MessagingLogInfos> dataMap = new HashMap<String, MessagingLogInfos>();
         if (!providers.isEmpty()) {
             Uri uri = createHistoryUri(providers);
-            cursor = getContentResolver().query(uri, null, WHERE_CLAUSE, null, SORT_BY);
-        }
+            Cursor cursor = null;
+            try {
+                cursor = getContentResolver().query(uri, null, WHERE_CLAUSE, null, SORT_BY);
 
-        Map<String, MessagingLogInfos> dataMap = new HashMap<String, MessagingLogInfos>();
-        if (cursor != null) {
-            int columnChatId = cursor.getColumnIndexOrThrow(HistoryLog.CHAT_ID);
-            int columnTimestamp = cursor.getColumnIndexOrThrow(HistoryLog.TIMESTAMP);
-            int columnProviderId = cursor.getColumnIndexOrThrow(HistoryLog.PROVIDER_ID);
-            int columnDirection = cursor.getColumnIndexOrThrow(HistoryLog.DIRECTION);
-            int columnContact = cursor.getColumnIndexOrThrow(HistoryLog.CONTACT);
-            int columnContent = cursor.getColumnIndexOrThrow(HistoryLog.CONTENT);
-            int columnFilename = cursor.getColumnIndexOrThrow(HistoryLog.FILENAME);
-            int columnStatus = cursor.getColumnIndexOrThrow(HistoryLog.STATUS);
-            while (cursor.moveToNext()) {
-                String chatId = cursor.getString(columnChatId);
-                long timestamp = cursor.getLong(columnTimestamp);
-                MessagingLogInfos infos = dataMap.get(chatId);
-                if (infos != null && timestamp < infos.getTimestamp()) {
-                    continue;
+                int columnChatId = cursor.getColumnIndexOrThrow(HistoryLog.CHAT_ID);
+                int columnTimestamp = cursor.getColumnIndexOrThrow(HistoryLog.TIMESTAMP);
+                int columnProviderId = cursor.getColumnIndexOrThrow(HistoryLog.PROVIDER_ID);
+                int columnDirection = cursor.getColumnIndexOrThrow(HistoryLog.DIRECTION);
+                int columnContact = cursor.getColumnIndexOrThrow(HistoryLog.CONTACT);
+                int columnContent = cursor.getColumnIndexOrThrow(HistoryLog.CONTENT);
+                int columnFilename = cursor.getColumnIndexOrThrow(HistoryLog.FILENAME);
+                int columnStatus = cursor.getColumnIndexOrThrow(HistoryLog.STATUS);
+                while (cursor.moveToNext()) {
+                    String chatId = cursor.getString(columnChatId);
+                    long timestamp = cursor.getLong(columnTimestamp);
+                    /*
+                     * We may have both GC and FT messages for the same chat ID. Only keep the most
+                     * recent one.
+                     */
+                    MessagingLogInfos infos = dataMap.get(chatId);
+                    if (infos != null && timestamp < infos.getTimestamp()) {
+                        continue;
+                    }
+                    dataMap.put(
+                            chatId,
+                            new MessagingLogInfos(cursor.getInt(columnProviderId), timestamp,
+                                    cursor.getInt(columnStatus), Direction.valueOf(cursor
+                                            .getInt(columnDirection)), cursor
+                                            .getString(columnContact), chatId, cursor
+                                            .getString(columnContent), cursor
+                                            .getString(columnFilename)));
                 }
-                dataMap.put(
-                        chatId,
-                        new MessagingLogInfos(cursor.getInt(columnProviderId), timestamp, cursor
-                                .getInt(columnStatus), Direction.valueOf(cursor
-                                .getInt(columnDirection)), cursor.getString(columnContact), chatId,
-                                cursor.getString(columnContent), cursor.getString(columnFilename)));
-            }
-            cursor.close();
-        }
 
-        if (getSelectedProviderIds().contains(ChatLog.Message.HISTORYLOG_MEMBER_ID)) {
-            for (Entry<String, MessagingLogInfos> entry : mGroupChatMap.entrySet()) {
-                String chatId = entry.getKey();
-                MessagingLogInfos groupChatInfos = entry.getValue();
-                MessagingLogInfos messageInfos = dataMap.get(chatId);
-                if (messageInfos == null) {
-                    dataMap.put(chatId, groupChatInfos);
-                } else {
-                    messageInfos.setSubject(groupChatInfos.getSubject());
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+
+            if (getSelectedProviderIds().contains(ChatLog.Message.HISTORYLOG_MEMBER_ID)) {
+                for (Entry<String, MessagingLogInfos> groupChat : mGroupChatMap.entrySet()) {
+                    String chatId = groupChat.getKey();
+                    MessagingLogInfos groupChatInfos = groupChat.getValue();
+                    MessagingLogInfos messageInfos = dataMap.get(chatId);
+                    if (messageInfos == null) {
+                        /* Add group chat entries if there is no associated message */
+                        dataMap.put(chatId, groupChatInfos);
+                    } else {
+                        /* update subject if message exists */
+                        messageInfos.setSubject(groupChatInfos.getSubject());
+                    }
                 }
             }
         }
@@ -315,14 +330,14 @@ public class MessagingListView extends HistoryListView {
         public MessagingLogInfos(int providerId, long timestamp, int status, Direction direction,
                 String contact, String chatId, String content, String filename) {
             super();
-            this.mProviderId = providerId;
-            this.mTimestamp = timestamp;
-            this.mStatus = status;
-            this.mDirection = direction;
-            this.mContact = contact;
-            this.mChatId = chatId;
-            this.mContent = content;
-            this.mFilename = filename;
+            mProviderId = providerId;
+            mTimestamp = timestamp;
+            mStatus = status;
+            mDirection = direction;
+            mContact = contact;
+            mChatId = chatId;
+            mContent = content;
+            mFilename = filename;
         }
 
         public int getProviderId() {
@@ -372,5 +387,6 @@ public class MessagingListView extends HistoryListView {
         public int compareTo(MessagingLogInfos another) {
             return (int) (another.getTimestamp() - mTimestamp);
         }
+
     }
 }

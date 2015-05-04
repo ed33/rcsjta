@@ -21,6 +21,7 @@ import android.database.MatrixCursor;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.view.View;
 import android.widget.AdapterView;
@@ -219,7 +220,7 @@ public class SharingListView extends HistoryListView {
                 case ImageSharingLog.HISTORYLOG_MEMBER_ID:
                     sharingTypeView.setText(R.string.label_history_log_image_sharing);
                     String filename = cursor.getString(cursor.getColumnIndex(HistoryLog.FILENAME));
-                    descriptionView.setText(truncateString(filename, MAX_LENGTH_DESCRIPTION));
+                    descriptionView.setText((TextUtils.isEmpty(filename)) ? "" : truncateString(filename, MAX_LENGTH_DESCRIPTION));
                     break;
                 case VideoSharingLog.HISTORYLOG_MEMBER_ID:
                     sharingTypeView.setText(R.string.label_history_log_video_sharing);

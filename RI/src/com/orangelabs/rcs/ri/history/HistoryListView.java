@@ -106,9 +106,6 @@ public abstract class HistoryListView extends Activity {
     }
 
     protected String truncateString(String in, int maxLength) {
-        if(in == null || in.isEmpty()){
-            return "";
-        }
         if (in.length() > maxLength) {
             in = in.substring(0, maxLength).concat("...");
         }
