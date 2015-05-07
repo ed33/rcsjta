@@ -506,15 +506,14 @@ public class GroupChat {
     }
 
     /**
-     * Called when is composing a chat message
+     * Sends an Is-composing event. The status is set to true when typing a message, else it is set
+     * to false.
      * 
-     * @param enabled It should be set to true if user is composing and set to false when the client
-     *            application is leaving the chat UI
      * @throws RcsServiceException
      */
-    public void onComposing(final boolean enabled) throws RcsServiceException {
+    public void sendIsComposingEvent(boolean status) throws RcsServiceException {
         try {
-            mGroupChatInf.onComposing(enabled);
+            mGroupChatInf.setComposingStatus(status);
         } catch (Exception e) {
             throw new RcsGenericException(e);
         }
