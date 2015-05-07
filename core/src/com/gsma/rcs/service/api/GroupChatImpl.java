@@ -96,6 +96,11 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
     private boolean mGroupChatRejoinedAsPartOfSendOperation = false;
 
     /**
+     * ComposingStatus cache, chatId as key
+     */
+    private static final Map<String, Boolean> sComposingStatusCache = new HashMap<String, Boolean>();
+
+    /**
      * Lock used for synchronization
      */
     private final Object lock = new Object();
@@ -1031,6 +1036,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
                     "Not allowed to send GroupChat message on the connected IMS server!");
         }
         try {
+            sComposingStatusCache.remove(mChatId); /* clear cache */
             long timestamp = System.currentTimeMillis();
             /* For outgoing message, timestampSent = timestamp */
             ChatMessage msg = ChatUtils.createTextMessage(null, text, timestamp, timestamp);
@@ -1114,6 +1120,7 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
      */
     public void setComposingStatus(final boolean status) throws RemoteException {
         try {
+            sComposingStatusCache.remove(mChatId);
             final GroupChatSession session = mImService.getGroupChatSession(mChatId);
             if (session == null) {
                 if (logger.isActivated()) {
@@ -1121,13 +1128,17 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
                             + "' since group chat session found with chatId '" + mChatId
                             + "' does not exist for now");
                 }
+                sComposingStatusCache.put(mChatId, status);
                 return;
             }
             if (session.getDialogPath().isSessionEstablished()) {
-                session.sendIsComposingStatus(status);
+                if (!session.sendIsComposingStatus(status)) {
+                    sComposingStatusCache.put(mChatId, status);
+                }
                 return;
             }
             if (!session.isInitiatedByRemote()) {
+                sComposingStatusCache.put(mChatId, status);
                 return;
             }
             ImSessionStartMode imSessionStartMode = mRcsSettings.getImSessionStartMode();
@@ -1138,7 +1149,9 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
                         logger.debug("Core chat session is pending: auto accept it.");
                     }
                     session.acceptSession();
-                    session.sendIsComposingStatus(status);
+                    if (!session.sendIsComposingStatus(status)) {
+                        sComposingStatusCache.put(mChatId, status);
+                    }
                     break;
                 default:
                     break;
@@ -1288,13 +1301,25 @@ public class GroupChatImpl extends IGroupChat.Stub implements GroupChatSessionLi
 
     @Override
     public void handleSessionStarted(ContactId contact) {
-        if (logger.isActivated()) {
+        boolean loggerActivated = logger.isActivated();
+        if (loggerActivated) {
             logger.info(new StringBuilder("Session status ").append(State.STARTED).toString());
         }
         setRejoinedAsPartOfSendOperation(false);
         synchronized (lock) {
             GroupChatSession session = mImService.getGroupChatSession(mChatId);
             mPersistentStorage.setRejoinId(session.getImSessionIdentity());
+
+            Boolean composingStatus = sComposingStatusCache.get(mChatId);
+            if (composingStatus != null) {
+                if (loggerActivated) {
+                    logger.debug(new StringBuilder("Sending isComposing command with status :")
+                            .append(composingStatus).toString());
+                }
+                if(session.sendIsComposingStatus(composingStatus)){
+                    sComposingStatusCache.remove(mChatId);    
+                }
+            }
 
             mBroadcaster.broadcastStateChanged(mChatId, State.STARTED, ReasonCode.UNSPECIFIED);
         }
