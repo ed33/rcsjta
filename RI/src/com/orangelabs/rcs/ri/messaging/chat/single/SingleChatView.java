@@ -34,6 +34,8 @@ import com.gsma.services.rcs.contact.ContactId;
 
 import com.orangelabs.rcs.ri.R;
 import com.orangelabs.rcs.ri.messaging.chat.ChatView;
+import com.orangelabs.rcs.ri.messaging.chat.IsComposingManager;
+import com.orangelabs.rcs.ri.messaging.chat.IsComposingManager.INotifyComposing;
 import com.orangelabs.rcs.ri.utils.LogUtils;
 import com.orangelabs.rcs.ri.utils.RcsDisplayName;
 import com.orangelabs.rcs.ri.utils.Smileys;
@@ -175,6 +177,9 @@ public class SingleChatView extends ChatView {
                 filterArray[0] = new InputFilter.LengthFilter(maxMsgLength);
                 composeText.setFilters(filterArray);
             }
+            // Instantiate the composing manager
+            composingManager = new IsComposingManager(configuration.getIsComposingTimeout(),
+                    getNotifyComposing());
         } catch (RcsServiceNotAvailableException e) {
             Utils.showMessageAndExit(this, getString(R.string.label_api_unavailable), mExitOnce, e);
         } catch (RcsServiceException e) {
@@ -189,13 +194,6 @@ public class SingleChatView extends ChatView {
     public void onDestroy() {
         if (LogUtils.isActive) {
             Log.d(LOGTAG, "onDestroy");
-        }
-        try {
-            mChat.onComposing(false);
-        } catch (Exception e) {
-            if (LogUtils.isActive) {
-                Log.e(LOGTAG, "onComposing failed", e);
-            }
         }
         super.onDestroy();
         contactOnForeground = null;
@@ -412,6 +410,28 @@ public class SingleChatView extends ChatView {
     }
 
     @Override
+    public INotifyComposing getNotifyComposing() {
+        INotifyComposing notifyComposing = new IsComposingManager.INotifyComposing() {
+            public void setTypingStatus(boolean isTyping) {
+                try {
+                    if (mChat == null) {
+                        return;
+
+                    }
+                    mChat.setComposingStatus(isTyping);
+                    if (LogUtils.isActive) {
+                        Boolean _isTyping = Boolean.valueOf(isTyping);
+                        Log.d(LOGTAG, "sendIsComposingEvent ".concat(_isTyping.toString()));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        return notifyComposing;
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = new MenuInflater(getApplicationContext());
         inflater.inflate(R.menu.menu_chat, menu);
@@ -450,19 +470,5 @@ public class SingleChatView extends ChatView {
     @Override
     public boolean isSingleChat() {
         return true;
-    }
-
-    @Override
-    public void onComposing() {
-        if (LogUtils.isActive) {
-            Log.d(LOGTAG, "onComposing");
-        }
-        try {
-            mChat.onComposing(true);
-        } catch (Exception e) {
-            if (LogUtils.isActive) {
-                Log.e(LOGTAG, "onComposing failed", e);
-            }
-        }
     }
 }
