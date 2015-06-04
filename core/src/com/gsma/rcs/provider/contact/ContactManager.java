@@ -106,12 +106,14 @@ import android.os.Build;
 import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.AggregationExceptions;
+import android.provider.ContactsContract.CommonDataKinds.GroupMembership;
 import android.provider.ContactsContract.CommonDataKinds.Im;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.Photo;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.ContactsContract.CommonDataKinds.Website;
 import android.provider.ContactsContract.Data;
+import android.provider.ContactsContract.Groups;
 import android.provider.ContactsContract.RawContacts;
 import android.provider.ContactsContract.StatusUpdates;
 
@@ -420,6 +422,15 @@ public final class ContactManager {
             .append(MIMETYPE_CAPABILITY_FILE_TRANSFER).append("','")
             .append(MIMETYPE_CAPABILITY_GEOLOCATION_PUSH).append("','")
             .append(MIMETYPE_CAPABILITY_EXTENSIONS).append("')").toString();
+
+    private static final String RCS_CONTACT_GROUP_NAME = AuthenticationService.ACCOUNT_MANAGER_TYPE;
+
+    private static final String[] PROJ_CONTACT_GROUP_ID = new String[] {
+        Groups._ID
+    };
+
+    private static final String SEL_RCS_CONTACT_GROUP_ACCOUNT_TYPE = new StringBuilder(
+            Groups.ACCOUNT_TYPE).append("='").append(RCS_CONTACT_GROUP_NAME).append("'").toString();
 
     /**
      * Current instance
@@ -2002,6 +2013,15 @@ public final class ContactManager {
                 .withValue(Data.DATA1, contactNumber)
                 .withValue(Data.DATA2, info.getBlockingTimestamp()).build());
 
+        /* Add raw contact as membership to RCS group */
+        long rcsGroupId = getRcsGroupIdFromContactsContractGroups();
+        if (INVALID_ID != rcsGroupId) {
+            ops.add(ContentProviderOperation.newInsert(Data.CONTENT_URI)
+                    .withValueBackReference(Data.RAW_CONTACT_ID, rawContactRefIms)
+                    .withValue(Data.MIMETYPE, GroupMembership.CONTENT_ITEM_TYPE)
+                    .withValue(GroupMembership.GROUP_ROW_ID, rcsGroupId).build());
+        }
+
         /* Create the RCS raw contact and get its ID */
         long rcsRawContactId = INVALID_ID;
         try {
@@ -2122,6 +2142,14 @@ public final class ContactManager {
                 .withValue(Data.MIMETYPE, StructuredName.CONTENT_ITEM_TYPE)
                 .withValue(StructuredName.DISPLAY_NAME,
                         mContext.getString(R.string.rcs_core_my_profile)).build());
+        /* Add raw contact as membership to RCS group */
+        long rcsGroupId = getRcsGroupIdFromContactsContractGroups();
+        if (INVALID_ID != rcsGroupId) {
+            ops.add(ContentProviderOperation.newInsert(Data.CONTENT_URI)
+                    .withValueBackReference(Data.RAW_CONTACT_ID, rawContactRefIms)
+                    .withValue(Data.MIMETYPE, GroupMembership.CONTENT_ITEM_TYPE)
+                    .withValue(GroupMembership.GROUP_ROW_ID, rcsGroupId).build());
+        }
         try {
             ContentProviderResult[] results;
             results = mContentResolver.applyBatch(ContactsContract.AUTHORITY, ops);
@@ -2520,7 +2548,7 @@ public final class ContactManager {
                         case CAPABILITY_EXTENSIONS: {
                             /* Set RCS extensions capability */
                             int columnIndex = cursor.getColumnIndex(Data.DATA2);
-                            if (columnIndex != INVALID_ID) {
+                            if (INVALID_ID != columnIndex) {
                                 capaBuilder.setExtensions(ServiceExtensionManager
                                         .getExtensions(cursor.getString(columnIndex)));
                             }
@@ -2539,7 +2567,7 @@ public final class ContactManager {
                         case NUMBER: {
                             /* Set contact ID */
                             int columnIndex = cursor.getColumnIndex(Data.DATA1);
-                            if (columnIndex != INVALID_ID) {
+                            if (INVALID_ID != columnIndex) {
                                 String contact = cursor.getString(columnIndex);
                                 /* check validity for contact read from raw contact */
                                 PhoneNumber number = ContactUtil
@@ -2918,5 +2946,27 @@ public final class ContactManager {
         newInfo.setBlockingTimestamp(System.currentTimeMillis());
         /* Save the modifications */
         setContactInfo(newInfo, oldInfo);
+    }
+
+    /**
+     * Gets the RCS group ID or INVALID_ID if it does not exist
+     * 
+     * @return the RCS group ID or INVALID_ID if it does not exist
+     */
+    public long getRcsGroupIdFromContactsContractGroups() {
+        Cursor cursor = null;
+        try {
+            cursor = mContentResolver.query(Groups.CONTENT_URI, PROJ_CONTACT_GROUP_ID,
+                    SEL_RCS_CONTACT_GROUP_ACCOUNT_TYPE, null, null);
+            /* TODO: Handle cursor when null. */
+            if (!cursor.moveToNext()) {
+                return ContactManager.INVALID_ID;
+            }
+            return cursor.getLong(cursor.getColumnIndexOrThrow(Groups._ID));
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 }
