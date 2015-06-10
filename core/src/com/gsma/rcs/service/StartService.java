@@ -24,7 +24,8 @@ package com.gsma.rcs.service;
 
 import com.gsma.rcs.R;
 import com.gsma.rcs.addressbook.AccountChangedReceiver;
-import com.gsma.rcs.addressbook.AuthenticationService;
+import com.gsma.rcs.addressbook.RcsAccountException;
+import com.gsma.rcs.addressbook.RcsAccountManager;
 import com.gsma.rcs.platform.AndroidFactory;
 import com.gsma.rcs.platform.registry.AndroidRegistryFactory;
 import com.gsma.rcs.provider.BackupRestoreDb;
@@ -69,9 +70,6 @@ public class StartService extends Service {
 
     private LocalContentResolver mLocalContentResolver;
 
-    /**
-     * Connection manager
-     */
     private ConnectivityManager mConnMgr;
 
     private BroadcastReceiver mNetworkStateListener;
@@ -94,6 +92,8 @@ public class StartService extends Service {
 
     private MessagingLog mMessagingLog;
 
+    private RcsAccountManager mAccountUtility;
+
     private ContactManager mContactManager;
 
     private PendingIntent mPoolTelephonyManagerIntent;
@@ -111,6 +111,8 @@ public class StartService extends Service {
 
     private ContactUtil mContactUtil;
 
+    private String mRcsAccountUsername;
+
     @Override
     public void onCreate() {
         Context context = getApplicationContext();
@@ -121,8 +123,11 @@ public class StartService extends Service {
 
         mContactManager = ContactManager.createInstance(context, contentResolver,
                 mLocalContentResolver, mRcsSettings);
+        mAccountUtility = RcsAccountManager.createInstance(context, mContactManager);
 
         mContactUtil = ContactUtil.getInstance(context);
+
+        mRcsAccountUsername = getString(R.string.rcs_core_account_username);
 
         ConfigurationMode mode = mRcsSettings.getConfigurationMode();
         if (sLogger.isActivated()) {
@@ -170,21 +175,32 @@ public class StartService extends Service {
                     mBoot = intent.getBooleanExtra(INTENT_KEY_BOOT, false);
                     mUser = intent.getBooleanExtra(INTENT_KEY_USER, false);
                 }
-                boolean contactUtilReady = mContactUtil.isMyCountryCodeDefined();
-                if (contactUtilReady && checkAccount(mLocalContentResolver)) {
-                    launchRcsService(mBoot, mUser);
-                } else {
-                    /*
-                     * Services cannot be started: IMSI cannot be read from Telephony Manager or mcc
-                     * from Android Configuration.
-                     */
-                    if (logActivated) {
-                        sLogger.warn("Can't create current user account: pool the telephony manager");
+                try {
+                    boolean contactUtilReady = mContactUtil.isMyCountryCodeDefined();
+
+                    if (contactUtilReady && checkAccount(mLocalContentResolver)) {
+                        launchRcsService(mBoot, mUser);
+                    } else {
+                        /*
+                         * Services cannot be started: IMSI cannot be read from Telephony Manager or
+                         * mcc from Android Configuration.
+                         */
+                        if (logActivated) {
+                            sLogger.warn("Can't create current user account: pool the telephony manager");
+                        }
+                        mPollingTelephonyManagerReceiver = getPollingTelephonyManagerReceiver();
+                        registerReceiver(mPollingTelephonyManagerReceiver, new IntentFilter(
+                                ACTION_POOL_TELEPHONY_MANAGER));
+                        retryPollingTelephonyManagerPooling(contactUtilReady);
                     }
-                    mPollingTelephonyManagerReceiver = getPollingTelephonyManagerReceiver();
-                    registerReceiver(mPollingTelephonyManagerReceiver, new IntentFilter(
-                            ACTION_POOL_TELEPHONY_MANAGER));
-                    retryPollingTelephonyManagerPooling(contactUtilReady);
+                } catch (RcsAccountException e) {
+                    sLogger.error("Failed to launch RCS service!", e);
+                } catch (RuntimeException e) {
+                    /*
+                     * Intentionally catch runtime exceptions as else it will abruptly end the
+                     * thread and eventually bring the whole system down, which is not intended.
+                     */
+                    sLogger.error("Failed to launch RCS service!", e);
                 }
             }
         }.start();
@@ -278,8 +294,10 @@ public class StartService extends Service {
      * Check account
      * 
      * @return true if an account is available
+     * @throws RcsAccountException if the RCS account cannot be checked
      */
-    private boolean checkAccount(LocalContentResolver localContentResolver) {
+    private boolean checkAccount(LocalContentResolver localContentResolver)
+            throws RcsAccountException {
         Context ctx = getApplicationContext();
         AndroidFactory.setApplicationContext(ctx, mRcsSettings);
 
@@ -349,8 +367,7 @@ public class StartService extends Service {
         }
 
         /* Check if the RCS account exists */
-        Account account = AuthenticationService.getAccount(ctx,
-                getString(R.string.rcs_core_account_username));
+        Account account = mAccountUtility.getAccount(mRcsAccountUsername);
         if (account == null) {
             /* No account exists */
             if (logActivated) {
@@ -366,9 +383,7 @@ public class StartService extends Service {
                 if (logActivated) {
                     sLogger.debug("Recreate a new RCS account");
                 }
-                AuthenticationService.createRcsAccount(ctx, localContentResolver,
-                        getString(R.string.rcs_core_account_username), true, mRcsSettings,
-                        mContactManager);
+                mAccountUtility.createRcsAccount(mRcsAccountUsername, true);
             }
         } else if (hasChangedAccount()) {
             /*
@@ -380,15 +395,13 @@ public class StartService extends Service {
                         mLastUserAccount).toString());
             }
             mContactManager.deleteRCSEntries();
-            AuthenticationService.removeRcsAccount(ctx, null);
+            mAccountUtility.removeRcsAccount(null);
 
             if (logActivated) {
                 sLogger.debug(new StringBuilder("Creating a new RCS account for ").append(
                         mCurrentUserAccount).toString());
             }
-            AuthenticationService.createRcsAccount(ctx, localContentResolver,
-                    getString(R.string.rcs_core_account_username), true, mRcsSettings,
-                    mContactManager);
+            mAccountUtility.createRcsAccount(mRcsAccountUsername, true);
         }
 
         /* Save the current end user account */
@@ -542,23 +555,35 @@ public class StartService extends Service {
             public void onReceive(Context context, Intent intent) {
                 new Thread() {
                     public void run() {
-                        boolean contactUtilReady = mContactUtil.isMyCountryCodeDefined();
-                        if (contactUtilReady && checkAccount(mLocalContentResolver)) {
-                            /*
-                             * Finally we succeed to read the IMSI from SIM card and the mcc from
-                             * the Android configuration.
-                             */
-                            if (mPollingTelephonyManagerReceiver != null) {
-                                unregisterReceiver(mPollingTelephonyManagerReceiver);
-                                mPollingTelephonyManagerReceiver = null;
+                        try {
+                            boolean contactUtilReady = mContactUtil.isMyCountryCodeDefined();
+
+                            if (contactUtilReady && checkAccount(mLocalContentResolver)) {
+                                /*
+                                 * Finally we succeed to read the IMSI from SIM card and the mcc
+                                 * from the Android configuration.
+                                 */
+                                if (mPollingTelephonyManagerReceiver != null) {
+                                    unregisterReceiver(mPollingTelephonyManagerReceiver);
+                                    mPollingTelephonyManagerReceiver = null;
+                                }
+                                launchRcsService(mBoot, mUser);
+                            } else {
+                                /*
+                                 * User account can't be initialized: IMSI and/or mcc cannot be read
+                                 * from SIM card. Retry pooling the telephony manager.
+                                 */
+                                retryPollingTelephonyManagerPooling(contactUtilReady);
                             }
-                            launchRcsService(mBoot, mUser);
-                        } else {
+                        } catch (RcsAccountException e) {
+                            sLogger.error("Failed to launch RCS service!", e);
+                        } catch (RuntimeException e) {
                             /*
-                             * User account can't be initialized: IMSI and/or mcc cannot be read
-                             * from SIM card. Retry pooling the telephony manager.
+                             * Intentionally catch runtime exceptions as else it will abruptly end
+                             * the thread and eventually bring the whole system down, which is not
+                             * intended.
                              */
-                            retryPollingTelephonyManagerPooling(contactUtilReady);
+                            sLogger.error("Failed to launch RCS service!", e);
                         }
                     }
                 }.start();
