@@ -24,11 +24,9 @@ package com.gsma.services.rcs.capability;
 
 import com.gsma.services.rcs.RcsGenericException;
 import com.gsma.services.rcs.RcsIllegalArgumentException;
-import com.gsma.services.rcs.RcsPermissionDeniedException;
 import com.gsma.services.rcs.RcsPersistentStorageException;
 import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.RcsServiceControl;
-import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.RcsServiceListener;
 import com.gsma.services.rcs.RcsServiceListener.ReasonCode;
 import com.gsma.services.rcs.RcsServiceNotAvailableException;
@@ -64,8 +62,6 @@ public final class CapabilityService extends RcsService {
      */
     public final static String EXTENSION_MIME_TYPE = "com.gsma.services.rcs";
 
-    private static boolean sApiCompatible = false;
-
     /**
      * API
      */
@@ -83,23 +79,8 @@ public final class CapabilityService extends RcsService {
 
     /**
      * Connects to the API
-     * 
-     * @throws RcsPermissionDeniedException
      */
-    public final void connect() throws RcsPermissionDeniedException {
-        if (!sApiCompatible) {
-            try {
-                sApiCompatible = mRcsServiceControl.isCompatible(this);
-                if (!sApiCompatible) {
-                    throw new RcsPermissionDeniedException(
-                            "The TAPI client version of the capability service is not compatible with the TAPI service implementation version on this device!");
-                }
-            } catch (RcsServiceException e) {
-                throw new RcsPermissionDeniedException(
-                        "The compatibility of TAPI client version with the TAPI service implementation version of this device cannot be checked for the capability service!",
-                        e);
-            }
-        }
+    public final void connect() {
         Intent serviceIntent = new Intent(ICapabilityService.class.getName());
         serviceIntent.setPackage(RcsServiceControl.RCS_STACK_PACKAGENAME);
         mCtx.bindService(serviceIntent, apiConnection, 0);
@@ -147,8 +128,8 @@ public final class CapabilityService extends RcsService {
                 if (!mRcsServiceControl.isActivated()) {
                     reasonCode = ReasonCode.SERVICE_DISABLED;
                 }
-            } catch (RcsServiceException e) {
-                // Do nothing
+            } catch (RcsPersistentStorageException e) {
+                /* Do nothing */
             }
             mListener.onServiceDisconnected(reasonCode);
         }

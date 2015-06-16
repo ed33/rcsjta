@@ -137,7 +137,7 @@ public abstract class RcsService {
         /**
          * Returns a Direction instance for the specified integer value.
          * 
-         * @param value
+         * @param value The integer value
          * @return instance
          */
         public final static Direction valueOf(int value) {
@@ -189,7 +189,7 @@ public abstract class RcsService {
         /**
          * Returns a ReadStatus instance for the specified integer value.
          * 
-         * @param value
+         * @param value The integer value
          * @return instance
          */
         public final static ReadStatus valueOf(int value) {

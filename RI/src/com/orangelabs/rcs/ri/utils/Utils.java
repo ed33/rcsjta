@@ -114,7 +114,7 @@ public class Utils {
      * @param e exception to log
      */
     public static void displayToast(Context context, String message, Exception e) {
-        Log.w(LOGTAG, message, e);
+        Log.i(LOGTAG, message, e);
         displayLongToast(context, message.concat(": see Logcat!"));
     }
 

@@ -18,8 +18,8 @@
 
 package com.orangelabs.rcs.ri.service;
 
-import com.gsma.services.rcs.RcsGenericException;
 import com.gsma.services.rcs.RcsPermissionDeniedException;
+import com.gsma.services.rcs.RcsPersistentStorageException;
 import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.RcsServiceControl;
 import com.gsma.services.rcs.RcsServiceListener;
@@ -64,6 +64,8 @@ public class ServiceStatus extends Activity implements RcsServiceListener {
     private CheckBox mServiceActivationRefresh;
 
     private TextView mServiceStarted;
+
+    private QueryRcsServiceStartingState mQueryRcsServiceStartingState;
 
     private static final String LOGTAG = LogUtils.getTag(ServiceStatus.class.getSimpleName());
 
@@ -117,19 +119,22 @@ public class ServiceStatus extends Activity implements RcsServiceListener {
     private void displayServiceActivation() {
         try {
             mServiceActivated.setText(Boolean.toString(mRcsServiceControl.isActivated()));
-        } catch (RcsGenericException e) {
-            Log.e(LOGTAG, "Failed to read service activation status", e);
+        } catch (RcsPersistentStorageException e) {
+            Log.e(LOGTAG, "Failed to check if stack is activated", e);
             mServiceActivated.setText(getString(R.string.error_service_activated));
         }
     }
 
     private void displayServiceStarted() {
-        try {
-            mServiceStarted.setText(Boolean.toString(mRcsServiceControl.isServiceStarted()));
-        } catch (RcsGenericException e) {
-            Log.e(LOGTAG, "Failed to read service started", e);
-            mServiceActivated.setText(getString(R.string.error_service_started));
-        }
+        mQueryRcsServiceStartingState = new QueryRcsServiceStartingState(this, mRcsServiceControl,
+                0, new QueryRcsServiceStartingState.IListener() {
+
+                    @Override
+                    public void handleResponse(boolean serviceStarted) {
+                        mServiceStarted.setText(Boolean.toString(serviceStarted));
+                    }
+                });
+        mQueryRcsServiceStartingState.execute();
     }
 
     @Override
@@ -141,6 +146,9 @@ public class ServiceStatus extends Activity implements RcsServiceListener {
             unregisterReceiver(serviceUpListener);
         } catch (IllegalArgumentException e) {
             // Nothing to do
+        }
+        if (mQueryRcsServiceStartingState != null) {
+            mQueryRcsServiceStartingState.cancel(true);
         }
 
         if (mApi != null) {

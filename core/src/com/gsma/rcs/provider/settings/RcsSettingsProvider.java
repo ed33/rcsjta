@@ -23,6 +23,7 @@
 package com.gsma.rcs.provider.settings;
 
 import com.gsma.rcs.utils.DatabaseUtils;
+import com.gsma.services.rcs.RcsServiceControlLog;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;
@@ -56,16 +57,38 @@ public class RcsSettingsProvider extends ContentProvider {
     private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
     static {
         sUriMatcher.addURI(RcsSettingsData.CONTENT_URI.getAuthority(), RcsSettingsData.CONTENT_URI
-                .getPath().substring(1), UriType.SETTINGS);
+                .getPath().substring(1), UriType.InternalSettings.INTERNAL_SETTINGS);
         sUriMatcher.addURI(RcsSettingsData.CONTENT_URI.getAuthority(), RcsSettingsData.CONTENT_URI
-                .getPath().substring(1).concat("/*"), UriType.SETTINGS_WITH_KEY);
+                .getPath().substring(1).concat("/*"), UriType.InternalSettings.INTERNAL_SETTINGS_WITH_KEY);
+        sUriMatcher.addURI(RcsServiceControlLog.CONTENT_URI.getAuthority(),
+                RcsServiceControlLog.CONTENT_URI.getPath().substring(1), UriType.Settings.SETTINGS);
+        sUriMatcher.addURI(RcsServiceControlLog.CONTENT_URI.getAuthority(),
+                RcsServiceControlLog.CONTENT_URI.getPath().substring(1).concat("/*"),
+                UriType.Settings.SETTINGS_WITH_KEY);
     }
+
+    /**
+     * String to restrict query for exposed URI to a set of columns
+     */
+    private static final String RESTRICTED_SELECTION_QUERY_FOR_EXTERNALLY_DEFINED_COLUMNS = new StringBuilder(
+            RcsSettingsData.KEY_KEY).append(" IN ('").append(RcsSettingsData.ENABLE_RCS_SWITCH)
+            .append("','").append(RcsSettingsData.SERVICE_ACTIVATED).append("')").toString();
 
     private static final class UriType {
 
-        private static final int SETTINGS = 1;
+        private static final class Settings {
+            private static final int SETTINGS = 1;
 
-        private static final int SETTINGS_WITH_KEY = 2;
+            private static final int SETTINGS_WITH_KEY = 2;
+        }
+
+        private static final class InternalSettings {
+
+            private static final int INTERNAL_SETTINGS = 3;
+
+            private static final int INTERNAL_SETTINGS_WITH_KEY = 4;
+
+        }
     }
 
     private static final class CursorType {
@@ -76,7 +99,7 @@ public class RcsSettingsProvider extends ContentProvider {
     }
 
     private static class DatabaseHelper extends SQLiteOpenHelper {
-        private static final int DATABASE_VERSION = 112;
+        private static final int DATABASE_VERSION = 113;
 
         /**
          * Add a parameter in the db
@@ -455,6 +478,14 @@ public class RcsSettingsProvider extends ContentProvider {
         return DatabaseUtils.appendSelectionArgs(keySelectionArg, selectionArgs);
     }
 
+    private StringBuilder restrictSelectionToColumns(String selection, String restrictedSetOfColumns) {
+        if (TextUtils.isEmpty(selection)) {
+            return new StringBuilder(restrictedSetOfColumns);
+        }
+        return new StringBuilder("(").append(selection).append(") AND (")
+                .append(restrictedSetOfColumns).append(")");
+    }
+    
     @Override
     public boolean onCreate() {
         mOpenHelper = new DatabaseHelper(getContext());
@@ -464,12 +495,16 @@ public class RcsSettingsProvider extends ContentProvider {
     @Override
     public String getType(Uri uri) {
         switch (sUriMatcher.match(uri)) {
-            case UriType.SETTINGS:
+            case UriType.InternalSettings.INTERNAL_SETTINGS:
+                /* Intentional fall through */
+            case UriType.Settings.SETTINGS:
                 return CursorType.TYPE_DIRECTORY;
 
-            case UriType.SETTINGS_WITH_KEY:
+            case UriType.InternalSettings.INTERNAL_SETTINGS_WITH_KEY:
+                /* Intentional fall through */
+            case UriType.Settings.SETTINGS_WITH_KEY:
                 return CursorType.TYPE_ITEM;
-
+                
             default:
                 throw new IllegalArgumentException(new StringBuilder("Unsupported URI ")
                         .append(uri).append("!").toString());
@@ -482,12 +517,12 @@ public class RcsSettingsProvider extends ContentProvider {
         Cursor cursor = null;
         try {
             switch (sUriMatcher.match(uri)) {
-                case UriType.SETTINGS_WITH_KEY:
+                case UriType.InternalSettings.INTERNAL_SETTINGS_WITH_KEY:
                     String key = uri.getLastPathSegment();
                     selection = getSelectionWithKey(selection);
                     selectionArgs = getSelectionArgsWithKey(selectionArgs, key);
                     /* Intentional fall through */
-                case UriType.SETTINGS:
+                case UriType.InternalSettings.INTERNAL_SETTINGS:
                     SQLiteDatabase database = mOpenHelper.getReadableDatabase();
                     cursor = database.query(TABLE, projection, selection, selectionArgs, null,
                             null, sort);
@@ -495,6 +530,21 @@ public class RcsSettingsProvider extends ContentProvider {
                     cursor.setNotificationUri(getContext().getContentResolver(), uri);
                     return cursor;
 
+                case UriType.Settings.SETTINGS_WITH_KEY:
+                    key = uri.getLastPathSegment();
+                    selection = getSelectionWithKey(selection);
+                    selectionArgs = getSelectionArgsWithKey(selectionArgs, key);
+                    /* Intentional fall through */
+                case UriType.Settings.SETTINGS:
+                    database = mOpenHelper.getReadableDatabase();
+                    selection = restrictSelectionToColumns(selection,
+                            RESTRICTED_SELECTION_QUERY_FOR_EXTERNALLY_DEFINED_COLUMNS).toString();
+                    cursor = database.query(TABLE, projection, selection, selectionArgs, null,
+                            null, sort);
+                    /* TODO: Handle cursor when null. */
+                    cursor.setNotificationUri(getContext().getContentResolver(), uri);
+                    return cursor;
+                    
                 default:
                     throw new IllegalArgumentException(new StringBuilder("Unsupported URI ")
                             .append(uri).append("!").toString());
@@ -515,18 +565,24 @@ public class RcsSettingsProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
         switch (sUriMatcher.match(uri)) {
-            case UriType.SETTINGS_WITH_KEY:
+            case UriType.InternalSettings.INTERNAL_SETTINGS_WITH_KEY:
                 String key = uri.getLastPathSegment();
                 selection = getSelectionWithKey(selection);
                 selectionArgs = getSelectionArgsWithKey(selectionArgs, key);
                 /* Intentional fall through */
-            case UriType.SETTINGS:
+            case UriType.InternalSettings.INTERNAL_SETTINGS:
                 SQLiteDatabase database = mOpenHelper.getWritableDatabase();
                 int count = database.update(TABLE, values, selection, selectionArgs);
                 if (count > 0) {
                     getContext().getContentResolver().notifyChange(uri, null);
                 }
                 return count;
+                
+            case UriType.Settings.SETTINGS:
+                /* Intentional fall through */
+            case UriType.Settings.SETTINGS_WITH_KEY:
+                throw new UnsupportedOperationException(new StringBuilder("This provider (URI=")
+                        .append(uri).append(") supports read only access!").toString());
 
             default:
                 throw new IllegalArgumentException(new StringBuilder("Unsupported URI ")

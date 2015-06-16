@@ -27,7 +27,6 @@ import static com.gsma.rcs.utils.StringUtils.UTF8;
 import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.provider.settings.RcsSettingsData;
 import com.gsma.rcs.provider.settings.RcsSettingsData.AuthenticationProcedure;
-import com.gsma.rcs.provider.settings.RcsSettingsData.EnableRcseSwitch;
 import com.gsma.rcs.provider.settings.RcsSettingsData.FileTransferProtocol;
 import com.gsma.rcs.provider.settings.RcsSettingsData.GsmaRelease;
 import com.gsma.rcs.provider.settings.RcsSettingsData.ImMsgTech;
@@ -38,6 +37,7 @@ import com.gsma.rcs.utils.DeviceUtils;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.CommonServiceConfiguration.MessagingMethod;
 import com.gsma.services.rcs.CommonServiceConfiguration.MessagingMode;
+import com.gsma.services.rcs.RcsServiceControlLog.EnableRcseSwitch;
 import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.contact.ContactId;
 
@@ -49,7 +49,6 @@ import java.io.ByteArrayInputStream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-
 import javax2.sip.ListeningPoint;
 
 /**

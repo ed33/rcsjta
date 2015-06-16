@@ -29,7 +29,6 @@ import com.gsma.services.rcs.RcsPermissionDeniedException;
 import com.gsma.services.rcs.RcsPersistentStorageException;
 import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.RcsServiceControl;
-import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.RcsServiceListener;
 import com.gsma.services.rcs.RcsServiceListener.ReasonCode;
 import com.gsma.services.rcs.RcsServiceNotAvailableException;
@@ -62,8 +61,6 @@ public final class GeolocSharingService extends RcsService {
 
     private final Map<GeolocSharingListener, WeakReference<IGeolocSharingListener>> mGeolocSharingListeners = new WeakHashMap<GeolocSharingListener, WeakReference<IGeolocSharingListener>>();
 
-    private static boolean sApiCompatible = false;
-
     /**
      * Constructor
      * 
@@ -76,23 +73,8 @@ public final class GeolocSharingService extends RcsService {
 
     /**
      * Connects to the API
-     * 
-     * @throws RcsPermissionDeniedException
      */
     public final void connect() throws RcsPermissionDeniedException {
-        if (!sApiCompatible) {
-            try {
-                sApiCompatible = mRcsServiceControl.isCompatible(this);
-                if (!sApiCompatible) {
-                    throw new RcsPermissionDeniedException(
-                            "The TAPI client version of the geoloc sharing service is not compatible with the TAPI service implementation version on this device!");
-                }
-            } catch (RcsServiceException e) {
-                throw new RcsPermissionDeniedException(
-                        "The compatibility of TAPI client version with the TAPI service implementation version of this device cannot be checked for the geoloc sharing service!",
-                        e);
-            }
-        }
         Intent serviceIntent = new Intent(IGeolocSharingService.class.getName());
         serviceIntent.setPackage(RcsServiceControl.RCS_STACK_PACKAGENAME);
         mCtx.bindService(serviceIntent, apiConnection, 0);
@@ -140,8 +122,8 @@ public final class GeolocSharingService extends RcsService {
                 if (!mRcsServiceControl.isActivated()) {
                     reasonCode = ReasonCode.SERVICE_DISABLED;
                 }
-            } catch (RcsServiceException e) {
-                // Do nothing
+            } catch (RcsPersistentStorageException e) {
+                /* Do nothing */
             }
             mListener.onServiceDisconnected(reasonCode);
         }

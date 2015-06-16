@@ -154,8 +154,9 @@
             android:writePermission="com.gsma.services.permission.RCS_INTERNAL_ACCESS_ONLY" />
         <provider
             android:name="com.gsma.rcs.provider.settings.RcsSettingsProvider"
-            android:authorities="com.gsma.rcs.setting"
-            android:exported="false"
+            android:authorities="com.gsma.rcs.setting;com.gsma.services.rcs.provider.service"
+            android:exported="true"
+            android:readPermission="com.gsma.services.permission.RCS"
             android:permission="com.gsma.services.permission.RCS_INTERNAL_ACCESS_ONLY" />
         <provider
             android:name="com.gsma.rcs.provider.sharing.GeolocSharingProvider"
@@ -226,11 +227,9 @@
 
         <receiver android:name="com.gsma.rcs.service.RcsServiceControlReceiver" >
             <intent-filter>
-                <action android:name="com.gsma.services.rcs.action.GET_ACTIVATION_MODE_CHANGEABLE" />
-                <action android:name="com.gsma.services.rcs.action.GET_ACTIVATION_MODE" />
                 <action android:name="com.gsma.services.rcs.action.SET_ACTIVATION_MODE" />
-                <action android:name="com.gsma.services.rcs.action.GET_COMPATIBILITY" />
-                <action android:name="com.gsma.services.rcs.action.GET_SERVICE_STARTING_STATE" />
+                <action android:name="com.gsma.services.rcs.action.QUERY_COMPATIBILITY" />
+                <action android:name="com.gsma.services.rcs.action.QUERY_SERVICE_STARTING_STATE" />
             </intent-filter>
         </receiver>
 

@@ -21,12 +21,19 @@ package com.orangelabs.rcs.ri;
 import com.gsma.services.rcs.RcsService.Direction;
 import com.gsma.services.rcs.RcsServiceControl;
 
+import com.orangelabs.rcs.ri.ConnectionManager.RcsServiceName;
+import com.orangelabs.rcs.ri.service.QueryRcsServiceCompatibility;
+import com.orangelabs.rcs.ri.service.QueryRcsServiceCompatibility.IListener;
+import com.orangelabs.rcs.ri.utils.LogUtils;
+
 import android.app.Application;
 import android.content.Context;
 import android.content.res.Resources;
+import android.util.Log;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -134,6 +141,8 @@ public class RiApplication extends Application {
 
     private static RcsServiceControl mRcsServiceControl;
 
+    private static final String LOGTAG = LogUtils.getTag(RiApplication.class.getSimpleName());
+
     /**
      * Gets direction
      * 
@@ -177,7 +186,21 @@ public class RiApplication extends Application {
                 resources.getString(R.string.label_direction_unknown));
 
         mRcsServiceControl = RcsServiceControl.getInstance(mContext);
-        ConnectionManager.getInstance(mContext).connectApis();
+        List<RcsServiceName> services = Arrays.asList(RcsServiceName.values());
+        ConnectionManager.createInstance(mContext, new HashSet<RcsServiceName>(services)).connectApis(0);
+
+        QueryRcsServiceCompatibility queryCompatibility = new QueryRcsServiceCompatibility(
+                mContext, mRcsServiceControl, new IListener() {
+                    @Override
+                    public void handleResponse(String report) {
+                        if (report == null) {
+                            Log.d(LOGTAG, "Failed to query for RCS service compatibility report");
+                        } else {
+                            Log.d(LOGTAG, "RCS service compatibility report=".concat(report));
+                        }
+                    }
+                });
+        queryCompatibility.execute();
     }
 
     private String[] convertForUI(String[] strings) {

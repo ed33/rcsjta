@@ -25,10 +25,11 @@ package com.gsma.rcs.service;
 import com.gsma.rcs.core.Core;
 import com.gsma.rcs.provider.LocalContentResolver;
 import com.gsma.rcs.provider.settings.RcsSettings;
-import com.gsma.rcs.provider.settings.RcsSettingsData.EnableRcseSwitch;
+import com.gsma.rcs.utils.IntentUtils;
 import com.gsma.rcs.utils.logger.Logger;
-import com.gsma.services.rcs.Intents;
+import com.gsma.services.rcs.Intents.Service;
 import com.gsma.services.rcs.RcsService;
+import com.gsma.services.rcs.RcsServiceControlLog.EnableRcseSwitch;
 import com.gsma.services.rcs.capability.CapabilityService;
 import com.gsma.services.rcs.chat.ChatService;
 import com.gsma.services.rcs.contact.ContactService;
@@ -44,11 +45,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
-import android.os.Bundle;
 import android.text.TextUtils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * A class to control the service activation.
@@ -92,6 +93,10 @@ public class RcsServiceControlReceiver extends BroadcastReceiver {
     };
 
     private static final Map<String, IRcsCompatibility> sServiceCompatibilityMap = new HashMap<String, IRcsCompatibility>();
+
+    private static final int NOT_COMPATIBLE = 0;
+    private static final int COMPATIBLE = 1;
+    
     static {
         sServiceCompatibilityMap.put(CapabilityService.class.getSimpleName(), sRcsCompatibility);
         sServiceCompatibilityMap.put(ContactService.class.getSimpleName(), sRcsCompatibility);
@@ -117,10 +122,6 @@ public class RcsServiceControlReceiver extends BroadcastReceiver {
             default:
                 return false;
         }
-    }
-
-    private boolean getActivationMode(Context context) {
-        return mRcsSettings.isServiceActivated();
     }
 
     private boolean IsDataRoamingEnabled() {
@@ -156,17 +157,26 @@ public class RcsServiceControlReceiver extends BroadcastReceiver {
         }
     }
 
-    private boolean isCompatible(String serviceName, String codename, int version, int increment) {
-        if (TextUtils.isEmpty(serviceName) || TextUtils.isEmpty(codename)
-                || version == INVALID_EXTRA || increment == INVALID_EXTRA) {
-            return false;
+    private String getCompatibilityReport(String codename, int version, int increment) {
+        if (TextUtils.isEmpty(codename) || version == INVALID_EXTRA || increment == INVALID_EXTRA) {
+            return null;
         }
-
-        IRcsCompatibility iRcsCompatibility = sServiceCompatibilityMap.get(serviceName);
-        if (iRcsCompatibility == null) {
-            return false;
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (Entry<String, IRcsCompatibility> serviceCompatEntry : sServiceCompatibilityMap
+                .entrySet()) {
+            String service = serviceCompatEntry.getKey();
+            IRcsCompatibility iRcsCompatibility = serviceCompatEntry.getValue();
+            Boolean compatible = iRcsCompatibility.isCompatible(service, codename, version,
+                    increment);
+            if (first) {
+                first = false;
+            } else {
+                sb.append(",");
+            }
+            sb.append(service).append("=").append(compatible ? COMPATIBLE : NOT_COMPATIBLE);
         }
-        return iRcsCompatibility.isCompatible(serviceName, codename, version, increment);
+        return sb.toString();
     }
 
     @Override
@@ -175,60 +185,47 @@ public class RcsServiceControlReceiver extends BroadcastReceiver {
         mRcsSettings = RcsSettings.createInstance(localContentResolver);
         mContext = context;
         String action = intent.getAction();
-        if (Intents.Service.ACTION_GET_ACTIVATION_MODE_CHANGEABLE.equals(action)) {
-            Bundle results = getResultExtras(true);
-            if (results == null) {
-                return;
-            }
-            boolean activationChangeable = getActivationModeChangeable();
-            if (sLogger.isActivated()) {
-                sLogger.debug("Activation changeable=".concat(Boolean
-                        .toString(activationChangeable)));
-            }
-            results.putBoolean(Intents.Service.EXTRA_GET_ACTIVATION_MODE_CHANGEABLE,
-                    activationChangeable);
-            setResultExtras(results);
-        } else if (Intents.Service.ACTION_GET_ACTIVATION_MODE.equals(action)) {
-            Bundle results = getResultExtras(true);
-            if (results == null) {
-                return;
-            }
-            boolean activationMode = getActivationMode(context);
-            if (sLogger.isActivated()) {
-                sLogger.debug("Get activation=".concat(Boolean.toString(activationMode)));
-            }
-            results.putBoolean(Intents.Service.EXTRA_GET_ACTIVATION_MODE, activationMode);
-            setResultExtras(results);
-        } else if (Intents.Service.ACTION_SET_ACTIVATION_MODE.equals(action)) {
-            boolean active = intent
-                    .getBooleanExtra(Intents.Service.EXTRA_SET_ACTIVATION_MODE, true);
+        if (Service.ACTION_SET_ACTIVATION_MODE.equals(action)) {
+            boolean active = intent.getBooleanExtra(Service.EXTRA_SET_ACTIVATION_MODE, true);
             setActivationMode(context, active);
             if (sLogger.isActivated()) {
                 sLogger.debug("Set activation=".concat(Boolean.toString(active)));
             }
-        } else if (Intents.Service.ACTION_GET_COMPATIBILITY.equals(action)) {
-            Bundle results = getResultExtras(true);
-            if (results == null) {
+        } else if (Service.ACTION_QUERY_COMPATIBILITY.equals(action)) {
+            String packageName = intent
+                    .getStringExtra(Service.EXTRA_QUERY_COMPATIBILITY_PACKAGENAME);
+            if (packageName == null) {
+                sLogger.warn("No package name for compatibility query!");
                 return;
             }
-            String servicename = intent
-                    .getStringExtra(Intents.Service.EXTRA_GET_COMPATIBILITY_SERVICE);
-            String codename = intent
-                    .getStringExtra(Intents.Service.EXTRA_GET_COMPATIBILITY_CODENAME);
-            int version = intent.getIntExtra(Intents.Service.EXTRA_GET_COMPATIBILITY_VERSION,
+            if (mContext.getPackageName().equals(packageName)) {
+                sLogger.warn("Wrong package name for compatibility query!");
+                return;
+            }
+            String codename = intent.getStringExtra(Service.EXTRA_QUERY_COMPATIBILITY_CODENAME);
+            int version = intent.getIntExtra(Service.EXTRA_QUERY_COMPATIBILITY_VERSION,
                     INVALID_EXTRA);
-            int increment = intent.getIntExtra(Intents.Service.EXTRA_GET_COMPATIBILITY_INCREMENT,
+            int increment = intent.getIntExtra(Service.EXTRA_QUERY_COMPATIBILITY_INCREMENT,
                     INVALID_EXTRA);
 
-            boolean compatible = isCompatible(servicename, codename, version, increment);
-            if (sLogger.isActivated()) {
-                sLogger.debug("Compatible " + servicename + ":" + compatible);
+            String report = getCompatibilityReport(codename, version, increment);
+            Intent response = new Intent(Service.ACTION_RESP_COMPATIBILITY);
+            if (report != null) {
+                response.putExtra(Service.EXTRA_RESP_COMPATIBILITY, report);
             }
-            results.putBoolean(Intents.Service.EXTRA_GET_COMPATIBILITY_RESPONSE, compatible);
-            setResultExtras(results);
-        } else if (Intents.Service.ACTION_GET_SERVICE_STARTING_STATE.equals(action)) {
-            Bundle results = getResultExtras(true);
-            if (results == null) {
+            response.setPackage(packageName);
+            IntentUtils.tryToSetExcludeStoppedPackagesFlag(response);
+            IntentUtils.tryToSetReceiverForegroundFlag(response);
+            mContext.sendBroadcast(response);
+        } else if (Service.ACTION_QUERY_SERVICE_STARTING_STATE.equals(action)) {
+            String packageName = intent
+                    .getStringExtra(Service.EXTRA_QUERY_SERVICE_STARTING_STATE_PACKAGENAME);
+            if (packageName == null) {
+                sLogger.warn("No package name for service starting state query!");
+                return;
+            }
+            if (mContext.getPackageName().equals(packageName)) {
+                sLogger.warn("Wrong package name for service starting state query!");
                 return;
             }
             Core core = Core.getInstance();
@@ -236,8 +233,12 @@ public class RcsServiceControlReceiver extends BroadcastReceiver {
             if (sLogger.isActivated()) {
                 sLogger.debug("Service started ".concat(Boolean.toString(started)));
             }
-            results.putBoolean(Intents.Service.EXTRA_GET_SERVICE_STARTING_STATE, started);
-            setResultExtras(results);
+            Intent response = new Intent(Service.ACTION_RESP_SERVICE_STARTING_STATE);
+            response.putExtra(Service.EXTRA_RESP_SERVICE_STARTING_STATE, started);
+            response.setPackage(packageName);
+            IntentUtils.tryToSetExcludeStoppedPackagesFlag(response);
+            IntentUtils.tryToSetReceiverForegroundFlag(response);
+            mContext.sendBroadcast(response);
         }
     }
 }

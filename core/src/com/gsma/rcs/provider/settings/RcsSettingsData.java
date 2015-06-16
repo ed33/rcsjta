@@ -25,6 +25,8 @@ package com.gsma.rcs.provider.settings;
 import com.gsma.rcs.utils.logger.Logger;
 import com.gsma.services.rcs.CommonServiceConfiguration.MessagingMethod;
 import com.gsma.services.rcs.CommonServiceConfiguration.MessagingMode;
+import com.gsma.services.rcs.RcsServiceControlLog;
+import com.gsma.services.rcs.RcsServiceControlLog.EnableRcseSwitch;
 import com.gsma.services.rcs.filetransfer.FileTransferServiceConfiguration.ImageResizeOption;
 
 import android.net.ConnectivityManager;
@@ -50,12 +52,12 @@ public class RcsSettingsData {
     /**
      * Key of the Rcs configuration parameter
      */
-    /* package private */static final String KEY_KEY = "key";
+    /* package private */static final String KEY_KEY = RcsServiceControlLog.KEY;
 
     /**
      * Value of the Rcs configuration parameter
      */
-    /* package private */static final String KEY_VALUE = "value";
+    /* package private */static final String KEY_VALUE = RcsServiceControlLog.VALUE;
 
     /**
      * Default group chat conference URI
@@ -234,58 +236,6 @@ public class RcsSettingsData {
     };
 
     /**
-     * EnableRcseSwitch describes whether or not to show the RCS enabled/disabled switch permanently
-     */
-    public enum EnableRcseSwitch {
-        /**
-         * the switch is shown permanently
-         */
-        ALWAYS_SHOW(1),
-        /**
-         * the switch is only shown during roaming
-         */
-        ONLY_SHOW_IN_ROAMING(0),
-        /**
-         * the switch is never shown
-         */
-        NEVER_SHOW(-1);
-
-        private int mValue;
-
-        private static SparseArray<EnableRcseSwitch> mValueToEnum = new SparseArray<EnableRcseSwitch>();
-        static {
-            for (EnableRcseSwitch entry : EnableRcseSwitch.values()) {
-                mValueToEnum.put(entry.toInt(), entry);
-            }
-        }
-
-        private EnableRcseSwitch(int value) {
-            mValue = value;
-        }
-
-        /**
-         * @return value
-         */
-        public final int toInt() {
-            return mValue;
-        }
-
-        /**
-         * @param value
-         * @return NetworkAccessType
-         */
-        public static EnableRcseSwitch valueOf(int value) {
-            EnableRcseSwitch entry = mValueToEnum.get(value);
-            if (entry != null) {
-                return entry;
-            }
-            throw new IllegalArgumentException(new StringBuilder("No enum const class ")
-                    .append(EnableRcseSwitch.class.getName()).append(".").append(value).toString());
-        }
-
-    };
-
-    /**
      * The configuration mode enumerated type.
      */
     public enum ConfigurationMode {
@@ -405,7 +355,7 @@ public class RcsSettingsData {
     /**
      * Activate or not the RCS service
      */
-    public static final String SERVICE_ACTIVATED = "ServiceActivated";
+    public static final String SERVICE_ACTIVATED = RcsServiceControlLog.SERVICE_ACTIVATED;
     /* package private */static final Boolean DEFAULT_SERVICE_ACTIVATED = true;
 
     /**
@@ -1295,7 +1245,7 @@ public class RcsSettingsData {
     /**
      * RCS stack can be activated/deactivated by client applications
      */
-    public static final String ENABLE_RCS_SWITCH = "enableRcseSwitch";
+    public static final String ENABLE_RCS_SWITCH = RcsServiceControlLog.ENABLE_RCS_SWITCH;
     /* package private */static final int DEFAULT_ENABLE_RCS_SWITCH = EnableRcseSwitch.ALWAYS_SHOW
             .toInt();
 

@@ -18,7 +18,6 @@
 
 package com.orangelabs.rcs.ri;
 
-import com.gsma.services.rcs.RcsGenericException;
 import com.gsma.services.rcs.RcsService;
 import com.gsma.services.rcs.RcsServiceControl;
 import com.gsma.services.rcs.RcsServiceException;
@@ -37,12 +36,14 @@ import com.gsma.services.rcs.sharing.image.ImageSharingService;
 import com.gsma.services.rcs.sharing.video.VideoSharingService;
 import com.gsma.services.rcs.upload.FileUploadService;
 
+import com.orangelabs.rcs.ri.service.QueryRcsServiceStartingState;
 import com.orangelabs.rcs.ri.settings.SettingsDisplay;
 import com.orangelabs.rcs.ri.utils.LockAccess;
 import com.orangelabs.rcs.ri.utils.LogUtils;
 import com.orangelabs.rcs.ri.utils.Utils;
 
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -66,12 +67,20 @@ import java.util.Set;
  */
 public class ConnectionManager {
 
+    private final PendingIntent mPoolConnectionIntent;
+
+    private BroadcastReceiver mPollingConnectionReceiver;
+
     private static volatile ConnectionManager sInstance;
 
     /**
      * Notification ID
      */
     private final static int SERVICE_NOTIFICATION = 1000;
+
+    private final static long DELAY_CONNECT_API = 10000;
+
+    private static final long CONNECTION_POOLING_PERIOD = 30000;
 
     /**
      * Enumerated type for RCS service name
@@ -121,7 +130,19 @@ public class ConnectionManager {
 
     private RcsServiceControl mRcsServiceControl;
 
+    /**
+     * The set of managed services
+     */
+    private final Set<RcsServiceName> mManagedServices;
+
+    /**
+     * A service is elected to monitor the IMS registration events.
+     */
+    private final RcsServiceName mElectedService;
+
     private static final String LOGTAG = LogUtils.getTag(ConnectionManager.class.getSimpleName());
+
+    private static final String ACTION_POOL_CONNECTION = "com.orangelabs.rcs.ri.ACTION_POOL_CONNECTION";
 
     /**
      * Client connection listener
@@ -164,13 +185,17 @@ public class ConnectionManager {
         /**
          * Constructor
          * 
-         * @param listener
-         * @param services
+         * @param listener Listener to execute if a connection event occurs
+         * @param services services to notify
          */
         public ClientConnectionNotifier(RcsServiceListener listener, RcsServiceName... services) {
             mListener = listener;
             mMonitoredServices = new HashSet<RcsServiceName>();
             for (RcsServiceName service : services) {
+                if (!mManagedServices.contains(service)) {
+                    throw new IllegalArgumentException("Service " + service
+                            + " does not belong to set of managed services!");
+                }
                 mMonitoredServices.add(service);
             }
         }
@@ -221,7 +246,7 @@ public class ConnectionManager {
                 Log.d(LOGTAG, "RCS service is UP");
             }
             /* Connect all APIs */
-            ConnectionManager.getInstance(context).connectApis();
+            ConnectionManager.getInstance().connectApis(0);
         }
     }
 
@@ -229,9 +254,11 @@ public class ConnectionManager {
      * Get an instance of ConnectionManager.
      * 
      * @param context the context
+     * @param managedServices Set of managed services
      * @return the singleton instance.
      */
-    public static ConnectionManager getInstance(Context context) {
+    public static ConnectionManager createInstance(Context context,
+            Set<RcsServiceName> managedServices) {
         if (sInstance != null) {
             return sInstance;
         }
@@ -240,9 +267,18 @@ public class ConnectionManager {
                 if (context == null) {
                     throw new IllegalArgumentException("Context is null");
                 }
-                sInstance = new ConnectionManager(context);
+                sInstance = new ConnectionManager(context, managedServices);
             }
         }
+        return sInstance;
+    }
+
+    /**
+     * Gets the singleton instance of ConnectionManager.
+     * 
+     * @return the singleton instance.
+     */
+    public static ConnectionManager getInstance() {
         return sInstance;
     }
 
@@ -258,18 +294,14 @@ public class ConnectionManager {
             public void onServiceDisconnected(ReasonCode error) {
                 mConnectedServices.remove(service);
                 notifyDisconnection(service, error);
-                if (RcsServiceName.CAPABILITY == service) {
+                if (mElectedService == service) {
                     if (LogUtils.isActive) {
                         Log.w(LOGTAG, "API ".concat(error.name()));
                     }
                     notifyImsDisconnection(RcsServiceRegistration.ReasonCode.CONNECTION_LOST);
                 }
-                try {
-                    if (mRcsServiceControl.isActivated()) {
-                        // TODO try to reconnect automatically
-                    }
-                } catch (RcsGenericException e) {
-                    Log.e(LOGTAG, "Failed to check if stack is activated", e);
+                if (mConnectedServices.isEmpty()) {
+                    connectApis(DELAY_CONNECT_API);
                 }
             }
 
@@ -277,30 +309,32 @@ public class ConnectionManager {
             public void onServiceConnected() {
                 mConnectedServices.add(service);
                 notifyConnection(service);
-                if (RcsServiceName.CAPABILITY == service) {
-                    if (LogUtils.isActive) {
-                        Log.d(LOGTAG, "API connected");
-                    }
-                    final CapabilityService capabilityService = getCapabilityApi();
-                    mHandler.post(new Runnable() {
-                        public void run() {
-                            try {
-                                capabilityService.addEventListener(mRcsServiceRegistrationListener);
-                                if (capabilityService.isServiceRegistered()) {
-                                    notifyImsConnection();
-                                } else {
-                                    RcsServiceRegistration.ReasonCode reason = capabilityService
-                                            .getServiceRegistrationReasonCode();
-                                    notifyImsDisconnection(reason);
-                                }
-                            } catch (RcsServiceException e) {
-                                if (LogUtils.isActive) {
-                                    Log.e(LOGTAG, "Cannot add RCS Service Registration Listener", e);
-                                }
+                if (mElectedService != service) {
+                    return;
+                }
+                if (LogUtils.isActive) {
+                    Log.d(LOGTAG, "API connected");
+                }
+                /* Add a listener to be notified of IMS registration events */
+                final RcsService service = mApis.get(mElectedService);
+                mHandler.post(new Runnable() {
+                    public void run() {
+                        try {
+                            service.addEventListener(mRcsServiceRegistrationListener);
+                            if (service.isServiceRegistered()) {
+                                notifyImsConnection();
+                            } else {
+                                RcsServiceRegistration.ReasonCode reason = service
+                                        .getServiceRegistrationReasonCode();
+                                notifyImsDisconnection(reason);
+                            }
+                        } catch (RcsServiceException e) {
+                            if (LogUtils.isActive) {
+                                Log.w(LOGTAG, "Cannot add RCS Service Registration Listener", e);
                             }
                         }
-                    });
-                }
+                    }
+                });
 
             }
         };
@@ -312,11 +346,9 @@ public class ConnectionManager {
      * 
      * @param context
      */
-    private ConnectionManager(Context context) {
-        if (LogUtils.isActive) {
-            Log.d(LOGTAG, "ConnectionManager");
-        }
+    private ConnectionManager(Context context, Set<RcsServiceName> managedServices) {
         mContext = context;
+        mManagedServices = managedServices;
         mRcsServiceControl = RiApplication.getRcsServiceControl();
         /* Construct list of connected services */
         mConnectedServices = new HashSet<RcsServiceName>();
@@ -324,27 +356,60 @@ public class ConnectionManager {
         mClientsToNotify = new HashMap<Activity, ClientConnectionNotifier>();
         /* Construct list of APIs */
         mApis = new HashMap<RcsServiceName, RcsService>();
+
+        mPoolConnectionIntent = PendingIntent.getBroadcast(context, 0, new Intent(
+                ACTION_POOL_CONNECTION), 0);
+
+        if (managedServices == null || managedServices.isEmpty()) {
+            throw new RuntimeException("Incorrect parameter managedService!");
+        }
+        mElectedService = managedServices.iterator().next();
+
         /* Instantiate APIs */
-        mApis.put(RcsServiceName.CAPABILITY, new CapabilityService(context,
-                newRcsServiceListener(RcsServiceName.CAPABILITY)));
-        mApis.put(RcsServiceName.CHAT, new ChatService(context,
-                newRcsServiceListener(RcsServiceName.CHAT)));
-        mApis.put(RcsServiceName.CONTACT, new ContactService(context,
-                newRcsServiceListener(RcsServiceName.CONTACT)));
-        mApis.put(RcsServiceName.FILE_TRANSFER, new FileTransferService(context,
-                newRcsServiceListener(RcsServiceName.FILE_TRANSFER)));
-        mApis.put(RcsServiceName.IMAGE_SHARING, new ImageSharingService(context,
-                newRcsServiceListener(RcsServiceName.IMAGE_SHARING)));
-        mApis.put(RcsServiceName.VIDEO_SHARING, new VideoSharingService(context,
-                newRcsServiceListener(RcsServiceName.VIDEO_SHARING)));
-        mApis.put(RcsServiceName.FILE_UPLOAD, new FileUploadService(context,
-                newRcsServiceListener(RcsServiceName.FILE_UPLOAD)));
-        mApis.put(RcsServiceName.GEOLOC_SHARING, new GeolocSharingService(context,
-                newRcsServiceListener(RcsServiceName.GEOLOC_SHARING)));
-        mApis.put(RcsServiceName.MULTIMEDIA, new MultimediaSessionService(context,
-                newRcsServiceListener(RcsServiceName.MULTIMEDIA)));
-        mApis.put(RcsServiceName.HISTORY, new HistoryService(context,
-                newRcsServiceListener(RcsServiceName.HISTORY)));
+        for (RcsServiceName service : mManagedServices) {
+            switch (service) {
+                case CAPABILITY:
+                    mApis.put(RcsServiceName.CAPABILITY, new CapabilityService(context,
+                            newRcsServiceListener(RcsServiceName.CAPABILITY)));
+                    break;
+                case CHAT:
+                    mApis.put(RcsServiceName.CHAT, new ChatService(context,
+                            newRcsServiceListener(RcsServiceName.CHAT)));
+                    break;
+                case CONTACT:
+                    mApis.put(RcsServiceName.CONTACT, new ContactService(context,
+                            newRcsServiceListener(RcsServiceName.CONTACT)));
+                    break;
+                case FILE_TRANSFER:
+                    mApis.put(RcsServiceName.FILE_TRANSFER, new FileTransferService(context,
+                            newRcsServiceListener(RcsServiceName.FILE_TRANSFER)));
+                    break;
+                case FILE_UPLOAD:
+                    mApis.put(RcsServiceName.FILE_UPLOAD, new FileUploadService(context,
+                            newRcsServiceListener(RcsServiceName.FILE_UPLOAD)));
+                    break;
+                case GEOLOC_SHARING:
+                    mApis.put(RcsServiceName.GEOLOC_SHARING, new GeolocSharingService(context,
+                            newRcsServiceListener(RcsServiceName.GEOLOC_SHARING)));
+                    break;
+                case HISTORY:
+                    mApis.put(RcsServiceName.HISTORY, new HistoryService(context,
+                            newRcsServiceListener(RcsServiceName.HISTORY)));
+                    break;
+                case IMAGE_SHARING:
+                    mApis.put(RcsServiceName.IMAGE_SHARING, new ImageSharingService(context,
+                            newRcsServiceListener(RcsServiceName.IMAGE_SHARING)));
+                    break;
+                case MULTIMEDIA:
+                    mApis.put(RcsServiceName.MULTIMEDIA, new MultimediaSessionService(context,
+                            newRcsServiceListener(RcsServiceName.MULTIMEDIA)));
+                    break;
+                case VIDEO_SHARING:
+                    mApis.put(RcsServiceName.VIDEO_SHARING, new VideoSharingService(context,
+                            newRcsServiceListener(RcsServiceName.VIDEO_SHARING)));
+                    break;
+            }
+        }
         /* Register the broadcast receiver to catch ACTION_SERVICE_UP */
         IntentFilter filter = new IntentFilter();
         filter.addAction(RcsService.ACTION_SERVICE_UP);
@@ -353,36 +418,54 @@ public class ConnectionManager {
 
     /**
      * Connect APIs
+     * 
+     * @param delay Delay for connecting APIs
      */
-    public void connectApis() {
-        try {
-            if (!mRcsServiceControl.isActivated()) {
-                notifyImsDisconnection(RcsServiceRegistration.ReasonCode.CONNECTION_LOST);
-                /* Do not even try to connect since stack is not activated */
-                return;
-            }
-            /* Connect all APIs */
-            for (RcsServiceName service : mApis.keySet()) {
-                /* Check if not already connected */
-                if (!isServiceConnected(service)) {
-                    try {
-                        RcsService rcsService = mApis.get(service);
-                        rcsService.connect();
-                    } catch (Exception e) {
-                        if (LogUtils.isActive) {
-                            Log.i(LOGTAG, "Cannot connect service ".concat(service.name()), e);
-                        }
-                        if (RcsServiceName.CAPABILITY == service) {
+    public void connectApis(long delay) {
+        if (mPollingConnectionReceiver != null) {
+            mContext.unregisterReceiver(mPollingConnectionReceiver);
+            mPollingConnectionReceiver = null;
+        }
+        QueryRcsServiceStartingState queryRcsServiceStartingState = new QueryRcsServiceStartingState(
+                mContext, mRcsServiceControl, delay, new QueryRcsServiceStartingState.IListener() {
+
+                    @Override
+                    public void handleResponse(boolean serviceStarted) {
+                        if (serviceStarted) {
+                            if (LogUtils.isActive) {
+                                Log.d(LOGTAG, "RCS stack services are started: connect APIs");
+                            }
+                            /* Connect all APIs */
+                            for (RcsServiceName service : mApis.keySet()) {
+                                /* Check if not already connected */
+                                if (!isServiceConnected(service)) {
+                                    try {
+                                        RcsService rcsService = mApis.get(service);
+                                        rcsService.connect();
+                                    } catch (Exception e) {
+                                        if (LogUtils.isActive) {
+                                            Log.e(LOGTAG, "Cannot connect service ".concat(service
+                                                    .name()), e);
+                                        }
+                                        if (mElectedService == service) {
+                                            notifyImsDisconnection(RcsServiceRegistration.ReasonCode.CONNECTION_LOST);
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            if (LogUtils.isActive) {
+                                Log.w(LOGTAG, "RCS stack services are not started: launch pooling!");
+                            }
                             notifyImsDisconnection(RcsServiceRegistration.ReasonCode.CONNECTION_LOST);
+                            mPollingConnectionReceiver = getPollingConnectionReceiver();
+                            mContext.registerReceiver(mPollingConnectionReceiver, new IntentFilter(
+                                    ACTION_POOL_CONNECTION));
+                            retryPollingConnection();
                         }
                     }
-                }
-            }
-        } catch (RcsGenericException e) {
-            Log.e(LOGTAG, "Failed to check if RCS stack is activated!", e);
-            return;
-        }
-
+                });
+        queryRcsServiceStartingState.execute();
     }
 
     /**
@@ -421,6 +504,10 @@ public class ConnectionManager {
      */
     public boolean isServiceConnected(RcsServiceName... services) {
         for (RcsServiceName service : services) {
+            if (!mManagedServices.contains(service)) {
+                throw new IllegalArgumentException("Service " + service
+                        + " does not belong to set of managed services!");
+            }
             if (!mConnectedServices.contains(service)) {
                 return false;
             }
@@ -432,8 +519,8 @@ public class ConnectionManager {
      * Start monitoring the API connection by using a callback listener
      * 
      * @param activity the activity requesting to start monitoring the API connection
-     * @param listener
-     * @param services
+     * @param listener Listener to execute in case of connection event
+     * @param services services to monitor
      */
     public void startMonitorApiCnx(Activity activity, RcsServiceListener listener,
             RcsServiceName... services) {
@@ -618,6 +705,35 @@ public class ConnectionManager {
         notif.setContentTitle(title);
         notif.setContentText(message);
         return notif.build();
+    }
+
+    private BroadcastReceiver getPollingConnectionReceiver() {
+        return new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                new Thread() {
+                    public void run() {
+                        try {
+                            Log.d(LOGTAG, "Pool connection to RCS service APIs");
+                            connectApis(0);
+                        } catch (RuntimeException e) {
+                            /*
+                             * Intentionally catch runtime exceptions as else it will abruptly end
+                             * the thread and eventually bring the whole system down, which is not
+                             * intended.
+                             */
+                            Log.e(LOGTAG, "Failed to pool conection to RCS service!", e);
+                        }
+                    }
+                }.start();
+            }
+        };
+    }
+
+    private void retryPollingConnection() {
+        AlarmManager am = (AlarmManager) mContext.getSystemService(Context.ALARM_SERVICE);
+        am.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + CONNECTION_POOLING_PERIOD,
+                mPoolConnectionIntent);
     }
 
 }

@@ -211,15 +211,11 @@ public class OutgoingVideoSharing extends Activity implements VideoPlayerListene
      */
     private static final String SAVE_STARTED = "started";
 
-    /*
-     * (non-Javadoc)
-     * @see android.app.Activity#onCreate(android.os.Bundle)
-     */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mCnxManager = ConnectionManager.getInstance(this);
+        mCnxManager = ConnectionManager.getInstance();
 
         // Always on window
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

@@ -20,8 +20,8 @@ package com.orangelabs.rcs.ri.settings;
 
 import com.gsma.services.rcs.CommonServiceConfiguration;
 import com.gsma.services.rcs.CommonServiceConfiguration.MinimumBatteryLevel;
-import com.gsma.services.rcs.RcsGenericException;
 import com.gsma.services.rcs.RcsPermissionDeniedException;
+import com.gsma.services.rcs.RcsPersistentStorageException;
 import com.gsma.services.rcs.RcsServiceControl;
 import com.gsma.services.rcs.RcsServiceException;
 import com.gsma.services.rcs.RcsServiceListener;
@@ -97,11 +97,14 @@ public class SettingsDisplay extends PreferenceActivity implements
             boolean changeable;
             try {
                 changeable = mRcsServiceControl.isActivationModeChangeable();
-            } catch (RcsServiceException e) {
-                changeable = true;
+                enablePreferences(false);
+                initCheckbox(mRcsActivationCheckbox, false, changeable);
+            } catch (RcsPersistentStorageException e) {
+                Utils.displayToast(SettingsDisplay.this, "Failed to read stack provider", e);
+                enablePreferences(false);
+                initCheckbox(mRcsActivationCheckbox, false, false);
             }
-            enablePreferences(false);
-            initCheckbox(mRcsActivationCheckbox, false, changeable);
+
         }
     };
 
@@ -115,7 +118,7 @@ public class SettingsDisplay extends PreferenceActivity implements
         mBatteryLevel = (ListPreference) findPreference("min_battery_level");
 
         mRcsServiceControl = RiApplication.getRcsServiceControl();
-        mCnxManager = ConnectionManager.getInstance(this);
+        mCnxManager = ConnectionManager.getInstance();
     }
 
     @Override
@@ -216,8 +219,12 @@ public class SettingsDisplay extends PreferenceActivity implements
                                             Utils.showMessage(
                                                     SettingsDisplay.this,
                                                     getString(R.string.text_service_activate_unchangeable));
-                                        } catch (RcsGenericException e) {
-                                            e.printStackTrace();
+                                        } catch (RcsPersistentStorageException e) {
+                                            Utils.displayToast(SettingsDisplay.this,
+                                                    "Failed to read stack provider", e);
+                                            Utils.showMessage(
+                                                    SettingsDisplay.this,
+                                                    getString(R.string.text_service_activate_unchangeable));
                                         }
                                     }
                                 }).setCancelable(true).create();

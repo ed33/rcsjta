@@ -37,6 +37,8 @@ public class RcsApiProviderInstrumentationTestRunner extends InstrumentationTest
         suite.addTestSuite(VideoSharingLogTest.class);
         suite.addTestSuite(GroupDeliveryInfoLogTest.class);
         suite.addTestSuite(GeolocSharingLogTest.class);
+        suite.addTestSuite(RcsServiceControlLogTest.class);
+
         return suite;
     }
 

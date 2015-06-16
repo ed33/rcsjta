@@ -32,9 +32,9 @@ import com.gsma.rcs.provider.LocalContentResolver;
 import com.gsma.rcs.provider.settings.RcsSettings;
 import com.gsma.rcs.provider.settings.RcsSettingsData;
 import com.gsma.rcs.provider.settings.RcsSettingsData.ConfigurationMode;
-import com.gsma.rcs.provider.settings.RcsSettingsData.EnableRcseSwitch;
 import com.gsma.rcs.provider.settings.RcsSettingsData.FileTransferProtocol;
 import com.gsma.rcs.provider.settings.RcsSettingsData.NetworkAccessType;
+import com.gsma.services.rcs.RcsServiceControlLog.EnableRcseSwitch;
 
 import android.app.Activity;
 import android.os.Build;
