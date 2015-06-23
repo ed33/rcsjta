@@ -64,6 +64,7 @@ import com.gsma.rcs.core.ims.service.im.filetransfer.FileTransferUtils;
 import com.gsma.rcs.core.ims.service.im.filetransfer.ImsFileSharingSession;
 import com.gsma.rcs.core.ims.service.im.filetransfer.http.DownloadFromInviteFileSharingSession;
 import com.gsma.rcs.core.ims.service.im.filetransfer.http.FileTransferHttpInfoDocument;
+import com.gsma.rcs.core.ims.service.im.filetransfer.http.FileTransferHttpThumbnail;
 import com.gsma.rcs.core.ims.service.im.filetransfer.http.HttpFileTransferSession;
 import com.gsma.rcs.core.ims.service.im.filetransfer.http.OriginatingHttpFileSharingSession;
 import com.gsma.rcs.core.ims.service.im.filetransfer.http.OriginatingHttpGroupFileSharingSession;
@@ -211,7 +212,7 @@ public class InstantMessagingService extends ImsService {
         mImdnManager.start();
     }
 
-    private void handleFileTransferInvitationRejected(SipRequest invite, ContactId contact,
+    private void handleMsrpFileTransferInvitationRejected(SipRequest invite, ContactId contact,
             FileTransfer.ReasonCode reasonCode, long timestamp, long timestampSent)
             throws SipPayloadException {
         MmContent content = ContentManager.createMmContentFromSdp(invite, mRcsSettings);
@@ -808,7 +809,7 @@ public class InstantMessagingService extends ImsService {
                 sLogger.debug("Contact " + remote
                         + " is blocked: automatically reject the file transfer invitation");
             }
-            handleFileTransferInvitationRejected(invite, remote,
+            handleMsrpFileTransferInvitationRejected(invite, remote,
                     FileTransfer.ReasonCode.REJECTED_SPAM, timestamp, timestampSent);
 
             // Send a 603 Decline response
@@ -821,7 +822,7 @@ public class InstantMessagingService extends ImsService {
             if (logActivated) {
                 sLogger.debug("The max number of file transfer sessions is achieved: reject the invitation");
             }
-            handleFileTransferInvitationRejected(invite, remote,
+            handleMsrpFileTransferInvitationRejected(invite, remote,
                     FileTransfer.ReasonCode.REJECTED_MAX_FILE_TRANSFERS, timestamp, timestampSent);
 
             // Send a 603 Decline response
@@ -849,11 +850,11 @@ public class InstantMessagingService extends ImsService {
             int errorCode = error.getErrorCode();
             switch (errorCode) {
                 case FileSharingError.MEDIA_SIZE_TOO_BIG:
-                    handleFileTransferInvitationRejected(invite, remote,
+                    handleMsrpFileTransferInvitationRejected(invite, remote,
                             FileTransfer.ReasonCode.REJECTED_MAX_SIZE, timestamp, timestampSent);
                     break;
                 case FileSharingError.NOT_ENOUGH_STORAGE_SPACE:
-                    handleFileTransferInvitationRejected(invite, remote,
+                    handleMsrpFileTransferInvitationRejected(invite, remote,
                             FileTransfer.ReasonCode.REJECTED_LOW_SPACE, timestamp, timestampSent);
                     break;
                 default:
@@ -1429,7 +1430,7 @@ public class InstantMessagingService extends ImsService {
                         .toString());
             }
             sendErrorResponse(invite, Response.DECLINE);
-            handleFileTransferInvitationRejected(invite, remote,
+            handleHttpFileTransferInvitationRejected(invite, ftinfo, remote,
                     FileTransfer.ReasonCode.REJECTED_SPAM, timestamp, timestampSent);
             return;
 
@@ -1441,7 +1442,7 @@ public class InstantMessagingService extends ImsService {
             }
             // Send a 603 Decline response
             sendErrorResponse(invite, Response.DECLINE);
-            handleFileTransferInvitationRejected(invite, remote,
+            handleHttpFileTransferInvitationRejected(invite, ftinfo, remote,
                     FileTransfer.ReasonCode.REJECTED_MAX_FILE_TRANSFERS, timestamp, timestampSent);
             return;
         }
@@ -1458,11 +1459,11 @@ public class InstantMessagingService extends ImsService {
             int errorCode = error.getErrorCode();
             switch (errorCode) {
                 case FileSharingError.MEDIA_SIZE_TOO_BIG:
-                    handleFileTransferInvitationRejected(invite, remote,
+                    handleHttpFileTransferInvitationRejected(invite, ftinfo, remote,
                             FileTransfer.ReasonCode.REJECTED_MAX_SIZE, timestamp, timestampSent);
                     break;
                 case FileSharingError.NOT_ENOUGH_STORAGE_SPACE:
-                    handleFileTransferInvitationRejected(invite, remote,
+                    handleHttpFileTransferInvitationRejected(invite, ftinfo, remote,
                             FileTransfer.ReasonCode.REJECTED_LOW_SPACE, timestamp, timestampSent);
                     break;
                 default:
@@ -1489,7 +1490,7 @@ public class InstantMessagingService extends ImsService {
             } catch (IOException e) {
                 sLogger.error("Failed to download file icon", e);
                 sendErrorResponse(invite, Response.DECLINE);
-                handleFileTransferInvitationRejected(invite, remote,
+                handleHttpFileTransferInvitationRejected(invite, ftinfo, remote,
                         FileTransfer.ReasonCode.REJECTED_MEDIA_FAILED, timestamp, timestampSent);
                 return;
 
@@ -1501,6 +1502,18 @@ public class InstantMessagingService extends ImsService {
                 ftinfo.getExpiration());
         oneToOneChatSession.startSession();
         fileSharingSession.startSession();
+    }
+
+    private void handleHttpFileTransferInvitationRejected(SipRequest invite,
+            FileTransferHttpInfoDocument ftinfo, ContactId contact, FileTransfer.ReasonCode reason,
+            long timestamp, long timestampSent) throws SipPayloadException {
+        String fileTransferId = ChatUtils.getMessageId(invite);
+        MmContent fileContent = ftinfo.getLocalMmContent();
+        FileTransferHttpThumbnail thumbnail = ftinfo.getFileThumbnail();
+        MmContent fileIconContent = thumbnail == null ? null : thumbnail
+                .getLocalMmContent(fileTransferId);
+        mCore.getListener().handleFileTransferInvitationRejected(contact, fileContent,
+                fileIconContent, reason, timestamp, timestampSent);
     }
 
     /**
