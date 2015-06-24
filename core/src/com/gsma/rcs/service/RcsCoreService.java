@@ -31,7 +31,6 @@ import com.gsma.rcs.core.content.GeolocContent;
 import com.gsma.rcs.core.content.MmContent;
 import com.gsma.rcs.core.content.VideoContent;
 import com.gsma.rcs.core.ims.ImsError;
-import com.gsma.rcs.core.ims.protocol.msrp.MsrpException;
 import com.gsma.rcs.core.ims.protocol.sip.SipNetworkException;
 import com.gsma.rcs.core.ims.protocol.sip.SipPayloadException;
 import com.gsma.rcs.core.ims.service.capability.Capabilities;
@@ -729,10 +728,10 @@ public class RcsCoreService extends Service implements CoreListener {
 
     @Override
     public void handleCapabilitiesNotification(ContactId contact, Capabilities capabilities) {
-        if (sLogger.isActivated()) {
-            sLogger.debug("Handle capabilities update notification for " + contact + " ("
-                    + capabilities.toString() + ")");
-        }
+//        if (sLogger.isActivated()) {
+//            sLogger.debug("Handle capabilities update notification for " + contact + " ("
+//                    + capabilities.toString() + ")");
+//        }
 
         // Notify API
         mCapabilityApi.receiveCapabilities(contact, capabilities);
